@@ -51,6 +51,24 @@ os.mkdir(plotsDir)
 #os.chdir(plotsDir)
 
 
+
+# dict to create distinct and understandable csv/sql keys
+fields_dict = {
+	"packetid"	: "frame.number",
+	"ipsrc" : "ip.src",
+	"ipdst" : "ip.dst",
+	"srcport" : "tcp.srcport",
+	"streamid"	: "tcp.stream",
+	"dstport" 	: "tcp.dstport",
+	"sendtruncmac" : "tcp.options.mptcp.sendtruncmac",
+	"sendkey" : "tcp.options.mptcp.sendkey",
+	"recvkey" : "tcp.options.mptcp.recvkey",
+	"rcvtok"  : "tcp.options.mptcp.recvtok",
+	"datafin" : "tcp.options.mptcp.datafin.flag",
+	"subtype" : "tcp.options.mptcp.subtype",
+	"tcpflags" : "tcp.flags"
+}
+
 def get_subflow_csv_output_filename(id):
 	pass
 
@@ -64,9 +82,9 @@ def export_subflow_data(inputFilename, outputFilename, filter):
 	to enable TCP timestamps. This is disabled by default (for performance
 	optimization).
 	"""
-
+	pass
 	#"frame.time",
-	fields=("tcp.seq","tcp.ack","ip.src","ip.dst")
+	# fields=("tcp.seq","tcp.ack","ip.src","ip.dst")
 	# fields=' -e '.join(fields)
 
 	# # for some unknown reasons, -Y does not work so I use -2 -R instead
@@ -124,12 +142,15 @@ def export_all_subflows_data():
 	pass
 
 
-def run_tshark_command(inputFilename,fields,filter=None,outputFilename=None):
+def run_tshark_command(inputFilename,fields_to_export,filter=None,outputFilename=None):
 	"""
 	inputFilename should be pcap filename
 	fields should be iterable (tuple, list ...)
 	returns outout as a string
 	"""
+	def convert_into_tshark_field_list(fields):
+
+		return ' -e ' + ' -e '.join([ fields_dict[x] for x in fields ])
 	# fields that tshark should export
 	# tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
 	# exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
@@ -149,7 +170,7 @@ def run_tshark_command(inputFilename,fields,filter=None,outputFilename=None):
 	cmd="tshark -n {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator=, ".format(
 				inputPcap=inputFilename,
 				outputCsv=outputFilename,
-				fieldsExpanded=' -e ' + ' -e '.join(fields),
+				fieldsExpanded=convert_into_tshark_field_list(fields_to_export),
 				filterExpression=filter
 				)
 
@@ -167,14 +188,15 @@ def build_csv_header_from_list_of_fields(fields):
 	fields should be iterable
 	Returns "field0,field1,..."
 	"""
-	def strip_fields(fields):
-		return [ field.split('.')[-1] for field in fields ] 
-	return (','.join( strip_fields(fields)) + '\n'  ).encode()
+	# def strip_fields(fields):
+	# 	return [ field.split('.')[-1] for field in fields ] 
+	# return (','.join( strip_fields(fields)) + '\n'  ).encode()
+	return ','.join( fields ) + '\n'
 
 
 # replace DISTINCT by groupby
 # TODO rename to list master subflows
-def list_connections(inputPcap):
+def list_connections(db):
 	"""
 	Only supports ipv4 to simplify things
 	Returns 2 dictionaries of MPTCP connections: 
@@ -185,55 +207,75 @@ def list_connections(inputPcap):
 	# filter MP_CAPABLE and MP_JOIN suboptions
 	# or DATA_FIN (DSS <=> subtype 2)
 
-	filter=("ip.version==4 and ("
-			" (tcp.options.mptcp.subtype == 0 and tcp.options.mptcp.sendkey and tcp.options.mptcp.recvkey)"
-				" or (tcp.options.mptcp.subtype == 1 and tcp.options.mptcp.sendtruncmac)"
-				" or (tcp.options.mptcp.datafin.flag eq 1)"
-				")")
-	#or tcp.options.mptcp.subtype == 1
-	# todo export tokens "tcp.seq","tcp.ack","ip.addr",
-	# "frame.time",
-	# todo convert to a dict
-	# dict.keys()
-	# dict.items()
-	fields=("frame.number","ip.src","ip.dst","tcp.srcport",
-			"tcp.stream",
-			"tcp.dstport","tcp.options.mptcp.sendtruncmac",
-			"tcp.options.mptcp.sendkey","tcp.options.mptcp.recvkey",
-			"tcp.options.mptcp.recvtok",
-			"tcp.options.mptcp.datafin.flag","tcp.options.mptcp.subtype",
-			"tcp.flags"
-			)
-
-
-	output = build_csv_header_from_list_of_fields(fields)
-	print(output);
-	output += run_tshark_command(inputPcap,fields,filter)
-
-	# q.
-	# load this into a csv reader
-	# with
-	# could filter
-	with open("connections.csv","w") as f:
-		f.write(output.decode())
-
 	# print(output.decode('utf-8'))
-	convert_csv_to_sql("connections.csv","connect.sqlite","connections")
+	# convert_csv_to_sql("connections.csv","connect.sqlite","connections")
 	# exit()
 	 # input=initCommand.encode(),
 
-	con = sql.connect("connect.sqlite")
+	con = sql.connect(db)
 	con.row_factory = sql.Row
 	# cur = con.cursor();
 	# stream,src,dst,srcport,dstport should compute 
-	res = con.execute("SELECT DISTINCT * FROM connections WHERE subtype=0");
+	# TODO use GROUP BY instead of distinct ?
+	res = con.execute("SELECT DISTINCT * FROM connections WHERE subtype=0 GROUP BY ipsrc");
 	for row in res:
-		print("row", row["src"])
+		print("row", row["ipsrc"])
 	# log.info("command returned %d results"%cur.rowcount)
 
 
 # def run_query():
 
+def convert_pcap_to_sql(inputPcap,outputDb):
+
+
+
+	log.info("Converting pcap [{pcap}] to sqlite database [{db}]".format(
+			pcap=inputPcap,
+			db=outputDb
+		))
+
+	csv_filename = get_basename(outputDb, "csv")
+	convert_pcap_to_csv(inputPcap, csv_filename)
+
+	convert_csv_to_sql(csv_filename, outputDb, tableName)
+
+	# return out
+
+def get_basename( fullname, ext):
+	return  os.path.splitext(os.path.basename(fullname))[0] + "." + ext
+
+
+def convert_pcap_to_csv(inputPcap,outputCsv):
+	"""
+	"""
+	log.info("Converting pcap [{pcap}] to csv [{db}]".format(
+			pcap=inputPcap,
+			db=outputCsv
+		))
+
+
+
+	# TODO maybe convert that into an SQL request
+	filter=("ip.version==4 and ("
+			" (tcp.options.mptcp.subtype == 0 and tcp.options.mptcp.sendkey and tcp.options.mptcp.recvkey)"
+				" or (tcp.options.mptcp.subtype == 1 and tcp.options.mptcp.sendtruncmac)"
+				" or (tcp.options.mptcp.datafin.flag eq 1)"
+				")")
+
+
+	fields_to_export = ("packetid","ipsrc","ipdst","srcport","streamid",
+					"subtype","datafin","rcvtok","recvkey","sendkey"
+					)
+	output = build_csv_header_from_list_of_fields(fields_to_export).encode()
+	print(output);
+	output += run_tshark_command(inputPcap,fields_to_export,filter)
+
+	# q.
+	# load this into a csv reader
+	# with
+	# could filter
+	with open(outputCsv,"w") as f:
+		f.write(output.decode())
 
 # Ideally I would have liked to rely on some external library like
 # querycsv, csvkit etc... but they all seem broken in one way or another
@@ -301,9 +343,10 @@ def main():
 	
 	subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
 	
-	subparser_sql = subparsers.add_parser('tosql', help='List MPTCP connections and subflows',aliases=["t"])
+	# List MPTCP connections and subflows
+	subparser_sql = subparsers.add_parser('tosql', help='Tosql',aliases=["t"])
 	subparser_sql.add_argument('inputPcap', action="store", help="Input pcap")
-	subparser_sql.add_argument('db',  action="store", help="db filename")
+	subparser_sql.add_argument('output', nargs="?", action="store", help="db filename")
 
 	#parent
 	subparser_list = subparsers.add_parser('list', help='List MPTCP connections and subflows',aliases=["l"])
@@ -320,12 +363,17 @@ def main():
 
 	args = parser.parse_args( sys.argv[1:] )
 	if args.subparser_name == "list":
-		list_connections(args.inputPcap)
-		if(args.tosql):
-			convert_csv_to_sql( "connections.csv",args.tosql,"connections")
+		list_connections(args.db)
+		# if(args.tosql):
+		# 	convert_csv_to_sql( "connections.csv",args.tosql,"connections")
 
 	elif args.subparser_name == "query":
 		print("query")
+	elif args.subparser_name == "tosql":
+
+		inputFilename = args.inputPcap
+		outputFilename = get_basename(inputFilename, "sqlite")
+		convert_pcap_to_sql(inputFilename,outputFilename)
 	else:
 		parser.print_help()
 
