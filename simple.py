@@ -44,6 +44,8 @@ mptcpSeqCsv = "/home/teto/ns3/c2s_seq_0.csv"
 # where to save subflow statistics (into a CSV file)
 subflowSeqCsv = "/home/teto/subflowSeq.csv"
 tableName = "connections"
+# -o force an option, else we can set a profile like -C <profileName>
+tshark_exe = "~/wireshark/tshark"
 
 # first erase previous data
 if os.path.isdir(plotsDir):
@@ -57,10 +59,13 @@ os.mkdir(plotsDir)
 # dict to create distinct and understandable csv/sql keys
 fields_dict = {
     "packetid"  : "frame.number",
+    "time"  : "frame.time",
+    "time_delta"  : "frame.time_delta",
     "ipsrc" : "ip.src",
     "ipdst" : "ip.dst",
     "srcport" : "tcp.srcport",
-    "streamid"  : "tcp.stream",
+    "tcpstream"  : "tcp.stream",
+    "mptcpstream"  : "mptcp.stream", # tcp.options.
     "dstport"   : "tcp.dstport",
     
     "sendkey" : "tcp.options.mptcp.sendkey",
@@ -73,46 +78,36 @@ fields_dict = {
     # be careful this outputs subtype0,subtype1,... etc.. so it can introduce "," that 
     # prevents csv parsing if not correctly delimited
     "subtype" : "tcp.options.mptcp.subtype",
-    "tcpflags" : "tcp.flags"
+    "tcpflags" : "tcp.flags",
+    # mptcp level DATASEQ ...
+    "mapping_dsn" : "tcp.options.mptcp.dataseqno",
+    # ... mapped to subflow level seq
+    "mapping_ssn" : "tcp.options.mptcp.subflowseqno",
+    "mapping_length" : "tcp.options.mptcp.datalvllen",
+    # converts SSN to DSN
+    "ssn_to_dsn" : "tcp.options.mptcp.seq2dsn",
+    "master" : "tcp.options.mptcp.master",
+    "tcpseq" : "tcp.seq",
+    "unmapped" : "tcp.options.mptcp.unmapped",
 }
 
-def get_subflow_csv_output_filename(id):
-    pass
 
+fields_to_export = ("packetid","time_delta",
+                #"ipsrc","ipdst","srcport",
+                "tcpstream","mptcpstream",
+                "subtype",
+                # "datafin",
+                # "recvtok","sendtruncmac",
+                "recvkey","sendkey",
+                "tcpseq",
+                "mapping_ssn",
+                # "mapping_length",
+                # "mapping_dsn",
+                "ssn_to_dsn",
+                # "unmapped",
+                # "master"
+                )
 
-def export_subflow_data(inputFilename, outputFilename, filter):
-    """
-    return 
-    
-    In order to be able to use tcp.time_relative and tcp.time_delta, you will
-    need
-    to enable TCP timestamps. This is disabled by default (for performance
-    optimization).
-    """
-    pass
-    #"frame.time",
-    # fields=("tcp.seq","tcp.ack","ip.src","ip.dst")
-    # fields=' -e '.join(fields)
-
-    # # for some unknown reasons, -Y does not work so I use -2 -R instead
-    # # -E quote=d 
-    # cmd="tshark -2 -R '{filterExpression}' -r {inputPcap} -T fields {fieldsExpanded} -E separator=,   > {outputCsv}".format(
-    #           inputPcap=inputFilename,
-    #           outputCsv=outputFilename,
-    #           fieldsExpanded=fields,
-    #           filterExpression=filter
-    #           )
-    # run_tshark_command();
-    # log.info(cmd)
-    # output = subprocess.check_output(cmd);
-    # os.system(cmd)
-    # return output
-
-    # tshark -r test.pcap -T fields -e frame.number -e eth.src -e eth.dst -e ip.src -e ip.dst -e frame.len > test1.csv
-
-# all the args sys.argv[1:]
-# for now let's assume it is run by hand
-#os.system("mptcptrace ")
 
 def export_all_subflows_data():
     # # find all connections in that (ideally enabled via -l)
@@ -123,15 +118,6 @@ def export_all_subflows_data():
     #   subflowReader = csv.DictReader(csvfile, delimiter=',')
     #   for id,subflow in enumerate(subflowReader):
     #       #print(subflow)
-    #       # this is a 2 way filter
-    #       filter="ip.addr eq {ipSrc} and ip.addr eq {ipDst} and tcp.port eq {srcPort} and tcp.port eq {dstPort}".format(
-    #               ipSrc=subflow["saddr"],
-    #               ipDst=subflow["daddr"],
-    #               srcPort=subflow["sport"],
-    #               dstPort=subflow["dport"]
-    #           )
-    #       # print("filter\n",filter)
-            
     #       export_subflow_data(inputPcap,subflowSeqCsv,filter)
     #       # todo filter from tshark
             
@@ -148,8 +134,8 @@ def export_all_subflows_data():
     # os.system(cmd)
     pass
 
-
-def run_tshark_command(inputFilename,fields_to_export,filter=None,outputFilename=None):
+#tshark export_fields
+def tshark_export_fields(inputFilename,fields_to_export,filter=None,outputFilename=None,relative_sequence_numbers=True):
     """
     inputFilename should be pcap filename
     fields should be iterable (tuple, list ...)
@@ -161,20 +147,18 @@ def run_tshark_command(inputFilename,fields_to_export,filter=None,outputFilename
     # fields that tshark should export
     # tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
     # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
-    #"tcp.seq",
-    # tcp.options.mptcp.mptcpsubflowseqno
-    # tcp.options.mptcp.dataseqno
-    # tcp.options.mptcp.dataack
-    # tcp.options.mptcp.datalvllen
     # tcp.options.mptcp.subtype == 2 => DSS (0 => MP-CAPABLE)
     # to filter connection
-    # fields=("frame.time","tcp.seq","tcp.ack","ip.src","ip.dst")
-    # fieldsExpanded=' -e '.join(fields)
-    # .'"' 
     filter = '-2 -R "%s"'%(filter) if filter else ''
+
+
+    options = ' -o tcp.relative_sequence_numbers:TRUE' if relative_sequence_numbers else ''
+
     # for some unknown reasons, -Y does not work so I use -2 -R instead
     # 
-    cmd="tshark -n {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator=, -E quote=d ".format(
+    cmd="{tsharkBinary} {tsharkOptions} -n {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator=, -E quote=d ".format(
+                tsharkBinary=tshark_exe,
+                tsharkOptions=options,
                 inputPcap=inputFilename,
                 outputCsv=outputFilename,
                 fieldsExpanded=convert_into_tshark_field_list(fields_to_export),
@@ -257,41 +241,7 @@ def list_subflows( db):
     # for con in mptcp_connections:
     return res;
 
-    # pass
 
-def dump_mptcp_connection(con):
-    def dump_subflows(subflows):
-        return subflows
-    print(" sendkey", con["sendkey"], "recvkey", con['recvkey'], " subflows", dump_subflows(con["subflows"]))
-
-
-
-def get_digest_for_key(key):
-
-    m = hashlib.sha1() 
-    # u have to feed with bytes .update like b"Nobody inspects")
-    m.update(key.encode())
-    print( "digest size", m.digest_size )
-    return m.digest()
-
-
-def get_mptcp_connection_by_hash():
-    pass
-
-# TODO move to outer file ?
-# class MptcpConnection:
-#     def __init__(self,sendkey,recvkey):
-#         self.sendkey = sendkey
-#         self.recvkey = recvkey
-
-#     def dump(self):
-# MptcpSubflow()
-# def __init__():
-# is_master
-# ipsrc
-# ipdst
-# srcport
-# dstport
 
 def list_mptcp_connections(db):
     mptcp_connections = []
@@ -306,19 +256,7 @@ def list_mptcp_connections(db):
 
     # map subflows to their respective master connection
     for row in subflows:
-        # subflows
-        print("recv token" , row["recvtok"])
-        token = row["recvtok"]
-        for con in master_subflows:
-            print( "key type", type( int(con["sendkey"])) )
-            d1 = get_digest_for_key(con["sendkey"])
-            d2 = get_digest_for_key(con["recvkey"])
-            print( token, "/", d1,"/",d2 )
-
-            # print(  )
-            if token == d1 or token == d2:
-                # ...
-                print( " ======================== found !!")
+        pass
 
 # def run_query():
 # receiver token 3217261719
@@ -343,7 +281,7 @@ def get_basename( fullname, ext):
     return  os.path.splitext(os.path.basename(fullname))[0] + "." + ext
 
 
-def convert_pcap_to_csv(inputPcap,outputCsv):
+def convert_pcap_to_csv(inputPcap,outputCsv,tcp_relative_seq=True):
     """
     """
     log.info("Converting pcap [{pcap}] to csv [{db}]".format(
@@ -355,24 +293,19 @@ def convert_pcap_to_csv(inputPcap,outputCsv):
 
     # TODO should export everything along with TCP acks
     # ands convert some parts of the filter into an SQL request
-    filter=("ip.version==4 and ("
-            " (tcp.options.mptcp.subtype == 0 and tcp.options.mptcp.sendkey and tcp.options.mptcp.recvkey)"
-                " or (tcp.options.mptcp.subtype == 1 and tcp.options.mptcp.recvtok)"
-                " or (tcp.options.mptcp.datafin.flag eq 1)"
-                ")")
+    filter="mptcp.stream == 0"
 
 
-    fields_to_export = ("packetid","ipsrc","ipdst","srcport","streamid",
-                    "subtype","datafin","recvtok","sendtruncmac","recvkey","sendkey"
-                    )
+
     output = build_csv_header_from_list_of_fields(fields_to_export).encode()
     print(output);
-    output += run_tshark_command(inputPcap,fields_to_export,filter)
+    output += tshark_export_fields(inputPcap,fields_to_export,filter)
 
     # q.
     # load this into a csv reader
     # with
     # could filter
+    log.info("Writing to file")
     with open(outputCsv,"w") as f:
         f.write(output.decode())
 
@@ -426,9 +359,6 @@ def convert_csv_to_sql(csv_filename,database,table_name):
     output = subprocess.check_output(  cmd ,input=".exit".encode(), shell=True)
     
 
-def save_to_file():
-    pass
-
 
 def main():
 
@@ -445,9 +375,15 @@ def main():
     
     subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
     
+    subparser_csv = subparsers.add_parser('pcap2csv', help='To csv')
+    subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
+    subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
+    subparser_csv.add_argument('--relative', action="store", help="set to export relative TCP seq number")
+
+
     # List MPTCP connections and subflows
-    subparser_sql = subparsers.add_parser('tosql', help='Tosql',aliases=["t"])
-    subparser_sql.add_argument('inputPcap', action="store", help="Input pcap")
+    subparser_sql = subparsers.add_parser('csv2sql', help='Tosql')
+    subparser_sql.add_argument('inputCsv', action="store", help="Input Csv")
     subparser_sql.add_argument('output', nargs="?", action="store", help="db filename")
 
     #parent
@@ -476,8 +412,11 @@ def main():
 
     elif args.subparser_name == "query":
         print("query")
-    elif args.subparser_name == "tosql":
-
+    elif args.subparser_name == "pcap2csv":
+        inputFilename = args.inputPcap
+        outputFilename = args.output if args.output else get_basename(inputFilename, "csv")
+        convert_pcap_to_csv(inputFilename,outputFilename,args.relative)
+    elif args.subparser_name == "csv2sql":
         inputFilename = args.inputPcap
         outputFilename = get_basename(inputFilename, "sqlite")
         convert_pcap_to_sql(inputFilename,outputFilename)
