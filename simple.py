@@ -45,7 +45,7 @@ mptcpSeqCsv = "/home/teto/ns3/c2s_seq_0.csv"
 subflowSeqCsv = "/home/teto/subflowSeq.csv"
 tableName = "connections"
 # -o force an option, else we can set a profile like -C <profileName>
-tshark_exe = "~/wireshark/tshark"
+tshark_exe = "~/wireshark/release/tshark"
 
 # first erase previous data
 if os.path.isdir(plotsDir):
@@ -423,7 +423,7 @@ def main():
     else:
         parser.print_help()
 
-
+#plot dsn
 
 if __name__ == '__main__':
     main()
