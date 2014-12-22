@@ -1,0 +1,265 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import logging
+import os
+import subprocess
+import sqlite3 as sql
+
+# from core import get_basename
+from mptcpanalyzer.core import build_csv_header_from_list_of_fields, get_basename 
+from mptcpanalyzer import fields_dict
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+
+class TsharkExporter(object):
+
+    input_pcap = ""
+    tshark_bin = None
+    tcp_relative_seq = True
+
+    # TODO should be settable
+    filter = "mptcp.stream"
+
+    # TODO should be settable
+    fields_to_export = ("packetid", 
+                        "time_delta",
+                        #"ipsrc","ipdst","srcport",
+                        "tcpstream", "mptcpstream",
+                        "subtype",
+                        # "datafin",
+                        # "recvtok","sendtruncmac",
+                        "recvkey", "sendkey",
+                        "tcpseq",
+                        "mapping_ssn",
+                        # "mapping_length",
+                        # "mapping_dsn",
+                        "ssn_to_dsn",
+                        # "unmapped",
+                        # "master"
+                        )
+
+    def __init__(self, tshark_bin):
+        self.tshark_bin = tshark_bin
+        pass
+
+
+    def export_pcap_to_csv(self, inputPcap, outputCsv):
+        """
+        """
+        log.info("Converting pcap [{pcap}] to csv [{db}]".format(pcap=inputPcap,
+                                                                 db=outputCsv))
+
+        # TODO should export everything along with TCP acks
+        # TODO should accept a filter mptcp stream etc...
+        # ands convert some parts of the filter into an SQL request
+
+        output = build_csv_header_from_list_of_fields(self.fields_to_export).encode()
+        print(output)
+        output += tshark_export_fields(inputPcap, fields_to_export, filter)
+
+        # q.
+        # load this into a csv reader
+        # with
+        # could filter
+        log.info("Writing to file")
+        with open(outputCsv, "w") as f:
+            f.write(output.decode())
+
+    def export_pcap_to_sql(self, inputPcap, outputDb):
+        """
+        """
+
+        log.info("Converting pcap [{pcap}] to sqlite database [{db}]".format(
+                pcap=inputPcap,
+                db=outputDb
+            ))
+
+        csv_filename = get_basename(outputDb, "csv")
+        self.convert_pcap_to_csv(inputPcap, csv_filename)
+
+        convert_csv_to_sql(csv_filename, outputDb, table_name)
+
+
+
+#tshark export_fields
+def tshark_export_fields(self, inputFilename,
+                         outputFilename=None):
+    """
+    inputFilename should be pcap filename
+    fields should be iterable (tuple, list ...)
+    returns outout as a string
+    """
+    def convert_into_tshark_field_list(fields):
+        return ' -e '+' -e '.join([ fields_dict[x] for x in fields ])
+    # fields that tshark should export
+    # tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
+    # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
+    # tcp.options.mptcp.subtype == 2 => DSS (0 => MP-CAPABLE)
+    # to filter connection
+    filter = '-2 -R "%s"' % (filter) if filter else ''
+
+    options = ' -o tcp.relative_sequence_numbers:TRUE' if self.relative_sequence_numbers else ''
+
+    # for some unknown reasons, -Y does not work so I use -2 -R instead
+    # 
+    cmd = """
+        {tsharkBinary} {tsharkOptions} -n {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator=, -E quote=d """.format(
+                tsharkBinary=tshark_exe,
+                tsharkOptions=options,
+                inputPcap=inputFilename,
+                outputCsv=outputFilename,
+                fieldsExpanded=convert_into_tshark_field_list(fields_to_export),
+                filterExpression=filter,
+                )
+
+    log.info(cmd)
+
+    #https://docs.python.org/3/library/subprocess.html#subprocess.check_output
+    output = subprocess.check_output(cmd, shell=True)
+    # os.system(cmd)
+    # except CalledProcessError as e:
+    return output
+
+
+
+
+
+
+
+
+    # return out
+
+
+# Ideally I would have liked to rely on some external library like
+# querycsv, csvkit etc... but they all seem broken in one way or another
+# https://docs.python.org/3.4/library/sqlite3.html
+def convert_csv_to_sql(csv_filename, database, table_name):
+    # sqlite3
+    # 
+    # > .separator ","
+    # > .import test.csv TEST
+    """
+    csv_filename
+    csv_content should be a string
+    Then you can run SQL commands via SQLite Manager (firefox addo 
+    """
+
+    log.info("Converting csv to sqlite table {table} into {db}".format(
+            table=table_name,
+            db=database
+        ))
+    # db = sqlite.connect(database)
+    # csv_filename
+    initCommand = """
+                DROP TABLE IF EXISTS {table};
+                .separator '{separator}'
+                .import {csvFile} {table}
+                """.format(separator=",",
+                           csvFile=csv_filename,
+                           table=table_name)
+    # initCommand=
+    #     "DROP TABLE IF EXISTS {table};\n"
+    #     ".separator '{separator}'\n"
+            
+    #         ".import {csvFile} {table}\n").format(
+    #         separator=",",
+    #         csvFile=csv_filename,
+    #         table=table_name
+    #         )
+
+    log.info("Creating %s" % tempInitFilename)
+    with open(tempInitFilename, "w+") as f:
+        f.write(initCommand)
+
+    # interactive, run pu it into /tmp
+    cmd = "sqlite3 -init {initFilename} {db}".format(
+        initFilename=tempInitFilename,
+        db=database
+        )
+
+    # cmd="sqlite3"
+    # tempInitFilename      
+    log.info("Running command:\n%s" % cmd)
+    # input=initCommand.encode(),
+    output = subprocess.check_output(cmd, 
+                                     input=".exit".encode(),
+                                     shell=True)
+    return output
+
+# replace DISTINCT by groupby
+# TODO rename to list master subflows
+def list_master_subflows(db):
+    """
+    Only supports ipv4 to simplify things
+    Returns 2 dictionaries of MPTCP connections: 
+        - saw start and end of connection
+        - only saw the start
+    Fields should be iterable
+    """
+    # filter MP_CAPABLE and MP_JOIN suboptions
+    # or DATA_FIN (DSS <=> subtype 2)
+
+    # print(output.decode('utf-8'))
+    # convert_csv_to_sql("connections.csv","connect.sqlite","connections")
+    # exit()
+    # input=initCommand.encode(),
+    mptcp_con = []  # dict({})
+    con = sql.connect(db)
+    con.row_factory = sql.Row
+    # cur = con.cursor();
+    # stream,src,dst,srcport,dstport should compute 
+    # TODO use GROUP BY instead of distinct ?
+    # TODO order by time
+    req = "SELECT * FROM connections WHERE sendkey != '' and recvkey != '' GROUP BY streamid"
+    res = con.execute(req)
+
+    for row in res:
+        mptcp_con.append( 
+            dict({
+                "recvkey" : row['recvkey'],
+                "sendkey" : row['sendkey'],
+                "subflows" : [ row['streamid'] ]
+            })
+            
+            )
+        print("tcp stream ", row['streamid'], " sendkey", row["sendkey"],"recvkey", row["recvkey"])
+        # mptcp_con
+
+    return mptcp_con
+    # log.info("command returned %d results"%cur.rowcount)
+
+# #mptcp_connections,
+# def list_subflows(db):
+#     """
+#     """
+#     sql_con = sql.connect(db)
+#     sql_con.row_factory = sql.Row
+
+#     # filter MP_JOIN with SYN ONLY
+#     # get token 
+#     res = sql_con.execute("SELECT * FROM connections WHERE recvtok != '' GROUP BY streamid");
+#     # 
+#     # for con in mptcp_connections:
+#     return res;
+
+def export_connection_to_(db, mptcp_stream):
+    """
+    Retrieves
+    """
+
+# def list_mptcp_connections(db):
+#     mptcp_connections = []
+#     master_subflows = list_master_subflows(db)
+#     #master_subflows
+#     subflows = list_subflows ( db)
+
+#     # map subflows to their respective master connection
+#     # use .items() to loop through a dict
+#     # for con in master_subflows:
+#     #     dump_mptcp_connection(con)
+
+#     # map subflows to their respective master connection
+#     for row in subflows:
+#         pass
