@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+from mptcpanalyzer.core import get_column_id
+import sys
+
+idx = get_column_id (sys.argv[1])
+if idx < 0:
+	sys.exit(-1)
+print(idx+1)
+sys.exit(0)

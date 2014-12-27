@@ -26,13 +26,12 @@ import subprocess
 import logging
 import sys
 from mptcpanalyzer import fields_dict, get_basename
-
 # import sqlite3 as sql
-
 # from core import
-from sqlite_helpers import convert_csv_to_sql, convert_pcap_to_sql
+from sqlite_helpers import TsharkExporter
+#, convert_csv_to_sql
 
-log = logging.getLogger("analyzer")
+log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 # FileHandler
 log.addHandler(logging.StreamHandler())
@@ -57,7 +56,7 @@ tshark_exe = "~/wireshark/release/tshark"
 # os.mkdir(plotsDir)
 #os.chdir(plotsDir)
 
-exporter = TsharkExporter(tshark_exe)
+
 
 
 def export_all_subflows_data():
@@ -87,15 +86,36 @@ def export_all_subflows_data():
 
 
 
+# if I use csvfix, I will need the following functions:
+# - fix
+# - file_split
+# - sort 
+# - write_multi
 
+# use -o flag to output to a file
 
+# le sort a l'air de bien marcher, dmg qu'il ne presse
+# le mptcpstream exporte a l'air d'etre le numero du stream parent ?
+# (ou bien en fait certains numéros sont attribués puis 
+# ensuite enlevés quand ils sont rattachés a une autre connexion)
+# Example
+# csvfix sort -rh -f 1:AN <CSV>
+# (AN => Ascending Numerically) , -rh (read header)
 
+# csvfix find -f 4 -r 0:0 test.csv (-r => range)
 
+# mptcpstream
+# csvfix write_multi
 
+# csvfix write_multi -m 1,2 -rs '\n\n' -smq > test_multi.csv
+# 
 def main():
+
+    exporter = TsharkExporter(tshark_exe)
 
     # https://docs.python.org/3/library/argparse.html#module-argparse
     parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
+    parser.add_argument('--relative', action="store", default=False, help="set to export relative TCP seq number")
 
     # readconfigFromFile
     #argparse.FileType('r')
@@ -108,7 +128,6 @@ def main():
     subparser_csv = subparsers.add_parser('pcap2csv', help='Converts pcap to a csv file')
     subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
     subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
-    subparser_csv.add_argument('--relative', action="store", help="set to export relative TCP seq number")
 
     # List MPTCP connections and subflows
     sp_csv2sql = subparsers.add_parser('csv2sql', help='Imports csv file to an sqlite database')
@@ -145,18 +164,22 @@ def main():
 
     # elif args.subparser_name == "query":
     #     print("query")
+
+    inputFilename = args.inputPcap
+    exporter.tcp_relative_seq = args.relative if args.relative else True
+
     if args.subparser_name == "pcap2csv":
-        inputFilename = args.inputPcap
+        
         outputFilename = args.output if args.output else get_basename(inputFilename, "csv")
-        convert_pcap_to_csv(inputFilename, outputFilename, args.relative)
-    elif args.subparser_name == "csv2sql":
-        inputFilename = args.inputPcap
-        outputFilename = get_basename(inputFilename, "sqlite")
-        convert_csv_to_sql(inputFilename, outputFilename)
+        exporter.export_pcap_to_csv(inputFilename, outputFilename )
+    # elif args.subparser_name == "csv2sql":
+    #     inputFilename = args.inputPcap
+    #     outputFilename = get_basename(inputFilename, "sqlite")
+    #     convert_csv_to_sql(inputFilename, outputFilename)
     elif args.subparser_name == "pcap2sql":
-        inputFilename = args.inputPcap
+        # inputFilename = args.inputPcap
         outputFilename = get_basename(inputFilename, "sqlite")
-        convert_pcap_to_sql(inputFilename, outputFilename)
+        exporter.export_pcap_to_sql(inputFilename, outputFilename)
     else:
         parser.print_help()
 

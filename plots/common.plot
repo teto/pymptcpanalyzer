@@ -15,6 +15,7 @@ set terminal mattTerminal
 
 # Places of the legend
 set key right top
+#set key autotitle columnhead
 
 #set xdata time
 #set timefmt "%d%m%H%M"
@@ -45,4 +46,16 @@ set ytics font ",16"
 set key font ",14"
 
 
-set datafile separator "," 
+set datafile separator "|" 
+
+set style line 1 lt 1 lw 2
+set style line 2 lt 3 lw 2
+
+set style arrow 1 head filled size screen 0.025,30,45 ls 1
+set style arrow 2 head nofilled size screen 0.03,15 ls 2
+set style arrow 3 head filled size screen 0.03,15,45 ls 1
+set style arrow 4 head filled size screen 0.03,15 ls 2
+set style arrow 5 heads noborder size screen 0.03,15,135 ls 1
+set style arrow 6 head empty size screen 0.03,15,135 ls 2
+set style arrow 7 nohead ls 1
+

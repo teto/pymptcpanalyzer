@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from pkgutil import extend_path
 
-from mptcpanalyzer.core import get_basename
+# from mptcpanalyzer.core import get_basename
 import logging
 import os
 
@@ -15,6 +15,9 @@ h = logging.FileHandler("mptcpanalyzer" + str(os.getpid()), delay=True)
 logger = logging.getLogger(__name__)
 logger.addHandler(h)
 logger.setLevel(logging.CRITICAL)
+
+def get_basename(fullname, ext):
+    return os.path.splitext(os.path.basename(fullname))[0] + "." + ext
 
 
 # status.run()
@@ -52,6 +55,27 @@ fields_dict = {
     "unmapped": "tcp.options.mptcp.unmapped",
 }
 
+
+# TODO should be settable
+fields_to_export = ("packetid", 
+                    "time_delta",
+                    #"ipsrc","ipdst","srcport",
+                    "mptcpstream",
+                    "tcpstream", 
+                    "subtype",
+                    # "datafin",
+                    # "recvtok","sendtruncmac",
+                    "recvkey", "sendkey",
+                    "tcpseq",
+                    "mapping_ssn",
+                    "mapping_length",
+                    "mapping_dsn",
+                    "ssn_to_dsn",
+                    # "unmapped",
+                    # "master"
+                    )
+
+
 plotsDir = "plots"
 
 table_name = "connections"
@@ -64,4 +88,5 @@ __all__ = [
     "fields_dict",
     "table_name",
     "get_basename",
+    fields_to_export,
 ]

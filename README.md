@@ -9,6 +9,11 @@ To ease their use, scripts should follow some guidelines:
 Gnuplot accepts multiple datasets from one
 
 
+columnheader
+
+One can retrieve the number of blocks via the stats  command
+http://stackoverflow.com/questions/14823477/how-to-count-the-number-of-indicies-in-a-gnuplot-input-file
+
 Apparently there is a stat package in gnuplot
 http://www.gnuplotting.org/manpage-gnuplot-4-6/
 
