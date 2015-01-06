@@ -28,7 +28,7 @@ import sys
 from mptcpanalyzer import fields_dict, get_basename
 # import sqlite3 as sql
 # from core import
-from sqlite_helpers import TsharkExporter
+from mptcpanalyzer.tshark import TsharkExporter
 #, convert_csv_to_sql
 
 log = logging.getLogger(__name__)
@@ -48,14 +48,6 @@ log.addHandler(logging.StreamHandler())
 # todo should be able to 
 # -o force an option, else we can set a profile like -C <profileName>
 tshark_exe = "~/wireshark/release/tshark"
-
-# first erase previous data
-# if os.path.isdir(plotsDir):
-#     shutil.rmtree(plotsDir)
-
-# os.mkdir(plotsDir)
-#os.chdir(plotsDir)
-
 
 
 
@@ -85,37 +77,17 @@ def export_all_subflows_data():
     pass
 
 
-
-# if I use csvfix, I will need the following functions:
-# - fix
-# - file_split
-# - sort 
-# - write_multi
-
-# use -o flag to output to a file
-
-# le sort a l'air de bien marcher, dmg qu'il ne presse
-# le mptcpstream exporte a l'air d'etre le numero du stream parent ?
-# (ou bien en fait certains numéros sont attribués puis 
-# ensuite enlevés quand ils sont rattachés a une autre connexion)
-# Example
-# csvfix sort -rh -f 1:AN <CSV>
-# (AN => Ascending Numerically) , -rh (read header)
-
-# csvfix find -f 4 -r 0:0 test.csv (-r => range)
-
-# mptcpstream
-# csvfix write_multi
-
-# csvfix write_multi -m 1,2 -rs '\n\n' -smq > test_multi.csv
-# 
 def main():
 
-    exporter = TsharkExporter(tshark_exe)
-
     # https://docs.python.org/3/library/argparse.html#module-argparse
-    parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
+    # http://tricksntweaks.blogspot.be/2013/05/advance-argument-parsing-in-python.html
+    parser = argparse.ArgumentParser(
+        description='Generate MPTCP stats & plots',
+        fromfile_prefix_char='@',
+    )
     parser.add_argument('--relative', action="store", default=False, help="set to export relative TCP seq number")
+    parser.add_argument('--tshark', dest="tshark_exe", action="store", default="/usr/bin/wireshark", type=argparse.FileType('r'), help="Path to shark binary")
+    # parser.add_argument('--config', action="store", default=False, help="Can load config from file")
 
     # readconfigFromFile
     #argparse.FileType('r')
@@ -123,9 +95,14 @@ def main():
 
     # parser.add_argument('inputPcap', action="store", help="src IP")
 
+    pcap_parser = argparse.ArgumentParser(
+        description='Expecting pcap file as input'
+    )
+    pcap_parser.add_argument('inputPcap', action="store", help="Input pcap")
+
     subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
 
-    subparser_csv = subparsers.add_parser('pcap2csv', help='Converts pcap to a csv file')
+    subparser_csv = subparsers.add_parser('pcap2csv', parents=[pcap_parser], help='Converts pcap to a csv file')
     subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
     subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
 
@@ -150,12 +127,6 @@ def main():
     # subparser_plot = subparsers.add_parser('plot', help='Run an SQL query',aliases=["q"])
     # subparser_plot.add_argument('connectionCsv', action="store", help="Csv file that describes connection")
 
-    # subparser_plot.add_argument('type', action="store", choices=["seq"], help="type of plot")
-
-    # parser.add_argument('srcIp', action="store", help="src IP")
-    # parser.add_argument('dstIp', action="store", help="dst IP" ) 
-    # parser.add_argument('--nat', action="store", help="world") #nat_parser.print_help() )
-
     args = parser.parse_args(sys.argv[1:])
     # if args.subparser_name == "list":
     #     list_mptcp_connections(args.db)
@@ -165,19 +136,19 @@ def main():
     # elif args.subparser_name == "query":
     #     print("query")
 
-    inputFilename = args.inputPcap
+    exporter = TsharkExporter(tshark_exe)
     exporter.tcp_relative_seq = args.relative if args.relative else True
 
     if args.subparser_name == "pcap2csv":
-        
+        inputFilename = args.inputPcap
         outputFilename = args.output if args.output else get_basename(inputFilename, "csv")
-        exporter.export_pcap_to_csv(inputFilename, outputFilename )
+        exporter.export_pcap_to_csv(inputFilename, outputFilename)
     # elif args.subparser_name == "csv2sql":
     #     inputFilename = args.inputPcap
     #     outputFilename = get_basename(inputFilename, "sqlite")
     #     convert_csv_to_sql(inputFilename, outputFilename)
     elif args.subparser_name == "pcap2sql":
-        # inputFilename = args.inputPcap
+        inputFilename = args.inputPcap
         outputFilename = get_basename(inputFilename, "sqlite")
         exporter.export_pcap_to_sql(inputFilename, outputFilename)
     else:
