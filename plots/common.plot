@@ -59,7 +59,9 @@ set datafile separator "|"
 set style line 1 lt 1 lw 2
 set style line 2 lt 3 lw 2
 
-set style arrow 1 head filled size screen 0.025,30,45 ls 1
+# set style arrow 0 head filled size screen 0.025,30,45 ls 1
+set style arrow 1 head filled size screen 0.03,15 ls 2
+set style arrow 4 head filled size screen 0.025,30,45 ls 1
 set style arrow 2 head nofilled size screen 0.03,15 ls 2
 set style arrow 3 head filled size screen 0.03,15,45 ls 1
 set style arrow 4 head filled size screen 0.03,15 ls 2

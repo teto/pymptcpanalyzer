@@ -3,12 +3,12 @@
 import logging
 import csv
 import tempfile
-import subprocess
+# import subprocess
 import sqlite3 as sql
 
 # from core import get_basename
 from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
-from mptcpanalyzer import fields_dict, fields_to_export, get_basename
+# from mptcpanalyzer import get_basename
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -38,43 +38,49 @@ class MpTcpDatabase:
     # # req = "SELECT * FROM connections WHERE sendkey != '' and recvkey != '' GROUP BY streamid"
     #     return self.cursor.execute(query)
 
-    def _plot_subflow_info(self, tcpstream):
+    def _plot_subflow_mappings(self, tcpstream):
         """
+        mapping_length = 1 may be because of DATAFINs (that may have mapping length)
         """
-        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? AND mapping_length > 0 ORDER BY packetid", (str(tcpstream)))
+        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? AND mapping_length > 0 ORDER BY packetid", (tcpstream,))
 
         for row in res:
             # print(row.keys())
             yield row
 
     def plot_subflows_as_datasets(self, mptcp_stream):
-        # or "ORDER BY"
+        """
+        TODO: should return a summary:
+        - for each stream, number of records
+        """
 
         # TODO first write header ?
-        print("fields to export:\n", fields_to_export)
+        # print("fields to export:\n", fields_to_export)
         # with open("test.dat", "w+") as f:
         with tempfile.NamedTemporaryFile("w+", prefix="plot", delete=False) as f:
             # extrasaction
             writer = csv.writer(f, delimiter='|')
             # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
             # write header
-            f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
+            # TODO retrieve names of the entry from SQLITE !
+            # f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
 
             # # subflow %s\n" % str(tcpstream)
-
+            nb_records = 0
             for tcpstream in self.list_subflows(mptcp_stream):
-
-                for i in self._plot_subflow_info(tcpstream):
-                    writer.writerow(i)
+                print("tcpstream", tcpstream)
+                # in conjunction with column header, could set pot titles
+                # f.write("tcpstream")
+                for row in self._plot_subflow_mappings(tcpstream):
+                    if nb_records == 0:
+                        fields_to_export = row.keys()                        
+                        f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
+                    writer.writerow(row)
+                    nb_records = nb_records + 1
                 # TODO separate datasets; give title
                 # TODO it conditionnally
                 f.write("\n\n")
-                    # writer.writerows(res)
-                # # if row["tcpstream"] != saved:
-                #     for key in row.keys():
-
-                #     print(dir(row))
-                    # f.write(row[])
+            log.debug("found %d records" % nb_records)
             return f.name
 
     def list_subflows(self, mptcp_stream):
@@ -82,20 +88,22 @@ class MpTcpDatabase:
         Generator
         """
         res = self.cursor.execute("SELECT * FROM connections WHERE mptcpstream==? GROUP BY tcpstream", (mptcp_stream,))
-        for row in res:
-            yield int(row["tcpstream"])
-        # subflows = [int(row["tcpstream"]) for row in res]
-            # print("row", row["tcpstream"])
-
-        # return subflows
+        # that does not work
+        # for row in res:
+        #     print("row", row["tcpstream"])
+        #     yield int(row["tcpstream"])
+        subflows = [int(row["tcpstream"]) for row in res]
+        return subflows
 
     def list_connections(self):
-        res = self.cursor.execute("SELECT * FROM connections GROUP BY mptcpstream")
-        for row in res:
-            yield row
-
+        res = self.cursor.execute("SELECT * FROM connections GROUP BY mptcpstream ORDER BY CAST(mptcpstream as INT)")
+        # for row in res:
+        #     yield row
+        connections = [int(row["mptcpstream"]) for row in res]
+        return connections
 
 # maybe those ones can be removed
+
 
 # replace DISTINCT by groupby
 # TODO rename to list master subflows

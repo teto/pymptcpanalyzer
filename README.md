@@ -9,6 +9,10 @@ To ease their use, scripts should follow some guidelines:
 Gnuplot accepts multiple datasets from one
 
 
+
+mptcp.stream == 3 and tcp.options.mptcp.datalvllen > 0
+
+
 columnheader
 
 One can retrieve the number of blocks via the stats  command

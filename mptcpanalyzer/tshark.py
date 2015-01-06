@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 
 from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
-from mptcpanalyzer import fields_dict, fields_to_export, get_basename
+from mptcpanalyzer import fields_dict, get_basename
 
 log = logging.getLogger(__name__)
 
@@ -15,13 +15,18 @@ class TsharkExporter:
     tshark_bin = None
     tcp_relative_seq = True
     delimiter = '|'
+    fields_to_export = (
+        "packetid", 
+        "time",
+        "mptcpstream", "tcpstream", 
+    )
 
     # TODO should be settable
     filter = "mptcp.stream"
 
     def __init__(self, tshark_bin="/usr/bin/wireshark"):
         self.tshark_bin = tshark_bin
-        self.fields_to_export = fields_to_export
+        # self.fields_to_export = fields_to_export
         pass
 
     def export_pcap_to_csv(self, inputPcap, outputCsv):
@@ -36,7 +41,7 @@ class TsharkExporter:
         # TODO should accept a filter mptcp stream etc...
         # ands convert some parts of the filter into an SQL request
         # output = ""
-        header = build_csv_header_from_list_of_fields(fields_to_export, self.delimiter)
+        header = build_csv_header_from_list_of_fields(self.fields_to_export, self.delimiter)
         # print("header:", output)
         # output = output if output else ""
         output = self.tshark_export_fields(
@@ -163,7 +168,7 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     #         csvFile=csv_filename,
     #         table=table_name
     #         )
-    print(initCommand)
+    # print(initCommand)
     log.info("Creating db %s (if does not exist)" % database)
     with tempfile.NamedTemporaryFile("w+", delete=False) as f:
         # with open(tempInitFilename, "w+") as f:

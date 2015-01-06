@@ -79,7 +79,7 @@ def main():
             print(sf)
     elif args.subparser_name == "list_connections":
         for con in db.list_connections():
-            print(con)
+            print(con['mptcpstream'])
     elif args.subparser_name == "plot":
         # args.
         plot_script = os.path.join(plot_types[args.plot_type])

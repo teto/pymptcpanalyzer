@@ -29,52 +29,38 @@ from mptcpanalyzer import fields_dict, get_basename
 # import sqlite3 as sql
 # from core import
 from mptcpanalyzer.tshark import TsharkExporter
-#, convert_csv_to_sql
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-# FileHandler
+
 log.addHandler(logging.StreamHandler())
 
 ### CONFIG
 #########################
 
-# TODO pass as cl arg
-# inputPcap = "/home/teto/pcaps/mptcp167.1407349533.bmL/dump_strip.pcap"
-# mptcpSeqCsv = "/home/teto/ns3/c2s_seq_0.csv"
-# where to save subflow statistics (into a CSV file)
-# subflowSeqCsv = "/home/teto/subflowSeq.csv"
-
 # todo should be able to 
 # -o force an option, else we can set a profile like -C <profileName>
 tshark_exe = "~/wireshark/release/tshark"
 
-
-
-def export_all_subflows_data():
-    # # find all connections in that (ideally enabled via -l)
-    # with open(subflowsList) as csvfile:
-    #   #, quotechar='|'
-    #   # csv.reader
-    #   # csv.DictReader ( fieldnames=)
-    #   subflowReader = csv.DictReader(csvfile, delimiter=',')
-    #   for id,subflow in enumerate(subflowReader):
-    #       #print(subflow)
-    #       export_subflow_data(inputPcap,subflowSeqCsv,filter)
-    #       # todo filter from tshark
-            
-    # # finally I run gnuplot passing the names of the different files
-    # # pseudocode
-    # # todo have a loop in gnuplot ? in case there are several subflows ?
-    # cmd= "gnuplot -e \"mptcpSeqCsv='{mptcpData}';subflowSeqCsv='{subflowSeq}'\" {script} ".format(
-    #       script=gnuplotScript,
-    #       mptcpData=mptcpSeqCsv,
-    #       subflowSeq=subflowSeqCsv
-    #   )
-
-    # print(cmd)
-    # os.system(cmd)
-    pass
+# TODO should be settable
+fields_to_export = ("packetid", 
+                    "time_delta",
+                    "ip4src", "ip4dst",
+                    "ip6src", "ip6dst",
+                    #"srcport",
+                    "mptcpstream", "tcpstream", 
+                    "subtype",
+                    # "datafin",
+                    # "recvtok","sendtruncmac",
+                    "recvkey", "sendkey",
+                    "tcpseq",
+                    "mapping_ssn",
+                    "mapping_length",
+                    "mapping_dsn",
+                    "ssn_to_dsn",
+                    # "unmapped",
+                    # "master"
+                    )
 
 
 def main():
@@ -83,9 +69,9 @@ def main():
     # http://tricksntweaks.blogspot.be/2013/05/advance-argument-parsing-in-python.html
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots',
-        fromfile_prefix_char='@',
+        fromfile_prefix_chars='@',
     )
-    parser.add_argument('--relative', action="store", default=False, help="set to export relative TCP seq number")
+    parser.add_argument('--relative', action="store_true", help="set to export relative TCP seq number")
     parser.add_argument('--tshark', dest="tshark_exe", action="store", default="/usr/bin/wireshark", type=argparse.FileType('r'), help="Path to shark binary")
     # parser.add_argument('--config', action="store", default=False, help="Can load config from file")
 
@@ -96,7 +82,8 @@ def main():
     # parser.add_argument('inputPcap', action="store", help="src IP")
 
     pcap_parser = argparse.ArgumentParser(
-        description='Expecting pcap file as input'
+        description='Expecting pcap file as input',
+        add_help=False,
     )
     pcap_parser.add_argument('inputPcap', action="store", help="Input pcap")
 
@@ -137,8 +124,11 @@ def main():
     #     print("query")
 
     exporter = TsharkExporter(tshark_exe)
-    exporter.tcp_relative_seq = args.relative if args.relative else True
+    # exporter.tcp_relative_seq = args.relative if args.relative else True
+    exporter.tcp_relative_seq = args.relative 
+    exporter.fields_to_export = fields_to_export
 
+    log.debug("Relative #seq = %s" % exporter.tcp_relative_seq)
     if args.subparser_name == "pcap2csv":
         inputFilename = args.inputPcap
         outputFilename = args.output if args.output else get_basename(inputFilename, "csv")

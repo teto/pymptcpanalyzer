@@ -27,8 +27,8 @@ fields_dict = {
     "packetid": "frame.number",
     "time": "frame.time",
     "time_delta": "frame.time_delta",
-    "ipsrc": "ip.src",
-    "ipdst": "ip.dst",
+    "ip4src": "ip.src", "ip4dst": "ip.dst",
+    "ip6src": "ipv6.src", "ip6dst": "ipv6.dst",
     "srcport": "tcp.srcport",
     "tcpstream": "tcp.stream",
     "mptcpstream": "mptcp.stream",
@@ -57,28 +57,8 @@ fields_dict = {
 }
 
 
-# TODO should be settable
-fields_to_export = ("packetid", 
-                    "time_delta",
-                    #"ipsrc","ipdst","srcport",
-                    "mptcpstream",
-                    "tcpstream", 
-                    "subtype",
-                    # "datafin",
-                    # "recvtok","sendtruncmac",
-                    "recvkey", "sendkey",
-                    "tcpseq",
-                    "mapping_ssn",
-                    "mapping_length",
-                    "mapping_dsn",
-                    "ssn_to_dsn",
-                    # "unmapped",
-                    # "master"
-                    )
-
-
-plotsDir = "plots"
-
+# TODO move away
+# plotsDir = "plots"
 table_name = "connections"
 
 __all__ = [
@@ -89,5 +69,5 @@ __all__ = [
     "fields_dict",
     "table_name",
     "get_basename",
-    fields_to_export,
+    # fields_to_export,
 ]
