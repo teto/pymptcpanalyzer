@@ -6,104 +6,45 @@
 # import csv
 import sys
 import argparse
+import logging
+import os
 # import sqlite3 as sql
 # from mptcpanalyzer.core import build_csv_header_from_list_of_fields
 # from mptcpanalyzer import fields_to_export
 from mptcpanalyzer.sqlite_helpers import MpTcpDatabase
 
-graph_types = {
-'mappings' : '',
-'mptcp_rtt' : '',
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler())
 
+# subparsers that need an mptcp_stream should inherit this parser
+stream_parser = argparse.ArgumentParser(
+    description='',
+    #else conflicts with
+    add_help=False
+)
+
+stream_parser.add_argument("mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
+
+
+
+
+plot_types = {
+    'mappings_simple': "plots/mappings/mappings_per_subflow.plot",
+    'mappings_time': "plots/mappings/time_vs_mappings.plot",
+    # 'mptcp_rtt': '',
 } 
 
 
-# def load_db_from_pcap
-# def load_db_from_sqlite
-
-# class MptcpDatabase:
-#     """
-#     we want queries
-#     """
-
-#     con = None
-#     cursor = None
-
-#     def __init__(self, db):
-#         self.con = sql.connect(db)
-#         self.con.row_factory = sql.Row
-
-#         self.cursor = self.con.cursor()
-
-#     # def query(query):
-#     #     """
-#     #     query : string
-#     #     """
-#     # # req = "SELECT * FROM connections WHERE sendkey != '' and recvkey != '' GROUP BY streamid"
-#     #     return self.cursor.execute(query)
-
-#     def plot_mappings(self, mptcp_stream):
-#         # or "ORDER BY"
-
-#         # TODO first write header ?
-#         print("fields to export:\n", fields_to_export)
-#         with open("test.dat", "w+") as f:
-#             # extrasaction
-#             writer = csv.writer(f, delimiter='|')
-#             # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
-#             # write header
-#             f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
-
-#             # # subflow %s\n" % str(tcpstream)
-
-#             for tcpstream in self.list_subflows(mptcp_stream):
-
-#                 res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? AND mapping_length > 0 ORDER BY packetid", (str(tcpstream)))
-
-#                 for row in res:
-#                     # print(row.keys())
-#                     writer.writerow(row)
-
-#                 # TODO separate datasets; give title
-#                 # TODO it conditionnally
-#                 f.write("\n\n")
-#                     # writer.writerows(res)
-#                 # # if row["tcpstream"] != saved:
-#                 #     for key in row.keys():
-
-#                 #     print(dir(row))
-#                     # f.write(row[])
-
-#     def list_subflows(self, mptcp_stream):
-#         res = self.cursor.execute("SELECT * FROM connections WHERE mptcpstream==? GROUP BY tcpstream", (mptcp_stream,))
-#         subflows = [int(row["tcpstream"]) for row in res]
-#             # print("row", row["tcpstream"])
-
-#         return subflows
-
-#     def list_connections(self):
-#         res = self.query("SELECT * FROM connections GROUP BY mptcpstream")
-#         for row in res:
-#             print(res)
-
-# csv.DictReader(csvfile)
-# csvreader.fieldnames
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots'
     )
-
-    # subparsers that need an mptcp_stream should inherit this parser
-    stream_parser = argparse.ArgumentParser(
-        description='',
-        #else conflicts with
-        add_help=False
-    )
-    stream_parser.add_argument("mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
-
-    parser.add_argument("sqlite_file", action="store", help="file")
+    
+    #argparse.FileType('r')
+    parser.add_argument("sqlite_file", type=str, action="store", help="file")
 
     # parser.add_argument("pcap_file", action="store", help="file")
     subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
@@ -113,6 +54,12 @@ def main():
     # SubParser_mapping
     sp_list_sf = subparsers.add_parser('list_subflows', parents=[stream_parser], help='To csv')
     subparsers.add_parser('list_connections', help='List MPTCP stream by id')
+    sp_plot = subparsers.add_parser('plot', parents=[stream_parser], help='Plots')
+    sp_plot.add_argument('--display', action="store_true", help='will display the generated plot')
+    sp_plot.add_argument('plot_type', choices=plot_types.keys(), help='will display the generated plot')
+    # plot_subparsers = sp_plot.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
+    # for plot_name, callback in plot_types.items():
+    #     sp_plot = plot_subparsers.add_parser(plot_name, parents=[stream_parser], help='To csv')
     # sp_list_sf.set_defaults(cb=MpTcpDatabase.list_subflows)
     # subparsers.add_argument('plot', help='To csv')
     # sp_list_sf = sp_list_sf.set_defaults(func=list_subflows)
@@ -127,12 +74,29 @@ def main():
 
     if args.subparser_name == "list_subflows":
     # if args.subparser_name == "pcap2csv":
-        subflows = db.list_subflows(args.mptcp_stream)
-        for sf in subflows:
+        # subflows = 
+        for sf in db.list_subflows(args.mptcp_stream):
             print(sf)
-
+    elif args.subparser_name == "list_connections":
+        for con in db.list_connections():
+            print(con)
     elif args.subparser_name == "plot":
-        db.plot_mappings(args.mptcp_stream)
+        # args.
+        plot_script = os.path.join(plot_types[args.plot_type])
+        generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
+        log.info("Dataset saved into file %s" % generated_data_filename)
+        cmd = "gnuplot -e \"datafile='{datafile}'\" {plot}".format(
+            datafile=generated_data_filename,
+            plot=plot_script,
+        )
+        print(cmd)
+        # %s" % plot_type
+        if args.display:
+            # "plots/"+
+
+            os.system(cmd)
+            os.system("eog %s" % "output.png")
+
     else:
         print("unknown command")
 

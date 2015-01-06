@@ -9,9 +9,20 @@ set style line 4 lt 3 lw 3 pt 3 lc rgb "blue"
 # Among available (pdfcairo, png, X11 )
 # if using png, set output eg set output "/tmp/myGraph.png"
 
-if (!exists("mattTerminal")) mattTerminal='x11'
+# TODO needs to set datafile
+if (!exists("term")) term='png'
+if (!exists("output_filename")) output_filename='output.png'
+if (!exists("datafile")) {
+	print("Missing parameter 'datafile'")
+	exit gnuplot
+}
 
-set terminal mattTerminal
+
+set terminal term
+
+set terminal png size 600,400
+# set terminal interactive
+set output output_filename
 
 # Places of the legend
 set key right top
@@ -31,9 +42,6 @@ set autoscale xy
 
 set pointintervalbox 3
 set grid
-
-set xlabel 'Round number' font ",16"
-set ylabel 'Time (ms)' font ",16"
 
 
 #set terminal enhanced font ',14'
@@ -55,7 +63,7 @@ set style arrow 1 head filled size screen 0.025,30,45 ls 1
 set style arrow 2 head nofilled size screen 0.03,15 ls 2
 set style arrow 3 head filled size screen 0.03,15,45 ls 1
 set style arrow 4 head filled size screen 0.03,15 ls 2
-set style arrow 5 heads noborder size screen 0.03,15,135 ls 1
+# set style arrow 5 heads noborder size screen 0.03,15,135 ls 1
 set style arrow 6 head empty size screen 0.03,15,135 ls 2
 set style arrow 7 nohead ls 1
 

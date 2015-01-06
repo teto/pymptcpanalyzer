@@ -10,11 +10,12 @@ import os
 __path__ = extend_path(__path__, __name__)
 
 
-h = logging.FileHandler("mptcpanalyzer" + str(os.getpid()), delay=True)
+h = logging.FileHandler(".mptcpanalyzer-" + str(os.getpid()), delay=True)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(h)
 logger.setLevel(logging.CRITICAL)
+
 
 def get_basename(fullname, ext):
     return os.path.splitext(os.path.basename(fullname))[0] + "." + ext
