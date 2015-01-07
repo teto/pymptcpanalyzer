@@ -24,6 +24,10 @@ stats datafile every ::1
 
 # show style arrow
 
+# large / small / <size>
+set bars fullwidth
+# set grid lt 0 lw 0.5 lc rgb "#ff0000"
+
 set style line 1 lt rgb "cyan" lw 3 pt 6
 set style line 1 lt rgb "red" lw 3 pt 6
 
@@ -34,6 +38,13 @@ unset colorbox
 
 #http://stackoverflow.com/questions/8717805/vary-point-color-in-gnuplot-based-on-value-of-one-column
 # column(-2) returns the dataset id
-plot datafile every 1:1 using (column("packetid")):(column('mapping_dsn')):(0):(column("mapping_length")):(column(-2)) with vectors filled head palette
+# filename screen
+plot datafile every 1:1 using (column("packetid")):(column('mapping_dsn')):(0):(column("mapping_length")):(column(-2)) with vectors filled head size screen 0.008,145 palette ,
+#A blank filename (’ ’) specifies that the previous filename should be reused.
+	# plot "" using (0):(column('mapping_dsn')):(400):(0) with vectors filled nohead lw 5
+	# plot "" every 1:1 using (column("packetid")):(column('mapping_dsn')):(50) with xerrorbars ls 1 lw 4
+		
+
+		# notitle
 # plot datafile index (IDX) using (column("packetid")):(column('mapping_dsn')):(0):(column("mapping_length")) with vectors arrowstyle 1 ls (IDX+1) 
 # };

@@ -7,7 +7,8 @@ import tempfile
 import sqlite3 as sql
 
 # from core import get_basename
-from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
+from mptcpanalyzer.core import build_csv_header_from_list_of_fields
+from mptcpanalyzer import load_fields_to_export_from_file
 # from mptcpanalyzer import get_basename
 
 log = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class MpTcpDatabase:
 
     con = None
     cursor = None
+    exported_fields = []
 
     def __init__(self, db):
         log.info('Opening db %s' % db)
@@ -30,6 +32,9 @@ class MpTcpDatabase:
         self.con.row_factory = sql.Row
 
         self.cursor = self.con.cursor()
+
+        # we could get them from sqlite but that seems easier
+        self.exported_fields = load_fields_to_export_from_file("fields_to_export.json")
 
     # def query(query):
     #     """
@@ -41,8 +46,10 @@ class MpTcpDatabase:
     def _plot_subflow_mappings(self, tcpstream):
         """
         mapping_length = 1 may be because of DATAFINs (that may have mapping length)
+        TODO GROUP BY ip4src,ip4dest,ip6src,ip6,dest
+        packetid GROUP BY 
         """
-        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? AND mapping_length > 0 ORDER BY packetid", (tcpstream,))
+        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? AND mapping_length > 0 ORDER BY ip4src, ip6src, ip6src, ip6dst", (tcpstream,))
 
         for row in res:
             # print(row.keys())
@@ -63,20 +70,21 @@ class MpTcpDatabase:
             # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
             # write header
             # TODO retrieve names of the entry from SQLITE !
-            # f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
+            f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
 
             # # subflow %s\n" % str(tcpstream)
             nb_records = 0
-            for tcpstream in self.list_subflows(mptcp_stream):
-                print("tcpstream", tcpstream)
+            for sf in self.list_subflows(mptcp_stream):
+                # print("tcpstream", tcpstream)
                 # in conjunction with column header, could set pot titles
                 # f.write("tcpstream")
-                for row in self._plot_subflow_mappings(tcpstream):
-                    if nb_records == 0:
-                        fields_to_export = row.keys()                        
-                        f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
+                for row in self._plot_subflow_mappings(int(sf['tcpstream'])):
+                    # if nb_records == 0:
+                    #     fields_to_export = row.keys()       
+                    #     f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
                     writer.writerow(row)
                     nb_records = nb_records + 1
+
                 # TODO separate datasets; give title
                 # TODO it conditionnally
                 f.write("\n\n")
@@ -89,11 +97,12 @@ class MpTcpDatabase:
         """
         res = self.cursor.execute("SELECT * FROM connections WHERE mptcpstream==? GROUP BY tcpstream", (mptcp_stream,))
         # that does not work
-        # for row in res:
-        #     print("row", row["tcpstream"])
-        #     yield int(row["tcpstream"])
-        subflows = [int(row["tcpstream"]) for row in res]
-        return subflows
+        for row in res:
+            print("row", row["tcpstream"])
+            yield row
+        # ["tcpstream"])
+        # subflows = [int(row["tcpstream"]) for row in res]
+        # return subflows
 
     def list_connections(self):
         res = self.cursor.execute("SELECT * FROM connections GROUP BY mptcpstream ORDER BY CAST(mptcpstream as INT)")

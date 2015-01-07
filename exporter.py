@@ -25,7 +25,7 @@ import os
 import subprocess
 import logging
 import sys
-from mptcpanalyzer import fields_dict, get_basename
+from mptcpanalyzer import fields_dict, get_basename, load_fields_to_export_from_file
 # import sqlite3 as sql
 # from core import
 from mptcpanalyzer.tshark import TsharkExporter
@@ -43,24 +43,25 @@ log.addHandler(logging.StreamHandler())
 tshark_exe = "~/wireshark/release/tshark"
 
 # TODO should be settable
-fields_to_export = ("packetid", 
-                    "time_delta",
-                    "ip4src", "ip4dst",
-                    "ip6src", "ip6dst",
-                    #"srcport",
-                    "mptcpstream", "tcpstream", 
-                    "subtype",
-                    # "datafin",
-                    # "recvtok","sendtruncmac",
-                    "recvkey", "sendkey",
-                    "tcpseq",
-                    "mapping_ssn",
-                    "mapping_length",
-                    "mapping_dsn",
-                    "ssn_to_dsn",
-                    # "unmapped",
-                    # "master"
-                    )
+# fields_to_export = ("packetid", 
+# "time_delta",
+# "ip4src", "ip4dst",
+# "ip6src", "ip6dst",
+# #"srcport",
+# "mptcpstream", "tcpstream", 
+# "subtype",
+# # "datafin",
+# # "recvtok","sendtruncmac",
+# "recvkey", "sendkey",
+# "tcpseq",
+# "mapping_ssn",
+# "mapping_length",
+# "mapping_dsn",
+# "ssn_to_dsn",
+# # "unmapped",
+# # "master"
+# )
+
 
 
 def main():
@@ -122,6 +123,10 @@ def main():
 
     # elif args.subparser_name == "query":
     #     print("query")
+
+    fields_to_export = load_fields_to_export_from_file("fields_to_export.json")
+    # print(fields_to_export)
+    # sys.exit(0)
 
     exporter = TsharkExporter(tshark_exe)
     # exporter.tcp_relative_seq = args.relative if args.relative else True

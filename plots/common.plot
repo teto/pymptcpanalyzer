@@ -33,7 +33,7 @@ set key right top
 #set format x "%d/%m\n%H/%M"
 
 # Left/Right/Top/Bottom
-set offset graph 0.0, graph 0.2, graph 0.1, graph 0.1
+set offset graph 0.2, graph 0.2, graph 0.1, graph 0.1
 #set bmargin 20
 #set lmargin {<margin>}
 #set rmargin {<margin>}

@@ -37,7 +37,6 @@ plot_types = {
 
 
 
-
 def main():
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots'
@@ -76,7 +75,11 @@ def main():
     # if args.subparser_name == "pcap2csv":
         # subflows = 
         for sf in db.list_subflows(args.mptcp_stream):
-            print(sf)
+            print("Stream id {id} between {src} and {dst}".format(
+                id=sf['tcpstream'],
+                src=sf['ip4src'],
+                dst=sf['ip4dst'],
+            ))
     elif args.subparser_name == "list_connections":
         for con in db.list_connections():
             print(con['mptcpstream'])
