@@ -18,9 +18,14 @@ if (!exists("datafile")) {
 }
 
 
-set terminal term
+# set terminal term
 
-set terminal png size 600,400
+set terminal png size 800,600
+
+# set terminal postscript eps enhanced size 10cm,15cm
+# use pdf for a final rendering (to embed in an article for instance)
+# set terminal pdf monochrome solid font 'Helvetica,14' size 16cm,12cm
+
 # set terminal interactive
 set output output_filename
 
@@ -68,4 +73,3 @@ set style arrow 4 head filled size screen 0.03,15 ls 2
 # set style arrow 5 heads noborder size screen 0.03,15,135 ls 1
 set style arrow 6 head empty size screen 0.03,15,135 ls 2
 set style arrow 7 nohead ls 1
-

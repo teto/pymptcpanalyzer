@@ -9,5 +9,6 @@
 "mapping_ssn",
 "mapping_length",
 "mapping_dsn",
-"ssn_to_dsn"
+"ssn_to_dsn",
+"dataack"
 ]

@@ -48,8 +48,9 @@ class MpTcpDatabase:
         mapping_length = 1 may be because of DATAFINs (that may have mapping length)
         TODO GROUP BY ip4src,ip4dest,ip6src,ip6,dest
         packetid GROUP BY 
+        AND mapping_length > 0
         """
-        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? AND mapping_length > 0 ORDER BY ip4src, ip6src, ip6src, ip6dst", (tcpstream,))
+        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? ORDER BY ip4src, ip6src, ip6src, ip6dst", (tcpstream,))
 
         for row in res:
             # print(row.keys())
@@ -74,20 +75,27 @@ class MpTcpDatabase:
 
             # # subflow %s\n" % str(tcpstream)
             nb_records = 0
+            
             for sf in self.list_subflows(mptcp_stream):
                 # print("tcpstream", tcpstream)
                 # in conjunction with column header, could set pot titles
                 # f.write("tcpstream")
+                previous_unidirectional_flow = tuple()
                 for row in self._plot_subflow_mappings(int(sf['tcpstream'])):
                     # if nb_records == 0:
                     #     fields_to_export = row.keys()       
                     #     f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
+                    temp = (row['ip4src'], row['ip4dst'], row['ip6src'], row['ip6dst'], )
+                    if temp != previous_unidirectional_flow:
+                        previous_unidirectional_flow = temp
+                        f.write("\n\n")
+  
                     writer.writerow(row)
                     nb_records = nb_records + 1
 
                 # TODO separate datasets; give title
                 # TODO it conditionnally
-                f.write("\n\n")
+                # f.write("\n\nTcp stream %s" % (row['tcpstream']))
             log.debug("found %d records" % nb_records)
             return f.name
 
