@@ -64,8 +64,8 @@ class MpTcpDatabase:
 
         # TODO first write header ?
         # print("fields to export:\n", fields_to_export)
-        # with open("test.dat", "w+") as f:
-        with tempfile.NamedTemporaryFile("w+", prefix="plot", delete=False) as f:
+        with open("test.dat", "w+") as f:
+        # with tempfile.NamedTemporaryFile("w+", prefix="plot", delete=False) as f:
             # extrasaction
             writer = csv.writer(f, delimiter='|')
             # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')

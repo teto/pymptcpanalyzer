@@ -45,11 +45,12 @@ set key autotitle columnhead
 # title columnheader(1)
 # title columnheader(1)
 # title  "toto"
-do for [i=0:STATS_blocks-1] {
-	print("hello world")
-	plot datafile index i using "packetid":'mapping_dsn':(0):"mapping_length":(column(-2)) with vectors filled head size screen 0.008,145 palette title sprintf("Mappings from dataset %d", column(-2)), \
-		datafile index i using 'packetid':"dataack":(column(-2)) with points lt 1 lw 10 lc palette title sprintf("DACKs from dataset %d", column(-2))
-}
+
+print("hello world")
+plot for [i=1:STATS_blocks-1] \
+	datafile using "packetid":'mapping_dsn':(0):"mapping_length":(column(-2)) with vectors filled head size screen 0.008,145 palette title sprintf("Mappings from dataset %d", i), \
+	datafile using 'packetid':"dataack":(i) with lines lw 10 lc palette title sprintf("DACKs from dataset %d", i)
+# }
 
 #A blank filename (’ ’) specifies that the previous filename should be reused.
 	# plot "" using (0):(column('mapping_dsn')):(400):(0) with vectors filled nohead lw 5
