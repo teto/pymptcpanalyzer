@@ -32,6 +32,8 @@ stream_parser.add_argument("mptcp_stream", action="store", type=int, help="ident
 plot_types = {
     'mappings_simple': "plots/mappings/mappings_per_subflow.plot",
     'mappings_time': "plots/mappings/time_vs_mappings.plot",
+    # this one uses multiplot
+    'mappings_ack': "plots/mappings/mappings_and_ack.plot",
     # 'mptcp_rtt': '',
 } 
 

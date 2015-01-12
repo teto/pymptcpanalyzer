@@ -1,6 +1,7 @@
 {
     "packetid": "frame.number",
     "time": "frame.time",
+    "reltime": "frame.time_relative",
     "time_delta": "frame.time_delta",
     "ip4src": "ip.src", "ip4dst": "ip.dst",
     "ip6src": "ipv6.src", "ip6dst": "ipv6.dst",

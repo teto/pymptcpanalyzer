@@ -71,7 +71,6 @@ class MpTcpDatabase:
             # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
             # write header
             # TODO retrieve names of the entry from SQLITE !
-            f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
 
             # # subflow %s\n" % str(tcpstream)
             nb_records = 0
@@ -80,16 +79,21 @@ class MpTcpDatabase:
                 # print("tcpstream", tcpstream)
                 # in conjunction with column header, could set pot titles
                 # f.write("tcpstream")
-                previous_unidirectional_flow = tuple()
+                previous_unidirectional_flow = None
                 for row in self._plot_subflow_mappings(int(sf['tcpstream'])):
+
                     # if nb_records == 0:
                     #     fields_to_export = row.keys()       
                     #     f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
-                    temp = (row['ip4src'], row['ip4dst'], row['ip6src'], row['ip6dst'], )
-                    if temp != previous_unidirectional_flow:
+                    temp = (row['ip4src'], row['ip4dst'], row['ip6src'], row['ip6dst'],)
+                    if not previous_unidirectional_flow:
+                        previous_unidirectional_flow = temp
+                        f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
+                    elif temp != previous_unidirectional_flow:
                         previous_unidirectional_flow = temp
                         f.write("\n\n")
-  
+                        f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
+
                     writer.writerow(row)
                     nb_records = nb_records + 1
 

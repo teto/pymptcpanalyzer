@@ -1,5 +1,6 @@
 [
 "packetid", 
+"reltime",
 "time_delta",
 "ip4src", "ip4dst",
 "ip6src", "ip6dst",

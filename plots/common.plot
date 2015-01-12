@@ -78,3 +78,9 @@ set style arrow 4 head filled size screen 0.03,15 ls 2
 # set style arrow 5 heads noborder size screen 0.03,15,135 ls 1
 set style arrow 6 head empty size screen 0.03,15,135 ls 2
 set style arrow 7 nohead ls 1
+
+# http://www.gnuplotting.org/defining-a-palette-with-discrete-colors/
+set palette maxcolors 3
+set palette defined ( 0 'green', \
+					  1 'red', \
+					  2 'blue' )
