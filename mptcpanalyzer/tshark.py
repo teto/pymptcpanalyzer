@@ -10,10 +10,20 @@ log = logging.getLogger(__name__)
 
 
 class TsharkExporter:
+    """
+    TODO tshark.py devrait plutot accepter des streams
+
+    """
 
     input_pcap = ""
     tshark_bin = None
     tcp_relative_seq = True
+    options = {
+        "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
+        # "tcp.relative_sequence_numbers": 
+        # Disable DSS checks which consume quite a lot
+        "tcp.analyze_mptcp_seq": False
+    }    
     delimiter = '|'
     fields_to_export = (
         "packetid", 
@@ -29,65 +39,63 @@ class TsharkExporter:
         # self.fields_to_export = fields_to_export
         pass
 
-    def export_pcap_to_csv(self, inputPcap, outputCsv):
+    def export_pcap_to_csv(self, input_pcap, output_csv):
         """
         """
         log.info("Converting pcap [{pcap}] to csv [{csv}]".format(
-            pcap=inputPcap,
-            csv=outputCsv)
+            pcap=input_pcap,
+            csv=output_csv)
         )
 
         # TODO should export everything along with TCP acks
         # TODO should accept a filter mptcp stream etc...
         # ands convert some parts of the filter into an SQL request
         # output = ""
-        header = build_csv_header_from_list_of_fields(self.fields_to_export, self.delimiter)
-        # print("header:", output)
+        header = build_csv_header_from_list_of_fields(self.fields_to_export, self.delimiter)        
+
         # output = output if output else ""
-        output = self.tshark_export_fields(
+        log.info("Writing to file %s" % output_csv)
+        # -E occurrence
+        with open(output_csv, "w") as f:
+            f.write(header)
+            # f.write(output.decode())
+
+        return self.tshark_export_fields(
             self.tshark_bin, 
             self.fields_to_export, 
-            inputPcap,
-            outputCsv,
+            input_pcap,
+            output_csv,
             self.filter,
-            relative_sequence_numbers=self.tcp_relative_seq
+            options=self.options,
+            # relative_sequence_numbers=self.tcp_relative_seq
         )
 
-        # q.
-        # load this into a csv reader
-        # with
-        # could filter
-        log.info("Writing to file")
-
-        with open(outputCsv, "w") as f:
-            f.write(header)
-            f.write(output.decode())
-
-    def export_pcap_to_sql(self, inputPcap, outputDb, table_name="connections"):
+    def export_pcap_to_sql(self, input_pcap, output_db, table_name="connections"):
         """
         """
 
         log.info("Converting pcap [{pcap}] to sqlite database [{db}]".format(
-            pcap=inputPcap,
-            db=outputDb
+            pcap=input_pcap,
+            db=output_db
         ))
 
-        csv_filename = get_basename(outputDb, "csv")
-        self.export_pcap_to_csv(inputPcap, csv_filename)
+        csv_filename = get_basename(output_db, "csv")
+        self.export_pcap_to_csv(input_pcap, csv_filename)
 
-        convert_csv_to_sql(csv_filename, outputDb, table_name)
+        convert_csv_to_sql(csv_filename, output_db, table_name)
 
     @staticmethod
     def tshark_export_fields(tshark_exe, fields_to_export, 
                              inputFilename, outputFilename, 
-                             filter=None, relative_sequence_numbers=False,
+                             filter=None, 
+                             options={},
                              csv_delimiter='|',):
         """
         inputFilename should be pcap filename
         fields should be iterable (tuple, list ...)
         returns outout as a string
         """
-        def convert_into_tshark_field_list(fields):
+        def convert_field_list_into_tshark_str(fields):
             return ' -e ' + ' -e '.join([fields_dict[x] for x in fields])
         # fields that tshark should export
         # tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
@@ -96,28 +104,45 @@ class TsharkExporter:
         # to filter connection
         filter = '-2 -R "%s"' % (filter) if filter else ''
 
-        options = ' -o tcp.relative_sequence_numbers:TRUE' if relative_sequence_numbers else ''
+        def convert_options_into_str(options):
+            """
+            Expects a dict of wireshark options
+            """
+            # relative_sequence_numbers = False
+            out = ""
+            for option, value in options.items():
+                out += ' -o {option}:{value}'.format(option=option, value=value)
+            return out
+
 
         print(fields_to_export)
         # for some unknown reasons, -Y does not work so I use -2 -R instead
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
         #  -E quote=n 
-        cmd = """{tsharkBinary} {tsharkOptions} -n {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'""".format(
+        cmd = """{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}' >> {outputFilename}
+                 """.format(
             tsharkBinary=tshark_exe,
-            tsharkOptions=options,
+            tsharkOptions=convert_options_into_str(options),
+            nameResolution="-n",
             inputPcap=inputFilename,
             outputCsv=outputFilename,
-            fieldsExpanded=convert_into_tshark_field_list(fields_to_export),
+            fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
             filterExpression=filter,
-            delimiter=csv_delimiter
+            delimiter=csv_delimiter,
+            outputFilename=outputFilename
         )
-
+        #>> {outputFilename}
         print(cmd)
 
         try:
-            #https://docs.python.org/3/library/subprocess.html#subprocess.check_output
-            output = subprocess.check_output(cmd, shell=True)
+            # https://docs.python.org/3/library/subprocess.html#subprocess.check_output
+            # output = subprocess.Popen(cmd, shell=True) stdout=subprocess.PIPE, 
+            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
+            out, stderr = proc.communicate()
+            # out = out.decode("UTF-8")
+            stderr = stderr.decode("UTF-8") 
+            print("stderr=", stderr)
         except subprocess.CalledProcessError as e:
             log.error(e)
             print("ERROR")
@@ -125,7 +150,7 @@ class TsharkExporter:
         # os.system(cmd)
         # except CalledProcessError as e:
         # print(output)
-        return output
+        return proc.returncode, stderr
 
 
 # Ideally I would have liked to rely on some external library like

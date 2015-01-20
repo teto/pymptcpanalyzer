@@ -28,7 +28,7 @@ import sys
 from mptcpanalyzer import fields_dict, get_basename, load_fields_to_export_from_file
 # import sqlite3 as sql
 # from core import
-from mptcpanalyzer.tshark import TsharkExporter
+from mptcpanalyzer.tshark import TsharkExporter, convert_csv_to_sql
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -77,6 +77,8 @@ def main():
     # parser.add_argument('--config', action="store", default=False, help="Can load config from file")
 
     # readconfigFromFile
+
+    # TODO tshark.py devrait plutot accepter des streams
     #argparse.FileType('r')
     # parser.add_argument('xpconfig', default="tests.ini", action="store", type=str,  help="Config filename. Describe experiment settings")
 
@@ -91,7 +93,7 @@ def main():
     subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
 
     subparser_csv = subparsers.add_parser('pcap2csv', parents=[pcap_parser], help='Converts pcap to a csv file')
-    subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
+    #subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
     subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
 
     # List MPTCP connections and subflows
@@ -138,10 +140,10 @@ def main():
         inputFilename = args.inputPcap
         outputFilename = args.output if args.output else get_basename(inputFilename, "csv")
         exporter.export_pcap_to_csv(inputFilename, outputFilename)
-    # elif args.subparser_name == "csv2sql":
-    #     inputFilename = args.inputPcap
-    #     outputFilename = get_basename(inputFilename, "sqlite")
-    #     convert_csv_to_sql(inputFilename, outputFilename)
+    elif args.subparser_name == "csv2sql":
+        inputFilename = args.inputCsv
+        outputFilename = get_basename(inputFilename, "sqlite")
+        convert_csv_to_sql(inputFilename, outputFilename, "connections")
     elif args.subparser_name == "pcap2sql":
         inputFilename = args.inputPcap
         outputFilename = get_basename(inputFilename, "sqlite")
