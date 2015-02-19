@@ -59,10 +59,13 @@ set cbrange[0:STATS_blocks-1]
 # input data as a linetype index, and use the color belonging to that linetype
 
 # WARN: column(-2) does not work outside of using
+# that's why we explicitly set the bornes instead of using 
 do for [idx=0:STATS_blocks-1] {
+
 	set label "mapping"
 	plot datafile index idx using "reltime":'mapping_dsn':(0):"mapping_length":(idx+1) with vectors filled head size screen 0.008,145 lt idx title sprintf("Mappings from dataset %d", idx)
-	# , \
+	
+
 	set label "dataack"
 	plot datafile index idx using 'reltime':"dataack":(column(-2))  with points pt 5 lc palette z title sprintf("DACKs from dataset %d", idx)
 }

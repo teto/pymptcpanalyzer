@@ -76,18 +76,37 @@ def main():
     if args.subparser_name == "list_subflows":
     # if args.subparser_name == "pcap2csv":
         # subflows = 
-        for sf in db.list_subflows(args.mptcp_stream):
-            print("Stream id {id} between {src} and {dst}".format(
-                id=sf['tcpstream'],
-                src=sf['ip4src'],
-                dst=sf['ip4dst'],
-            ))
+        client, server = db.list_subflows(args.mptcp_stream)
+        print("From client to server:")
+        # print("Client subflows", client)
+        # print("Server subflows", server)
+
+        for sf in client:
+            print("{src} -> {dst}".format(
+                    src=(sf['ip4src'] + ":" + sf['srcport']).ljust(20),
+                    # srcport=sf['srcport'],
+                    dst=(sf['ip4dst'] + ":" + sf['dstport']).ljust(20),
+                    # dstport=sf['dstport'],
+                )
+                )
+            # print("Stream id {id} between {src} and {dst}".format(
+            #     id=sf['tcpstream'],
+            #     src=sf['ip4src'],
+            #     dst=sf['ip4dst'],
+            # ))
+
     elif args.subparser_name == "list_connections":
         for con in db.list_connections():
             print(con['mptcpstream'])
+
     elif args.subparser_name == "plot":
         # args.
         plot_script = os.path.join(plot_types[args.plot_type])
+        #generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
+
+        # request les streams
+        mptcp_stream
+
         generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
         log.info("Dataset saved into file %s" % generated_data_filename)
         cmd = "gnuplot -e \"datafile='{datafile}'\" {plot}".format(

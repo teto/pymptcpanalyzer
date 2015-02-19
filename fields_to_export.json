@@ -1,9 +1,15 @@
 [
 "packetid", 
+"master", 
+"recvtok",
+"tcpflags",
+"expectedtoken",
+
 "reltime",
 "time_delta",
 "ip4src", "ip4dst",
 "ip6src", "ip6dst",
+"srcport", "dstport",
 "mptcpstream", "tcpstream", 
 "subtype",
 "tcpseq",

@@ -94,29 +94,88 @@ class MpTcpDatabase:
                         f.write("\n\n")
                         f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
 
+                    # print(dir(row))
+
+                    # if writer.writerow(row) creates a problem, replace it by the 2
+                    # following lines
+                    # lolita = '|'.join([row[key] for key in row.keys()]) + "\n"
+                    # f.write(lolita)
                     writer.writerow(row)
+
                     nb_records = nb_records + 1
 
-                # TODO separate datasets; give title
-                # TODO it conditionnally
-                # f.write("\n\nTcp stream %s" % (row['tcpstream']))
             log.debug("found %d records" % nb_records)
             return f.name
 
+
+
     def list_subflows(self, mptcp_stream):
         """
+        Return 2 lists of unidirectional flows 
+        characteristics registered in a dict like: 
+        ip4src,ip4dst,srcport,dstport
+
         Generator
+        mptcp.master
+        tcp.options.mptcp.expected_token
         """
-        res = self.cursor.execute("SELECT * FROM connections WHERE mptcpstream==? GROUP BY tcpstream", (mptcp_stream,))
-        # that does not work
+        master = None
+        client_uniflows = []
+        server_uniflows = []
+
+        def create_entry_from_row(row):
+            """
+            Because row is read only
+            """
+            return { 
+                'ip4src': row['ip4src'],
+                'ip4dst': row['ip4dst'],
+                'srcport': row['srcport'],
+                'dstport': row['dstport'],
+            }
+
+        # export ca
+        # first find 
+        #tcp flags == 2 => SYN only
+        # we want the master first
+        # GROUP BY tcpstream
+        # AND expectedtoken IS NOT NULL 
+        q = "SELECT * FROM connections WHERE mptcpstream==%s  and tcpflags==2 ORDER BY master" % (mptcp_stream,)
+        # print(q)
+        res = self.cursor.execute(q)
         for row in res:
-            print("row", row["tcpstream"])
-            yield row
+
+            # print(str(row))
+            if row['master']:
+                master = create_entry_from_row(row)
+                client_uniflows.append(master)
+            elif row['recvtok'] == master['expectedtoken']:
+                client_uniflows.append(create_entry_from_row(row))
+            # else:
+            #     server_uniflows.append(object)
+
+        # to get server uniflows, we just need to reverse the previous ones ipsrc, and dest
+        for row in client_uniflows:
+            row = row.copy()
+            row['ip4src'], row['ip4dst'] = row['ip4dst'], row['ip4src']
+            row['srcport'], row['dstport'] = row['dstport'], row['srcport']
+            # print("after:", row)
+            server_uniflows.append(row)
+
+        return client_uniflows, server_uniflows
+
+        # res = self.cursor.execute("SELECT * FROM connections WHERE mptcpstream==? GROUP BY tcpstream", (mptcp_stream,))
+        # that does not work
+        # for row in res:
+        #     print("row", row["tcpstream"])
+        #     yield row
         # ["tcpstream"])
         # subflows = [int(row["tcpstream"]) for row in res]
         # return subflows
 
-    def list_connections(self):
+    def list_mptcp_connections(self):
+        """
+        """
         res = self.cursor.execute("SELECT * FROM connections GROUP BY mptcpstream ORDER BY CAST(mptcpstream as INT)")
         # for row in res:
         #     yield row
