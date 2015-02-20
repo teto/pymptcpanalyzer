@@ -10,7 +10,7 @@ set ylabel '# DSN' font ",16"
 
 # nooutput
 # STATS_min/STATS_max/STATS_blocks
-stats datafile every ::2
+# stats datafile every ::2
 
 # plot for [i=1:STATS_blocks] datafile index (i-1) pt 7 ps 2 title 'record '.i
 # plot for [IDX=1:STATS_blocks] datafile index IDX u 1:2 w lines title "hello"
@@ -19,9 +19,6 @@ stats datafile every ::2
 # we remove 1 because our script adds 2 lines 
 # pt = point type
 # ps 
-
-# layout nb subflows * 2 columns (1 for mappings, 1 for Dataacks)
-set multiplot layout STATS_blocks,2 rowsfirst
 
 # show style arrow
 
@@ -36,10 +33,10 @@ set style line 1 lt rgb "red" lw 3 pt 6
 
 
 # unset key
-unset colorbox
-set colorbox
-show palette
-set key autotitle columnhead
+# unset colorbox
+# set colorbox
+# show palette
+# set key autotitle columnhead
 
 #http://stackoverflow.com/questions/8717805/vary-point-color-in-gnuplot-based-on-value-of-one-column
 # column(-2) returns the dataset id
@@ -51,7 +48,7 @@ set key autotitle columnhead
 # The `set cbrange` command sets the range of values which are colored using
 # the current `palette` by styles `with pm3d`, `with image` and `with palette`.
 # Values outside of the color range use color of the nearest extreme
-set cbrange[0:STATS_blocks-1]
+# set cbrange[0:STATS_blocks-1]
 
 
 # http://stackoverflow.com/questions/27901349/different-color-per-dataset
@@ -60,15 +57,11 @@ set cbrange[0:STATS_blocks-1]
 
 # WARN: column(-2) does not work outside of using
 # that's why we explicitly set the bornes instead of using 
-do for [idx=0:STATS_blocks-1] {
 
-	set label "mapping"
-	plot datafile index idx using "reltime":'mapping_dsn':(0):"mapping_length":(idx+1) with vectors filled head size screen 0.008,145 lt idx title sprintf("Mappings from dataset %d", idx)
-	
+# get_client_()
 
-	set label "dataack"
-	plot datafile index idx using 'reltime':"dataack":(column(-2))  with points pt 5 lc palette z title sprintf("DACKs from dataset %d", idx)
-}
-
-
-unset multiplot
+# set label "dataack"
+# set label "mapping"
+plot for [idx=0:nb_of_subflows-1] \
+	client_uniflow(idx)  using "reltime":'mapping_dsn':(0):"mapping_length":(idx) with vectors filled head size screen 0.008,145 lt idx title sprintf("Mappings from subflow %d", idx) 
+	server_uniflow(idx) using 'reltime':"dataack":(idx)  with points pt 5 lc palette z title sprintf("DACKs from dataset %d", idx)

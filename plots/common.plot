@@ -15,11 +15,32 @@ set linetype 2 lw 2 pt 1 lc rgb "green"
 
 # TODO needs to set datafile
 if (!exists("term")) term='png'
-if (!exists("output_filename")) output_filename='output.png'
-if (!exists("datafile")) {
-	print("Missing parameter 'datafile'")
+if (!exists("output_folder")) output_folder='out'
+if (!exists("output")) {
+	print("Missing parameter 'output'")
 	exit gnuplot
 }
+
+
+# TODO plot specific ?
+if (!exists("nb_of_subflows")) {
+	print("Missing parameter 'nb_of_subflows', setting it to -1")
+	nb_of_subflows=-1
+}
+
+
+
+# if (nb_of_subflows < 0) {
+# 	# print("Print in monomode")
+# 	client_uniflow(id) = sprintf("%s/%s%s", node, prefix, suffix)
+# }
+# else {
+	# print("Print in multimode")
+# client_filename_pattern
+client_uniflow(id) = sprintf("%s/client_%d.csv", output_folder, id)
+server_uniflow(id) = sprintf("%s/server_%d.csv", output_folder, id)
+# }
+
 
 
 # set terminal term
@@ -31,7 +52,7 @@ set terminal png size 800,600
 # set terminal pdf monochrome solid font 'Helvetica,14' size 16cm,12cm
 
 # set terminal interactive
-set output output_filename
+set output output
 
 # Places of the legend
 set key right top

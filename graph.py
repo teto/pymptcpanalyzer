@@ -4,10 +4,12 @@
 # this script requires wireshark (& gnuplot >4.6) to be installed
 # http://stackoverflow.com/questions/11500469/plotting-columns-by-calling-their-header-with-gnuplot
 # import csv
+# TODO rename into util
 import sys
 import argparse
 import logging
 import os
+import glob
 # import sqlite3 as sql
 # from mptcpanalyzer.core import build_csv_header_from_list_of_fields
 # from mptcpanalyzer import fields_to_export
@@ -28,7 +30,7 @@ stream_parser.add_argument("mptcp_stream", action="store", type=int, help="ident
 
 
 
-
+# TODO ca le generer des scripts dans le dossier plot
 plot_types = {
     'mappings_simple': "plots/mappings/mappings_per_subflow.plot",
     'mappings_time': "plots/mappings/time_vs_mappings.plot",
@@ -38,12 +40,18 @@ plot_types = {
 } 
 
 
+# TODO renomemr ce script en util ?
+# available plots ?
+# definir dans la classe plot un parser générique
+# faudrait nettoyer ca
+plot_types = glob.glob("plots/*.py")
+
 
 def main():
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots'
     )
-    
+
     #argparse.FileType('r')
     parser.add_argument("sqlite_file", type=str, action="store", help="file")
 
@@ -56,8 +64,10 @@ def main():
     sp_list_sf = subparsers.add_parser('list_subflows', parents=[stream_parser], help='To csv')
     subparsers.add_parser('list_connections', help='List MPTCP stream by id')
     sp_plot = subparsers.add_parser('plot', parents=[stream_parser], help='Plots')
+    sp_plot.add_argument('--out', action="store", default="output.png", help='Name of the output file')
     sp_plot.add_argument('--display', action="store_true", help='will display the generated plot')
-    sp_plot.add_argument('plot_type', choices=plot_types.keys(), help='will display the generated plot')
+    # sp_plot.add_argument('plot_type', choices=plot_types.keys(), help='List of available plots')
+    sp_plot.add_argument('plot_type', choices=plot_types, help='List of available plots')
     # plot_subparsers = sp_plot.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
     # for plot_name, callback in plot_types.items():
     #     sp_plot = plot_subparsers.add_parser(plot_name, parents=[stream_parser], help='To csv')
@@ -96,30 +106,34 @@ def main():
             # ))
 
     elif args.subparser_name == "list_connections":
-        for con in db.list_connections():
+        for con in db.list_mptcp_connections():
+            # TODO add starting times ? 
             print(con['mptcpstream'])
 
     elif args.subparser_name == "plot":
         # args.
-        plot_script = os.path.join(plot_types[args.plot_type])
+        # plot_script = os.path.join(plot_types[args.plot_type])
+        plot_script = args.plot_type
+
+        print("plot_script", plot_script)
         #generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
-
+        # import plot_script
         # request les streams
-        mptcp_stream
+        # mptcp_stream
+        # save uniflow as files
+        # generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
+        # log.info("Dataset saved into file %s" % generated_data_filename)
+        # cmd = "gnuplot -e \"datafile='{datafile}'\" {plot}".format(
+        #     datafile=generated_data_filename,
+        #     plot=plot_script,
+        # )
+        # print(cmd)
+        # # %s" % plot_type
+        # if args.display:
+        #     # "plots/"+
 
-        generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
-        log.info("Dataset saved into file %s" % generated_data_filename)
-        cmd = "gnuplot -e \"datafile='{datafile}'\" {plot}".format(
-            datafile=generated_data_filename,
-            plot=plot_script,
-        )
-        print(cmd)
-        # %s" % plot_type
-        if args.display:
-            # "plots/"+
-
-            os.system(cmd)
-            os.system("eog %s" % "output.png")
+        #     os.system(cmd)
+        #     os.system("eog %s" % "output.png")
 
     else:
         print("unknown command")

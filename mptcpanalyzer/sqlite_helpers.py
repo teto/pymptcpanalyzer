@@ -3,6 +3,7 @@
 import logging
 import csv
 import tempfile
+import copy
 # import subprocess
 import sqlite3 as sql
 
@@ -14,6 +15,47 @@ from mptcpanalyzer import load_fields_to_export_from_file
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
+
+
+
+class MpTcpUniflow:
+    """
+    Meant as 'unidirectional subflow'
+    Identified by a stream number, ip/port src/dst
+    """
+
+    def __init__(self, tcpstream, ip4src, ip4dst, srcport, dstport, **kwargs):
+        self.tcpstream = tcpstream
+        self.ip4src = ip4src
+        self.ip4dst = ip4dst
+        self.srcport = srcport
+        self.dstport = dstport
+
+    @staticmethod
+    def create_entry_from_row(row):
+        """
+        Because row is read only
+        """
+        # print(**row)
+        # return MpTcpUniflow(row['tcpstream'], row['ip4src'], row['ip4dst'], srcport, dstport) 
+        return MpTcpUniflow(**row) 
+        #     'ip4src': row['ip4src'],
+        #     'ip4dst': row['ip4dst'],
+        #     'srcport': row['srcport'],
+        #     'dstport': row['dstport'],
+        #     'tcpstream': row['tcpstream'],
+        # }
+
+    def get_reverse_uniflow(self):
+        rev = copy.deepcopy(self)
+
+        rev.ip4src = self.ip4dst
+        rev.ip4dst = self.ip4src
+        rev.srcport = self.dstport
+        rev.dstport = self.srcport
+        return rev
+        # row['srcport'], row['dstport'] = row['dstport'], row['srcport']
+
 
 
 class MpTcpDatabase:
@@ -43,77 +85,113 @@ class MpTcpDatabase:
     # # req = "SELECT * FROM connections WHERE sendkey != '' and recvkey != '' GROUP BY streamid"
     #     return self.cursor.execute(query)
 
-    def _plot_subflow_mappings(self, tcpstream):
-        """
-        mapping_length = 1 may be because of DATAFINs (that may have mapping length)
-        TODO GROUP BY ip4src,ip4dest,ip6src,ip6,dest
-        packetid GROUP BY 
-        AND mapping_length > 0
-        """
-        res = self.cursor.execute("SELECT * FROM connections WHERE tcpstream==? ORDER BY ip4src, ip6src, ip6src, ip6dst", (tcpstream,))
 
-        for row in res:
-            # print(row.keys())
-            yield row
+    # def plot_subflows_as_datasets(self, mptcp_stream):
+    #     # TODO first write header ?
+    #     # print("fields to export:\n", fields_to_export)
+    #     with open("test.dat", "w+") as f:
+    #     # with tempfile.NamedTemporaryFile("w+", prefix="plot", delete=False) as f:
+    #         # extrasaction
+    #         writer = csv.writer(f, delimiter='|')
+    #         # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
+    #         # write header
+    #         # TODO retrieve names of the entry from SQLITE !
 
-    def plot_subflows_as_datasets(self, mptcp_stream):
-        """
-        TODO: should return a summary:
-        - for each stream, number of records
-        """
+    #         # # subflow %s\n" % str(tcpstream)
+    #         nb_records = 0
 
-        # TODO first write header ?
-        # print("fields to export:\n", fields_to_export)
-        with open("test.dat", "w+") as f:
-        # with tempfile.NamedTemporaryFile("w+", prefix="plot", delete=False) as f:
-            # extrasaction
+    #         for sf in self.list_subflows(mptcp_stream):
+    #             # print("tcpstream", tcpstream)
+    #             # in conjunction with column header, could set pot titles
+    #             # f.write("tcpstream")
+    #             previous_unidirectional_flow = None
+    #             for row in self._plot_subflow_mappings(int(sf['tcpstream'])):
+
+    #                 # if nb_records == 0:
+    #                 #     fields_to_export = row.keys()       
+    #                 #     f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
+    #                 temp = (row['ip4src'], row['ip4dst'], row['ip6src'], row['ip6dst'],)
+    #                 if not previous_unidirectional_flow:
+    #                     previous_unidirectional_flow = temp
+    #                     f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
+    #                 elif temp != previous_unidirectional_flow:
+    #                     previous_unidirectional_flow = temp
+    #                     f.write("\n\n")
+    #                     f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
+
+    #                 # print(dir(row))
+
+    #                 # if writer.writerow(row) creates a problem, replace it by the 2
+    #                 # following lines
+    #                 # lolita = '|'.join([row[key] for key in row.keys()]) + "\n"
+    #                 # f.write(lolita)
+    #                 writer.writerow(row)
+
+    #                 nb_records = nb_records + 1
+
+    #         log.debug("found %d records" % nb_records)
+    #         return f.name
+
+    # ip4src="ip4src",
+    def export_subflow_to_csv(self, filename, tcpstream, append=False):
+        """
+        export to 'filename' - in csv format - the   
+        Set append to True to write at the end of the file 
+        (in order to write data sets)
+        """
+        with open(filename, "w+") as f:
             writer = csv.writer(f, delimiter='|')
-            # writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
-            # write header
-            # TODO retrieve names of the entry from SQLITE !
 
-            # # subflow %s\n" % str(tcpstream)
-            nb_records = 0
-            
-            for sf in self.list_subflows(mptcp_stream):
-                # print("tcpstream", tcpstream)
-                # in conjunction with column header, could set pot titles
-                # f.write("tcpstream")
-                previous_unidirectional_flow = None
-                for row in self._plot_subflow_mappings(int(sf['tcpstream'])):
+            f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
 
-                    # if nb_records == 0:
-                    #     fields_to_export = row.keys()       
-                    #     f.write(build_csv_header_from_list_of_fields(fields_to_export, '|'))
-                    temp = (row['ip4src'], row['ip4dst'], row['ip6src'], row['ip6dst'],)
-                    if not previous_unidirectional_flow:
-                        previous_unidirectional_flow = temp
-                        f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
-                    elif temp != previous_unidirectional_flow:
-                        previous_unidirectional_flow = temp
-                        f.write("\n\n")
-                        f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
+            q = "SELECT * FROM connections WHERE tcpstream=={tcpstream} ORDER BY reltime".format(
+                tcpstream=tcpstream,
+                # ip4src=ip4src,
+            ) 
 
-                    # print(dir(row))
+            print(q)
+            res = self.cursor.execute(q)
+            print("nb of results:", res.rowcount)
 
-                    # if writer.writerow(row) creates a problem, replace it by the 2
-                    # following lines
-                    # lolita = '|'.join([row[key] for key in row.keys()]) + "\n"
-                    # f.write(lolita)
-                    writer.writerow(row)
+            for row in res:
+                writer.writerow(row)
 
-                    nb_records = nb_records + 1
+    # ipdst, srcport, dstport
+    def export_uniflow_to_csv(self, filename, uniflow,):
 
-            log.debug("found %d records" % nb_records)
-            return f.name
+        assert (isinstance(uniflow, MpTcpUniflow))
 
+        with open(filename, "w+") as f:
+            print("writing to > ", filename)
+
+            f.write(build_csv_header_from_list_of_fields(self.exported_fields, '|'))
+            writer = csv.writer(f, delimiter='|')
+
+    #     q = "SELECT * FROM connections WHERE (ip4src==? OR ip) ORDER BY ip4src, ip6src, ip6src, ip6dst", (tcpstream,)
+            q = "SELECT * FROM connections WHERE tcpstream=={tcpstream} AND ip4src='{ip4src}' ORDER BY reltime".format(
+                tcpstream=uniflow.tcpstream,
+                ip4src=uniflow.ip4src,
+            )
+        # don't forget to write headers
+        # TODO     writer = csv.DictWriter(f, fieldnames=fields_to_export, delimiter='|')
+            print(q)
+            res = self.cursor.execute(q)
+            # print("nb of results:", res.rowcount)
+
+            for row in res:
+                writer.writerow(row)
+    #     lol
+    #     """
+
+    #     ipsrc=ipsrc
 
 
     def list_subflows(self, mptcp_stream):
         """
         Return 2 lists of unidirectional flows 
         characteristics registered in a dict like: 
-        ip4src,ip4dst,srcport,dstport
+        ip4src,ip4dst,srcport,dstport, tcpstream
+        and a list of the tcpstream
 
         Generator
         mptcp.master
@@ -122,17 +200,7 @@ class MpTcpDatabase:
         master = None
         client_uniflows = []
         server_uniflows = []
-
-        def create_entry_from_row(row):
-            """
-            Because row is read only
-            """
-            return { 
-                'ip4src': row['ip4src'],
-                'ip4dst': row['ip4dst'],
-                'srcport': row['srcport'],
-                'dstport': row['dstport'],
-            }
+        tcpstreams = []
 
         # export ca
         # first find 
@@ -145,24 +213,26 @@ class MpTcpDatabase:
         res = self.cursor.execute(q)
         for row in res:
 
+            entry = MpTcpUniflow.create_entry_from_row(row)
+
             # print(str(row))
             if row['master']:
-                master = create_entry_from_row(row)
+                master = entry
                 client_uniflows.append(master)
             elif row['recvtok'] == master['expectedtoken']:
-                client_uniflows.append(create_entry_from_row(row))
+                client_uniflows.append(entry)
             # else:
             #     server_uniflows.append(object)
 
         # to get server uniflows, we just need to reverse the previous ones ipsrc, and dest
-        for row in client_uniflows:
-            row = row.copy()
-            row['ip4src'], row['ip4dst'] = row['ip4dst'], row['ip4src']
-            row['srcport'], row['dstport'] = row['dstport'], row['srcport']
-            # print("after:", row)
-            server_uniflows.append(row)
+        # for uniflow in client_uniflows:
+        #     row = row.copy()
+        #     row['ip4src'], row['ip4dst'] = row['ip4dst'], row['ip4src']
+        #     row['srcport'], row['dstport'] = row['dstport'], row['srcport']
+        #     # print("after:", row)
+        #     server_uniflows.append(row)
 
-        return client_uniflows, server_uniflows
+        return client_uniflows, server_uniflows, tcpstreams
 
         # res = self.cursor.execute("SELECT * FROM connections WHERE mptcpstream==? GROUP BY tcpstream", (mptcp_stream,))
         # that does not work
