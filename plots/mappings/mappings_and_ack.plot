@@ -5,6 +5,9 @@ load "plots/common.plot"
 # datafile = 'mappings.multi.csv'
 # datafile = 'test.dat'
 
+
+set key right bottom
+
 set xlabel 'Time (ms)' font ",16"
 set ylabel '# DSN' font ",16"
 
@@ -27,7 +30,7 @@ set bars fullwidth
 # set grid lt 0 lw 0.5 lc rgb "#ff0000"
 
 set style line 1 lt rgb "cyan" lw 3 pt 6
-set style line 1 lt rgb "red" lw 3 pt 6
+set style line 2 lt rgb "red" lw 3 pt 6
 
 # 2 'pink', 3 'green',
 
@@ -59,9 +62,10 @@ set style line 1 lt rgb "red" lw 3 pt 6
 # that's why we explicitly set the bornes instead of using 
 
 # get_client_()
-
+print(server_uniflow(3))
 # set label "dataack"
 # set label "mapping"
-plot for [idx=0:nb_of_subflows-1] \
-	client_uniflow(idx)  using "reltime":'mapping_dsn':(0):"mapping_length":(idx) with vectors filled head size screen 0.008,145 lt idx title sprintf("Mappings from subflow %d", idx) 
-	server_uniflow(idx) using 'reltime':"dataack":(idx)  with points pt 5 lc palette z title sprintf("DACKs from dataset %d", idx)
+plot for [idx=1:(nb_of_subflows)] \
+	client_uniflow(idx) using "reltime":'mapping_dsn':(0):"mapping_length":(idx) with vectors filled head size screen 0.008,145 lt idx title sprintf("Mappings from client %d", idx), \
+	server_uniflow(idx) using 'reltime':"dataack":(nb_of_subflows + idx)  with points pt 2 lc palette z title sprintf("DACKs from server %d", idx)
+

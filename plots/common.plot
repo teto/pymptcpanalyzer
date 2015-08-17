@@ -63,7 +63,7 @@ set key right top
 #set format x "%d/%m\n%H/%M"
 
 # Left/Right/Top/Bottom
-set offset graph 0.2, graph 0.2, graph 0.3, graph 0.1
+# set offset graph 0.2, graph 0.2, graph 0.3, graph 0.1
 #set bmargin 20
 #set lmargin {<margin>}
 #set rmargin {<margin>}
@@ -88,7 +88,7 @@ set datafile commentschars "#"
 set datafile separator "|" 
 
 set style line 1 lt 1 lw 2
-set style line 2 lt 3 lw 2
+set style line 2 lt 2 lw 2
 
 # set style arrow 0 head filled size screen 0.025,30,45 ls 1
 set style arrow 1 head filled size screen 0.03,15 lt 1
@@ -101,7 +101,9 @@ set style arrow 6 head empty size screen 0.03,15,135 ls 2
 set style arrow 7 nohead ls 1
 
 # http://www.gnuplotting.org/defining-a-palette-with-discrete-colors/
-set palette maxcolors 3
+set palette maxcolors 4
 set palette defined ( 0 'green', \
 					  1 'red', \
-					  2 'blue' )
+					  2 'blue', \
+					  3 'blue' \
+					   )

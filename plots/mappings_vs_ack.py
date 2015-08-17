@@ -15,14 +15,17 @@ class MappingVsAck(plot.Plot):
         # os.join.path()
         return self.output_folder + "/" + "client_" + str(id) + ".csv"
 
+    # TODO I could do this for both directions
     def init(self, args):
+        """
+        """
         stream = args.mptcp_stream
         print("mptcp_stream", stream)
+        output = self.output_folder + "/out.png"
 
         clients, server, tcpstreams = self.db.list_subflows(stream)
 
-        for id, client in enumerate(clients):
-            output = self.output_folder + str(id)
+        for id, client in enumerate(clients, start=1):
 
             client_filename = self.get_client_uniflow_filename(id)
             server_filename = self.get_server_uniflow_filename(id)
@@ -30,7 +33,8 @@ class MappingVsAck(plot.Plot):
             self.db.export_uniflow_to_csv(client_filename, client)
             self.db.export_uniflow_to_csv(server_filename, client.get_reverse_uniflow())
 # client_file=self.get_server_uniflow_filename(id), server
-            self._call_gnuplot("plots/mappings/mappings_and_ack.plot", output, nb_of_subflows=len(clients))
+
+        self._call_gnuplot("plots/mappings/mappings_and_ack.plot", output, nb_of_subflows=len(clients))
         # genere les graphs
 
         # a la fin je pourrais les monter via une commande "montage"
