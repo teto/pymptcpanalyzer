@@ -22,13 +22,11 @@ log.addHandler(logging.StreamHandler())
 # subparsers that need an mptcp_stream should inherit this parser
 stream_parser = argparse.ArgumentParser(
     description='',
-    #else conflicts with
+    # else conflicts with
     add_help=False
 )
 
 stream_parser.add_argument("mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
-
-
 
 # TODO ca le generer des scripts dans le dossier plot
 plot_types = {
@@ -52,7 +50,7 @@ def main():
         description='Generate MPTCP stats & plots'
     )
 
-    #argparse.FileType('r')
+    # argparse.FileType('r')
     parser.add_argument("sqlite_file", type=str, action="store", help="file")
 
     # parser.add_argument("pcap_file", action="store", help="file")
@@ -79,26 +77,26 @@ def main():
     # subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
     # subparser_csv.add_argument('--relative', action="store", help="set to export relative TCP seq number")
 
+    # TODO here one could use parse_known_args
     args = parser.parse_args(sys.argv[1:])
 
     db = MpTcpDatabase(args.sqlite_file)
 
     if args.subparser_name == "list_subflows":
-    # if args.subparser_name == "pcap2csv":
+        # if args.subparser_name == "pcap2csv":
         # subflows = 
-        client, server = db.list_subflows(args.mptcp_stream)
+        client, server, tcp_connections = db.list_subflows(args.mptcp_stream)
         print("From client to server:")
         # print("Client subflows", client)
         # print("Server subflows", server)
 
         for sf in client:
             print("{src} -> {dst}".format(
-                    src=(sf['ip4src'] + ":" + sf['srcport']).ljust(20),
-                    # srcport=sf['srcport'],
-                    dst=(sf['ip4dst'] + ":" + sf['dstport']).ljust(20),
-                    # dstport=sf['dstport'],
-                )
-                )
+                src=(sf.ip4src + ":" + sf.srcport).ljust(20),
+                # srcport=sf['srcport'],
+                dst=(sf.ip4dst + ":" + sf.dstport).ljust(20),
+                # dstport=sf['dstport'],
+            ))
             # print("Stream id {id} between {src} and {dst}".format(
             #     id=sf['tcpstream'],
             #     src=sf['ip4src'],
@@ -106,9 +104,9 @@ def main():
             # ))
 
     elif args.subparser_name == "list_connections":
-        for con in db.list_mptcp_connections():
+        for mptcpstream in db.list_mptcp_connections():
             # TODO add starting times ? 
-            print(con['mptcpstream'])
+            print(mptcpstream)
 
     elif args.subparser_name == "plot":
         # args.
@@ -116,7 +114,7 @@ def main():
         plot_script = args.plot_type
 
         print("plot_script", plot_script)
-        #generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
+        # generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
         # import plot_script
         # request les streams
         # mptcp_stream

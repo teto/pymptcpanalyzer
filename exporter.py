@@ -40,7 +40,7 @@ log.addHandler(logging.StreamHandler())
 
 # todo should be able to 
 # -o force an option, else we can set a profile like -C <profileName>
-tshark_exe = "~/wireshark/release/tshark"
+tshark_exe = "tshark"
 
 # TODO should be settable
 # fields_to_export = ("packetid", 

@@ -56,7 +56,8 @@ class MpTcpUniflow:
         return rev
         # row['srcport'], row['dstport'] = row['dstport'], row['srcport']
 
-
+    def __tostring__(self):
+        return self.ip4src + ":" + self.srcport + ' -> ' + self.ip4dst + ":" + self.ip4dst
 
 class MpTcpDatabase:
     """
@@ -188,7 +189,8 @@ class MpTcpDatabase:
 
     def list_subflows(self, mptcp_stream):
         """
-        Return 2 lists of unidirectional flows 
+        Return 3 lists:
+        2 lists of unidirectional flows 
         characteristics registered in a dict like: 
         ip4src,ip4dst,srcport,dstport, tcpstream
         and a list of the tcpstream
@@ -245,6 +247,7 @@ class MpTcpDatabase:
 
     def list_mptcp_connections(self):
         """
+        Returns a list of integer
         """
         res = self.cursor.execute("SELECT * FROM connections GROUP BY mptcpstream ORDER BY CAST(mptcpstream as INT)")
         # for row in res:
