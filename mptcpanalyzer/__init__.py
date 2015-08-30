@@ -5,12 +5,13 @@ from pkgutil import extend_path
 # from mptcpanalyzer.core import get_basename
 import logging
 import os
-
+from . import plot
 
 __path__ = extend_path(__path__, __name__)
 
 
-h = logging.FileHandler(".mptcpanalyzer-" + str(os.getpid()), delay=True)
+# h = logging.FileHandler(".mptcpanalyzer-" + str(os.getpid()), delay=True)
+h = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(h)
@@ -21,23 +22,13 @@ def get_basename(fullname, ext):
     return os.path.splitext(os.path.basename(fullname))[0] + "." + ext
 
 
-def load_fields_to_export_from_file(filename):
-    """
-    Returns list of fields to export, EOL does not matter
-    """
-    import json
 
-    with open(filename, newline=None) as input:
-        # results = list(csv.reader(inputfile))
-        return json.load(input)
-    # return results
-    raise RuntimeError("error")
 
 # status.run()
 # dict to create distinct and understandable csv/sql keys
 # print(__path__[0])
 # TODO this sounds like a bit of a hack
-fields_dict = load_fields_to_export_from_file(__path__[0] + "/mptcp_fields.json")
+# fields_dict = load_fields_to_export_from_file(__path__[0] + "/mptcp_fields.json")
 # {
 #     "packetid": "frame.number",
 #     "time": "frame.time",

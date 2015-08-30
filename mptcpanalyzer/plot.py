@@ -20,41 +20,53 @@ class Plot:
     output_folder = None
     #outfile,
 
-    def __init__(self, *args):
-
+    def __init__(self, db, args):
+        # *args, **kwargs
+        """
+        @param db MpTcpDatabase
+        args arguments not parsed by argparse
+        should accept the database
+        """
         # self.output_folder = tempfile.TemporaryDirectory()
         self.output_folder = tempfile.mkdtemp()
         self.output_folder = "out"
 
-        parser = argparse.ArgumentParser(
-            description='Generate MPTCP stats & plots'
-        )
-        # input_db, outfile,
-        parser.add_argument("sql_db", type=str, action="store", help="file")
-        parser.add_argument('--out', action="store", default="", help='Name of the output folder, if default, a random one is generated')
+        self.db = db
 
-        self._complete_parser(parser)
-        self.parser = parser
-
-        args = self.parser.parse_args()
-        print(args, ...)
-        self.db = MpTcpDatabase(args.sql_db)
-
-        # TODO creer un parser de base, appeler compelte parser ?
         self.init(args)
 
-    def init(self, args):
+    def init(self, *args, **kwargs):
         """
         Args returned by the parser
         Override this one instead of __init__
         """
         pass
 
-    def _complete_parser(self, parser):
+    @staticmethod
+    def get_parser():
+        return __class__.default_parser()
+
+    @staticmethod
+    def default_parser():
         """
-        sds
+        Generate parser with commonu arguments
         """
-        pass
+        parser = argparse.ArgumentParser(
+            description='Generate MPTCP stats & plots'
+        )
+    
+        parser.add_argument("mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
+        parser.add_argument('--out', action="store", default="", help='Name of the output folder, if default, a random one is generated')
+        return parser
+
+    @staticmethod
+    def get_available_plots():
+    # def get_available_plots(self):
+# def all_subclasses(cls):
+        return Plot.__subclasses__() 
+        # to make it recursive
+        # + [g for s in Plot.__subclasses__()
+        #                        for g in all_subclasses(s)]
 
     def get_client_uniflow_filename(self, id):
         # os.join.path()
@@ -73,6 +85,7 @@ class Plot:
     def generate(self):
         raise NotImplementedError()
 
+    # TODO remove dependancy towards gnuplot, we should be backend independant
     def _call_gnuplot(self, gnuplot_script, output, **kwargs):
         """
         Run gnuplot

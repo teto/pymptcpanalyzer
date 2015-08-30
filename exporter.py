@@ -42,28 +42,6 @@ log.addHandler(logging.StreamHandler())
 # -o force an option, else we can set a profile like -C <profileName>
 tshark_exe = "tshark"
 
-# TODO should be settable
-# fields_to_export = ("packetid", 
-# "time_delta",
-# "ip4src", "ip4dst",
-# "ip6src", "ip6dst",
-# #"srcport",
-# "mptcpstream", "tcpstream", 
-# "subtype",
-# # "datafin",
-# # "recvtok","sendtruncmac",
-# "recvkey", "sendkey",
-# "tcpseq",
-# "mapping_ssn",
-# "mapping_length",
-# "mapping_dsn",
-# "ssn_to_dsn",
-# # "unmapped",
-# # "master"
-# )
-
-
-
 def main():
 
     # https://docs.python.org/3/library/argparse.html#module-argparse

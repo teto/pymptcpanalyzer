@@ -2,7 +2,21 @@
 # -*- coding: utf-8 -*-
 # import os
 import csv
+import json
 # from mptcpanalyzer import fields_to_export
+
+
+def load_fields_to_export_from_file(filename):
+    """
+    Returns list of fields to export, EOL does not matter
+    """
+    import json
+
+    with open(filename, newline=None) as input:
+        # results = list(csv.reader(inputfile))
+        return json.load(input)
+    # return results
+    raise RuntimeError("error")
 
 
 def build_csv_header_from_list_of_fields(fields, csv_delimiter):
@@ -21,10 +35,10 @@ def sniff_csv_fields(csv_file):
     """
     """
     with open(csv_file) as f:
-        reader = csv.DictReader(f, delimiter="|");
+        reader = csv.DictReader(f, delimiter="|")
 
         print("fieldnames:\n", reader.fieldnames)
-        print( dir(reader))
+        print(dir(reader))
 
 # def get_column_id(field_name):
 #   """
