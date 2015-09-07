@@ -21,22 +21,25 @@ import argparse
 # import csv
 import os
 # import shutil
-#import querycsv as q
 import subprocess
 import logging
 import sys
-from mptcpanalyzer import fields_dict, get_basename, load_fields_to_export_from_file
+from mptcpanalyzer import *
+# , load_fields_to_export_from_file
+# fields_dict, 
 # import sqlite3 as sql
 # from core import
 from mptcpanalyzer.tshark import TsharkExporter, convert_csv_to_sql
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
-log.addHandler(logging.StreamHandler())
-
-### CONFIG
+# CONFIG
 #########################
+
+
+def get_basename(fullname, ext):
+    return os.path.splitext(os.path.basename(fullname))[0] + "." + ext
+
 
 # todo should be able to 
 # -o force an option, else we can set a profile like -C <profileName>
@@ -57,7 +60,7 @@ def main():
     # readconfigFromFile
 
     # TODO tshark.py devrait plutot accepter des streams
-    #argparse.FileType('r')
+    # argparse.FileType('r')
     # parser.add_argument('xpconfig', default="tests.ini", action="store", type=str,  help="Config filename. Describe experiment settings")
 
     # parser.add_argument('inputPcap', action="store", help="src IP")
@@ -71,7 +74,7 @@ def main():
     subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
 
     subparser_csv = subparsers.add_parser('pcap2csv', parents=[pcap_parser], help='Converts pcap to a csv file')
-    #subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
+    # subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
     subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
 
     # List MPTCP connections and subflows
@@ -83,7 +86,7 @@ def main():
     sp_pcap2sql.add_argument('inputPcap', action="store", help="Input pcap")
     sp_pcap2sql.add_argument('output', nargs="?", action="store", help="db filename")
 
-    #parent
+    # parent
     # subparser_list = subparsers.add_parser('list', help='List MPTCP connections and subflows and saves them to a csv file',aliases=["l"])
     # subparser_list.add_argument('db', action="store", help="Input sql")
     # subparser_list.add_argument('outputCsv',  action="store", help="sql filename")
@@ -98,8 +101,8 @@ def main():
     args = parser.parse_args(sys.argv[1:])
     # if args.subparser_name == "list":
     #     list_mptcp_connections(args.db)
-        # if(args.tosql):
-        #   convert_csv_to_sql( "connections.csv",args.tosql,"connections")
+    # if(args.tosql):
+    #   convert_csv_to_sql( "connections.csv",args.tosql,"connections")
 
     # elif args.subparser_name == "query":
     #     print("query")

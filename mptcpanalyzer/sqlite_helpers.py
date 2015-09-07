@@ -13,9 +13,6 @@ from mptcpanalyzer.core import load_fields_to_export_from_file
 # from mptcpanalyzer import get_basename
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
-log.addHandler(logging.StreamHandler())
-
 
 
 class MpTcpUniflow:
@@ -58,6 +55,7 @@ class MpTcpUniflow:
 
     def __tostring__(self):
         return self.ip4src + ":" + self.srcport + ' -> ' + self.ip4dst + ":" + self.ip4dst
+
 
 class MpTcpDatabase:
     """
@@ -150,9 +148,9 @@ class MpTcpDatabase:
                 # ip4src=ip4src,
             ) 
 
-            print(q)
+            log.info(q)
             res = self.cursor.execute(q)
-            print("nb of results:", res.rowcount)
+            log.debug("nb of results:", res.rowcount)
 
             for row in res:
                 writer.writerow(row)
@@ -206,12 +204,16 @@ class MpTcpDatabase:
 
         # export ca
         # first find 
-        #tcp flags == 2 => SYN only
+        # tcp flags == 2 => SYN only
         # we want the master first
         # GROUP BY tcpstream
         # AND expectedtoken IS NOT NULL 
-        q = "SELECT * FROM connections WHERE mptcpstream==%s  and tcpflags==2 ORDER BY master" % (mptcp_stream,)
-        # print(q)
+        # depending on the wireshark version or sqlite , the tcflags don't seem
+        # to be imported the same way ?
+        q = "SELECT * FROM connections WHERE mptcpstream==%s "
+        " and tcpflags==%s ORDER BY master" % (mptcp_stream, "0x00000002")
+
+        log.info(q)
         res = self.cursor.execute(q)
         for row in res:
 

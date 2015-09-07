@@ -4,7 +4,8 @@ import subprocess
 import tempfile
 
 from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
-from mptcpanalyzer import fields_dict, get_basename
+from . import fields_dict
+# , get_basename
 
 log = logging.getLogger(__name__)
 
@@ -22,13 +23,16 @@ class TsharkExporter:
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         # "tcp.relative_sequence_numbers": 
         # Disable DSS checks which consume quite a lot
-        "tcp.analyze_mptcp_seq": False
+        # "tcp.analyze_mptcp_seq": False,
+        "tcp.analyze_mptcp": True,
+        "tcp.analyze_mptcp_mapping": False,
     }    
     delimiter = '|'
     fields_to_export = (
         "packetid", 
         "time",
-        "mptcpstream", "tcpstream", 
+        "mptcpstream", 
+        "tcpstream", 
     )
 
     # TODO should be settable
@@ -79,13 +83,14 @@ class TsharkExporter:
             db=output_db
         ))
 
-        csv_filename = get_basename(output_db, "csv")
+        # csv_filename = get_basename(output_db, "csv")
+        csv_filename = output_db + ".csv"
         self.export_pcap_to_csv(input_pcap, csv_filename)
 
         convert_csv_to_sql(csv_filename, output_db, table_name)
 
     @staticmethod
-    def tshark_export_fields(tshark_exe, fields_to_export, 
+    def tshark_export_fields(tshark_exe, fields_to_export,
                              inputFilename, outputFilename, 
                              filter=None, 
                              options={},
@@ -96,6 +101,9 @@ class TsharkExporter:
         returns outout as a string
         """
         def convert_field_list_into_tshark_str(fields):
+            """
+            TODO fix if empty
+            """
             return ' -e ' + ' -e '.join([fields_dict[x] for x in fields])
         # fields that tshark should export
         # tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
@@ -107,13 +115,13 @@ class TsharkExporter:
         def convert_options_into_str(options):
             """
             Expects a dict of wireshark options
+            TODO maybe it could use **kwargs instead 
             """
             # relative_sequence_numbers = False
             out = ""
             for option, value in options.items():
                 out += ' -o {option}:{value}'.format(option=option, value=value)
             return out
-
 
         print(fields_to_export)
         # for some unknown reasons, -Y does not work so I use -2 -R instead
@@ -132,7 +140,6 @@ class TsharkExporter:
             delimiter=csv_delimiter,
             outputFilename=outputFilename
         )
-        #>> {outputFilename}
         print(cmd)
 
         try:
@@ -173,10 +180,10 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     ))
     # db = sqlite.connect(database)
     # csv_filename
-    #For the second case, when the table already exists, 
+    # For the second case, when the table already exists, 
     # every row of the CSV file, including the first row, is assumed to be actual content. If the CSV file contains an initial row of column labels, that row will be read as data and inserted into the table. To avoid this, make sure that table does not previously exist. 
     #
-    initCommand = (
+    init_command = (
         "DROP TABLE IF EXISTS {table};\n"
         ".separator {delimiter}\n"
         # ".mode csv\n"
@@ -197,19 +204,19 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     log.info("Creating db %s (if does not exist)" % database)
     with tempfile.NamedTemporaryFile("w+", delete=False) as f:
         # with open(tempInitFilename, "w+") as f:
-        f.write(initCommand)
+        f.write(init_command)
         f.flush()
 
         cmd = "sqlite3 -init {initFilename} {db} ".format(
             initFilename=f.name,
             db=database,
-            # init=initCommand
+            # init=init_command
         )
 
         # cmd="sqlite3"
         # tempInitFilename      
         log.info("Running command:\n%s" % cmd)
-        # input=initCommand.encode(),
+        # input=init_command.encode(),
         try:
 
             output = subprocess.check_output(cmd, 

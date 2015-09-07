@@ -18,7 +18,7 @@ from mptcpanalyzer.plot import Plot
 # from mptcpanalyzer import fields_to_export
 from mptcpanalyzer.sqlite_helpers import MpTcpDatabase
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 
@@ -32,13 +32,13 @@ stream_parser = argparse.ArgumentParser(
 stream_parser.add_argument("mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
 
 # TODO ca le generer des scripts dans le dossier plot
-plot_types = {
-    'mappings_simple': "plots/mappings/mappings_per_subflow.plot",
-    'mappings_time': "plots/mappings/time_vs_mappings.plot",
-    # this one uses multiplot
-    'mappings_ack': "plots/mappings/mappings_and_ack.plot",
-    # 'mptcp_rtt': '',
-} 
+# plot_types = {
+#     'mappings_simple': "plots/mappings/mappings_per_subflow.plot",
+#     'mappings_time': "plots/mappings/time_vs_mappings.plot",
+#     # this one uses multiplot
+#     'mappings_ack': "plots/mappings/mappings_and_ack.plot",
+#     # 'mptcp_rtt': '',
+# } 
 
 
 # TODO renomemr ce script en util ?
@@ -55,7 +55,7 @@ def display_subflows(db, mptcp_stream):
     """
     # if args.subparser_name == "pcap2csv":
     # subflows = 
-    client, server, tcp_connections = db.list_subflows(args.mptcp_stream)
+    client, server, tcp_connections = db.list_subflows(mptcp_stream)
     print("From client to server:")
     # print("Client subflows", client)
     # print("Server subflows", server)
@@ -74,13 +74,13 @@ def display_subflows(db, mptcp_stream):
         # ))
 
 
-def displa_mptcp_connections(db):
+def display_mptcp_connections(db):
     """
     """
     for mptcpstream in db.list_mptcp_connections():
         # TODO add starting times ? 
         # TODO list subflows or master of the connection ?
-        print(mptcpstream)
+        print("mptcpstream=", mptcpstream)
 
 
 def main():
@@ -118,10 +118,9 @@ def main():
     # for plot_name, plot_class in plot_types.items():
     #     sp_plot = subparsers.add_parser(plot_name, parents=[plot_class.get_parser()], 
     #         add_help=False, help='Plots')
-    
+
     # sp_plot = subparsers.add_parser('plot', parents=[stream_parser], help='Plots')
     # sp_plot.add_argument('--out', action="store", default="output.png", help='Name of the output file')
-    
 
     # sp_plot.add_argument('plot_type', choices=plot_types.keys(), help='List of available plots')
     # plot_subparsers = sp_plot.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
