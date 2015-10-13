@@ -4,11 +4,16 @@
 # this script requires wireshark (& gnuplot >4.6) to be installed
 # http://stackoverflow.com/questions/11500469/plotting-columns-by-calling-their-header-with-gnuplot
 # import csv
-# TODO rename into util
+# TODO list
+# -auto conversion from pcap to csv
+# -reenable sql support
+# -ability to load filesfrom the interpreter
+# -add color with ncurses (problematic with utf8 ?)
 import sys
 import argparse
 import logging
 import os
+import readline
 import glob
 import mptcpanalyzer
 import pandas as pd
@@ -43,29 +48,81 @@ stream_parser.add_argument("mptcp_stream", action="store", type=int, help="ident
 # } 
 
 
+# TODO merge these fields (always) when tshark exports ?
+mandatory_fields = [
+    'ip4src',
+    'ip4dst',
+    'sport',
+    'dport',
+    'mptcpstream',
+    'tcpstream',
+]
+
 class MpTcpAnalyzer(cmd.Cmd):
     intro = "Press ? to get help"
     prompt = ">"
     def __init__(self, pcap_file):
         super().__init__()
-        self.prompt = "%s loaded\n>" % pcap_file 
+        self.prompt = "%s >" % pcap_file 
+# , sep='|'
         self.data = pd.read_csv(pcap_file, sep='|')
-        
-    def do_list_subflows(self, mptcpstream):
-        """ list mptcp subflows """
-        print('hello fpr mptcpstream %d' % mptcpstream)
-        data.groupby("mptcpstream").describe()
+        #print(self.data.col
+        list(d.columns)
+        # TODO run some check on the pcap to check if column names match
+        # 
 
-    def do_list_mptcp(self, *args):
+    def do_ls(self, mptcpstream):
+        """ list mptcp subflows 
+                [mptcp.stream id]
+        """
+        print(mptcpstream)
+        mptcpstream = int(mptcpstream)
+        print('hello fpr mptcpstream %d' % mptcpstream)
+        group = self.data[ self.data.mptcpstream == mptcpstream]
+        tcpstreams = group.groupby('tcpstream')
+        print("mptcp.stream %d has %d subflow(s): " % (mptcpstream, len(tcpstreams)))
+        for tcpstream, gr2 in tcpstreams:
+            print("\ttcp.stream %d : %s:%d <-> %s:%d" % (
+                tcpstream, group['ip4src'][0], group['sport'][0], group['ip4dst'][0], group['dport'][0])
+                  )
+
+    def do_lc(self, *args):
         """ List mptcp connections """
         print('mptcp connections')
+        self.data.describe()
         mp = self.data.groupby("mptcpstream")
-        print(mp['ip4src'])
+        for mptcpstream, group in mp:
+            self.do_ls(mptcpstream)
+            # print("mptcp.stream %d : %s <-> %s " % (mptcpstream, group['ip4src'][0], group['ip4dst'][0]))
+        # print(mp['ip4src'])
         # le nunique s'applique sur une liste et permet d'avoir
         # mp.ip4src.nth(0)[0]
 
-    def do_plot(self, *args):
-        pass
+    # def do_plot_ack(self, args):
+    # def do_plot_dss(self, args):
+    # todo plot app_latency too
+    def do_plot_dsn(self, arg):
+        """
+        Plot DSN vs time
+            [mptcp.stream] 
+        """
+        plot_types = {
+        }
+        parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
+        # parse
+        parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
+        parser.add_argument('out', action="store", nargs="?", default="output.png", help='Name of the output file')
+        parser.add_argument('--display', action="store_true", help='will display the generated plot')
+        # shlex.split(args) ?
+        args = parser.parse_args(arg)
+        print(args)
+        # returns a DataFrame
+        dat = self.data[self.data.mptcpstream == args.mptcpstream]
+        if not len(dat.index):
+            print("no packet matching mptcp.stream %d" % args.mptcpstream)
+            return
+
+
 
     def do_q(self,*args):
         """
