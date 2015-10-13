@@ -6,14 +6,15 @@ import json
 # from mptcpanalyzer import fields_to_export
 
 
-def load_fields_to_export_from_file(filename):
+def load_fields_to_export_from_file(file_):
     """
     Returns list of fields to export, EOL does not matter
     TODO check it s a list
     """
     import json
 
-    with open(filename, newline=None) as input:
+    # with open(filename, newline=None) as input:
+    with file_ as input:
         # results = list(csv.reader(inputfile))
         return json.load(input)
 

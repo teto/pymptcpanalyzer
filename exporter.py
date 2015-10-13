@@ -75,7 +75,9 @@ def main():
 
     subparser_csv = subparsers.add_parser('pcap2csv', parents=[pcap_parser], help='Converts pcap to a csv file')
     # subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
-    subparser_csv.add_argument('output', nargs="?", action="store", help="csv filename")
+    subparser_csv.add_argument('--output', "-o", action="store", help="csv filename")
+    subparser_csv.add_argument('--filter', "-f", action="store", help="Filter", default="")
+    subparser_csv.add_argument('fields_filename', type=argparse.FileType('r'), action="store", help="json file mapping name to their wireshark name")
 
     # List MPTCP connections and subflows
     sp_csv2sql = subparsers.add_parser('csv2sql', help='Imports csv file to an sqlite database')
@@ -107,20 +109,23 @@ def main():
     # elif args.subparser_name == "query":
     #     print("query")
 
-    fields_to_export = load_fields_to_export_from_file("fields_to_export.json")
+    # fields_to_export = load_fields_to_export_from_file("fields_to_export.json")
     # print(fields_to_export)
     # sys.exit(0)
 
     exporter = TsharkExporter(tshark_exe)
     # exporter.tcp_relative_seq = args.relative if args.relative else True
     exporter.tcp_relative_seq = args.relative 
-    exporter.fields_to_export = fields_to_export
+    # exporter.fields_to_export = fields_to_export
 
     log.debug("Relative #seq = %s" % exporter.tcp_relative_seq)
     if args.subparser_name == "pcap2csv":
         inputFilename = args.inputPcap
         outputFilename = args.output if args.output else get_basename(inputFilename, "csv")
-        exporter.export_pcap_to_csv(inputFilename, outputFilename)
+        fields_to_export = load_fields_to_export_from_file(args.fields_filename)
+        exporter.filter = args.filter
+        print(fields_to_export)
+        exporter.export_pcap_to_csv(inputFilename, outputFilename, fields_to_export)
     elif args.subparser_name == "csv2sql":
         inputFilename = args.inputCsv
         outputFilename = get_basename(inputFilename, "sqlite")

@@ -28,7 +28,7 @@ logger.setLevel(logging.CRITICAL)
 # dict to create distinct and understandable csv/sql keys
 # print(__path__[0])
 # TODO this sounds like a bit of a hack
-fields_dict = load_fields_to_export_from_file(__path__[0] + "/mptcp_fields.json")
+# fields_dict = load_fields_to_export_from_file(__path__[0] + "/mptcp_fields.json")
 # {
 #     "packetid": "frame.number",
 #     "time": "frame.time",
@@ -43,7 +43,7 @@ __all__ = [
     # "Module", "IntervalModule",
     # "SettingsBase",
     # "formatp",
-    "fields_dict",
+    # "fields_dict",
     "table_name",
     "load_fields_to_export_from_file",
     # "get_basename",

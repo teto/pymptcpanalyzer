@@ -12,8 +12,6 @@
     "sendkey": "tcp.options.mptcp.sendkey",
     "recvkey": "tcp.options.mptcp.recvkey",
     "recvtok": "tcp.options.mptcp.recvtok",
-    "expectedtoken": "tcp.options.mptcp.expected_token",
-    "sendtruncmac": "tcp.options.mptcp.sendtruncmac",
     "datafin": "tcp.options.mptcp.datafin.flag",
     "subtype": "tcp.options.mptcp.subtype",
     "tcpflags": "tcp.flags",
@@ -21,10 +19,8 @@
     "mapping_rawdsn": "tcp.options.mptcp.rawdataseqno",
     "mapping_ssn": "tcp.options.mptcp.subflowseqno",
     "mapping_length": "tcp.options.mptcp.datalvllen",
-    "ssn_to_dsn": "tcp.options.mptcp.seq2dsn",
     "master": "mptcp.master",
     "tcpseq": "tcp.seq",
     "dataack": "tcp.options.mptcp.rawdataack32",
-    "rawdataack": "tcp.options.mptcp.rawdataack32",
-    "unmapped": "tcp.options.mptcp.unmapped"
+    "rawdataack": "tcp.options.mptcp.rawdataack32"
 }

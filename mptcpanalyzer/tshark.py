@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 
 from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
-from . import fields_dict
+# from . import fields_dict
 # , get_basename
 
 log = logging.getLogger(__name__)
@@ -24,27 +24,29 @@ class TsharkExporter:
         # "tcp.relative_sequence_numbers": 
         # Disable DSS checks which consume quite a lot
         # "tcp.analyze_mptcp_seq": False,
-        "tcp.analyze_mptcp": True,
-        "tcp.analyze_mptcp_mapping": False,
+        # "tcp.analyze_mptcp": True,
+        # "tcp.analyze_mptcp_mapping": False,
     }    
     delimiter = '|'
-    fields_to_export = (
-        "packetid", 
-        "time",
-        "mptcpstream", 
-        "tcpstream", 
-    )
+    # fields_to_export = (
+    #     "packetid", 
+    #     "time",
+    #     "mptcpstream", 
+    #     "tcpstream", 
+    # )
 
     # TODO should be settable
-    filter = "mptcp.stream"
+    # mptcp.stream
+    filter = ""
 
     def __init__(self, tshark_bin="/usr/bin/wireshark"):
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         pass
 
-    def export_pcap_to_csv(self, input_pcap, output_csv):
+    def export_pcap_to_csv(self, input_pcap, output_csv, fields_to_export):
         """
+        fields_to_export = dict
         """
         log.info("Converting pcap [{pcap}] to csv [{csv}]".format(
             pcap=input_pcap,
@@ -55,7 +57,7 @@ class TsharkExporter:
         # TODO should accept a filter mptcp stream etc...
         # ands convert some parts of the filter into an SQL request
         # output = ""
-        header = build_csv_header_from_list_of_fields(self.fields_to_export, self.delimiter)        
+        header = build_csv_header_from_list_of_fields(fields_to_export.keys(), self.delimiter)        
 
         # output = output if output else ""
         log.info("Writing to file %s" % output_csv)
@@ -66,7 +68,7 @@ class TsharkExporter:
 
         return self.tshark_export_fields(
             self.tshark_bin, 
-            self.fields_to_export, 
+            fields_to_export.values(), 
             input_pcap,
             output_csv,
             self.filter,
@@ -104,7 +106,7 @@ class TsharkExporter:
             """
             TODO fix if empty
             """
-            return ' -e ' + ' -e '.join([fields_dict[x] for x in fields])
+            return ' -e ' + ' -e '.join(fields)
         # fields that tshark should export
         # tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
         # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
