@@ -47,11 +47,12 @@ stream_parser.add_argument("mptcp_stream", action="store", type=int, help="ident
 #     # 'mptcp_rtt': '',
 # } 
 
-
+# 
+#  tshark -T fields -e _ws.col.Source -r /mnt/ntfs/pcaps/demo.pcap
 # TODO merge these fields (always) when tshark exports ?
 mandatory_fields = [
-    'ip4src',
-    'ip4dst',
+    'ipsrc',
+    'ipdst',
     'sport',
     'dport',
     'mptcpstream',
@@ -67,7 +68,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 # , sep='|'
         self.data = pd.read_csv(pcap_file, sep='|')
         #print(self.data.col
-        list(d.columns)
+        # list(self.data.columns)
         # TODO run some check on the pcap to check if column names match
         # 
 
@@ -101,7 +102,7 @@ class MpTcpAnalyzer(cmd.Cmd):
     # def do_plot_ack(self, args):
     # def do_plot_dss(self, args):
     # todo plot app_latency too
-    def do_plot_dsn(self, arg):
+    def do_pdsn(self, arg):
         """
         Plot DSN vs time
             [mptcp.stream] 
@@ -114,14 +115,30 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser.add_argument('out', action="store", nargs="?", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
         # shlex.split(args) ?
-        args = parser.parse_args(arg)
+        try:
+            args = parser.parse_args(arg)
+        except SystemExit:
+            return
+
         print(args)
         # returns a DataFrame
         dat = self.data[self.data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
+        
+        tcpstreams = dat.groupby('tcpstream')
+        # dssRawDSN could work as well
+        # plot (subplots=True)
+        plot = tcpstreams.tcpseq.plot()
+        for axes in plot:
+            fig = axes.get_figure()
+            # fig.savefig("/home/teto/test.png")
+        # fig = plot.get_figure()
+            fig.savefig(args.out)
 
+        if args.display:
+            os.system("xdg-open %s" % (args.out,))
 
 
     def do_q(self,*args):

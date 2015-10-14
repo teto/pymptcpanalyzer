@@ -3,11 +3,11 @@
     "time": "frame.time",
     "reltime": "frame.time_relative",
     "time_delta": "frame.time_delta",
-    "ip4src": "ip.src", "ip4dst": "ip.dst",
-    "ip6src": "ipv6.src", "ip6dst": "ipv6.dst",
-    "sport": "tcp.srcport",
+    "ipsrc": "_ws.col.Source",
+    "ipdst": "_ws.col.Destination",
     "tcpstream": "tcp.stream",
     "mptcpstream": "mptcp.stream",
+    "sport": "tcp.srcport",
     "dport": "tcp.dstport",
     "sendkey": "tcp.options.mptcp.sendkey",
     "recvkey": "tcp.options.mptcp.recvkey",
@@ -21,6 +21,7 @@
     "mapping_length": "tcp.options.mptcp.datalvllen",
     "master": "mptcp.master",
     "tcpseq": "tcp.seq",
-    "dataack": "tcp.options.mptcp.rawdataack32",
-    "rawdataack": "tcp.options.mptcp.rawdataack32"
+    "dsn": "mptcp.dsn",
+    "dataack": "mptcp.dss.ack",
+    "rawdataack": "mptcp.rawdataack32"
 }
