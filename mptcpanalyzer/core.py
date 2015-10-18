@@ -21,16 +21,6 @@ def load_fields_to_export_from_file(file_):
     raise RuntimeError("error")
 
 
-def build_csv_header_from_list_of_fields(fields, csv_delimiter):
-    """
-    fields should be iterable
-    Returns "field0,field1,..."
-    csv delimiter will probably be '|' or ','
-    """
-    # def strip_fields(fields):
-    #   return [ field.split('.')[-1] for field in fields ]
-    # return (','.join( strip_fields(fields)) + '\n'  ).encode()
-    return csv_delimiter.join(fields) + '\n'
 
 
 def sniff_csv_fields(csv_file):

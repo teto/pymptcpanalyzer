@@ -5,8 +5,8 @@ from pkgutil import extend_path
 # from mptcpanalyzer.core import get_basename
 import logging
 import os
-from . import plot
-from .core import load_fields_to_export_from_file
+# from . import plot
+# from .core import load_fields_to_export_from_file
 
 __path__ = extend_path(__path__, __name__)
 
@@ -20,22 +20,6 @@ logger.addHandler(h)
 logger.setLevel(logging.CRITICAL)
 
 
-
-
-
-
-# status.run()
-# dict to create distinct and understandable csv/sql keys
-# print(__path__[0])
-# TODO this sounds like a bit of a hack
-# fields_dict = load_fields_to_export_from_file(__path__[0] + "/mptcp_fields.json")
-# {
-#     "packetid": "frame.number",
-#     "time": "frame.time",
-
-
-# TODO move away
-# plotsDir = "plots"
 table_name = "connections"
 
 __all__ = [

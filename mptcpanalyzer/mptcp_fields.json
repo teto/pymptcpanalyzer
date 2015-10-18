@@ -23,5 +23,5 @@
     "tcpseq": "tcp.seq",
     "dsn": "mptcp.dsn",
     "dataack": "mptcp.dss.ack",
-    "rawdataack": "mptcp.rawdataack32"
+    "rawdataack": "mptcp.rawdataack"
 }

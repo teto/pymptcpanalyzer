@@ -1,14 +1,23 @@
 #!/usr/bin/env python
 import logging
 import subprocess
+import os
 import tempfile
+# available since python 3.4
+from enum import Enum
 
-from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
+# from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
 # from . import fields_dict
 # , get_basename
 
 log = logging.getLogger(__name__)
 
+
+class Filetype(Enum):
+    unsupported = 0
+    pcap = 1
+    sql = 2
+    csv = 3
 
 class TsharkExporter:
     """
@@ -21,6 +30,8 @@ class TsharkExporter:
     tcp_relative_seq = True
     options = {
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
+        "mptcp.analyze_mappings" : True,
+        "mptcp.relative_sequence_numbers" : True,
         # "tcp.relative_sequence_numbers": 
         # Disable DSS checks which consume quite a lot
         # "tcp.analyze_mptcp_seq": False,
@@ -39,45 +50,120 @@ class TsharkExporter:
     # mptcp.stream
     filter = ""
 
-    def __init__(self, tshark_bin="/usr/bin/wireshark"):
+    
+
+    def __init__(self, tshark_bin="/usr/bin/wireshark", delimiter="|"):
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
-        pass
+        self.delimiter = delimiter
 
-    def export_pcap_to_csv(self, input_pcap, output_csv, fields_to_export):
+    @staticmethod
+    def get_default_options():
+        """
+        """
+        return self.options
+
+    @staticmethod
+    def get_default_fields():
+        """
+        Mapping between short names easy to use as a column title (in a CSV file) 
+        and the wireshark field name
+        """
+        return {
+            "packetid": "frame.number",
+            "time": "frame.time",
+            "reltime": "frame.time_relative",
+            "time_delta": "frame.time_delta",
+            "ipsrc": "_ws.col.Source",
+            "ipdst": "_ws.col.Destination",
+            "tcpstream": "tcp.stream",
+            "mptcpstream": "mptcp.stream",
+            "sport": "tcp.srcport",
+            "dport": "tcp.dstport",
+            # "sendkey": "tcp.options.mptcp.sendkey",
+            # "recvkey": "tcp.options.mptcp.recvkey",
+            # "recvtok": "tcp.options.mptcp.recvtok",
+            "datafin": "tcp.options.mptcp.datafin.flag",
+            "subtype": "tcp.options.mptcp.subtype",
+            "tcpflags": "tcp.flags",
+            "dss_dsn": "tcp.options.mptcp.rawdataseqno",
+            "dss_rawdsn": "tcp.options.mptcp.rawdataseqno",
+            "dss_rawack": "tcp.options.mptcp.rawdataack64",
+            "dss_ssn": "tcp.options.mptcp.subflowseqno",
+            "dss_length": "tcp.options.mptcp.datalvllen",
+            "master": "mptcp.master",
+            "tcpseq": "tcp.seq",
+            "dsn": "mptcp.dsn",
+            "dack": "mptcp.ack",
+            "dataack": "mptcp.ack",
+        }
+
+    @staticmethod
+    def build_csv_header_from_list_of_fields(fields, csv_delimiter):
+        """
+        fields should be iterable
+        Returns "field0,field1,..."
+        csv delimiter will probably be '|' or ','
+        """
+        return csv_delimiter.join(fields) + '\n'
+
+    @staticmethod
+    def find_type(filename):
+        """
+        \return a Filetype instance
+        Naive implementation relying on filename. Expects only one dot in filename
+        Assumes
+        """
+        filename, ext = os.path.splitext(os.path.basename(filename))
+        print("Ext=", ext)
+        if ext == ".csv":
+            return Filetype.csv
+        elif ext in (".pcap", ".pcapng"):
+            return Filetype.pcap
+        elif ext == ".sql":
+            return Filetype.sql
+        else:
+            return Filetype.unsupported
+
+        
+    # def convert_to_csv(self, input_filename, output_filename, fields_to_export):
+        # pass
+
+    def export_to_csv(self, input_filename, output_csv, fields_to_export=None, filter=None):
         """
         fields_to_export = dict
+        Returns exit code, stderr
         """
         log.info("Converting pcap [{pcap}] to csv [{csv}]".format(
-            pcap=input_pcap,
+            pcap=input_filename,
             csv=output_csv)
         )
 
-        # TODO should export everything along with TCP acks
-        # TODO should accept a filter mptcp stream etc...
-        # ands convert some parts of the filter into an SQL request
-        # output = ""
-        header = build_csv_header_from_list_of_fields(fields_to_export.keys(), self.delimiter)        
+        if self.find_type(input_filename) != Filetype.pcap:
+            raise Exception("Input filename not a capture file")
+
+        fields_to_export = fields_to_export or self.get_default_fields()
+        header = self.build_csv_header_from_list_of_fields(fields_to_export.keys(), self.delimiter)        
 
         # output = output if output else ""
         log.info("Writing to file %s" % output_csv)
-        # -E occurrence
         with open(output_csv, "w") as f:
             f.write(header)
-            # f.write(output.decode())
 
         return self.tshark_export_fields(
             self.tshark_bin, 
             fields_to_export.values(), 
-            input_pcap,
+            input_filename,
             output_csv,
             self.filter,
             options=self.options,
             # relative_sequence_numbers=self.tcp_relative_seq
         )
 
-    def export_pcap_to_sql(self, input_pcap, output_db, table_name="connections"):
+
+    def export_to_sql(self, input_pcap, output_db, table_name="connections"):
         """
+        SQL export possible from pcap or csv (i.e. pcap will be converted first to CSV)
         """
 
         log.info("Converting pcap [{pcap}] to sqlite database [{db}]".format(
@@ -95,22 +181,22 @@ class TsharkExporter:
     def tshark_export_fields(tshark_exe, fields_to_export,
                              inputFilename, outputFilename, 
                              filter=None, 
+                             csv_delimiter='|',
                              options={},
-                             csv_delimiter='|',):
+                            ):
         """
         inputFilename should be pcap filename
         fields should be iterable (tuple, list ...)
-        returns outout as a string
+        returns exit code, stderr
         """
         def convert_field_list_into_tshark_str(fields):
             """
             TODO fix if empty
             """
             return ' -e ' + ' -e '.join(fields)
+
         # fields that tshark should export
-        # tcp.seq / tcp.ack / ip.src / frame.number / frame.number / frame.time
         # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
-        # tcp.options.mptcp.subtype == 2 => DSS (0 => MP-CAPABLE)
         # to filter connection
         filter = '-2 -R "%s"' % (filter) if filter else ''
 
