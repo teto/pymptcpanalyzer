@@ -6,9 +6,11 @@
 # import csv
 # TODO list
 # -auto conversion from pcap to csv
-# -reenable sql support
+# -reenable sql support (panda can read from SQL
 # -ability to load filesfrom the interpreter
 # -add color with ncurses (problematic with utf8 ?)
+# -would like to draw a bar with the repartition of the data between the different subflows with sthg like
+#  plot(kind='barh', stacked=True);
 import sys
 import argparse
 import logging
@@ -20,7 +22,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import shlex
 import cmd
-
+import traceback
 
 tshark_bin = "/home/teto/wireshark/run/tshark"
 
@@ -61,11 +63,23 @@ mandatory_fields = [
 plot_types = ["dsn", "tcpseq", "dss"]
 
 class MpTcpAnalyzer(cmd.Cmd):
-    intro = "Press ? to get help"
+    intro = """
+        Welcome in mptcpanalyzer (http://github.com/teto/mptcpanalyzer)
+        Press ? to get help
+        """
+    ruler = "="
+    # ruler = "============================"
     prompt = ">"
-    def __init__(self, pcap_file):
-        super().__init__()
+    def __init__(self, pcap_file, input=None):
+        #completekey='tab', stdin=None, stdout=None
+        # stdin ?
         self.prompt = "%s >" % pcap_file 
+
+        # if loading commands from a file, we disable prompt not to pollute output
+        if input:
+            self.use_rawinput = False
+            self.prompt = ""
+        super().__init__(completekey='tab', stdin=input)
 # , sep='|'
         self.data = pd.read_csv(pcap_file, sep='|')
         #print(self.data.col
@@ -94,6 +108,8 @@ class MpTcpAnalyzer(cmd.Cmd):
             print("\ttcp.stream %d : %s:%d <-> %s:%d" % (
                 tcpstream, gr2['ipsrc'].iloc[0], gr2['sport'].iloc[0], gr2['ipdst'].iloc[0], gr2['dport'].iloc[0])
                   )
+    def complete_ls(self, args):
+        pass
 
     def do_lc(self, *args):
         """ List mptcp connections """
@@ -110,12 +126,24 @@ class MpTcpAnalyzer(cmd.Cmd):
     # def plot_tcp
     # def plot_mptcp
     # def do_pdsn(self, args):
+    def do_p(self, args):
+        """
+        Alias for plot
+        """
+        self.plot(args)
+
     def do_plot(self, args):
         """
         Plot DSN vs time
             [mptcp.stream] 
         """
         self.plot_mptcpstream(args)
+
+    def help_plot(self):
+        print("Hello world")
+
+    def complete_plot(self,args):
+        pass
 
     def plot_mptcpstream(self, args):
         """
@@ -146,12 +174,32 @@ class MpTcpAnalyzer(cmd.Cmd):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
         
-        tcpstreams = dat.groupby('tcpstream')
         # dssRawDSN could work as well
         # plot (subplots=True)
         fig = plt.figure()
         plt.title("hello world")
-        ax = tcpstreams[args.field].plot(ax=fig.gca())
+        # ax = tcpstreams[args.field].plot(ax=fig.gca())
+        # want 
+        # columns allows to choose the correct legend
+        # df = self.data
+        dat.set_index("reltime", inplace=True)
+        tcpstreams = dat.groupby('tcpstream')
+        # print(df)
+        pplot = tcpstreams[args.field].plot(ax=fig.gca(),
+            # x=tcpstreams["reltime"],
+            # x="Relative time", # ne marche pas
+            title="Data Sequence Numbers over subflows", 
+            # use_index=False,
+            # legend=True,
+            lw=3
+            )
+        ax = fig.gca()
+        # print(dir(pplot))
+        # pplot.ax
+        ax.set_xlabel("Relative time")
+        # pplot.set_xlabel("Time")
+        # ax.set_ylabel("DSN")
+        # fig = ax.get_figure()
         # for axes in plot:
             # print("Axis ", axes)
             # fig = axes.get_figure()
@@ -164,12 +212,17 @@ class MpTcpAnalyzer(cmd.Cmd):
         cmd="xdg-open %s" % (args.out,) 
         print (cmd) 
         if args.display:
-            os.system()
+            os.system(cmd)
 
 
     def do_q(self,*args):
         """
         Quit/exit program
+        """
+        return True
+
+    def do_EOF(self, line):
+        """
         """
         return True
 
@@ -181,7 +234,9 @@ def main():
         description='Generate MPTCP stats & plots'
     )
     parser.add_argument("input", action="store", help="Input file that will be converted in csv if needed")
-    parser.add_argument("--regen", action="store_true", help="Force the regen")
+    parser.add_argument("--regen", "-r", action="store_true", help="Force the regen")
+    parser.add_argument("--batch", "-b", action="store", type=str, help="Accepts a filename as argument from which commands will be loaded")
+    # parser.add_argument("--command", "-c", action="store", type=str, nargs="*", help="Accepts a filename as argument from which commands will be loaded")
 
 
     # TODO here one could use parse_known_args
@@ -206,37 +261,31 @@ def main():
                 raise Exception(stderr)
     
     log.info(" %s " % (args.input))
-    
-    # here I want to generate automatically the csv file 
-    analyzer = MpTcpAnalyzer(csv_filename)
-    analyzer.cmdloop() 
+  
+    # if I load from 
+    input = None
+    try:
+        if args.batch:
+            input = open(args.batch, 'rt')
+        # stdin=input
+        # Disable rawinput module use
+        # use_rawinput = False
+        
 
-    # elif args.subparser_name == "plot":
-        # # args.
-        # # plot_script = os.path.join(plot_types[args.plot_type])
+        # here I want to generate automatically the csv file 
+        analyzer = MpTcpAnalyzer(csv_filename, input)
 
-        # plot_script = args.plot_type
-        # print("plot_script", plot_script)
-        # print("unparsed args", unknown_args)
-        # plot = plot_types[args.plot_type](db, unknown_args)
+        # if extra parameters passed via the cmd line, consider it is
+        if not input and unknown_args:
+            analyzer.onecmd( ' '.join(unknown_args))
+        else:
+            analyzer.cmdloop() 
+    except Exception as e:
+        print("An error happened %s " % e) 
+        print(traceback.print_exc())
+    finally:
 
-        # ok, output = plot.generate()
-
-        # # Plot.get_available_plots()
-        # # Generate such an object
-
-        # # plot.generate()
-        # if ok and args.display:
-            # cmd = "eog %s" % output
-            # os.system(cmd)
-
-        # # generated_data_filename = db.plot_subflows_as_datasets(args.mptcp_stream)
-        # # import plot_script
-
-    # else:
-        # print("unknown command")
-        # # parser.
-        # # TODO afficher l'aide
+        input.close() if input else None
 
 
 if __name__ == '__main__':

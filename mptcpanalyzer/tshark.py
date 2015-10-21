@@ -19,6 +19,7 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
+
 class TsharkExporter:
     """
     TODO tshark.py devrait plutot accepter des streams
@@ -28,7 +29,8 @@ class TsharkExporter:
     input_pcap = ""
     tshark_bin = None
     tcp_relative_seq = True
-    options = {
+    options = { 
+        "column.format": '"Time","%Cus:frame.time"',
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
         "mptcp.relative_sequence_numbers" : True,
@@ -49,8 +51,6 @@ class TsharkExporter:
     # TODO should be settable
     # mptcp.stream
     filter = ""
-
-    
 
     def __init__(self, tshark_bin="/usr/bin/wireshark", delimiter="|"):
         self.tshark_bin = tshark_bin
@@ -88,7 +88,7 @@ class TsharkExporter:
             "tcpflags": "tcp.flags",
             "dss_dsn": "tcp.options.mptcp.rawdataseqno",
             "dss_rawdsn": "tcp.options.mptcp.rawdataseqno",
-            "dss_rawack": "tcp.options.mptcp.rawdataack64",
+            "dss_rawack": "tcp.options.mptcp.rawdataack",
             "dss_ssn": "tcp.options.mptcp.subflowseqno",
             "dss_length": "tcp.options.mptcp.datalvllen",
             "master": "mptcp.master",
@@ -125,7 +125,6 @@ class TsharkExporter:
         else:
             return Filetype.unsupported
 
-        
     # def convert_to_csv(self, input_filename, output_filename, fields_to_export):
         # pass
 
@@ -160,7 +159,6 @@ class TsharkExporter:
             # relative_sequence_numbers=self.tcp_relative_seq
         )
 
-
     def export_to_sql(self, input_pcap, output_db, table_name="connections"):
         """
         SQL export possible from pcap or csv (i.e. pcap will be converted first to CSV)
@@ -178,12 +176,14 @@ class TsharkExporter:
         convert_csv_to_sql(csv_filename, output_db, table_name)
 
     @staticmethod
-    def tshark_export_fields(tshark_exe, fields_to_export,
-                             inputFilename, outputFilename, 
-                             filter=None, 
-                             csv_delimiter='|',
-                             options={},
-                            ):
+    def tshark_export_fields(
+        tshark_exe, 
+        fields_to_export,
+        inputFilename, outputFilename, 
+        filter=None, 
+        csv_delimiter='|',
+        options={},
+    ):
         """
         inputFilename should be pcap filename
         fields should be iterable (tuple, list ...)
@@ -223,6 +223,7 @@ class TsharkExporter:
             nameResolution="-n",
             inputPcap=inputFilename,
             outputCsv=outputFilename,
+            # ' -E header=y ' +
             fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
             filterExpression=filter,
             delimiter=csv_delimiter,
