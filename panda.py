@@ -79,6 +79,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         if input:
             self.use_rawinput = False
             self.prompt = ""
+            self.intro = ""
         super().__init__(completekey='tab', stdin=input)
 # , sep='|'
         self.data = pd.read_csv(pcap_file, sep='|')
@@ -108,8 +109,38 @@ class MpTcpAnalyzer(cmd.Cmd):
             print("\ttcp.stream %d : %s:%d <-> %s:%d" % (
                 tcpstream, gr2['ipsrc'].iloc[0], gr2['sport'].iloc[0], gr2['ipdst'].iloc[0], gr2['dport'].iloc[0])
                   )
+
     def complete_ls(self, args):
+        """ help to complete the args """
         pass
+
+
+    def do_summary(self, mptcpstream):
+        """
+        Summarize contributions of each subflow
+                [mptcp.stream id]
+        For now it is naive, does not look at retransmissions ?
+                """
+        print("arg=", mptcpstream)
+        try:
+            mptcpstream = int(mptcpstream)
+        except ValueError as e:
+            print("Expecting the mptcp.stream id as argument")
+            return
+ 
+        df = self.data[self.data.mptcpstream == mptcpstream]
+        # for instance 
+        dsn_min = df.dss_dsn.min()
+        dsn_max = df.dss_dsn.max()
+        total_transferred = dsn_max - dsn_min
+        d = df.groupby('tcpstream')
+        # drop_duplicates(subset='rownum', take_last=True)
+        print("mptcpstream %d transferred %d" % (mptcpstream, total_transferred))
+        for tcpstream, group in d:
+            subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
+            print(subflow_load)
+            print(subflow_load)
+            print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' %( tcpstream, subflow_load, total_transferred, subflow_load/total_transferred * 100 ))
 
     def do_lc(self, *args):
         """ List mptcp connections """
@@ -122,8 +153,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         # print(mp['ip4src'])
         # le nunique s'applique sur une liste et permet d'avoir
         # mp.ip4src.nth(0)[0]
-    
-    # def plot_tcp
+
+
+# def plot_tcp
     # def plot_mptcp
     # def do_pdsn(self, args):
     def do_p(self, args):
@@ -290,3 +322,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+#  vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 : 

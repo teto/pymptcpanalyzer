@@ -71,7 +71,8 @@ class TsharkExporter:
         """
         return {
             "packetid": "frame.number",
-            "time": "frame.time",
+            # reestablish once format is changed (see options)
+            # "time": "frame.time",
             "reltime": "frame.time_relative",
             "time_delta": "frame.time_delta",
             "ipsrc": "_ws.col.Source",
@@ -87,7 +88,6 @@ class TsharkExporter:
             "subtype": "tcp.options.mptcp.subtype",
             "tcpflags": "tcp.flags",
             "dss_dsn": "tcp.options.mptcp.rawdataseqno",
-            "dss_rawdsn": "tcp.options.mptcp.rawdataseqno",
             "dss_rawack": "tcp.options.mptcp.rawdataack",
             "dss_ssn": "tcp.options.mptcp.subflowseqno",
             "dss_length": "tcp.options.mptcp.datalvllen",
@@ -95,7 +95,7 @@ class TsharkExporter:
             "tcpseq": "tcp.seq",
             "dsn": "mptcp.dsn",
             "dack": "mptcp.ack",
-            "dataack": "mptcp.ack",
+            # "dataack": "mptcp.ack",
         }
 
     @staticmethod
