@@ -18,13 +18,16 @@ import os
 import readline
 import glob
 from mptcpanalyzer.tshark import TsharkExporter
+from mptcpanalyzer.plot import Plot
 import pandas as pd
+import numpy as np 
 import matplotlib.pyplot as plt
 import shlex
 import cmd
 import traceback
 
 tshark_bin = "/home/teto/wireshark/run/tshark"
+# tshark_bin = "/usr/local/bin/tshark"
 
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
@@ -60,6 +63,7 @@ mandatory_fields = [
     'tcpstream',
 ]
 
+# should be automatically generated
 plot_types = ["dsn", "tcpseq", "dss"]
 
 class MpTcpAnalyzer(cmd.Cmd):
@@ -82,6 +86,9 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.intro = ""
         super().__init__(completekey='tab', stdin=input)
 # , sep='|'
+        # there seems to be several improvements a
+        # possible to set type of columns with dtype={'b': object, 'c': np.float64}
+        # one can choose the column to use as index index_col= 
         self.data = pd.read_csv(pcap_file, sep='|')
         #print(self.data.col
         # list(self.data.columns)
@@ -185,65 +192,44 @@ class MpTcpAnalyzer(cmd.Cmd):
     # def do_plot_ack(self, args):
     # def do_plot_dss(self, args):
     # todo plot app_latency too
+        # plot_types = Plot.get_available_plots( '/home/teto/mptcpanalyzer/mptcpanalyzer/plots')
+        plot_subclasses = Plot.get_available_plots( 'mptcpanalyzer/mptcpanalyzer/plots')
+        plot_types = dict((x.__name__, x) for x in plot_subclasses)
+        # map(plot_types)
 
+        # print(plot_types)
         parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
+# TODO add subparsers for every type
+        subparsers = parser.add_subparsers(dest="plot_type", title="Subparsers", help='sub-command help')
+        for name, subplot in plot_types.items():
+            subparsers.add_parser(name, parents=[subplot.default_parser()], add_help=False)
+
         # parse
-        parser.add_argument('field', action="store", choices=plot_types, help='Field to draw (see mptcp_fields.json)')
-        parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
-        parser.add_argument('out', action="store", nargs="?", default="output.png", help='Name of the output file')
-        parser.add_argument('--display', action="store_true", help='will display the generated plot')
-        # shlex.split(args) ?
+        # parser.add_argument('plot_type', action="store", choices=plot_types, help='Field to draw (see mptcp_fields.json)')
+        # # parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
+        # parser.add_argument('--out', action="store", nargs="?", default="output.png", help='Name of the output file')
+        # parser.add_argument('--display', action="store_true", help='will display the generated plot')
+        # # shlex.split(args) ?
         try:
             # args = parser.parse_args( shlex.split(field + ' ' + args))
-            args = parser.parse_args( shlex.split(args))
+            args, unknown = parser.parse_known_args( shlex.split(args))
         except SystemExit:
             return
+        # print(args)
+        # print(unknown)
 
-        print(args)
+        # instancier le bon puis appeler le plot dessus
+        # mandatory_fields
+        newPlot = plot_types[args.plot_type]()
+        print(newPlot)
+        success = newPlot.plot(self.data, args) # "toto") 
+        # success = newPlot.plot(self.data, args.out, unknown)
         # returns a DataFrame
-        dat = self.data[self.data.mptcpstream == args.mptcpstream]
-        if not len(dat.index):
-            print("no packet matching mptcp.stream %d" % args.mptcpstream)
-            return
-        
-        # dssRawDSN could work as well
-        # plot (subplots=True)
-        fig = plt.figure()
-        plt.title("hello world")
-        # ax = tcpstreams[args.field].plot(ax=fig.gca())
-        # want 
-        # columns allows to choose the correct legend
-        # df = self.data
-        dat.set_index("reltime", inplace=True)
-        tcpstreams = dat.groupby('tcpstream')
-        # print(df)
-        pplot = tcpstreams[args.field].plot(ax=fig.gca(),
-            # x=tcpstreams["reltime"],
-            # x="Relative time", # ne marche pas
-            title="Data Sequence Numbers over subflows", 
-            # use_index=False,
-            # legend=True,
-            lw=3
-            )
-        ax = fig.gca()
-        # print(dir(pplot))
-        # pplot.ax
-        ax.set_xlabel("Relative time")
-        # pplot.set_xlabel("Time")
-        # ax.set_ylabel("DSN")
-        # fig = ax.get_figure()
-        # for axes in plot:
-            # print("Axis ", axes)
-            # fig = axes.get_figure()
-            # fig.savefig("/home/teto/test.png")
-        # fig = plot.get_figure()
-        args.out = os.path.join(os.getcwd(), args.out)
-        fig.savefig(args.out)
         # os.path.realpath
         # lines, labels = ax1.get_legend_handles_labels()
         cmd="xdg-open %s" % (args.out,) 
         print (cmd) 
-        if args.display:
+        if args.out and args.display:
             os.system(cmd)
 
 

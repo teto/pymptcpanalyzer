@@ -24,7 +24,7 @@ import os
 import subprocess
 import logging
 import sys
-from mptcpanalyzer import *
+# from mptcpanalyzer import *
 # , load_fields_to_export_from_file
 # fields_dict, 
 # import sqlite3 as sql

@@ -30,11 +30,11 @@ class TsharkExporter:
     tshark_bin = None
     tcp_relative_seq = True
     options = { 
-        "column.format": '"Time","%Cus:frame.time"',
+        # used to be 'column.format' in older versions
+        "gui.column.format": '"Time","%Cus:frame.time"',
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
         "mptcp.relative_sequence_numbers" : True,
-        # "tcp.relative_sequence_numbers": 
         # Disable DSS checks which consume quite a lot
         # "tcp.analyze_mptcp_seq": False,
         # "tcp.analyze_mptcp": True,
