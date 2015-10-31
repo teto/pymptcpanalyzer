@@ -117,9 +117,14 @@ class MpTcpAnalyzer(cmd.Cmd):
                 tcpstream, gr2['ipsrc'].iloc[0], gr2['sport'].iloc[0], gr2['ipdst'].iloc[0], gr2['dport'].iloc[0])
                   )
 
-    def complete_ls(self, args):
+    def complete_ls(self, text, line, begidx, endidx):
         """ help to complete the args """
-        pass
+        # conversion to set removes duplicate keys
+        l = list(set(self.data["mptcpstream"]))
+        # convert items to str else it won't be used for completion
+        l = [ str(x) for x in l]
+
+        return l
 
 
     def do_summary(self, mptcpstream):
@@ -231,7 +236,26 @@ class MpTcpAnalyzer(cmd.Cmd):
         print (cmd) 
         if args.out and args.display:
             os.system(cmd)
+    
+    def do_dump(self, args):
+        """
+        Dumps content of the csv file, with columns selected by the user
+        """
+        parser= argparse.ArgumentParser(description="dumps csv content")
+        parser.add_argument('columns', default=["ipsrc", "ipdst"], choices=self.data.columns , nargs="*")
+        args = parser.parse_args( shlex.split(args))
+        # print(args)
+        # ','.join(args.columns) 
+        print(self.data[ args.columns])
 
+    def complete_dump(self, text, line, begidx, endidx):
+        """
+        Should return a list of possibilities
+        """
+        # print("text=", text)
+        l = [ x for x in self.data.columns if x.startswith(text) ]
+        # print(l)
+        return l
 
     def do_q(self,*args):
         """
