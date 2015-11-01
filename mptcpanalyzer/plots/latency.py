@@ -6,6 +6,7 @@ import panda as pd
 import matplotlib.pyplot as plt
 import os
 
+# TODO provide several versions; one with histograms for instance
 class DsnVsLatency(plot.Plot):
 
     def __init__(self):
@@ -22,7 +23,7 @@ class DsnVsLatency(plot.Plot):
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
-        
+
         # dssRawDSN could work as well
         # plot (subplots=True)
         fig = plt.figure()

@@ -61,6 +61,7 @@ mandatory_fields = [
     'dport',
     'mptcpstream',
     'tcpstream',
+    'dack'
 ]
 
 # should be automatically generated
@@ -186,8 +187,18 @@ class MpTcpAnalyzer(cmd.Cmd):
     def help_plot(self):
         print("Hello world")
 
-    def complete_plot(self,args):
-        pass
+    def complete_plot(self, text, line, begidx, endidx):
+        types = self._get_available_plots()
+        # print(types)
+        l = [ x for x in types if x.startswith(text) ]
+        # print(l)
+        return l
+
+
+    def _get_available_plots(self):
+        plot_subclasses = Plot.get_available_plots( 'mptcpanalyzer/mptcpanalyzer/plots')
+        plot_types = [ x.__name__ for x in plot_subclasses ]
+        return plot_types
 
     def plot_mptcpstream(self, args):
         """
