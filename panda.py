@@ -11,6 +11,11 @@
 # -add color with ncurses (problematic with utf8 ?)
 # -would like to draw a bar with the repartition of the data between the different subflows with sthg like
 #  plot(kind='barh', stacked=True);
+
+# explaing how completion works;
+# http://dingevoninteresse.de/wpblog/?p=176
+# https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
+# the autocomplete plugin seems also nice
 import sys
 import argparse
 import logging
@@ -189,6 +194,8 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     def complete_plot(self, text, line, begidx, endidx):
         types = self._get_available_plots()
+        print("Line=%s" % line)
+        print("text=%s" % text)
         # print(types)
         l = [ x for x in types if x.startswith(text) ]
         # print(l)
