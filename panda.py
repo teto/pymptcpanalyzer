@@ -17,7 +17,7 @@ import logging
 import os
 import readline
 import glob
-from mptcpanalyzer.tshark import TsharkExporter
+from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.plot import Plot
 import pandas as pd
 import numpy as np 
@@ -282,6 +282,9 @@ class MpTcpAnalyzer(cmd.Cmd):
     def preloop(intro):
         print(intro)
 
+
+# def generate_csv_from_pcap()
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots'
@@ -294,13 +297,16 @@ def main():
 
     # TODO here one could use parse_known_args
     args, unknown_args = parser.parse_known_args(sys.argv[1:])
-
-    basename, ext = os.path.splitext(os.path.basename(args.input))
-    csv_filename = basename + ".csv"
+    print(os.getcwd())
+    basename, ext = os.path.splitext(args.input)
+    print("Basename=%s" % basename)
+    csv_filename = args.input 
    
-    if not ext == ".csv":
+    if ext == ".csv":
+        pass
+    else:
         print("%s format is not supported as is. Needs to be converted first" % (args.input))
-        
+        csv_filename = args.input + str(Filetype.csv.value)
         cache = os.path.isfile(csv_filename) 
         if cache:
             print("A cache %s was found" % csv_filename)
@@ -323,7 +329,6 @@ def main():
         # stdin=input
         # Disable rawinput module use
         # use_rawinput = False
-        
 
         # here I want to generate automatically the csv file 
         analyzer = MpTcpAnalyzer(csv_filename, input)
@@ -334,7 +339,8 @@ def main():
         else:
             analyzer.cmdloop() 
     except Exception as e:
-        print("An error happened %s " % e) 
+        print("An error happened :\n%s" % e) 
+        print("Displaying backtrace:\n")
         print(traceback.print_exc())
     finally:
 

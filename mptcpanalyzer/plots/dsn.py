@@ -34,7 +34,9 @@ class TimeVsDsn(plot.Plot):
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
         # print(df)
-        field = "dsn"
+        # field = "dsn"
+        # field = "dss_dsn"
+        field = "dss_ssn"
         pplot = tcpstreams[field].plot.line(
             # gca = get current axis
             ax=fig.gca(),
