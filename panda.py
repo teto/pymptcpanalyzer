@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.5
+# PYTHON_ARGCOMPLETE_OK
 ###########################################################
 # author: Matthieu coudron , matthieu.coudron@lip6.fr
 # this script requires wireshark (& gnuplot >4.6) to be installed
@@ -20,8 +21,7 @@ import sys
 import argparse
 import logging
 import os
-import readline
-import glob
+# import glob
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.plot import Plot
 import pandas as pd
@@ -31,7 +31,7 @@ import shlex
 import cmd
 import traceback
 
-tshark_bin = "/home/teto/wireshark/run/tshark"
+tshark_bin = "/home/teto/wireshark/debug/run/tshark"
 # tshark_bin = "/usr/local/bin/tshark"
 
 log = logging.getLogger("mptcpanalyzer")
@@ -66,6 +66,9 @@ mandatory_fields = [
     'dport',
     'mptcpstream',
     'tcpstream',
+    'dsn',
+    # 'dss_dsn',
+    # 'latency',
     'dack'
 ]
 
@@ -95,9 +98,13 @@ class MpTcpAnalyzer(cmd.Cmd):
         # there seems to be several improvements a
         # possible to set type of columns with dtype={'b': object, 'c': np.float64}
         # one can choose the column to use as index index_col= 
-        self.data = pd.read_csv(pcap_file, sep='|')
+        self.data = pd.read_csv(pcap_file, ) #sep='|')
+        columns = list(self.data.columns)
+        print(columns)
+        for field in mandatory_fields:
+            if field not in columns:
+                raise Exception("Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
         #print(self.data.col
-        # list(self.data.columns)
         # TODO run some check on the pcap to check if column names match
         # 
 
@@ -194,8 +201,8 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     def complete_plot(self, text, line, begidx, endidx):
         types = self._get_available_plots()
-        print("Line=%s" % line)
-        print("text=%s" % text)
+        # print("Line=%s" % line)
+        # print("text=%s" % text)
         # print(types)
         l = [ x for x in types if x.startswith(text) ]
         # print(l)
@@ -313,10 +320,10 @@ def main():
         pass
     else:
         print("%s format is not supported as is. Needs to be converted first" % (args.input))
-        csv_filename = args.input + str(Filetype.csv.value)
+        csv_filename = args.input + ".csv" # str(Filetype.csv.value)
         cache = os.path.isfile(csv_filename) 
         if cache:
-            print("A cache %s was found" % csv_filename)
+            log.info("A cache %s was found" % csv_filename)
         # if matching csv does not exist yet or if generation forced
         if not cache or args.regen:
             log.info("Preparing to convert %s into %s" % (args.input, csv_filename))

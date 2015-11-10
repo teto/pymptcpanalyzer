@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.5
 import logging
 import subprocess
 import os
@@ -35,11 +35,14 @@ class TsharkExporter:
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
         "mptcp.relative_sequence_numbers" : True,
+        "mptcp.interdsn_latency": True,
+        "mptcp.intersubflows_retransmission": True,
         # Disable DSS checks which consume quite a lot
         # "tcp.analyze_mptcp_seq": False,
-        # "tcp.analyze_mptcp": True,
+        "mptcp.analyze_mptcp": True,
         # "tcp.analyze_mptcp_mapping": False,
-    }    
+    }
+
     delimiter = '|'
     # fields_to_export = (
     #     "packetid", 
@@ -52,7 +55,7 @@ class TsharkExporter:
     # mptcp.stream
     filter = ""
 
-    def __init__(self, tshark_bin="/usr/bin/wireshark", delimiter="|"):
+    def __init__(self, tshark_bin="/usr/bin/wireshark", delimiter=","):
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
@@ -61,7 +64,8 @@ class TsharkExporter:
     def get_default_options():
         """
         """
-        return self.options
+        options = {}
+        return options
 
     @staticmethod
     def get_default_fields():
@@ -216,6 +220,7 @@ class TsharkExporter:
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
         #  -E quote=n 
+        # TODO try with -w <outputFile> ?
         cmd = """{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}' >> {outputFilename}
                  """.format(
             tsharkBinary=tshark_exe,

@@ -47,6 +47,7 @@ class Plot:
         # files = files if isinstance(files, list) else ['plots/dsn']
     # def get_available_plots(self):
         from .plots import dsn
+        from .plots import latency
         # import pkgutil
         # import importlib
         # /home/teto/mptcpanalyzer/mptcpanalyzer/plots/
