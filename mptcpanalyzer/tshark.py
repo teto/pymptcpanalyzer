@@ -85,6 +85,9 @@ class TsharkExporter:
             "mptcpstream": "mptcp.stream",
             "sport": "tcp.srcport",
             "dport": "tcp.dstport",
+            # rawvalue is tcp.window_size_value
+            # tcp.window_size takes into account scaling factor !
+            "rwnd": "tcp.window_size",
             # "sendkey": "tcp.options.mptcp.sendkey",
             # "recvkey": "tcp.options.mptcp.recvkey",
             # "recvtok": "tcp.options.mptcp.recvtok",

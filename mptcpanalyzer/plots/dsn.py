@@ -97,7 +97,7 @@ class DSSOverTime(plot.Plot):
     """
     Draw small arrows based on length etc...
     """
-    
+
     def __init__(self):
         # super(self, "dsn")
         pass
@@ -112,7 +112,7 @@ class DSSOverTime(plot.Plot):
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
-        
+
         # dssRawDSN could work as well
         # plot (subplots=True)
         fig = plt.figure()
