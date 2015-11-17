@@ -36,5 +36,9 @@ class Rwnd(plot.Plot):
             # xticks=tcpstreams["reltime"],
             # rotation for ticks
             # rot=45, 
-            lw=3
+            lw=1
         )
+        args.out = os.path.join(os.getcwd(), args.out)
+        print("Saving into %s" % (args.out))
+        fig.savefig(args.out)
+        return True

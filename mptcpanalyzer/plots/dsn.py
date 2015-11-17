@@ -15,7 +15,7 @@ class TimeVsDsn(plot.Plot):
 
     # def plot(self, data, *args, **kwargs):
     def plot(self, data, args): # *args, **kwargs):
-        print("data=", data) 
+        # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)
@@ -104,7 +104,7 @@ class DSSOverTime(plot.Plot):
 
     # def plot(self, data, *args, **kwargs):
     def plot(self, data, args): # *args, **kwargs):
-        print("data=", data) 
+        # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)

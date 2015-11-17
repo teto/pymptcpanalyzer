@@ -59,9 +59,9 @@ class DsnVsLatency(plot.Plot):
         ax = fig.gca()
         # print(dir(pplot))
         # pplot.ax
-        ax.set_xlabel("Relative time")
+        # fig.set_xlabel("Relative time")
         # pplot.set_xlabel("Time")
-        ax.set_ylabel("DSN")
+        # ax.set_ylabel("DSN")
         # fig = ax.get_figure()
         # for axes in plot:
         # print("Axis ", axes)
@@ -83,7 +83,7 @@ class LatencyHistogram(plot.Plot):
 
     # def plot(self, data, *args, **kwargs):
     def plot(self, data, args):
-        print("data=", data) 
+        # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)
@@ -94,24 +94,25 @@ class LatencyHistogram(plot.Plot):
 
         # dssRawDSN could work as well
         # plot (subplots=True)
-        fig = plt.figure()
+        # fig = plt.figure()
         # plt.title("hello world")
         # ax = tcpstreams[args.field].plot(ax=fig.gca())
         # want 
         # columns allows to choose the correct legend
         # df = self.data
         # dat.set_index("reltime", inplace=True)
-        dat.hist(
+        ax = dat.plot.hist(
             # gca = get current axis
-            ax=fig.gca(),
+            # ax=fig.gca(),
             by="latency",
             # x=tcpstreams["reltime"],
             # x="Relative time", # ne marche pas
-            title="Data Sequence Numbers over subflows", 
+            # title="Data Sequence Numbers over subflows", 
             # use_index=False,
-            legend=True,
+            legend=False,
             # style="-o",
             grid=True,
+            bins=10,
             # xticks=tcpstreams["reltime"],
             # rotation for ticks
             # rot=45, 
@@ -121,16 +122,16 @@ class LatencyHistogram(plot.Plot):
         # ax.legend()
         # print(dir(pplot))
         # ax = pplot.axes[0].get_figure()
-        ax = fig.gca()
+        # ax = fig.gca()
         # print(dir(pplot))
         # pplot.ax
         ax.set_xlabel("Relative time")
-        # pplot.set_xlabel("Time")
+        # ax.set_xlabel("Time")
         ax.set_ylabel("Latency")
         # fig = ax.get_figure()
         # for axes in plot:
         # print("Axis ", axes)
-        # fig = axes.get_figure()
+        fig = ax.get_figure()
         # fig.savefig("/home/teto/test.png")
         # fig = plot.get_figure()
         args.out = os.path.join(os.getcwd(), args.out)
