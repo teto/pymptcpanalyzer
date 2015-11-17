@@ -101,10 +101,10 @@ class LatencyHistogram(plot.Plot):
         # columns allows to choose the correct legend
         # df = self.data
         # dat.set_index("reltime", inplace=True)
-        ax = dat.plot.hist(
+        ax = dat.latency.plot.hist(
             # gca = get current axis
             # ax=fig.gca(),
-            by="latency",
+            # by="latency",
             # x=tcpstreams["reltime"],
             # x="Relative time", # ne marche pas
             # title="Data Sequence Numbers over subflows", 
