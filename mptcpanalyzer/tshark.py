@@ -85,6 +85,9 @@ class TsharkExporter:
             "mptcpstream": "mptcp.stream",
             "sport": "tcp.srcport",
             "dport": "tcp.dstport",
+            # rawvalue is tcp.window_size_value
+            # tcp.window_size takes into account scaling factor !
+            "rwnd": "tcp.window_size",
             # "sendkey": "tcp.options.mptcp.sendkey",
             # "recvkey": "tcp.options.mptcp.recvkey",
             # "recvtok": "tcp.options.mptcp.recvtok",
@@ -96,6 +99,8 @@ class TsharkExporter:
             "dss_ssn": "tcp.options.mptcp.subflowseqno",
             "dss_length": "tcp.options.mptcp.datalvllen",
             "master": "mptcp.master",
+            "latency": "mptcp.app_latency",
+            # TODO add sthg related to mapping analysis ?
             "tcpseq": "tcp.seq",
             "dsn": "mptcp.dsn",
             "dack": "mptcp.ack",
@@ -159,6 +164,7 @@ class TsharkExporter:
             input_filename,
             output_csv,
             self.filter,
+            csv_delimiter=self.delimiter,
             options=self.options,
             # relative_sequence_numbers=self.tcp_relative_seq
         )
@@ -221,8 +227,9 @@ class TsharkExporter:
         # single-quotes, n no quotes (the default).
         #  -E quote=n 
         # TODO try with -w <outputFile> ?
-        cmd = """{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression} -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}' >> {outputFilename}
-                 """.format(
+        cmd = ("{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression}"
+               " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
+               " >> {outputFilename}").format(
             tsharkBinary=tshark_exe,
             tsharkOptions=convert_options_into_str(options),
             nameResolution="-n",

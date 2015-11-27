@@ -72,6 +72,7 @@ mandatory_fields = [
     'dack'
 ]
 
+delimiter= '|'
 # should be automatically generated
 plot_types = ["dsn", "tcpseq", "dss"]
 
@@ -98,7 +99,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # there seems to be several improvements a
         # possible to set type of columns with dtype={'b': object, 'c': np.float64}
         # one can choose the column to use as index index_col= 
-        self.data = pd.read_csv(pcap_file, ) #sep='|')
+        self.data = pd.read_csv(pcap_file, sep=delimiter)
         columns = list(self.data.columns)
         print(columns)
         for field in mandatory_fields:
@@ -327,7 +328,7 @@ def main():
         # if matching csv does not exist yet or if generation forced
         if not cache or args.regen:
             log.info("Preparing to convert %s into %s" % (args.input, csv_filename))
-            exporter = TsharkExporter(tshark_bin)
+            exporter = TsharkExporter(tshark_bin, delimiter=delimiter)
             retcode, stderr = exporter.export_to_csv(args.input, csv_filename)
             print("exporter exited with code=", retcode)
             if retcode:

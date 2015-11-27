@@ -48,6 +48,7 @@ class Plot:
     # def get_available_plots(self):
         from .plots import dsn
         from .plots import latency
+        from .plots import wnd
         # import pkgutil
         # import importlib
         # /home/teto/mptcpanalyzer/mptcpanalyzer/plots/

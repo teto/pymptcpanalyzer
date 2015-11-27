@@ -15,7 +15,7 @@ class TimeVsDsn(plot.Plot):
 
     # def plot(self, data, *args, **kwargs):
     def plot(self, data, args): # *args, **kwargs):
-        print("data=", data) 
+        # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)
@@ -97,14 +97,14 @@ class DSSOverTime(plot.Plot):
     """
     Draw small arrows based on length etc...
     """
-    
+
     def __init__(self):
         # super(self, "dsn")
         pass
 
     # def plot(self, data, *args, **kwargs):
     def plot(self, data, args): # *args, **kwargs):
-        print("data=", data) 
+        # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)
@@ -112,7 +112,7 @@ class DSSOverTime(plot.Plot):
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
-        
+
         # dssRawDSN could work as well
         # plot (subplots=True)
         fig = plt.figure()
