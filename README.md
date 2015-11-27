@@ -2,12 +2,17 @@
 
 === Presentation ===
 
+Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis. It accepts as input the formats supported by tshark (terminal version of
+
 This repository git@bitbucket.org:mattator/mptcpplots.git is a collection of scripts (python/shell/gnuplot) meant to help understanding MPTCP behavior, mainly via plotting graphs.
 
 The workflow, depending on the plot you want, consists in converting a pcap to a csv or sqlite database with a custom version of wireshark. We then export some sqlite requests to a csv format that can be read by its gnuplot script.
 
 === How to install ===
-You need python3.
+
+mptcpanalyzer
+
+You need python3.5
 
 Install this custom version of wireshark (branch mptcp_assoc):
 https://github.com/teto/wireshark
@@ -21,7 +26,7 @@ https://github.com/teto/wireshark
 
 
 
-=== How to develop new scripts ? ===
+=== How to develop new plots ? ===
 
 To ease their use, scripts should follow some guidelines:
 1. explain in the gnuplot script comments the format of the csv file expected
