@@ -76,6 +76,7 @@ delimiter= '|'
 # should be automatically generated
 plot_types = ["dsn", "tcpseq", "dss"]
 
+
 class MpTcpAnalyzer(cmd.Cmd):
     intro = """
         Welcome in mptcpanalyzer (http://github.com/teto/mptcpanalyzer)
@@ -109,6 +110,21 @@ class MpTcpAnalyzer(cmd.Cmd):
         # TODO run some check on the pcap to check if column names match
         # 
 
+
+    def require_fields(mandatory_fields: list) -> Callable:
+        """
+        Decorator used to check dataset contains all fields required by function
+        """
+        def check_fields(func)
+            columns = list(self.data.columns)
+            # print(columns)
+            for field in mandatory_fields:
+                if field not in columns:
+                    raise Exception("Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
+            return func
+        return check_fields
+
+    @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     def do_ls(self, mptcpstream):
         """ list mptcp subflows 
                 [mptcp.stream id]

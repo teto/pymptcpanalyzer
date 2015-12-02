@@ -22,14 +22,22 @@ from setuptools import setup
 
 setup(name="mptcpanalyzer",
       version="0.1",
-      description="A complete replacement for i3status",
+      description="Analyze mptcp traces (.pcap)"
       url="http://github.com/teto/mptcpanalyzer",
       license="GPL",
+      author="Matthieu Coudron",
       classifiers=[
+          'Development Status :: 4 - Beta',
+          'Intended Audience :: System Administrators',
+          'Environment :: Console',
       ],
+# py_modules
       packages=[
           "mptcpanalyzer",
       ],
+      data_files=[
+          ("", "mptcpanalyzer/mptcp_fields.json"),
+      ]
       entry_points={
           "console_scripts": [
            #   "i3pystatus = i3pystatus:main"
@@ -38,4 +46,6 @@ setup(name="mptcpanalyzer",
       },
       install_requires=['matplotlib', 'pandas'],
       zip_safe=True,
+      # package_data=['
+      scripts=['exporter.py']
       )
