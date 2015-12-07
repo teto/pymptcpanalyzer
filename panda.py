@@ -111,20 +111,20 @@ class MpTcpAnalyzer(cmd.Cmd):
         # 
 
 
-    def require_fields(mandatory_fields: list) -> Callable:
+    def require_fields(mandatory_fields: list): # -> Callable[...]:
         """
         Decorator used to check dataset contains all fields required by function
         """
-        def check_fields(func)
+        def check_fields(self, *args, **kwargs):
             columns = list(self.data.columns)
             # print(columns)
             for field in mandatory_fields:
                 if field not in columns:
                     raise Exception("Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-            return func
+            func
         return check_fields
 
-    @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
+    # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     def do_ls(self, mptcpstream):
         """ list mptcp subflows 
                 [mptcp.stream id]
