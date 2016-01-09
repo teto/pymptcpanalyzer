@@ -1,8 +1,11 @@
 
 
+
+
 === Presentation ===
 
-Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis. It accepts as input the formats supported by tshark (terminal version of
+Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis. It relies on tshark (terminal version of wireshark) to generate 
+It accepts as input a csv file following a proper format. Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark)
 
 This repository git@bitbucket.org:mattator/mptcpplots.git is a collection of scripts (python/shell/gnuplot) meant to help understanding MPTCP behavior, mainly via plotting graphs.
 
@@ -10,50 +13,37 @@ The workflow, depending on the plot you want, consists in converting a pcap to a
 
 === How to install ===
 
-mptcpanalyzer
+Hopefully you should be able to install via:
+sudo python3.5
 
-You need python3.5
-
+python3.5 because of the type hinting features and
+You need the following libraries:
+- pandas
 Install this custom version of wireshark (branch mptcp_assoc):
 https://github.com/teto/wireshark
 
 
-=== How to use ===
+Licensing
+===
+Though it might be tempting to release under the CRAPL licence (http://matt.might.net/articles/crapl/) due to its uncomplete state, mptcpanalyzer is shamelessly released under the GPLv3 license.
 
-1. Capture packets (with tcpdump/wireshark for instance)
-2. Run exporter.py to convert your pcap into either a csv or an sql file.The program will tell you what arguments are needed.
-3. Finally run ./graph.py. The program will tell you what arguments are needed. Then you can open the generated graphs.
+
+How to use 
+===
+
+mptcpanalyzer can run into 3 modes:
+- interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
+- if a filename is passed as argument, it will load commands from this file
+- otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
+
+1. (Optional)Run exporter.py to convert your pcap into either a csv or an sql file.The program will tell you what arguments are needed.
+2. Finally run ./graph.py. It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
 
 
 === How to develop new plots ? ===
 
 To ease their use, scripts should follow some guidelines:
-1. explain in the gnuplot script comments the format of the csv file expected
-2. provide an example *.csv, the first line of csv should describe each field in the manner: field1,field2,...,field3
-3. Each script should reside in its own subfolder
-4. Scripts should be generic enough
+1. 
+TODO
 
-Gnuplot accepts multiple datasets from one
-
-
-
-mptcp.stream == 3 and tcp.options.mptcp.datalvllen > 0
-
-
-
-
-
-=== A few helpers to use gnuplot ===
-One can retrieve the number of blocks via the stats  command
-http://stackoverflow.com/questions/14823477/how-to-count-the-number-of-indicies-in-a-gnuplot-input-file
-
-Apparently there is a stat package in gnuplot
-http://www.gnuplotting.org/manpage-gnuplot-4-6/
-
-http://stackoverflow.com/questions/16743702/gnuplot-draw-a-vertical-line-from-the-x-axis-to-the-plot-and-from-the-plot-to
-
-http://stackoverflow.com/questions/11500469/plotting-columns-by-calling-their-header-with-gnuplot
-
-
-http://stackoverflow.com/questions/12818797/gnuplot-plotting-several-datasets-with-titles-from-one-file
