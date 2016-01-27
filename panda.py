@@ -31,8 +31,7 @@ import shlex
 import cmd
 import traceback
 
-tshark_bin = "/home/teto/wireshark/debug/run/tshark"
-# tshark_bin = "/usr/local/bin/tshark"
+tshark_bin = "/usr/local/bin/tshark"
 
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)

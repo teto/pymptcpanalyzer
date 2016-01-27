@@ -1,29 +1,28 @@
 
+Presentation 
+===
+
+Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis. It relies on tshark (terminal version of wireshark) to convert pcap to csv files.
+It accepts as input a pcap (or csv file following a proper format). Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark).
+Then you have an interpreter with autocompletion that can generate & display plots.
 
 
 
-=== Presentation ===
-
-Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis. It relies on tshark (terminal version of wireshark) to generate 
-It accepts as input a csv file following a proper format. Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark)
-
-This repository git@bitbucket.org:mattator/mptcpplots.git is a collection of scripts (python/shell/gnuplot) meant to help understanding MPTCP behavior, mainly via plotting graphs.
-
-The workflow, depending on the plot you want, consists in converting a pcap to a csv or sqlite database with a custom version of wireshark. We then export some sqlite requests to a csv format that can be read by its gnuplot script.
-
-=== How to install ===
+How to install ?
+===
 
 Hopefully you should be able to install via:
-sudo python3.5
+$ sudo python3.5 -mpip install mptcpanalyzer
 
-python3.5 because of the type hinting features and
-You need the following libraries:
-- pandas
-Install this custom version of wireshark (branch mptcp_assoc):
-https://github.com/teto/wireshark
+If this doesn't work, dependancies are:
+- python3.5 was chosen because of its useful type hinting features and
+- the data analysis library called pandas (http://pandas.pydata.org/)
+- matplotlib
+- numpy
+- a wireshark version that supports MPTCP dissection. While most of it has been upstreamed, there is still one patch pending. So for now you need to install this custom version of wireshark (branch mptcp_final):
+https://github.com/lip6-mptcp/wireshark-mptcp/tree/mptcp_final
 
-
-Licensing
+License
 ===
 Though it might be tempting to release under the CRAPL licence (http://matt.might.net/articles/crapl/) due to its uncomplete state, mptcpanalyzer is shamelessly released under the GPLv3 license.
 
@@ -37,11 +36,12 @@ mptcpanalyzer can run into 3 modes:
 - otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
 
 1. (Optional)Run exporter.py to convert your pcap into either a csv or an sql file.The program will tell you what arguments are needed.
-2. Finally run ./graph.py. It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
+2. Finally run ./panda.py. It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
 
 
-=== How to develop new plots ? ===
+How to develop new plots ?
+===
 
 To ease their use, scripts should follow some guidelines:
 1. 
