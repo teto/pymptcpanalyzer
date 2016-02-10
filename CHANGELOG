@@ -1,0 +1,5 @@
+mptcpanalyzer is still in alpha
+
+Upcoming release:
+
+- Boosting requirement for panda to 0.17.1 because of https://github.com/pydata/pandas/issues/11374

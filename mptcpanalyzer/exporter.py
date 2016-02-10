@@ -1,21 +1,7 @@
 #!/usr/bin/env python3
 ###########################################################
+# Copyright 2015-2016 Université Pierre et Marie Curie
 # author: Matthieu coudron , matthieu.coudron@lip6.fr
-# this script requires wireshark (& gnuplot >4.6) to be installed
-#
-# the aim of this script is to plot window/acks
-# at both the MPTCP connection and the subflow level
-# (for now 1 MPTCP communication => 1 subflow)
-#
-# csv module doc: https://docs.python.org/3/library/csv.html
-
-# mptcptrace syntax is not easy to follow. for now we assume that
-# - {c2s/s2c}_seq_{id}.csv displays:
-#   seconds+usec/ack/subflowId(="color")/0/0/-1
-# - connection_{id}.csv 
-#    subflowId,IPversion,sport,dport,saddr,daddr
-# - {c2s/s2c}_acksize_{id}.csv
-#    time/ack/id/0/0/-1
 
 import argparse
 # import csv
@@ -136,8 +122,6 @@ def main():
         exporter.export_pcap_to_sql(inputFilename, outputFilename)
     else:
         parser.print_help()
-
-#plot dsn
 
 if __name__ == '__main__':
     main()

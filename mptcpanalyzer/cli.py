@@ -1,19 +1,16 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
-###########################################################
+# vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 : 
+
+# Copyright 2015-2016 Université Pierre et Marie Curie
 # author: Matthieu coudron , matthieu.coudron@lip6.fr
-# this script requires wireshark (& gnuplot >4.6) to be installed
-# http://stackoverflow.com/questions/11500469/plotting-columns-by-calling-their-header-with-gnuplot
-# import csv
+
 # TODO list
-# -auto conversion from pcap to csv
-# -reenable sql support (panda can read from SQL
-# -ability to load filesfrom the interpreter
-# -add color with ncurses (problematic with utf8 ?)
+# -ability to load files from the interpreter
 # -would like to draw a bar with the repartition of the data between the different subflows with sthg like
 #  plot(kind='barh', stacked=True);
 
-# explaing how completion works;
+# explaing how argparse to shell completion works;
 # http://dingevoninteresse.de/wpblog/?p=176
 # https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
 # the autocomplete plugin seems also nice
@@ -31,7 +28,10 @@ import shlex
 import cmd
 import traceback
 
-tshark_bin = "/usr/local/bin/tshark"
+
+# TODO 
+tshark_bin = "tshark"
+# tshark_bin = "/usr/local/bin/tshark"
 
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
@@ -315,13 +315,25 @@ class MpTcpAnalyzer(cmd.Cmd):
 
 # def generate_csv_from_pcap()
 
-def main():
+def cli():
+    """
+    return value will be passed to sys.exit
+    """
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots'
     )
-    parser.add_argument("input", action="store", help="Input file that will be converted in csv if needed")
-    parser.add_argument("--regen", "-r", action="store_true", help="Force the regen")
-    parser.add_argument("--batch", "-b", action="store", type=str, help="Accepts a filename as argument from which commands will be loaded")
+    parser.add_argument("input", action="store", 
+        help="Either a pcap or a csv file (in good format)."
+            "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+            "If it can't find one (or with the flag --regen), it will generate a "
+            "csv from the pcap with the external tshark program."
+        )
+    parser.add_argument("--regen", "-r", action="store_true", 
+        help="Force the regeneration of the cached CSV file from the pcap input")
+    parser.add_argument("--batch", "-b", action="store", type=str,
+        help="Accepts a filename as argument from which commands will be loaded."
+              "Commands follow the same syntax as in the interpreter"
+        )
     # parser.add_argument("--command", "-c", action="store", type=str, nargs="*", help="Accepts a filename as argument from which commands will be loaded")
 
 
@@ -372,12 +384,12 @@ def main():
         print("An error happened :\n%s" % e) 
         print("Displaying backtrace:\n")
         print(traceback.print_exc())
+        return 1
     finally:
-
         input.close() if input else None
+        return 0
 
 
 if __name__ == '__main__':
     main()
 
-#  vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 : 
