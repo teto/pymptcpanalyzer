@@ -47,12 +47,20 @@ Run `mptcpexporter -h` to see how it works.
   2. if a filename is passed as argument, it will load commands from this file
   3. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
 
-// TODO use a pcap from examples/ directory as example
 For example, we can load an mptcp pcap (I made one available on [wireshark wiki]
 (https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository, in the _examples_ folder).
 
 Run  `$ mptcpanalyzer examples/iperf-mptcp-0-0.pcap`. The script will try to generate
-a csv file, hence it can take a few minutes.
+a csv file, it can take a few minutes depending on your computer.
+Then you have a command line: you can type `?` to list available commands. You have for instance:
+- `lc` (list connections)
+- `ls` (list subflows)
+- `plot` 
+- ...
+
+`help ls` will return the syntax of the command, i.e. `ls [mptcp.stream]` where mptcp.stream is one of the number appearing 
+in `lc` output.
+
 
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
@@ -70,6 +78,14 @@ How to develop new plots ?
 To ease their use, scripts should follow some guidelines:
 
 1. TODO autodetection of plots
+
+
+FAQ
+===
+
+1. What if I have several versions of wireshark installed ?
+Copy the config.example in the repository in $XDG_CONFIG_HOME/mptcpanalyzer/config and set
+the tshark_binary value to the full path towards the tshark version that supports mptcp dissection.
 
 Similar tools
 ===
