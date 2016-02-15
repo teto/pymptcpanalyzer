@@ -32,10 +32,6 @@ import cmd
 import traceback
 
 
-# TODO
-# tshark_bin = "tshark"
-# tshark_bin = "/usr/local/bin/tshark"
-
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
@@ -152,8 +148,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         print("mptcp.stream %d has %d subflow(s): " %
               (mptcpstream, len(tcpstreams)))
         for tcpstream, gr2 in tcpstreams:
-            # print(gr2)
-            # print(group['ipsrc'])
             print("\ttcp.stream %d : %s:%d <-> %s:%d" % (
                 tcpstream, gr2['ipsrc'].iloc[0], gr2['sport'].iloc[0], gr2['ipdst'].iloc[0], gr2['dport'].iloc[0])
             )
@@ -217,6 +211,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         Not implemented yet
         """
         print("Not implemented yet")
+        # log.info("Preparing to convert %s into %s" %
+                # (args.input, csv_filename))
+        # exporter = TsharkExporter(cfg["DEFAULT"]["tshark_binary"], delimiter=delimiter)
+        # retcode, stderr = exporter.export_to_csv(args.input, csv_filename)
 
     # def do_pdsn(self, args):
     def do_p(self, args):
