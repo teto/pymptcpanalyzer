@@ -2,12 +2,15 @@
 Presentation 
 ===
 
-Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
+Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
 
-It accepts as input a capture file (\*.pcap) and depending on from there can :
-- generate a CSV file with MPTCP fields
+It accepts as input a capture file (\*.pcap) and from there can :
+- generate a CSV file with MPTCP fields for external processing
+- list the MPTCP connections in the pcap
+- display some statistics on a specific MPTCP connection (list of subflows etc...)
 - plot data sequence numbers for all subflows
-- etc...
+- plot DSN interarrival times
+- more to come...
 
 Most commands are self documented and/or with autocompletion.
 
@@ -36,7 +39,7 @@ License
 Though it might be tempting to release under the CRAPL licence (http://matt.might.net/articles/crapl/), mptcpanalyzer is shamelessly released under the GPLv3 license.
 
 
-How to use 
+How to use ?
 ===
 
 This package installs 2 programs in your PATH:
@@ -64,9 +67,9 @@ in `lc` output.
 
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
-How it works ?
+How does it work (internals) ?
 ===
-mptcpanalyzer consists of small python scripts. the heavy job is done by wireshark.
+mptcpanalyzer consists of small python scripts. the heavy task is done by wireshark.
 It relies on tshark (terminal version of wireshark) to convert pcap to csv files.
 
 It accepts as input a pcap (or csv file following a proper format). 
@@ -75,10 +78,12 @@ Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal ver
 How to develop new plots ?
 ===
 
-To ease their use, scripts should follow some guidelines:
+We want to ease the loading of custom plots.
+Scripts should follow some guidelines:
 
+(WIP, for now you have to do it the dirty way and mess with package files)
 1. TODO autodetection of plots
-
+2. basically duplicate within the file one of the class in "plots/" and rename/modify it
 
 FAQ
 ===
