@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with mptcpanalyzer.  If not, see <http://www.gnu.org/licenses/>.
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
@@ -40,11 +40,13 @@ setup(name="mptcpanalyzer",
           'Intended Audience :: Science/Research',
           'Intended Audience :: Telecommunications Industry',
           'Environment :: Console',
+          'Programming Language :: Python :: 3.5',
       ],
       keywords=["mptcp analysis pcap"],
-      packages=[
-          "mptcpanalyzer", "mptcpanalyzer/plots",
-      ],
+      packages=find_packages(),
+      # [
+          # # "mptcpanalyzer", "mptcpanalyzer/plots",
+      # ],
       # data files allows to install files outside the package
       # see package_data to add files within pkg
       # package_data=['
@@ -60,12 +62,22 @@ setup(name="mptcpanalyzer",
             # creates 2 system programs that can be called from PATH
             'mptcpanalyzer = mptcpanalyzer.cli:cli',
             'mptcpexporter = mptcpanalyzer.exporter:main'
-          ]
+          ],
+        # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
+          'mptcpanalyzer.plots': [
+              'dsn = mptcpanalyzer.plots.dsn:TimeVsDsn',
+              'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
+              ],
+          # namespace for plugins that monkey patch the main Cmd class
+          'mptcpanalyzer.cmds': [
+              'stats = mptcpanalyzer.stats:DoStats',
+            ]
       },
       # pandas should include matplotlib dependancy right ?
       install_requires=[
+          'stevedore',
           'matplotlib',
           'pandas>=0.17.1'
           ],
-      zip_safe=True,
+      zip_safe=False,
       )

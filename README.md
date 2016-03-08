@@ -4,9 +4,10 @@ Presentation
 
 Mptcpanalyzer is a tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
 
-It accepts as input a capture file (\*.pcap) and depending on from there can :
+It accepts as input a capture file (\*.pcap) and from there can:
 - generate a CSV file with MPTCP fields
 - plot data sequence numbers for all subflows
+- load 3rd party plugins
 - etc...
 
 Most commands are self documented and/or with autocompletion.
@@ -23,11 +24,13 @@ While most of our wireshark improvements have been upstreamed (see http://lip6-m
 So for now you still need to install this custom version of wireshark :
 https://github.com/lip6-mptcp/wireshark-mptcp/tree/mptcp\_final (branch mptcp\_final)
 
-Once wireshark is installed you can install mptcpanalyzer via pypy:
+Once wireshark is installed you can install mptcpanalyzer via pip:
 `$ python3.5 -mpip install mptcpanalyzer`
 
 python3.5+ is mandatory since we rely on its type hinting features.
 Dependancies are:
+- [stevedore](http://docs.openstack.org/developer/stevedore/) to handle the
+  plugins architecture
 - the data analysis library [pandas](http://pandas.pydata.org/) >= 0.17.1
 - matplotlib to plot graphs
 
@@ -72,20 +75,19 @@ It relies on tshark (terminal version of wireshark) to convert pcap to csv files
 It accepts as input a pcap (or csv file following a proper format). 
 Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark).
 
-How to develop new plots ?
+How to add new plots ? new commands ?
 ===
 
-To ease their use, scripts should follow some guidelines:
-
-1. TODO autodetection of plots
+mptcpanalyzer supports plugins, see CONTRIBUTING.md to learn how to add new
+plots, commands, etc...
 
 
 FAQ
 ===
 
 1. What if I have several versions of wireshark installed ?
-Copy the config.example in the repository in $XDG_CONFIG_HOME/mptcpanalyzer/config and set
-the tshark_binary value to the full path towards the tshark version that supports mptcp dissection.
+Copy the config.example in the repository in `$XDG_CONFIG_HOME/mptcpanalyzer/config` and set
+the *tshark_binary* value to the full path towards the tshark version that supports mptcp dissection.
 
 Similar tools
 ===

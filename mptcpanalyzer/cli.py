@@ -10,7 +10,8 @@
 # -ability to load files from the interpreter
 # -would like to draw a bar with the repartition of the data between the different subflows with sthg like
 #  plot(kind='barh', stacked=True);
-
+# TODO add plugin system
+# http://docs.openstack.org/developer/stevedore/
 # explaing how argparse to shell completion works;
 # http://dingevoninteresse.de/wpblog/?p=176
 # https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
@@ -22,8 +23,9 @@ import os
 # import glob
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.plot import Plot
+from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # import mptcpanalyzer.config
-import config
+# import config
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,6 +33,11 @@ import shlex
 import cmd
 import traceback
 
+from stevedore import extension
+
+log = logging.getLogger("stevedore")
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler())
 
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
@@ -84,13 +91,53 @@ class MpTcpAnalyzer(cmd.Cmd):
     ruler = "="
     prompt = ">"
     # config = None
+    plot_mgr = None
+    cmd_mgr = None
 
-    def __init__(self, cfg: config.MpTcpAnalyzerConfig, pcap_file, input=None):
+    def __init__(self, cfg: MpTcpAnalyzerConfig, pcap_file, input=None):
         """
         """
         # stdin ?
         self.prompt = "%s >" % pcap_file
         self.config = cfg
+
+        ### LOAD PLOTS 
+        ######################
+# you can have list available plots under the namespace 
+# https://pypi.python.org/pypi/entry_point_inspector
+
+        # mgr = driver.DriverManager(
+        self.plot_mgr = extension.ExtensionManager(
+            namespace='mptcpanalyzer.plots',
+            invoke_on_load=True,
+            verify_requirements=True,
+            invoke_args=(),
+            )
+
+        self.cmd_mgr = extension.ExtensionManager(
+            namespace='mptcpanalyzer.cmds',
+            invoke_on_load=True,
+            verify_requirements=True,
+            invoke_args=(),
+            )
+
+        # TODO we should catch stevedore.exception.NoMatches
+        
+        def _inject_cmd(ext,data):
+            print(ext.name)
+            for prefix in ["do", "help", "complete"]:
+                method_name = prefix + "_" + ext.name
+                # obj2 = getattr(ext.obj, "help_" + ext.name)
+                # print(obj)
+                try:
+                    obj = getattr(ext.obj, prefix)
+                    if obj:
+                        setattr(MpTcpAnalyzer, method_name, obj)
+                except AttributeError:
+                    log.debug("Plugin does not provide %s" % method_name)
+            # setattr(MpTcpAnalyzer, 'help_stats', _test_help)
+
+        results = self.cmd_mgr.map(_inject_cmd, self)
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
@@ -114,7 +161,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # TODO run some check on the pcap to check if column names match
         #
 
-
+    # TODO does not work yet
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
         """
         Decorator used to check dataset contains all fields required by function
@@ -142,15 +189,18 @@ class MpTcpAnalyzer(cmd.Cmd):
             print("Expecting the mptcp.stream id as argument")
             return
 
-        print('hello fpr mptcpstream %d' % mptcpstream)
+        print('hello for mptcpstream %d' % mptcpstream)
         group = self.data[self.data.mptcpstream == mptcpstream]
         tcpstreams = group.groupby('tcpstream')
         print("mptcp.stream %d has %d subflow(s): " %
               (mptcpstream, len(tcpstreams)))
         for tcpstream, gr2 in tcpstreams:
-            print("\ttcp.stream %d : %s:%d <-> %s:%d" % (
-                tcpstream, gr2['ipsrc'].iloc[0], gr2['sport'].iloc[0], gr2['ipdst'].iloc[0], gr2['dport'].iloc[0])
-            )
+            line = "\ttcp.stream {stream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
+                tcpstream=tcpstream, srcip=gr2['ipsrc'].iloc[0], sport=gr2['sport'].iloc[0], 
+                dstip=gr2['ipdst'].iloc[0], 
+                dport=gr2['dport'].iloc[0]
+                )
+            print(line)
 
     def complete_ls(self, text, line, begidx, endidx):
         """ help to complete the args """
@@ -201,10 +251,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         mp = self.data.groupby("mptcpstream")
         for mptcpstream, group in mp:
             self.do_ls(mptcpstream)
-            # print("mptcp.stream %d : %s <-> %s " % (mptcpstream, group['ip4src'][0], group['ip4dst'][0]))
-        # print(mp['ip4src'])
-        # le nunique s'applique sur une liste et permet d'avoir
-        # mp.ip4src.nth(0)[0]
 
     def do_load(self, args):
         """
@@ -234,7 +280,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         print("Hello world")
 
     def complete_plot(self, text, line, begidx, endidx):
-        types = self._get_available_plots()
+        # types = self._get_available_plots()
         # print("Line=%s" % line)
         # print("text=%s" % text)
         # print(types)
@@ -242,22 +288,15 @@ class MpTcpAnalyzer(cmd.Cmd):
         # print(l)
         return l
 
-
-    def _get_available_plots(self):
-        plot_subclasses = Plot.get_available_plots(
-            'mptcpanalyzer/mptcpanalyzer/plots')
-        plot_types = [x.__name__ for x in plot_subclasses]
-        return plot_types
-
     def plot_mptcpstream(self, args):
         """
         global member used by others do_plot members *
         """
 
         # plot_types = Plot.get_available_plots( '/home/teto/mptcpanalyzer/mptcpanalyzer/plots')
-        plot_subclasses = Plot.get_available_plots(
-            'mptcpanalyzer/mptcpanalyzer/plots')
-        plot_types = dict((x.__name__, x) for x in plot_subclasses)
+        # plot_subclasses = Plot.get_available_plots(
+            # 'mptcpanalyzer/mptcpanalyzer/plots')
+        # plot_types = dict((x.__name__, x) for x in plot_subclasses)
         # map(plot_types)
 
         # print(plot_types)
@@ -265,10 +304,17 @@ class MpTcpAnalyzer(cmd.Cmd):
             description='Generate MPTCP stats & plots')
 
         subparsers = parser.add_subparsers(
-            dest="plot_type", title="Subparsers", help='sub-command help')
-        for name, subplot in plot_types.items():
-            subparsers.add_parser(
-                name, parents=[subplot.default_parser()], add_help=False)
+            dest="plot_type", title="Subparsers", help='sub-command help', )
+        subparsers.required=True
+
+        def _register_plots(ext, subparsers):
+            subparsers.add_parser(ext.name, parents=[ext.obj.default_parser()], add_help=False)
+
+        self.plot_mgr.map(_register_plots, subparsers)
+        # results = mgr.map(_get_plot_names, "toto")
+        # for name, subplot in plot_types.items():
+            # subparsers.add_parser(
+                # name, parents=[subplot.default_parser()], add_help=False)
 
         # parse
         # parser.add_argument('plot_type', action="store", choices=plot_types, help='Field to draw (see mptcp_fields.json)')
@@ -281,22 +327,23 @@ class MpTcpAnalyzer(cmd.Cmd):
             args, unknown = parser.parse_known_args(shlex.split(args))
         except SystemExit:
             return
-        # print(args)
-        # print(unknown)
+        print(args)
 
         # instancier le bon puis appeler le plot dessus
         # mandatory_fields
-        newPlot = plot_types[args.plot_type]()
-        print(newPlot)
-        success = newPlot.plot(self.data, args)  # "toto")
+        # newPlot = plot_types[args.plot_type]()
+        # print(newPlot)
+        # self.plot_mgr["dsn"].obj.plot()
+        success = self.plot_mgr["dsn"].obj.plot(self.data, args)  # "toto")
         # success = newPlot.plot(self.data, args.out, unknown)
         # returns a DataFrame
         # os.path.realpath
         # lines, labels = ax1.get_legend_handles_labels()
-        cmd = "xdg-open %s" % (args.out,)
-        print(cmd)
-        if args.out and args.display:
-            os.system(cmd)
+
+        # cmd = "xdg-open %s" % (args.out,)
+        # print(cmd)
+        # if args.out and args.display:
+            # os.system(cmd)
 
     def do_dump(self, args):
         """
@@ -362,7 +409,7 @@ def cli():
 
     # TODO here one could use parse_known_args
     args, unknown_args = parser.parse_known_args(sys.argv[1:])
-    cfg = config.MpTcpAnalyzerConfig(args.config)
+    cfg = MpTcpAnalyzerConfig(args.config)
     print("Config", cfg)
 
     print(os.getcwd())
@@ -383,6 +430,7 @@ def cli():
         if not cache or args.regen:
             log.info("Preparing to convert %s into %s" %
                      (args.input, csv_filename))
+
             exporter = TsharkExporter(cfg["DEFAULT"]["tshark_binary"], delimiter=delimiter)
             retcode, stderr = exporter.export_to_csv(args.input, csv_filename)
             print("exporter exited with code=", retcode)

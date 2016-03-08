@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import mptcpanalyzer.plot as plot
-import panda as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import os
 

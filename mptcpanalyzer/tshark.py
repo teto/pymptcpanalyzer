@@ -3,12 +3,8 @@ import logging
 import subprocess
 import os
 import tempfile
-# available since python 3.4
-from enum import Enum
 
-# from mptcpanalyzer.core import build_csv_header_from_list_of_fields 
-# from . import fields_dict
-# , get_basename
+from enum import Enum
 
 log = logging.getLogger(__name__)
 
@@ -261,20 +257,13 @@ class TsharkExporter:
         return proc.returncode, stderr
 
 
-# Ideally I would have liked to rely on some external library like
-# querycsv, csvkit etc... but they all seem broken in one way or another
-# https://docs.python.org/3.4/library/sqlite3.html
+# TODO replace with pandas export
 def convert_csv_to_sql(csv_filename, database, table_name):
-    # sqlite3
-    # 
-    # > .separator ","
-    # > .import test.csv TEST
     """
     csv_filename
     csv_content should be a string
     Then you can run SQL commands via SQLite Manager (firefox addo 
     """
-
     log.info("Converting csv to sqlite table {table} into {db}".format(
         table=table_name,
         db=database
