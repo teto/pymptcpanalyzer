@@ -4,13 +4,28 @@ Presentation
 
 Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
 
+<<<<<<< HEAD
 It accepts as input a capture file (\*.pcap) and from there can :
 - generate a CSV file with MPTCP fields for external processing
 - list the MPTCP connections in the pcap
 - display some statistics on a specific MPTCP connection (list of subflows etc...)
+||||||| merged common ancestors
+It accepts as input a capture file (\*.pcap) and depending on from there can :
+- generate a CSV file with MPTCP fields
+=======
+It accepts as input a capture file (\*.pcap) and from there can:
+- generate a CSV file with MPTCP fields
+>>>>>>> plugin_system
 - plot data sequence numbers for all subflows
+<<<<<<< HEAD
 - plot DSN interarrival times
 - more to come...
+||||||| merged common ancestors
+- etc...
+=======
+- load 3rd party plugins
+- etc...
+>>>>>>> plugin_system
 
 Most commands are self documented and/or with autocompletion.
 
@@ -26,11 +41,13 @@ While most of our wireshark improvements have been upstreamed (see http://lip6-m
 So for now you still need to install this custom version of wireshark :
 https://github.com/lip6-mptcp/wireshark-mptcp/tree/mptcp\_final (branch mptcp\_final)
 
-Once wireshark is installed you can install mptcpanalyzer via pypy:
+Once wireshark is installed you can install mptcpanalyzer via pip:
 `$ python3.5 -mpip install mptcpanalyzer`
 
 python3.5+ is mandatory since we rely on its type hinting features.
 Dependancies are:
+- [stevedore](http://docs.openstack.org/developer/stevedore/) to handle the
+  plugins architecture
 - the data analysis library [pandas](http://pandas.pydata.org/) >= 0.17.1
 - matplotlib to plot graphs
 
@@ -75,22 +92,19 @@ It relies on tshark (terminal version of wireshark) to convert pcap to csv files
 It accepts as input a pcap (or csv file following a proper format). 
 Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark).
 
-How to develop new plots ?
+How to add new plots ? new commands ?
 ===
 
-We want to ease the loading of custom plots.
-Scripts should follow some guidelines:
+mptcpanalyzer supports plugins, see CONTRIBUTING.md to learn how to add new
+plots, commands, etc...
 
-(WIP, for now you have to do it the dirty way and mess with package files)
-1. TODO autodetection of plots
-2. basically duplicate within the file one of the class in "plots/" and rename/modify it
 
 FAQ
 ===
 
 1. What if I have several versions of wireshark installed ?
-Copy the config.example in the repository in $XDG_CONFIG_HOME/mptcpanalyzer/config and set
-the tshark_binary value to the full path towards the tshark version that supports mptcp dissection.
+Copy the config.example in the repository in `$XDG_CONFIG_HOME/mptcpanalyzer/config` and set
+the *tshark_binary* value to the full path towards the tshark version that supports mptcp dissection.
 
 Similar tools
 ===

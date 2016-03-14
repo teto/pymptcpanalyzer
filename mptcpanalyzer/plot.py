@@ -8,9 +8,15 @@ import tempfile
 # import mptcpanalyzer.sqlite_helpers
 
 # from mptcpanalyzer.sqlite_helpers import MpTcpDatabase
+import abc
 
+import six
+
+@six.add_metaclass(abc.ABCMeta)
 class Plot:
     """
+    See http://docs.openstack.org/developer/stevedore/tutorial/creating_plugins.html
+
     This relies on Pandas + matplotlib to generate plots
     There is a bug in Pandas that prevents from plotting raw DSNs as uint64 see
     https://github.com/pydata/pandas/issues/11440
@@ -35,37 +41,42 @@ class Plot:
         return parser
 
     # *args
+    @abc.abstractmethod
     def plot(self, data,):
-        raise NotImplementedError()
+        """
+        Accepts 
+        """
+        # raise NotImplementedError()
 
-    @staticmethod
-    def get_available_plots(path):
-        """
-        Folders to look to
-        """
-        # easy way = plot_types = glob.glob("plots/*.py")
-        # files = files if isinstance(files, list) else ['plots/dsn']
-    # def get_available_plots(self):
-        from .plots import dsn
-        from .plots import latency
-        from .plots import wnd
-        # import pkgutil
-        # import importlib
-        # /home/teto/mptcpanalyzer/mptcpanalyzer/plots/
-        # packages = pkgutil.walk_packages(path)
-        # print(list(packages))
-        # for importer, name, is_package in packages:
-        #     mod = importlib.import_module(name)
-        # for f in files:
-        #     import files
-# def all_subclasses(cls):
-        # plot_types[args.plot_type]
-        return Plot.__subclasses__() 
-        # to make it recursive
-        # + [g for s in Plot.__subclasses__()
-        #                        for g in all_subclasses(s)]
-    # plot_types = dict((x.__name__, x) for x in Plot.get_available_plots())
-    # print("available plots:", plot_types)
+# TODO remove
+    # @staticmethod
+    # def get_available_plots(path):
+    #     """
+    #     Folders to look to
+    #     """
+    #     # easy way = plot_types = glob.glob("plots/*.py")
+    #     # files = files if isinstance(files, list) else ['plots/dsn']
+    # # def get_available_plots(self):
+    #     # from .plots import dsn
+    #     # from .plots import latency
+    #     # from .plots import wnd
+    #     # import pkgutil
+    #     # import importlib
+    #     # /home/teto/mptcpanalyzer/mptcpanalyzer/plots/
+    #     # packages = pkgutil.walk_packages(path)
+    #     # print(list(packages))
+    #     # for importer, name, is_package in packages:
+    #     #     mod = importlib.import_module(name)
+    #     # for f in files:
+    #     #     import files
+# # def all_subclasses(cls):
+    #     # plot_types[args.plot_type]
+    #     return Plot.__subclasses__() 
+    #     # to make it recursive
+    #     # + [g for s in Plot.__subclasses__()
+    #     #                        for g in all_subclasses(s)]
+    # # plot_types = dict((x.__name__, x) for x in Plot.get_available_plots())
+    # # print("available plots:", plot_types)
 
     def get_client_uniflow_filename(self, id):
         # os.join.path()

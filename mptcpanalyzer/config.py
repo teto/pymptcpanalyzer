@@ -19,13 +19,17 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
 
         # ensure defaults for mandatory parameters
         self.read_dict({
-            "DEFAULTSECT": { "tshark": "tshark"}
+            "DEFAULT": { "tshark_binary": "tshark"}
             })
 
         if not filename:
             filename = os.getenv("XDG_DEFAULT_HOME", "~/.config")
             filename = os.path.join(filename, "mptcpanalyzer", "config")
+        
 
         if os.path.exists(filename):
-             self.read(filename)
+            log.info("Loading config file %s" % filename)
+            self.read(filename)
+        else:
+            log.debug("Could not find config file %s" % filename)
 
