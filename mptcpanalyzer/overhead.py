@@ -2,9 +2,12 @@
 # attempt to do some monkey patching
 from mptcpanalyzer.command import Command
 
-from enum import Enum
+from enum import Enum, IntEnum
+import argparse
+import shlex
+import json
 
-class OptionSize(Enum):
+class OptionSize(IntEnum):
     """
     Size in byte of MPTCP options
     """
@@ -21,6 +24,15 @@ class OptionSize(Enum):
     # 3 + n * 1 ?
     # RmAddr 
 
+class DssAck(IntEnum):
+    None = 0
+    SimpleAck = 4
+    ExtendedAck = 8
+
+class DssMapping(IntEnum):
+    None = 4
+    Simple = 8
+    Extended = 12
 
 class MpTcpOverhead(Command):
     """
@@ -30,10 +42,14 @@ class MpTcpOverhead(Command):
     def __init__(self):
         pass
 
-    def _dss_size(with_ack : bool, with_mapping : bool) -> int:
+    def _dss_size(ack : DssAck, mapping : DssMapping, with_checksum=False : bool) -> int:
         """
         """
-        size = 
+        size = 4
+        size += ack.value
+        size += mapping.value
+        size += 2 if checksum else 0
+        return size
 
     def _overhead_const (total_nb_of_subflows : int):
         """
@@ -41,10 +57,15 @@ class MpTcpOverhead(Command):
 
         Mp_CAPABLE + MP_DSSfinal + sum of MP_JOIN
         """
-        return OptionSize.Capable + total_nb_of_subflows * 
+        return OptionSize.Capable.value + total_nb_of_subflows * OptionSize.Join.value
 
     def do(self, data):
+        parser = Argument.argparse (help="")
+        parser.add_argument("topologie", action="store", help="File to load topology from")
+        args = parser.parse_args( shlex.split(args))
         print("hello world")
+        json.load()
+# TODO this should be a plot rather than a command
 
     def help(self):
         """
