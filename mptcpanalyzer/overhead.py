@@ -60,12 +60,19 @@ class MpTcpOverhead(Command):
         return OptionSize.Capable.value + total_nb_of_subflows * OptionSize.Join.value
 
     def do(self, data):
-        parser = Argument.argparse (help="")
+        parser = argparse.ArgumentParser(description="Plot overhead")
         parser.add_argument("topologie", action="store", help="File to load topology from")
-        args = parser.parse_args( shlex.split(args))
-        print("hello world")
-        json.load()
+        args = parser.parse_args(shlex.split(args))
+        # print("hello world")
+        # json.load()
 # TODO this should be a plot rather than a command
+        print("topology=", args.topology ) 
+        with open(args.topology) as f:
+            j = json.load(f)
+            print("Number of subflows=%d" % len(j["subflows"]))
+            for s in j["subflows"]:
+                print("MSS=%d" % s["mss"])
+            print("toto")
 
     def help(self):
         """

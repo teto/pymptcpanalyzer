@@ -6,10 +6,10 @@ import argparse
 import shlex
 import json
 
-def MpTcpOptions(Enum):
-    NRSACK
-    SACK
-    DelayedAck
+class MpTcpOptions(Enum):
+    NRSACK = 0
+    SACK   = 1
+    DelayedAck = 2
 
 
 class DoStats(Command):
@@ -19,7 +19,17 @@ class DoStats(Command):
 
     def do(self, data):
         print("hello world")
+        parser = argparse.ArgumentParser(description="Allows to compute stats")
+        parser.add_argument("topology", action="store", help="File to load topology from")
+        # parser.add_argument("topologie", action="store", help="File to load topology from")
+        args = parser.parse_args( shlex.split(data))
+        print("topology=", args.topology ) 
+        with open(args.topology) as f:
+            j = json.load(f)
+            print("Number of subflows=%d" % len(j["subflows"]))
 
+            for s in j["subflows"]:
+                print("fowd=%d" % s["fowd"])
     def rto ():
         pass
 
@@ -28,10 +38,6 @@ class DoStats(Command):
         """
         print("Allow to generate stats")
 
-        parser = Argument.argparse (help="Allows to compute stats")
-        parser.add_argument("topologie", action="store", help="File to load topology from")
-        parser.add_argument("topologie", action="store", help="File to load topology from")
-        args = parser.parse_args( shlex.split(args))
 
     def complete(self, text, line, begidx, endidx):
         """
