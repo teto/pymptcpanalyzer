@@ -1,31 +1,17 @@
+[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
 
 Presentation 
 ===
 
 Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
 
-<<<<<<< HEAD
 It accepts as input a capture file (\*.pcap) and from there can :
 - generate a CSV file with MPTCP fields for external processing
 - list the MPTCP connections in the pcap
 - display some statistics on a specific MPTCP connection (list of subflows etc...)
-||||||| merged common ancestors
-It accepts as input a capture file (\*.pcap) and depending on from there can :
-- generate a CSV file with MPTCP fields
-=======
-It accepts as input a capture file (\*.pcap) and from there can:
-- generate a CSV file with MPTCP fields
->>>>>>> plugin_system
 - plot data sequence numbers for all subflows
-<<<<<<< HEAD
-- plot DSN interarrival times
-- more to come...
-||||||| merged common ancestors
-- etc...
-=======
 - load 3rd party plugins
 - etc...
->>>>>>> plugin_system
 
 Most commands are self documented and/or with autocompletion.
 
@@ -33,8 +19,10 @@ Then you have an interpreter with autocompletion that can generate & display plo
 
 ![Data Sequence Number (DSN) per subflow plot](examples/dsn.png)
 
-How to install ?
-===
+
+You can reference mptcpanalyzer via the following Digital Object Identifier [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
+
+# How to install ?
 
 First of all you will need a wireshark version that supports MPTCP dissection. 
 While most of our wireshark improvements have been upstreamed (see http://lip6-mptcp.github.io/mptcp/wireshark/2016/01/26/wireshark-presentation.html), there is still one patch pending. 
@@ -51,13 +39,11 @@ Dependancies are:
 - the data analysis library [pandas](http://pandas.pydata.org/) >= 0.17.1
 - matplotlib to plot graphs
 
-License
-===
+# License
 Though it might be tempting to release under the CRAPL licence (http://matt.might.net/articles/crapl/), mptcpanalyzer is shamelessly released under the GPLv3 license.
 
 
-How to use ?
-===
+# How to use ?
 
 This package installs 2 programs in your PATH:
 - *mptcpexporter* can export a pcap into csv (exporting to sql should be easy).
@@ -84,8 +70,8 @@ in `lc` output.
 
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
-How does it work (internals) ?
-===
+# How does it work (internals) ?
+
 mptcpanalyzer consists of small python scripts. the heavy task is done by wireshark.
 It relies on tshark (terminal version of wireshark) to convert pcap to csv files.
 
@@ -93,7 +79,7 @@ It accepts as input a pcap (or csv file following a proper format).
 Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark).
 
 How to add new plots ? new commands ?
-===
+
 
 mptcpanalyzer supports plugins, see CONTRIBUTING.md to learn how to add new
 plots, commands, etc...
