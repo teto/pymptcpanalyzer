@@ -93,12 +93,13 @@ class MpTcpAnalyzer(cmd.Cmd):
     # config = None
     plot_mgr = None
     cmd_mgr = None
+    config = None
 
-    def __init__(self, cfg: MpTcpAnalyzerConfig, pcap_file, input=None):
+    def __init__(self, cfg: MpTcpAnalyzerConfig, input=None):
         """
         """
         # stdin ?
-        self.prompt = "%s >" % pcap_file
+        self.prompt = "%s> " % "Ready"
         self.config = cfg
 
         ### LOAD PLOTS 
@@ -150,16 +151,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         # there seems to be several improvements a
         # possible to set type of columns with dtype={'b': object, 'c': np.float64}
         # one can choose the column to use as index index_col=
-        self.data = pd.read_csv(pcap_file, sep=delimiter)
-        columns = list(self.data.columns)
-        print(columns)
-        for field in mandatory_fields:
-            if field not in columns:
-                raise Exception(
-                    "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-        #print(self.data.col
-        # TODO run some check on the pcap to check if column names match
-        #
 
     # TODO does not work yet
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
@@ -252,10 +243,82 @@ class MpTcpAnalyzer(cmd.Cmd):
         for mptcpstream, group in mp:
             self.do_ls(mptcpstream)
 
+    def do_plot_owd(self, args):
+        parser = argparse.ArgumentParser(
+                description='Generate MPTCP stats & plots'
+                )
+        # client = parser.add_argument_group("Client data")
+
+        parser.add_argument("client_input", action="store",
+                help="Either a pcap or a csv file (in good format)."
+                )
+        parser.add_argument("mptcp_client_id", action="store", type=int)
+
+        parser.add_argument("server_input", action="store",
+                help="Either a pcap or a csv file (in good format)."
+                )
+        parser.add_argument("mptcp_server_id", action="store", type=int)
+        # server = parser.add_argument_group("Client data")
+
+        args = parser.parse_args(shlex.split())
+        ds1 = self._load_into_pandas(args.client_input)
+        ds2 = self._load_into_pandas(args.server_input)
+        
+        # now we take only the subset matching the conversation
+
+
+
+    # @staticmethod
+    def _load_file(filename, regen: bool):
+        """
+        Accept either a .csv or a .pcap file 
+        """
+        basename, ext = os.path.splitext(filename)
+        print("Basename=%s" % basename)
+        csv_filename = filename
+
+        if ext == ".csv":
+            pass
+        else:
+            print("%s format is not supported as is. Needs to be converted first" %
+                (filename))
+            csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
+            cache = os.path.isfile(csv_filename)
+            if cache:
+                log.info("A cache %s was found" % csv_filename)
+            # if matching csv does not exist yet or if generation forced
+            if not cache or regen:
+                log.info("Preparing to convert %s into %s" %
+                        (filename, csv_filename))
+
+                exporter = TsharkExporter(self.cfg["DEFAULT"]["tshark_binary"], 
+                        delimiter=delimiter)
+                retcode, stderr = exporter.export_to_csv(filename, csv_filename)
+                print("exporter exited with code=", retcode)
+                if retcode:
+                    raise Exception(stderr)
+        return csv_filename
+
+    # @staticmethod
+    def _load_into_pandas(self, input_file):
+        """
+        """
+        data = pd.read_csv(pcap_file, sep=delimiter)
+        columns = list(data.columns)
+        print(columns)
+        for field in mandatory_fields:
+            if field not in columns:
+                raise Exception(
+                    "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
+        return data
+
     def do_load(self, args):
         """
         Not implemented yet
         """
+        #print(self.data.col
+        # TODO run some check on the pcap to check if column names match
+        #
         print("Not implemented yet")
         # log.info("Preparing to convert %s into %s" %
                 # (args.input, csv_filename))
@@ -449,8 +512,9 @@ def cli():
         # use_rawinput = False
 
         # here I want to generate automatically the csv file
-        analyzer = MpTcpAnalyzer(cfg, csv_filename, input)
-
+        analyzer = MpTcpAnalyzer(cfg, input)
+        # TODO convert that into load
+        analyzer.do_load()
         # if extra parameters passed via the cmd line, consider it is
         if not input and unknown_args:
             analyzer.onecmd(' '.join(unknown_args))
