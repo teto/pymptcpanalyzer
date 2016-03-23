@@ -7,15 +7,11 @@
 # author: Matthieu coudron , matthieu.coudron@lip6.fr
 
 # TODO list
-# -ability to load files from the interpreter
 # -would like to draw a bar with the repartition of the data between the different subflows with sthg like
 #  plot(kind='barh', stacked=True);
-# TODO add plugin system
-# http://docs.openstack.org/developer/stevedore/
 # explaing how argparse to shell completion works;
 # http://dingevoninteresse.de/wpblog/?p=176
 # https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
-# the autocomplete plugin seems also nice
 import sys
 import argparse
 import logging
@@ -53,16 +49,6 @@ stream_parser = argparse.ArgumentParser(
 stream_parser.add_argument(
     "mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
 
-# TODO ca le generer des scripts dans le dossier plot
-# plot_types = {
-#     'mappings_simple': "plots/mappings/mappings_per_subflow.plot",
-#     'mappings_time': "plots/mappings/time_vs_mappings.plot",
-#     # this one uses multiplot
-#     'mappings_ack': "plots/mappings/mappings_and_ack.plot",
-#     # 'mptcp_rtt': '',
-# }
-
-# 
 #  tshark -T fields -e _ws.col.Source -r /mnt/ntfs/pcaps/demo.pcap
 # TODO merge these fields (always) when tshark exports ?
 mandatory_fields = [
@@ -77,6 +63,23 @@ mandatory_fields = [
     # 'latency',
     'dack'
 ]
+
+
+# decorator
+def is_loaded(f):
+    def wrapped(self, *args):
+        print("wrapped")
+        if self.data is not None:
+            print("self.data")
+            print("args=%r" % args)
+            return f(self, *args)
+        # def toto(*args):
+        else:   
+            print("Please load a file first")
+        # return lambda _: print("Please load a file first")
+        return None
+    return wrapped
+
 
 """ CSV delimiter """
 delimiter = '|'
@@ -95,6 +98,8 @@ class MpTcpAnalyzer(cmd.Cmd):
     plot_mgr = None
     cmd_mgr = None
     config = None
+    # pandas data
+    data = None 
 
     def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin): 
         """
@@ -177,6 +182,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         return check_fields
 
     # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
+    @is_loaded
     def do_ls(self, mptcpstream):
         """ list mptcp subflows 
                 [mptcp.stream id]
@@ -194,8 +200,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         print("mptcp.stream %d has %d subflow(s): " %
               (mptcpstream, len(tcpstreams)))
         for tcpstream, gr2 in tcpstreams:
-            line = "\ttcp.stream {stream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
-                tcpstream=tcpstream, srcip=gr2['ipsrc'].iloc[0], sport=gr2['sport'].iloc[0], 
+            line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
+                tcpstream=tcpstream,
+                srcip=gr2['ipsrc'].iloc[0],
+                sport=gr2['sport'].iloc[0], 
                 dstip=gr2['ipdst'].iloc[0], 
                 dport=gr2['dport'].iloc[0]
                 )
@@ -274,12 +282,29 @@ class MpTcpAnalyzer(cmd.Cmd):
         
         # now we take only the subset matching the conversation
 
-
-
     # @staticmethod
+    def do_load(self, args):
+        """
+        """
+        parser = argparse.ArgumentParser(
+            description='Generate MPTCP stats & plots'
+        )
+        parser.add_argument("input_file", action="store", nargs="?",
+                help="Either a pcap or a csv file (in good format)."
+                "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+                "If it can't find one (or with the flag --regen), it will generate a "
+                "csv from the pcap with the external tshark program."
+                )
+        parser.add_argument("--regen", "-r", action="store_true",
+                help="Force the regeneration of the cached CSV file from the pcap input")
+        res = parser.parse_args(shlex.split(args))
+        print("Not implemented yet")
+
+
     def _load_file(self, filename, regen: bool):
         """
         Accept either a .csv or a .pcap file 
+        Returns a panda data frame
         """
         basename, ext = os.path.splitext(filename)
         print("Basename=%s" % basename)
@@ -306,11 +331,13 @@ class MpTcpAnalyzer(cmd.Cmd):
                 if retcode:
                     raise Exception(stderr)
         # return csv_filename
-        return self._load_into_pandas(csv_filename)
+        self.data = self._load_into_pandas(csv_filename)
+        self.prompt = "%s> " % filename
 
     # @staticmethod
     def _load_into_pandas(self, input_file):
         """
+        intput_file must be  csv
         """
         data = pd.read_csv(input_file, sep=delimiter)
         columns = list(data.columns)
@@ -321,20 +348,14 @@ class MpTcpAnalyzer(cmd.Cmd):
                     "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
         return data
 
-    def do_load_csv(self, args):
-        """
-        Not implemented yet
-        """
-        #print(self.data.col
-        # TODO run some check on the pcap to check if column names match
-        print("Not implemented yet")
-#self._load_file()
-        csv_filename = args 
-        self.data = self._load_into_pandas(csv_filename)
-        # log.info("Preparing to convert %s into %s" %
-                # (args.input, csv_filename))
-        # exporter = TsharkExporter(cfg["DEFAULT"]["tshark_binary"], delimiter=delimiter)
-        # retcode, stderr = exporter.export_to_csv(args.input, csv_filename)
+    # def do_load_csv(self, args):
+        # """
+        # """
+        # # TODO run some check on the pcap to check if column names match
+        # print("Not implemented yet")
+        # csv_filename = args 
+        # print("Loading csv %s" % csv_filename)
+        # self.data = self._load_into_pandas(csv_filename)
 
     # def do_pdsn(self, args):
     def do_p(self, args):
@@ -463,12 +484,12 @@ def cli():
         description='Generate MPTCP stats & plots'
     )
     #  todo make it optional
-    # parser.add_argument("input_file", action="store", nargs="?",
-    #         help="Either a pcap or a csv file (in good format)."
-    #         "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
-    #         "If it can't find one (or with the flag --regen), it will generate a "
-            # "csv from the pcap with the external tshark program."
-            # )
+    parser.add_argument("input_file", action="store", nargs="?",
+            help="Either a pcap or a csv file (in good format)."
+            "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+            "If it can't find one (or with the flag --regen), it will generate a "
+            "csv from the pcap with the external tshark program."
+            )
     parser.add_argument("--config", "-c", action="store",
             help="Path towards the config file (use $XDG_CONFIG_HOME/mptcpanalyzer/config by default)")
     parser.add_argument("--debug", "-d", action="store_true",
@@ -504,9 +525,9 @@ def cli():
 #         # stdin = open(args.batch, 'rt') if args.batch else sys.stdin
         analyzer = MpTcpAnalyzer(cfg, )
 #         # TODO convert that into load
-#         if args.input_file:
-#             csv_filename = analyzer._load_file(args.input_file, args.regen)
-#             analyzer.do_load_csv(csv_filename)
+        if args.input_file:
+            csv_filename = analyzer._load_file(args.input_file, args.regen)
+            # analyzer.do_load_csv(csv_filename)
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
