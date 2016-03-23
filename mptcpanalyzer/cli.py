@@ -78,6 +78,7 @@ mandatory_fields = [
     'dack'
 ]
 
+""" CSV delimiter """
 delimiter = '|'
 # should be automatically generated
 plot_types = ["dsn", "tcpseq", "dss"]
@@ -95,8 +96,9 @@ class MpTcpAnalyzer(cmd.Cmd):
     cmd_mgr = None
     config = None
 
-    def __init__(self, cfg: MpTcpAnalyzerConfig, input=None):
+    def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin): 
         """
+        stdin 
         """
         # stdin ?
         self.prompt = "%s> " % "Ready"
@@ -108,6 +110,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 # https://pypi.python.org/pypi/entry_point_inspector
 
         # mgr = driver.DriverManager(
+        # TODO move to a load_plot_plugins function
         self.plot_mgr = extension.ExtensionManager(
             namespace='mptcpanalyzer.plots',
             invoke_on_load=True,
@@ -142,11 +145,16 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
-        if input:
+        if stdin != sys.stdin:
             self.use_rawinput = False
             self.prompt = ""
             self.intro = ""
-        super().__init__(completekey='tab', stdin=input)
+
+        """
+        The optional arguments stdin and stdout specify the input and output file objects that the Cmd instance or subclass instance will use for input and output. If not specified, they will default to sys.stdin and sys.stdout.
+        """
+        # stdin
+        super().__init__(completekey='tab', stdin=stdin)
 # , sep='|'
         # there seems to be several improvements a
         # possible to set type of columns with dtype={'b': object, 'c': np.float64}
@@ -260,7 +268,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser.add_argument("mptcp_server_id", action="store", type=int)
         # server = parser.add_argument_group("Client data")
 
-        args = parser.parse_args(shlex.split())
+        args = parser.parse_args(shlex.split(args))
         ds1 = self._load_into_pandas(args.client_input)
         ds2 = self._load_into_pandas(args.server_input)
         
@@ -269,7 +277,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
 
     # @staticmethod
-    def _load_file(filename, regen: bool):
+    def _load_file(self, filename, regen: bool):
         """
         Accept either a .csv or a .pcap file 
         """
@@ -291,19 +299,20 @@ class MpTcpAnalyzer(cmd.Cmd):
                 log.info("Preparing to convert %s into %s" %
                         (filename, csv_filename))
 
-                exporter = TsharkExporter(self.cfg["DEFAULT"]["tshark_binary"], 
+                exporter = TsharkExporter(self.config["DEFAULT"]["tshark_binary"], 
                         delimiter=delimiter)
                 retcode, stderr = exporter.export_to_csv(filename, csv_filename)
                 print("exporter exited with code=", retcode)
                 if retcode:
                     raise Exception(stderr)
-        return csv_filename
+        # return csv_filename
+        return self._load_into_pandas(csv_filename)
 
     # @staticmethod
     def _load_into_pandas(self, input_file):
         """
         """
-        data = pd.read_csv(pcap_file, sep=delimiter)
+        data = pd.read_csv(input_file, sep=delimiter)
         columns = list(data.columns)
         print(columns)
         for field in mandatory_fields:
@@ -312,14 +321,16 @@ class MpTcpAnalyzer(cmd.Cmd):
                     "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
         return data
 
-    def do_load(self, args):
+    def do_load_csv(self, args):
         """
         Not implemented yet
         """
         #print(self.data.col
         # TODO run some check on the pcap to check if column names match
-        #
         print("Not implemented yet")
+#self._load_file()
+        csv_filename = args 
+        self.data = self._load_into_pandas(csv_filename)
         # log.info("Preparing to convert %s into %s" %
                 # (args.input, csv_filename))
         # exporter = TsharkExporter(cfg["DEFAULT"]["tshark_binary"], delimiter=delimiter)
@@ -451,22 +462,24 @@ def cli():
     parser = argparse.ArgumentParser(
         description='Generate MPTCP stats & plots'
     )
-    parser.add_argument("input", action="store",
-                        help="Either a pcap or a csv file (in good format)."
-                        "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
-                        "If it can't find one (or with the flag --regen), it will generate a "
-                        "csv from the pcap with the external tshark program."
-                        )
+    #  todo make it optional
+    # parser.add_argument("input_file", action="store", nargs="?",
+    #         help="Either a pcap or a csv file (in good format)."
+    #         "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+    #         "If it can't find one (or with the flag --regen), it will generate a "
+            # "csv from the pcap with the external tshark program."
+            # )
     parser.add_argument("--config", "-c", action="store",
-                        help="Path towards the config file (use $XDG_CONFIG_HOME/mptcpanalyzer/config by default)")
+            help="Path towards the config file (use $XDG_CONFIG_HOME/mptcpanalyzer/config by default)")
     parser.add_argument("--debug", "-d", action="store_true",
-                        help="To output debug information")
+            help="To output debug information")
     parser.add_argument("--regen", "-r", action="store_true",
-                        help="Force the regeneration of the cached CSV file from the pcap input")
-    parser.add_argument("--batch", "-b", action="store", type=str,
-                        help="Accepts a filename as argument from which commands will be loaded."
-                        "Commands follow the same syntax as in the interpreter"
-                        )
+            help="Force the regeneration of the cached CSV file from the pcap input")
+    parser.add_argument("--batch", "-b", action="store", type=argparse.FileType('r'),
+            default=sys.stdin,
+            help="Accepts a filename as argument from which commands will be loaded."
+            "Commands follow the same syntax as in the interpreter"
+            )
     # parser.add_argument("--command", "-c", action="store", type=str, nargs="*", help="Accepts a filename as argument from which commands will be loaded")
 
 
@@ -474,59 +487,43 @@ def cli():
     args, unknown_args = parser.parse_known_args(sys.argv[1:])
     cfg = MpTcpAnalyzerConfig(args.config)
     print("Config", cfg)
-
-    print(os.getcwd())
-    basename, ext = os.path.splitext(args.input)
-    print("Basename=%s" % basename)
-    csv_filename = args.input
-
-    if ext == ".csv":
-        pass
-    else:
-        print("%s format is not supported as is. Needs to be converted first" %
-              (args.input))
-        csv_filename = args.input + ".csv"  #  str(Filetype.csv.value)
-        cache = os.path.isfile(csv_filename)
-        if cache:
-            log.info("A cache %s was found" % csv_filename)
-        # if matching csv does not exist yet or if generation forced
-        if not cache or args.regen:
-            log.info("Preparing to convert %s into %s" %
-                     (args.input, csv_filename))
-
-            exporter = TsharkExporter(cfg["DEFAULT"]["tshark_binary"], delimiter=delimiter)
-            retcode, stderr = exporter.export_to_csv(args.input, csv_filename)
-            print("exporter exited with code=", retcode)
-            if retcode:
-                raise Exception(stderr)
-
-    log.info(" %s " % (args.input))
+    # log.info(" %s " % (args.input_file))
 
     # if I load from
     input = None
     try:
-        if args.batch:
-            input = open(args.batch, 'rt')
+
+        # if args.batch:
+            # input = open(args.batch, 'rt')
+
         # stdin=input
         # Disable rawinput module use
         # use_rawinput = False
 
-        # here I want to generate automatically the csv file
-        analyzer = MpTcpAnalyzer(cfg, input)
-        # TODO convert that into load
-        analyzer.do_load()
-        # if extra parameters passed via the cmd line, consider it is
-        if not input and unknown_args:
+#         # here I want to generate automatically the csv file
+#         # stdin = open(args.batch, 'rt') if args.batch else sys.stdin
+        analyzer = MpTcpAnalyzer(cfg, )
+#         # TODO convert that into load
+#         if args.input_file:
+#             csv_filename = analyzer._load_file(args.input_file, args.regen)
+#             analyzer.do_load_csv(csv_filename)
+
+        # if extra parameters passed via the cmd line, consider it is one command
+        # not args.batch ? both should conflict
+        if unknown_args:
+            log.info("One-shot command")
             analyzer.onecmd(' '.join(unknown_args))
         else:
+            log.info("Interactive mode")
             analyzer.cmdloop()
+
     except Exception as e:
         print("An error happened :\n%s" % e)
         print("Displaying backtrace:\n")
         print(traceback.print_exc())
         return 1
     finally:
-        input.close() if input else None
+        # input.close() if input else None
         return 0
 
 
