@@ -275,11 +275,19 @@ class MpTcpAnalyzer(cmd.Cmd):
                 )
         parser.add_argument("mptcp_server_id", action="store", type=int)
         # server = parser.add_argument_group("Client data")
+        try:
+            # args = parser.parse_args( shlex.split(field + ' ' + args))
+            args, unknown = parser.parse_known_args(shlex.split(args))
+        except SystemExit:
+            return
 
-        args = parser.parse_args(shlex.split(args))
+        # args = parser.parse_args(shlex.split(args))
         ds1 = self._load_into_pandas(args.client_input)
         ds2 = self._load_into_pandas(args.server_input)
         
+        # ds1[]
+        ds1 = ds1[data.mptcpstream == args.mptcp_client_id]
+        ds2 = ds2[data.mptcpstream == args.mptcp_server_id]
         # now we take only the subset matching the conversation
 
     # @staticmethod
@@ -299,12 +307,15 @@ class MpTcpAnalyzer(cmd.Cmd):
                 help="Force the regeneration of the cached CSV file from the pcap input")
         res = parser.parse_args(shlex.split(args))
         print("Not implemented yet")
+        self._load_file(args.input_file, args.regen)
 
+        self.data = self._load_into_pandas(csv_filename)
+        self.prompt = "%s> " % filename
 
-    def _load_file(self, filename, regen: bool):
+    def _load_file(self, filename, regen : bool= False):
         """
         Accept either a .csv or a .pcap file 
-        Returns a panda data frame
+        Returns resulting csv filename
         """
         basename, ext = os.path.splitext(filename)
         print("Basename=%s" % basename)
@@ -324,22 +335,23 @@ class MpTcpAnalyzer(cmd.Cmd):
                 log.info("Preparing to convert %s into %s" %
                         (filename, csv_filename))
 
-                exporter = TsharkExporter(self.config["DEFAULT"]["tshark_binary"], 
-                        delimiter=delimiter)
+                exporter = TsharkExporter(
+                        self.config["DEFAULT"]["tshark_binary"], 
+                        delimiter=delimiter
+                    )
                 retcode, stderr = exporter.export_to_csv(filename, csv_filename)
                 print("exporter exited with code=", retcode)
                 if retcode:
                     raise Exception(stderr)
-        # return csv_filename
-        self.data = self._load_into_pandas(csv_filename)
-        self.prompt = "%s> " % filename
+        return csv_filename
 
     # @staticmethod
     def _load_into_pandas(self, input_file):
         """
-        intput_file must be  csv
+        intput_file must be csv
         """
-        data = pd.read_csv(input_file, sep=delimiter)
+        csv_filename = self._load_file(input_file)
+        data = pd.read_csv(csv_filename, sep=delimiter)
         columns = list(data.columns)
         print(columns)
         for field in mandatory_fields:

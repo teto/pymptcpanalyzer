@@ -1,5 +1,6 @@
 # this is an exhaustive example of a configuration for mptcpanalyzer
 # mptcpanalyzer loads automatically the file in "$XDG_CONFIG_HOME/mptcpanalyzer/config"
 
+[DEFAULT]
 # If you have several installations of tshark, then you can put the fullpath here
 tshark_binary = tshark

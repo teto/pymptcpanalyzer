@@ -31,27 +31,17 @@ class TsharkExporter:
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
         "mptcp.relative_sequence_numbers" : True,
-        "mptcp.interdsn_latency": True,
         "mptcp.intersubflows_retransmission": True,
         # Disable DSS checks which consume quite a lot
-        # "tcp.analyze_mptcp_seq": False,
         "mptcp.analyze_mptcp": True,
-        # "tcp.analyze_mptcp_mapping": False,
     }
 
     delimiter = '|'
-    # fields_to_export = (
-    #     "packetid", 
-    #     "time",
-    #     "mptcpstream", 
-    #     "tcpstream", 
-    # )
 
-    # TODO should be settable
     # mptcp.stream
     filter = ""
 
-    def __init__(self, tshark_bin="/usr/bin/wireshark", delimiter=","):
+    def __init__(self, tshark_bin="wireshark", delimiter=","):
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
@@ -95,10 +85,11 @@ class TsharkExporter:
             "dss_ssn": "tcp.options.mptcp.subflowseqno",
             "dss_length": "tcp.options.mptcp.datalvllen",
             "master": "mptcp.master",
-            "latency": "mptcp.app_latency",
+            # "latency": "mptcp.app_latency",
             # TODO add sthg related to mapping analysis ?
             "tcpseq": "tcp.seq",
             "dsn": "mptcp.dsn",
+            "dsnraw64": "mptcp.rawdsn64",
             "dack": "mptcp.ack",
             # "dataack": "mptcp.ack",
         }
@@ -222,9 +213,11 @@ class TsharkExporter:
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
         #  -E quote=n 
+        # the -2 is very important, else some mptcp parameters are not exported
         # TODO try with -w <outputFile> ?
         cmd = ("{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression}"
                " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
+               " -2 "
                " >> {outputFilename}").format(
             tsharkBinary=tshark_exe,
             tsharkOptions=convert_options_into_str(options),
@@ -260,6 +253,7 @@ class TsharkExporter:
 # TODO replace with pandas export
 def convert_csv_to_sql(csv_filename, database, table_name):
     """
+    TODO this should be done using pandas library
     csv_filename
     csv_content should be a string
     Then you can run SQL commands via SQLite Manager (firefox addo 
@@ -281,16 +275,6 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     ).format(delimiter="|",
              csvFile=csv_filename,
              table=table_name)
-
-    # initCommand=
-    #     "DROP TABLE IF EXISTS {table};\n"
-    #     ".separator '{separator}'\n"
-    #         ".import {csvFile} {table}\n").format(
-    #         separator=",",
-    #         csvFile=csv_filename,
-    #         table=table_name
-    #         )
-    # print(initCommand)
     log.info("Creating db %s (if does not exist)" % database)
     with tempfile.NamedTemporaryFile("w+", delete=False) as f:
         # with open(tempInitFilename, "w+") as f:
@@ -300,15 +284,10 @@ def convert_csv_to_sql(csv_filename, database, table_name):
         cmd = "sqlite3 -init {initFilename} {db} ".format(
             initFilename=f.name,
             db=database,
-            # init=init_command
         )
 
-        # cmd="sqlite3"
-        # tempInitFilename      
         log.info("Running command:\n%s" % cmd)
-        # input=init_command.encode(),
         try:
-
             output = subprocess.check_output(cmd, 
                                              input=".exit".encode(),
                                              shell=True)
