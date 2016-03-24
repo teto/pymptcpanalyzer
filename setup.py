@@ -66,8 +66,9 @@ setup(name="mptcpanalyzer",
         # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
           'mptcpanalyzer.plots': [
               'dsn = mptcpanalyzer.plots.dsn:PerSubflowTimeVsDsn',
-              'interdeparture = mptcpanalyzer.plots.dsn:DsnInterDepartureTimes',
+              'interdeparture = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
               'interarrival = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
+              'ack = mptcpanalyzer.plots.dsn:AckInterArrivalTimes',
               'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
               ],
           # namespace for plugins that monkey patch the main Cmd class

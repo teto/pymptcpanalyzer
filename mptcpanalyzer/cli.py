@@ -259,6 +259,49 @@ class MpTcpAnalyzer(cmd.Cmd):
         for mptcpstream, group in mp:
             self.do_ls(mptcpstream)
 
+    @staticmethod
+    def _map_subflows_between_2_datasets(ds1,ds2):
+        """
+        Takes 2 datasets ALREADY FILTERED and returns 
+        # a dictiorary mapping
+        -> a list of tuples
+        ds1 TCP flows to ds2 TCP flows
+        """
+        
+        tcpstreams1 = ds1.groupby('tcpstream')
+        tcpstreams2 = ds2.groupby('tcpstream')
+        print("ds1 has %d subflow(s)." % (len(tcpstreams1)))
+        print("ds2 has %d subflow(s)." % (len(tcpstreams2)))
+        if len (tcpstreams1) != len(tcpstreams2):
+            print("FISHY: Datasets contain a different number of subflows")
+
+        # To filter the dataset, you can refer to 
+        mappings = []
+        for tcpstream1, gr2 in tcpstreams1:
+            for tcpstream2, gr2 in tcpstreams2:
+            # look for similar packets in ds2
+            result = ds2[ ds2.ipsrc == gr2['ipdst'].iloc[0] 
+                 & ds2.ipdst == gr2['ipsrc'].iloc[0] 
+                 & ds2.sport == gr2['dport'].iloc[0] 
+                 & ds2.dport == gr2['sport'].iloc[0]
+                 ]
+            if len(result):
+                entry = tuple(tcpstream, result['tcpstream'].iloc[0])
+                print("Found a mapping %r" % entry) 
+                mappings.append(entry)
+            else:
+                print("No match for %s" % gr2)
+            # line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
+            #     tcpstream=tcpstream,
+            #     srcip=gr2['ipsrc'].iloc[0],
+            #     sport=gr2['sport'].iloc[0], 
+            #     dstip=gr2['ipdst'].iloc[0], 
+            #     dport=gr2['dport'].iloc[0]
+            #     )
+        return mappings
+
+    # def _print_subflow():
+
     def do_plot_owd(self, args):
         parser = argparse.ArgumentParser(
                 description='Generate MPTCP stats & plots'
@@ -286,9 +329,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         ds2 = self._load_into_pandas(args.server_input)
         
         # ds1[]
-        ds1 = ds1[data.mptcpstream == args.mptcp_client_id]
-        ds2 = ds2[data.mptcpstream == args.mptcp_server_id]
+        ds1 = ds1[ds1.mptcpstream == args.mptcp_client_id]
+        ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
         # now we take only the subset matching the conversation
+        mappings = self._map_subflows_between_2_datasets(ds1, ds2)
+        print("Found %d valid mappings " % len(mappings))
+        # group = self.data[self.data.mptcpstream == mptcpstream]
 
     # @staticmethod
     def do_load(self, args):

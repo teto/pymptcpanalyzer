@@ -6,14 +6,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-class DsnInterArrivalTimes(plot.Plot):
+class AckInterArrivalTimes(plot.Plot):
 
-    def plot(self, data, args):
-        # print("data=", data) 
-        print("args", args)
-
-class DsnInterDepartureTimes(plot.Plot):
-
+    """
+    TODO rename into interDSN ?
+    In case traffic is biderctional we must filter on one direction only
+    """
 
     def plot(self, data, args):
         # print("data=", data) 
@@ -26,56 +24,57 @@ class DsnInterDepartureTimes(plot.Plot):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
-        # dssRawDSN could work as well
-        # plot (subplots=True)
-        fig = plt.figure()
-        # plt.title("hello world")
-        # ax = tcpstreams[args.field].plot(ax=fig.gca())
-        # want 
-        # columns allows to choose the correct legend
-        # df = self.data
-        dat.set_index("reltime", inplace=True)
-        tcpstreams = dat.groupby('tcpstream')
-        # TODO field should be DSN
-        # field = "dsn"
-        # field = "dss_dsn"
-        field = "dss_ssn"
-
-
-        axes = fig.gca()
-        # df.plot(kind='line') is equivalent to df.plot.line() since panda 0.17
-        # should return axes : matplotlib.AxesSubplot
-        # returns a panda.Series for a line :s
-        pplot = tcpstreams[field].plot.line(
-            # gca = get current axes (Axes), create one if necessary
-            ax=axes,
-            # x=tcpstreams["reltime"],
-            # x="Relative time", # ne marche pas
-            # title="Data Sequence Numbers over subflows", 
-            # use_index=False,
-            legend=True,
-            # style="-o",
+        # TODO mptcp ack
+        dat.sort_values("dack", ascending=True, inplace=True)
+        
+        # compute delay between sending of 
+        dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
+        # need to compute interdeparture times
+        ax = dat.interdeparture.plot.hist(
+            legend=False,
             grid=True,
-            # xticks=tcpstreams["reltime"],
-            # rotation for ticks
-            # rot=45, 
-            # lw=3
-        )
+            bins=10,
+        )   
+        ax.set_ylabel("Proportion")
+        ax.set_xlabel("Inter DSN departure time")
+        fig = ax.get_figure()
 
-        # print(dir(axes))
-        axes.set_xlabel("Time")
-        axes.set_ylabel("DSN")
-        # print("toto", type(pplot))
+        args.out = os.path.join(os.getcwd(), args.out)
+        print("Saving into %s" % (args.out))
+        fig.savefig(args.out)
+        return True
 
-        ###  Correct legend for the linux 4 subflow case
-        #############################################################
-        h, l = axes.get_legend_handles_labels()
+class DsnInterArrivalTimes(plot.Plot):
+    """
+    TODO rename into interDSN ?
+    In case traffic is biderctional we must filter on one direction only
+    """
 
-        # axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
-        # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
-        print(h, l)
+    def plot(self, data, args):
+        # print("data=", data) 
+        print("args", args)
+        # parser = plot.Plot.default_parser()
+        # args = parser.parse_args(*args)
+        dat = data[data.mptcpstream == args.mptcpstream]
+        # TODO try replacing with dat.empty
+        if not len(dat.index):
+            print("no packet matching mptcp.stream %d" % args.mptcpstream)
+            return
 
-# TODO handle that better
+        dat.sort_values("dsn", ascending=True, inplace=True)
+        
+        # compute delay between sending of 
+        dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
+        # need to compute interdeparture times
+        ax = dat.interdeparture.plot.hist(
+            legend=False,
+            grid=True,
+            bins=10,
+        )   
+        ax.set_ylabel("Proportion")
+        ax.set_xlabel("Inter DSN departure time")
+        fig = ax.get_figure()
+
         args.out = os.path.join(os.getcwd(), args.out)
         print("Saving into %s" % (args.out))
         fig.savefig(args.out)
