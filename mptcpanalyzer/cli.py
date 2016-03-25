@@ -278,26 +278,32 @@ class MpTcpAnalyzer(cmd.Cmd):
         # To filter the dataset, you can refer to 
         mappings = []
         for tcpstream1, gr2 in tcpstreams1:
-            for tcpstream2, gr2 in tcpstreams2:
+            # for tcpstream2, gr2 in tcpstreams2:
             # look for similar packets in ds2
-            result = ds2[ ds2.ipsrc == gr2['ipdst'].iloc[0] 
-                 & ds2.ipdst == gr2['ipsrc'].iloc[0] 
-                 & ds2.sport == gr2['dport'].iloc[0] 
-                 & ds2.dport == gr2['sport'].iloc[0]
+            print ("=== toto")
+            result = ds2[ (ds2.ipsrc == gr2['ipdst'].iloc[0])
+                 & (ds2.ipdst == gr2['ipsrc'].iloc[0])
+                 & (ds2.sport == gr2['dport'].iloc[0])
+                 & (ds2.dport == gr2['sport'].iloc[0])
                  ]
             if len(result):
-                entry = tuple(tcpstream, result['tcpstream'].iloc[0])
-                print("Found a mapping %r" % entry) 
+                print ("=== zozo")
+                entry = tuple([tcpstream1, result['tcpstream'].iloc[0]])
+                # print("Found a mapping %r" % entry) 
                 mappings.append(entry)
+
+                print("match for stream %s" % tcpstream1)
             else:
-                print("No match for %s" % gr2)
-            # line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
-            #     tcpstream=tcpstream,
-            #     srcip=gr2['ipsrc'].iloc[0],
-            #     sport=gr2['sport'].iloc[0], 
-            #     dstip=gr2['ipdst'].iloc[0], 
-            #     dport=gr2['dport'].iloc[0]
-            #     )
+                print("No match for stream %s" % tcpstream1)
+
+                line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
+                    tcpstream=tcpstream1,
+                    srcip=gr2['ipsrc'].iloc[0],
+                    sport=gr2['sport'].iloc[0], 
+                    dstip=gr2['ipdst'].iloc[0], 
+                    dport=gr2['dport'].iloc[0]
+                    )
+                print(line)
         return mappings
 
     # def _print_subflow():
@@ -334,7 +340,20 @@ class MpTcpAnalyzer(cmd.Cmd):
         # now we take only the subset matching the conversation
         mappings = self._map_subflows_between_2_datasets(ds1, ds2)
         print("Found %d valid mappings " % len(mappings))
+        print(mappings)
+        # TODO we should plot 2 graphs:
+        # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
+        # DeltaOWD
         # group = self.data[self.data.mptcpstream == mptcpstream]
+        
+        # see interesting tutorial 
+        # http://pandas.pydata.org/pandas-docs/stable/merging.html
+        # how=inner renvoie 0, les choix sont outer/left/right
+        # ok ca marche mais faut faire gaffe aux datatypes
+        res = pd.merge(tcp1,tcp2, on="tcpseq", how="inner",indicator=True)
+        # et ensuite tu fais reltime_x - reltime_y
+        # to drop NA rows
+        # s1.dropna(inplace=True)
 
     # @staticmethod
     def do_load(self, args):

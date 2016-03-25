@@ -18,8 +18,9 @@ class Filetype(Enum):
 
 class TsharkExporter:
     """
-    TODO tshark.py devrait plutot accepter des streams
-
+    TODO 
+    in fact we could convert towards all formats supported by pandas:
+    http://pandas.pydata.org/pandas-docs/stable/api.html#id12
     """
 
     input_pcap = ""
@@ -27,7 +28,7 @@ class TsharkExporter:
     tcp_relative_seq = True
     options = { 
         # used to be 'column.format' in older versions
-        "gui.column.format": '"Time","%Cus:frame.time"',
+        "gui.column.format": '"Time","%Cus:frame.time","Source","%s","Destination","%d"',
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
         "mptcp.relative_sequence_numbers" : True,
@@ -58,6 +59,8 @@ class TsharkExporter:
         """
         Mapping between short names easy to use as a column title (in a CSV file) 
         and the wireshark field name
+        There are some specific fields that require to use -o instead, 
+        see tshark -G column-formats
         """
         return {
             "packetid": "frame.number",
@@ -65,8 +68,10 @@ class TsharkExporter:
             # "time": "frame.time",
             "reltime": "frame.time_relative",
             "time_delta": "frame.time_delta",
-            "ipsrc": "_ws.col.Source",
-            "ipdst": "_ws.col.Destination",
+            # "ipsrc": "_ws.col.Source",
+            # "ipdst": "_ws.col.Destination",
+            "ipsrc": "ip.src",
+            "ipdst": "ip.dst",
             "tcpstream": "tcp.stream",
             "mptcpstream": "mptcp.stream",
             "sport": "tcp.srcport",
