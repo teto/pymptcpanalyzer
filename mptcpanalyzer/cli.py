@@ -65,6 +65,48 @@ mandatory_fields = [
 ]
 
 
+def get_default_fields():
+    """
+    Mapping between short names easy to use as a column title (in a CSV file) 
+    and the wireshark field name
+    There are some specific fields that require to use -o instead, 
+    see tshark -G column-formats
+    """
+    return {
+            "frame.number":        ("packetid",),
+            # reestablish once format is changed (see options)
+            # "time": "frame.time",
+            "frame.time_relative":        "reltime",
+            "frame.time_delta":        "time_delta",
+            # "ipsrc": "_ws.col.Source",
+            # "ipdst": "_ws.col.Destination",
+            "ip.src":        "ipsrc",
+            "ip.dst":        "ipdst",
+            "tcp.stream":        ("tcpstream", int),
+            "mptcp.stream":        "mptcpstream",
+            "tcp.srcport":        "sport",
+            "tcp.dstport":        "dport",
+            # rawvalue is tcp.window_size_value
+            # tcp.window_size takes into account scaling factor !
+            "tcp.window_size":        "rwnd",
+            "tcp.options.mptcp.sendkey"        : "sendkey",
+            "tcp.options.mptcp.recvkey"        : "recvkey",
+            "tcp.options.mptcp.recvtok"        : "recvtok",
+            "tcp.options.mptcp.datafin.flag":        "datafin",
+            "tcp.options.mptcp.subtype":        "subtype",
+            "tcp.flags":        "tcpflags",
+            "tcp.options.mptcp.rawdataseqno":        "dss_dsn",
+            "tcp.options.mptcp.rawdataack":        "dss_rawack",
+            "tcp.options.mptcp.subflowseqno":        "dss_ssn",
+            "tcp.options.mptcp.datalvllen":        "dss_length",
+            "mptcp.master":        "master",
+            # TODO add sthg related to mapping analysis ?
+            "tcp.seq":        "tcpseq",
+            "mptcp.dsn":        "dsn",
+            "mptcp.rawdsn64":        "dsnraw64",
+            "mptcp.ack":        "dack",
+        }
+    
 # decorator
 def is_loaded(f):
     def wrapped(self, *args):
@@ -360,8 +402,17 @@ class MpTcpAnalyzer(cmd.Cmd):
         # how=inner renvoie 0, les choix sont outer/left/right
         # ok ca marche mais faut faire gaffe aux datatypes
         for tcpstreamid_host0, tcpstreamid_host1 in mappings:
+
             # "indicator" shows from where originates 
-            res = tcpstreamid_host0.merge(tcpstreamid_host1, on="tcpseq", how="inner", indicator=True)
+            tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
+            tcpstream1 = ds2[ds2.tcpstream == tcpstreamid_host1]
+            print("========================================")
+            print(tcpstream0)
+            print("========================================")
+            print(tcpstream1)
+            res = tcpstream0.merge(tcpstream1, on="tcpseq", how="inner", indicator=True)
+            print("========================================")
+            print(res)
             # ensuite je dois soustraire les paquets
 
         # et ensuite tu fais reltime_x - reltime_y
@@ -417,7 +468,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                         self.config["DEFAULT"]["tshark_binary"], 
                         delimiter=delimiter
                     )
-                retcode, stderr = exporter.export_to_csv(filename, csv_filename)
+                retcode, stderr = exporter.export_to_csv(filename, csv_filename, get_default_fields().keys())
                 print("exporter exited with code=", retcode)
                 if retcode:
                     raise Exception(stderr)
@@ -433,11 +484,23 @@ class MpTcpAnalyzer(cmd.Cmd):
         # TODO use dtype parameters to enforce a type
         data = pd.read_csv(csv_filename, sep=delimiter)
 
+        def _get_wireshark_mptcpanalyzer_mappings(d):
+            def name(s):
+                return s[0] if isinstance(s, tuple) else s
+            # return map(name, d.values())
+            return dict( zip( d.keys(), map(name, d.values()) ) )
+            # return dict((v,a) for k,a,*v in a.iteritems())
+
+        # print("== tata", dict(get_default_fields()))
+        toto = _get_wireshark_mptcpanalyzer_mappings( get_default_fields() )
+        # print("== toto", toto)
+
+        data.rename (inplace=True, columns=toto)
         # todo let wireshark write raw values and rename columns here
         # along with dtype
         # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
         columns = list(data.columns)
-        print(columns)
+        print("==column names:", columns)
         for field in mandatory_fields:
             if field not in columns:
                 raise Exception(
