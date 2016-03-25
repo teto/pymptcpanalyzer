@@ -281,11 +281,19 @@ class MpTcpAnalyzer(cmd.Cmd):
             # for tcpstream2, gr2 in tcpstreams2:
             # look for similar packets in ds2
             print ("=== toto")
-            result = ds2[ (ds2.ipsrc == gr2['ipdst'].iloc[0])
-                 & (ds2.ipdst == gr2['ipsrc'].iloc[0])
-                 & (ds2.sport == gr2['dport'].iloc[0])
-                 & (ds2.dport == gr2['sport'].iloc[0])
+
+            # result = ds2[ (ds2.ipsrc == gr2['ipdst'].iloc[0])
+                 # & (ds2.ipdst == gr2['ipsrc'].iloc[0])
+                 # & (ds2.sport == gr2['dport'].iloc[0])
+                 # & (ds2.dport == gr2['sport'].iloc[0])
+                 # ]
+            # should be ok
+            result = ds2[ (ds2.ipsrc == gr2['ipsrc'].iloc[0])
+                 & (ds2.ipdst == gr2['ipdst'].iloc[0])
+                 & (ds2.sport == gr2['sport'].iloc[0])
+                 & (ds2.dport == gr2['dport'].iloc[0])
                  ]
+
             if len(result):
                 print ("=== zozo")
                 entry = tuple([tcpstream1, result['tcpstream'].iloc[0]])
@@ -334,9 +342,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         ds1 = self._load_into_pandas(args.client_input)
         ds2 = self._load_into_pandas(args.server_input)
         
-        # ds1[]
+        # Restrict dataset to mptcp connections of interest
         ds1 = ds1[ds1.mptcpstream == args.mptcp_client_id]
         ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
+
         # now we take only the subset matching the conversation
         mappings = self._map_subflows_between_2_datasets(ds1, ds2)
         print("Found %d valid mappings " % len(mappings))
@@ -350,7 +359,11 @@ class MpTcpAnalyzer(cmd.Cmd):
         # http://pandas.pydata.org/pandas-docs/stable/merging.html
         # how=inner renvoie 0, les choix sont outer/left/right
         # ok ca marche mais faut faire gaffe aux datatypes
-        res = pd.merge(tcp1,tcp2, on="tcpseq", how="inner",indicator=True)
+        for tcpstreamid_host0, tcpstreamid_host1 in mappings:
+            # "indicator" shows from where originates 
+            res = tcpstreamid_host0.merge(tcpstreamid_host1, on="tcpseq", how="inner", indicator=True)
+            # ensuite je dois soustraire les paquets
+
         # et ensuite tu fais reltime_x - reltime_y
         # to drop NA rows
         # s1.dropna(inplace=True)
@@ -416,7 +429,13 @@ class MpTcpAnalyzer(cmd.Cmd):
         intput_file must be csv
         """
         csv_filename = self._load_file(input_file)
+        # TODO use nrows=20 to read only 20 first lines
+        # TODO use dtype parameters to enforce a type
         data = pd.read_csv(csv_filename, sep=delimiter)
+
+        # todo let wireshark write raw values and rename columns here
+        # along with dtype
+        # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
         columns = list(data.columns)
         print(columns)
         for field in mandatory_fields:
