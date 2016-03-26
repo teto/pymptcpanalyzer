@@ -71,6 +71,10 @@ def get_default_fields():
     and the wireshark field name
     There are some specific fields that require to use -o instead, 
     see tshark -G column-formats
+
+    CAREFUL: when setting the type to int, pandas will throw an error if there
+    are still NAs in the column. Relying on float64 permits to overcome this.
+
     """
     return {
             "frame.number":        ("packetid",),
@@ -82,7 +86,7 @@ def get_default_fields():
             # "ipdst": "_ws.col.Destination",
             "ip.src":        "ipsrc",
             "ip.dst":        "ipdst",
-            "tcp.stream":        ("tcpstream", int),
+            "tcp.stream":        ("tcpstream", np.float64),
             "mptcp.stream":        "mptcpstream",
             "tcp.srcport":        "sport",
             "tcp.dstport":        "dport",
@@ -101,7 +105,8 @@ def get_default_fields():
             "tcp.options.mptcp.datalvllen":        "dss_length",
             "mptcp.master":        "master",
             # TODO add sthg related to mapping analysis ?
-            "tcp.seq":        "tcpseq",
+            "tcp.seq":        ("tcpseq", np.float64),
+            "tcp.len":        ("tcplen", np.float64),
             "mptcp.dsn":        "dsn",
             "mptcp.rawdsn64":        "dsnraw64",
             "mptcp.ack":        "dack",
@@ -383,11 +388,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         # args = parser.parse_args(shlex.split(args))
         ds1 = self._load_into_pandas(args.client_input)
         ds2 = self._load_into_pandas(args.server_input)
+        print("=== DS1 0==\n", ds1.dtypes)
         
         # Restrict dataset to mptcp connections of interest
-        ds1 = ds1[ds1.mptcpstream == args.mptcp_client_id]
+        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)
+                & (ds1.tcplen > 0)]
         ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
 
+        # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
         mappings = self._map_subflows_between_2_datasets(ds1, ds2)
         print("Found %d valid mappings " % len(mappings))
@@ -406,14 +414,19 @@ class MpTcpAnalyzer(cmd.Cmd):
             # "indicator" shows from where originates 
             tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
             tcpstream1 = ds2[ds2.tcpstream == tcpstreamid_host1]
+            # print("========================================")
+            # print(tcpstream0)
+            # print("========================================")
+            # print(tcpstream1)
+            res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
+            # res = tcpstream0.merge(tcpstream1, on="tcpseq", how="outer", indicator=True)
             print("========================================")
-            print(tcpstream0)
-            print("========================================")
-            print(tcpstream1)
-            res = tcpstream0.merge(tcpstream1, on="tcpseq", how="inner", indicator=True)
-            print("========================================")
-            print(res)
+            print(res.dtypes)
+            print("nb of rtesults", len(res))
             # ensuite je dois soustraire les paquets
+            # stop after first run
+            res.to_csv("temp.csv", sep=delimiter)
+            return 
 
         # et ensuite tu fais reltime_x - reltime_y
         # to drop NA rows
@@ -468,7 +481,11 @@ class MpTcpAnalyzer(cmd.Cmd):
                         self.config["DEFAULT"]["tshark_binary"], 
                         delimiter=delimiter
                     )
-                retcode, stderr = exporter.export_to_csv(filename, csv_filename, get_default_fields().keys())
+                retcode, stderr = exporter.export_to_csv(
+                        filename, csv_filename, 
+                        get_default_fields().keys(),
+                        filter="mptcp and not icmp"
+                )
                 print("exporter exited with code=", retcode)
                 if retcode:
                     raise Exception(stderr)
@@ -480,9 +497,23 @@ class MpTcpAnalyzer(cmd.Cmd):
         intput_file must be csv
         """
         csv_filename = self._load_file(input_file)
+
+
+
+        def _get_dtypes(d):
+            ret = dict()
+            for key, val in d.items():
+                if isinstance(val, tuple) and len(val) > 1:
+                    ret.update( {key:val[1]})
+            return ret
+        
+        dtypes = _get_dtypes(get_default_fields())
+        print("==dtypes", dtypes)
         # TODO use nrows=20 to read only 20 first lines
         # TODO use dtype parameters to enforce a type
-        data = pd.read_csv(csv_filename, sep=delimiter)
+        data = pd.read_csv(csv_filename, sep=delimiter, ) #dtype=dtypes)
+        # data = pd.read_csv(csv_filename, sep=delimiter, engine="c", dtype=dtypes)
+        # print(data.dtypes)
 
         def _get_wireshark_mptcpanalyzer_mappings(d):
             def name(s):
@@ -496,6 +527,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         # print("== toto", toto)
 
         data.rename (inplace=True, columns=toto)
+
+        data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
+        # print(data.dtypes)
         # todo let wireshark write raw values and rename columns here
         # along with dtype
         # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
@@ -505,6 +539,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             if field not in columns:
                 raise Exception(
                     "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
+        print("== before returns\n", data.dtypes)
         return data
 
     # def do_load_csv(self, args):

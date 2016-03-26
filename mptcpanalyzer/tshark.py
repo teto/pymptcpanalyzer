@@ -86,7 +86,7 @@ class TsharkExporter:
         # pass
 
     def export_to_csv(self, input_filename: str, output_csv : str,
-            fields_to_export : List[str], filter=None):
+            fields_to_export : List[str], filter : str =None):
         """
         fields_to_export = dict
         Returns exit code, stderr
@@ -157,7 +157,7 @@ class TsharkExporter:
         # fields that tshark should export
         # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
         # to filter connection
-        filter = '-2 -R "%s"' % (filter) if filter else ''
+        filter = ' -R "%s"' % (filter) if filter else ''
 
         def convert_options_into_str(options):
             """
