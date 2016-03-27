@@ -75,15 +75,21 @@ def get_default_fields():
     CAREFUL: when setting the type to int, pandas will throw an error if there
     are still NAs in the column. Relying on float64 permits to overcome this.
 
-    """
+ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
+"""
     return {
             "frame.number":        ("packetid",),
             # reestablish once format is changed (see options)
             # "time": "frame.time",
             "frame.time_relative":        "reltime",
             "frame.time_delta":        "time_delta",
+            "frame.time":        "abstime",
+            # "frame.time_epoch":        "abstime",
             # "ipsrc": "_ws.col.Source",
             # "ipdst": "_ws.col.Destination",
+            "col.Source" : "colsrc",
+            "col.AbsTime": "abstime2",
+            "col.DeltaTime": "deltatime",
             "ip.src":        "ipsrc",
             "ip.dst":        "ipdst",
             "tcp.stream":        ("tcpstream", np.float64),
@@ -129,10 +135,12 @@ def is_loaded(f):
 
 
 """ CSV delimiter """
+# TODO load from config
 delimiter = '|'
-# should be automatically generated
-plot_types = ["dsn", "tcpseq", "dss"]
 
+from collections import namedtuple
+
+MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
 
 class MpTcpAnalyzer(cmd.Cmd):
     intro = """
@@ -335,15 +343,18 @@ class MpTcpAnalyzer(cmd.Cmd):
                  # & (ds2.dport == gr2['sport'].iloc[0])
                  # ]
             # should be ok
-            result = ds2[ (ds2.ipsrc == gr2['ipsrc'].iloc[0])
-                 & (ds2.ipdst == gr2['ipdst'].iloc[0])
-                 & (ds2.sport == gr2['sport'].iloc[0])
-                 & (ds2.dport == gr2['dport'].iloc[0])
+            sf = MpTcpSubflow ( gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0],
+                    gr2['sport'].iloc[0], gr2['dport'].iloc[0])
+
+            result = ds2[ (ds2.ipsrc == sf.ipsrc)
+                 & (ds2.ipdst == sf.ipdst)
+                 & (ds2.sport == sf.sport)
+                 & (ds2.dport == sf.dport)
                  ]
 
             if len(result):
                 print ("=== zozo")
-                entry = tuple([tcpstream1, result['tcpstream'].iloc[0]])
+                entry = tuple([tcpstream1, result['tcpstream'].iloc[0], sf])
                 # print("Found a mapping %r" % entry) 
                 mappings.append(entry)
 
@@ -388,11 +399,11 @@ class MpTcpAnalyzer(cmd.Cmd):
         # args = parser.parse_args(shlex.split(args))
         ds1 = self._load_into_pandas(args.client_input)
         ds2 = self._load_into_pandas(args.server_input)
-        print("=== DS1 0==\n", ds1.dtypes)
+        # print("=== DS1 0==\n", ds1.dtypes)
         
         # Restrict dataset to mptcp connections of interest
-        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)
-                & (ds1.tcplen > 0)]
+        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
+                
         ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
 
         # print("=== DS1 ==\n", ds1.dtypes)
@@ -409,24 +420,50 @@ class MpTcpAnalyzer(cmd.Cmd):
         # http://pandas.pydata.org/pandas-docs/stable/merging.html
         # how=inner renvoie 0, les choix sont outer/left/right
         # ok ca marche mais faut faire gaffe aux datatypes
-        for tcpstreamid_host0, tcpstreamid_host1 in mappings:
+        # for tcpstreamid_host0, tcpstreamid_host1 in mappings:
 
-            # "indicator" shows from where originates 
-            tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
-            tcpstream1 = ds2[ds2.tcpstream == tcpstreamid_host1]
+            # # "indicator" shows from where originates 
+            # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
+            # tcpstream1 = ds2[ds2.tcpstream == tcpstreamid_host1]
+            # # print("========================================")
+            # # print(tcpstream0)
+            # # print("========================================")
+            # # print(tcpstream1)
+            # res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
+            # # res = tcpstream0.merge(tcpstream1, on="tcpseq", how="outer", indicator=True)
             # print("========================================")
-            # print(tcpstream0)
-            # print("========================================")
-            # print(tcpstream1)
-            res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-            # res = tcpstream0.merge(tcpstream1, on="tcpseq", how="outer", indicator=True)
-            print("========================================")
-            print(res.dtypes)
-            print("nb of rtesults", len(res))
-            # ensuite je dois soustraire les paquets
-            # stop after first run
-            res.to_csv("temp.csv", sep=delimiter)
-            return 
+            # print(res.dtypes)
+            # print("nb of rtesults", len(res))
+            # # ensuite je dois soustraire les paquets
+            # # stop after first run
+            # res.to_csv("temp.csv", sep=delimiter)
+            # return 
+
+        ## JUSTE pour les tests, sinon commenter ce qu'il y a au dessus
+        # "indicator" shows from where originates 
+# %s "%(sf.ipsrc, ))
+        tcpstream0 = ds1.query("tcpstream == 0 and ipsrc == '10.1.0.1' ") 
+        print("=== tcpseq ")
+        print(tcpstream0.tcpseq.head(10))
+        print("=== tcpseq ")
+        tcpstream1 = ds2.query("tcpstream == 0 and ipsrc == '10.1.0.1' ")
+        print(tcpstream1.tcpseq.head(10))
+        # print("========================================")
+        # print(tcpstream0)
+        # print("========================================")
+        # print(tcpstream1)
+        # res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
+        res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
+        print("========================================")
+        # print(res.dtypes)
+        print("nb of rtesults", len(res))
+        # ensuite je dois soustraire les paquets
+        # stop after first run
+        res.to_csv("temp.csv", sep=delimiter)
+        # Need to create a new table that 
+# df3 = df1[['Lat1', 'Lon1']]
+# df3['tp1-tp2'] = df1.tp1 - df2.tp2
+        return 
 
         # et ensuite tu fais reltime_x - reltime_y
         # to drop NA rows
@@ -484,7 +521,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                 retcode, stderr = exporter.export_to_csv(
                         filename, csv_filename, 
                         get_default_fields().keys(),
-                        filter="mptcp and not icmp"
+                        tshark_filter="mptcp and not icmp"
                 )
                 print("exporter exited with code=", retcode)
                 if retcode:

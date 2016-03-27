@@ -26,9 +26,14 @@ class TsharkExporter:
 
     input_pcap = ""
     tshark_bin = None
+    # TODO pass as an option !
     tcp_relative_seq = True
+
+    """
+    """
     options = { 
         # used to be 'column.format' in older versions
+        # name is then considered as a field accessible via  -e _ws.col.<name>
         "gui.column.format": '"Time","%Cus:frame.time","Source","%s","Destination","%d"',
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
@@ -41,9 +46,8 @@ class TsharkExporter:
     delimiter = '|'
 
     # mptcp.stream
-    filter = ""
 
-    def __init__(self, tshark_bin="wireshark", delimiter=","):
+    def __init__(self, tshark_bin="wireshark", delimiter="|"):
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
@@ -86,7 +90,7 @@ class TsharkExporter:
         # pass
 
     def export_to_csv(self, input_filename: str, output_csv : str,
-            fields_to_export : List[str], filter : str =None):
+            fields_to_export : List[str], tshark_filter : str =None):
         """
         fields_to_export = dict
         Returns exit code, stderr
@@ -112,7 +116,7 @@ class TsharkExporter:
             fields_to_export, 
             input_filename,
             output_csv,
-            self.filter,
+            tshark_filter,
             csv_delimiter=self.delimiter,
             options=self.options,
             # relative_sequence_numbers=self.tcp_relative_seq
