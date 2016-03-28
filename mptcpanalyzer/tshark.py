@@ -33,8 +33,9 @@ class TsharkExporter:
     """
     options = { 
         # used to be 'column.format' in older versions
+        # "tshark -G column-formats" list available formats 
         # name is then considered as a field accessible via  -e _ws.col.<name>
-        "gui.column.format": '"Time","%Cus:frame.time","Source","%s","Destination","%d"',
+        "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
         "mptcp.relative_sequence_numbers" : True,

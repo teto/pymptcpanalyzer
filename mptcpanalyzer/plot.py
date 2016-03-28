@@ -21,8 +21,8 @@ class Plot:
     There is a bug in Pandas that prevents from plotting raw DSNs as uint64 see
     https://github.com/pydata/pandas/issues/11440
     """
-    @staticmethod
-    def default_parser():
+    # @staticmethod
+    def default_parser(self):
         """
         Generate parser with commonu arguments
         """
@@ -42,41 +42,12 @@ class Plot:
 
     # *args
     @abc.abstractmethod
-    def plot(self, data,):
+    def plot(self, data, **kwargs):
         """
         Accepts 
         """
         # raise NotImplementedError()
 
-# TODO remove
-    # @staticmethod
-    # def get_available_plots(path):
-    #     """
-    #     Folders to look to
-    #     """
-    #     # easy way = plot_types = glob.glob("plots/*.py")
-    #     # files = files if isinstance(files, list) else ['plots/dsn']
-    # # def get_available_plots(self):
-    #     # from .plots import dsn
-    #     # from .plots import latency
-    #     # from .plots import wnd
-    #     # import pkgutil
-    #     # import importlib
-    #     # /home/teto/mptcpanalyzer/mptcpanalyzer/plots/
-    #     # packages = pkgutil.walk_packages(path)
-    #     # print(list(packages))
-    #     # for importer, name, is_package in packages:
-    #     #     mod = importlib.import_module(name)
-    #     # for f in files:
-    #     #     import files
-# # def all_subclasses(cls):
-    #     # plot_types[args.plot_type]
-    #     return Plot.__subclasses__() 
-    #     # to make it recursive
-    #     # + [g for s in Plot.__subclasses__()
-    #     #                        for g in all_subclasses(s)]
-    # # plot_types = dict((x.__name__, x) for x in Plot.get_available_plots())
-    # # print("available plots:", plot_types)
 
     def get_client_uniflow_filename(self, id):
         # os.join.path()
@@ -89,3 +60,7 @@ class Plot:
     def get_subflow_filename(self, id):
         # os.join.path()
         return self.output_folder + "/" + "subflow_" + str(id) + ".csv"
+
+
+# class Matplotlib(Plot):
+    # def save

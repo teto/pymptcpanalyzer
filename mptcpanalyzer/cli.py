@@ -83,15 +83,16 @@ ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col
             # "time": "frame.time",
             "frame.time_relative":        "reltime",
             "frame.time_delta":        "time_delta",
-            "frame.time":        "abstime",
-            # "frame.time_epoch":        "abstime",
+            # "frame.time":        "abstime",
+            "frame.time_epoch":        "abstime",
             # "ipsrc": "_ws.col.Source",
             # "ipdst": "_ws.col.Destination",
-            "col.Source" : "colsrc",
-            "col.AbsTime": "abstime2",
-            "col.DeltaTime": "deltatime",
-            "ip.src":        "ipsrc",
-            "ip.dst":        "ipdst",
+            "_ws.col.ipsrc" : "ipsrc",
+            "_ws.col.ipdst" : "ipdst",
+            # "_ws.col.AbsTime": "abstime2",
+            # "_ws.col.DeltaTime": "deltatime",
+            # "ip.src":        "ipsrc",
+            # "ip.dst":        "ipdst",
             "tcp.stream":        ("tcpstream", np.float64),
             "mptcp.stream":        "mptcpstream",
             "tcp.srcport":        "sport",
@@ -375,6 +376,11 @@ class MpTcpAnalyzer(cmd.Cmd):
     # def _print_subflow():
 
     def do_plot_owd(self, args):
+        """
+        Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
+        it relies on the pcap absolute time field.
+        While this is true in discrete time simulators such as ns3
+        """
         parser = argparse.ArgumentParser(
                 description='Generate MPTCP stats & plots'
                 )
@@ -460,6 +466,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         # ensuite je dois soustraire les paquets
         # stop after first run
         res.to_csv("temp.csv", sep=delimiter)
+        # we need .copy else we get
+        # A value is trying to be set on a copy of a slice from a DataFrame.
+# Try using .loc[row_indexer,col_indexer] = value instead
+
+# See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+# if __name__ == '__main__':
+        # r2 = r[["tcpseq","abstime_x","abstime_y"]].copy()
+        # r2['diff'] = r2['abstime_y'] - r2['abstime_x']
         # Need to create a new table that 
 # df3 = df1[['Lat1', 'Lon1']]
 # df3['tp1-tp2'] = df1.tp1 - df2.tp2
@@ -588,13 +602,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         # print("Loading csv %s" % csv_filename)
         # self.data = self._load_into_pandas(csv_filename)
 
-    # def do_pdsn(self, args):
-    def do_p(self, args):
-        """
-        Alias for plot
-        """
-        self.plot(args)
-
     def do_plot(self, args):
         """
         Plot DSN vs time
@@ -619,13 +626,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         global member used by others do_plot members *
         """
 
-        # plot_types = Plot.get_available_plots( '/home/teto/mptcpanalyzer/mptcpanalyzer/plots')
-        # plot_subclasses = Plot.get_available_plots(
-            # 'mptcpanalyzer/mptcpanalyzer/plots')
-        # plot_types = dict((x.__name__, x) for x in plot_subclasses)
-        # map(plot_types)
-
-        # print(plot_types)
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots')
 
@@ -637,30 +637,27 @@ class MpTcpAnalyzer(cmd.Cmd):
             subparsers.add_parser(ext.name, parents=[ext.obj.default_parser()], add_help=False)
 
         self.plot_mgr.map(_register_plots, subparsers)
+
         # results = mgr.map(_get_plot_names, "toto")
         # for name, subplot in plot_types.items():
             # subparsers.add_parser(
                 # name, parents=[subplot.default_parser()], add_help=False)
 
-        # parse
-        # parser.add_argument('plot_type', action="store", choices=plot_types, help='Field to draw (see mptcp_fields.json)')
-        # # parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
-        # parser.add_argument('--out', action="store", nargs="?", default="output.png", help='Name of the output file')
-        # parser.add_argument('--display', action="store_true", help='will display the generated plot')
-        # # shlex.split(args) ?
         try:
             # args = parser.parse_args( shlex.split(field + ' ' + args))
             args, unknown = parser.parse_known_args(shlex.split(args))
+            print(args)
+# TODO fix
+            success = self.plot_mgr[args.plot_type].obj.plot(self.data, args)
         except SystemExit:
+            print("Parser failure")
             return
-        print(args)
 
         # instancier le bon puis appeler le plot dessus
         # mandatory_fields
         # newPlot = plot_types[args.plot_type]()
         # print(newPlot)
         # self.plot_mgr["dsn"].obj.plot()
-        success = self.plot_mgr["dsn"].obj.plot(self.data, args)  # "toto")
         # success = newPlot.plot(self.data, args.out, unknown)
         # returns a DataFrame
         # os.path.realpath

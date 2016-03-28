@@ -3,8 +3,11 @@
 
 import mptcpanalyzer.plot as plot
 import pandas as pd
+import logging
 import matplotlib.pyplot as plt
 import os
+
+log = logging.getLogger("mptcpanalyzer")
 
 class AckInterArrivalTimes(plot.Plot):
 
@@ -50,20 +53,37 @@ class DsnInterArrivalTimes(plot.Plot):
     In case traffic is biderctional we must filter on one direction only
     """
 
+    def default_parser(self):
+        parser = super().default_parser()
+        parser.add_argument("--x-subflows", action="store_true", 
+                help="Consider only cross-subflow arrivals")
+        parser.add_argument("sender_ips", nargs="+", 
+                help="list sender ips here to filter the dataset")
+        return parser
+
     def plot(self, data, args):
         # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)
-        dat = data[data.mptcpstream == args.mptcpstream]
+
+        query = " mptcpstream == %d " % args.mptcpstream
+        # filter to only account for one direction (departure or arrival)
+        for ip in args.sender_ips:
+            query += " or ip.src == %s " % ip
+        # dat = data[data.mptcpstream == args.mptcpstream]
+        log.debug("Running query %s" % query)
+        dat = data.query(query)
+
         # TODO try replacing with dat.empty
         if not len(dat.index):
-            print("no packet matching mptcp.stream %d" % args.mptcpstream)
+            print("no packet matching query %s" % query)
             return
 
         dat.sort_values("dsn", ascending=True, inplace=True)
         
         # compute delay between sending of 
+        # rename into "delays"
         dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
         # need to compute interdeparture times
         ax = dat.interdeparture.plot.hist(
