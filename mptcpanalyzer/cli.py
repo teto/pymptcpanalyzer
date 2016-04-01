@@ -426,7 +426,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         
         print("Host ips: ", args.host_ips)
 
-        pattern = ' or '.join(host_ips)
+        pattern = ' ipsrc == '
+        pattern += ' or ipsrc == '.join(host_ips)
         print(pattern)
         # TODO we should plot 2 graphs:
         # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
@@ -439,33 +440,50 @@ class MpTcpAnalyzer(cmd.Cmd):
         # ok ca marche mais faut faire gaffe aux datatypes
         for tcpstreamid_host0, tcpstreamid_host1 in mappings:
         
-            tcpstream0 = ds1.query("tcpstream == 0 and ipsrc == '10.1.0.1' ") 
-
+            # todo split dataset depending on soruce or destination
+            tcpstream0 = ds1.query("tcpstream == @tcpstreamid_host0 and (%s)" % pattern)
+            tcpstream1 = ds2.query("tcpstream == @tcpstreamid_host1 and (%s)" % pattern)
             # # "indicator" shows from where originates 
-            # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
-            # tcpstream1 = ds2[ds2.tcpstream == tcpstreamid_host1]
-            # # print("========================================")
-            # # print(tcpstream0)
-            # # print("========================================")
-            # # print(tcpstream1)
-            # res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-            # # res = tcpstream0.merge(tcpstream1, on="tcpseq", how="outer", indicator=True)
-            # print("========================================")
-            # print(res.dtypes)
-            # print("nb of rtesults", len(res))
-            # # ensuite je dois soustraire les paquets
-            # # stop after first run
-            # res.to_csv("temp.csv", sep=delimiter)
-            # return 
+            print("=== tcpseq ")
+            print(tcpstream0.tcpseq.head(10))
+            print("=== tcpseq ")
+            print(tcpstream1.tcpseq.head(10))
+                # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
 
+            res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
+            print("========================================")
+            # print(res.dtypes)
+            print("nb of rtesults", len(res))
+            # ensuite je dois soustraire les paquets
+            # stop after first run
+
+            res.to_csv("merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1), sep=delimiter)
+                    # tcpstream1 = ds2[ds2.tcpstream == tcpstreamid_host1]
+                    # # print("========================================")
+                    # # print(tcpstream0)
+                    # # print("========================================")
+                    # # print(tcpstream1)
+                    # res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
+                    # # res = tcpstream0.merge(tcpstream1, on="tcpseq", how="outer", indicator=True)
+                    # print("========================================")
+                    # print(res.dtypes)
+                    # print("nb of rtesults", len(res))
+                    # # ensuite je dois soustraire les paquets
+                    # 
+                    # res.to_csv("temp.csv", sep=delimiter)
+
+            # stop after first run
+            return 
+
+        return 
         ## JUSTE pour les tests, sinon commenter ce qu'il y a au dessus
         # "indicator" shows from where originates 
 # %s "%(sf.ipsrc, ))
         tcpstream0 = ds1.query("tcpstream == 0 and ipsrc == '10.1.0.1' ") 
+        tcpstream1 = ds2.query("tcpstream == 0 and ipsrc == '10.1.0.1' ")
         print("=== tcpseq ")
         print(tcpstream0.tcpseq.head(10))
         print("=== tcpseq ")
-        tcpstream1 = ds2.query("tcpstream == 0 and ipsrc == '10.1.0.1' ")
         print(tcpstream1.tcpseq.head(10))
         # print("========================================")
         # print(tcpstream0)
