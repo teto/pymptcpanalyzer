@@ -395,6 +395,12 @@ class MpTcpAnalyzer(cmd.Cmd):
                 help="Either a pcap or a csv file (in good format)."
                 )
         parser.add_argument("mptcp_server_id", action="store", type=int)
+
+        parser.add_argument("host_ips", nargs="+",
+                help=("List here ips of one of the 2 hosts so that the program can"
+                    "deduce the flow directions.")
+                )
+
         # server = parser.add_argument_group("Client data")
         try:
             # args = parser.parse_args( shlex.split(field + ' ' + args))
@@ -417,6 +423,11 @@ class MpTcpAnalyzer(cmd.Cmd):
         mappings = self._map_subflows_between_2_datasets(ds1, ds2)
         print("Found %d valid mappings " % len(mappings))
         print(mappings)
+        
+        print("Host ips: ", args.host_ips)
+
+        pattern = ' or '.join(host_ips)
+        print(pattern)
         # TODO we should plot 2 graphs:
         # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
         # DeltaOWD
@@ -426,7 +437,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         # http://pandas.pydata.org/pandas-docs/stable/merging.html
         # how=inner renvoie 0, les choix sont outer/left/right
         # ok ca marche mais faut faire gaffe aux datatypes
-        # for tcpstreamid_host0, tcpstreamid_host1 in mappings:
+        for tcpstreamid_host0, tcpstreamid_host1 in mappings:
+        
+            tcpstream0 = ds1.query("tcpstream == 0 and ipsrc == '10.1.0.1' ") 
 
             # # "indicator" shows from where originates 
             # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
