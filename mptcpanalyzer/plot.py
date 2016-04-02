@@ -62,5 +62,11 @@ class Plot:
         return self.output_folder + "/" + "subflow_" + str(id) + ".csv"
 
 
+# class PandaPlot(Plot):
+#     def savefig()
+#         args.out = os.path.join(os.getcwd(), args.out)
+#         print("Saving into %s" % (args.out))
+#         fig.savefig(args.out)
+
 # class Matplotlib(Plot):
     # def save
