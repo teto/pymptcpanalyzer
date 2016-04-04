@@ -274,33 +274,35 @@ class MpTcpAnalyzer(cmd.Cmd):
             # and MP_JOIN   
             master = False
             
-            print(gr2.subtype)
-            print(gr2.addrid)
+            # print(gr2.subtype)
+            # print(gr2.addrid)
             extra = ""
+            addrid = [] # (None,None,)
             if len(gr2[gr2.master == 1]) > 0:
-                master = True
-                extra = "master"
-                print("this is the master")
+                addrid = ["master", "master"]
             else:
                 # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
-                # gr3 = gr2.query("
-                # grouby(addrid
+                for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
+                    gro= gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
+                    # print("nb of results:", len(gro))
+                    if len(gro):
+                        # print("i=",i)
+                        value = int(gro["addrid"].iloc[0])
+                    else:
+                        value = "Unknown"
+                    addrid.insert(i, value)
 
-                gro= gr2[(gr2.flags == 2) & gr2.addrid]
-                # TODO assign good addr id to good direction
-                        #> 0 & gr2.subtype == 1]
-                gro.head(10)
-                print("Addrd id present")
-             
-            line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport} ({extra})".format(
-                tcpstream=tcpstream,
-                srcip=gr2['ipsrc'].iloc[0],
-                sport=gr2['sport'].iloc[0], 
-                dstip=gr2['ipdst'].iloc[0], 
-                dport=gr2['dport'].iloc[0],
-                extra=extra
-                # addressid1="master" if master else 0
-                )
+            line = ("\ttcp.stream {tcpstream} : {srcip}:{sport} (addrid={addrid[0]})"
+                    " <-> {dstip}:{dport} (addrid={addrid[1]})").format(
+                    tcpstream=tcpstream,
+                    srcip=gr2['ipsrc'].iloc[0],
+                    sport=gr2['sport'].iloc[0], 
+                    dstip=gr2['ipdst'].iloc[0], 
+                    dport=gr2['dport'].iloc[0],
+                    addrid=addrid,
+                    # extra=extra
+                    # addressid1="master" if master else 0
+                    )
             print(line)
 
     def help_ls(self):
