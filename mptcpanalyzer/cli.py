@@ -50,19 +50,6 @@ stream_parser.add_argument(
     "mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
 
 #  tshark -T fields -e _ws.col.Source -r /mnt/ntfs/pcaps/demo.pcap
-# TODO merge these fields (always) when tshark exports ?
-mandatory_fields = [
-    'ipsrc',
-    'ipdst',
-    'sport',
-    'dport',
-    'mptcpstream',
-    'tcpstream',
-    'dsn',
-    # 'dss_dsn',
-    # 'latency',
-    'dack'
-]
 
 
 def get_default_fields():
@@ -93,7 +80,7 @@ ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col
             # "_ws.col.DeltaTime": "deltatime",
             # "ip.src":        "ipsrc",
             # "ip.dst":        "ipdst",
-            "tcp.stream":        ("tcpstream", np.float64),
+            "tcp.stream":        ("tcpstream", np.int64),
             "mptcp.stream":        "mptcpstream",
             "tcp.srcport":        "sport",
             "tcp.dstport":        "dport",
@@ -104,12 +91,13 @@ ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col
             "tcp.options.mptcp.recvkey"        : "recvkey",
             "tcp.options.mptcp.recvtok"        : "recvtok",
             "tcp.options.mptcp.datafin.flag":        "datafin",
-            "tcp.options.mptcp.subtype":        "subtype",
+            "tcp.options.mptcp.subtype":        ("subtype", np.float64),
             "tcp.flags":        "tcpflags",
             "tcp.options.mptcp.rawdataseqno":        "dss_dsn",
             "tcp.options.mptcp.rawdataack":        "dss_rawack",
             "tcp.options.mptcp.subflowseqno":        "dss_ssn",
             "tcp.options.mptcp.datalvllen":        "dss_length",
+            "tcp.options.mptcp.addrid":        "addrid",
             "mptcp.master":        "master",
             # TODO add sthg related to mapping analysis ?
             "tcp.seq":        ("tcpseq", np.float64),
@@ -139,9 +127,18 @@ def is_loaded(f):
 # TODO load from config
 delimiter = '|'
 
+
 from collections import namedtuple
 
 MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
+
+
+# class MpTcpSubflow:
+#     def __init__(self, ):
+#         pass
+#     def is_master():
+#     def look_for_addrid():
+#     def select_towards_host():
 
 class MpTcpAnalyzer(cmd.Cmd):
     intro = """
@@ -239,31 +236,76 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     @is_loaded
-    def do_ls(self, mptcpstream):
+    def do_ls(self, args):
         """ list mptcp subflows 
                 [mptcp.stream id]
         """
-        print(mptcpstream)
-        try:
-            mptcpstream = int(mptcpstream)
-        except ValueError as e:
-            print("Expecting the mptcp.stream id as argument")
-            return
+        print(args)
 
-        print('hello for mptcpstream %d' % mptcpstream)
-        group = self.data[self.data.mptcpstream == mptcpstream]
+        parser = argparse.ArgumentParser(
+                description="Display help"
+                )
+        # client = parser.add_argument_group("Client data")
+
+        parser.add_argument("mptcpstream", action="store", type=int,
+                help="Equivalent to mptcp.stream id" 
+                )
+
+        parser.add_argument("--json", action="store_true", 
+                help="Return results but in json format"
+                )
+        # try:
+        #     mptcpstream = int(mptcpstream)
+        # except ValueError as e:
+        #     print("Expecting the mptcp.stream id as argument")
+        #     return
+        
+        args = parser.parse_args (shlex.split(args))
+        mptcpstream = args.mptcpstream
+        print('hello for mptcpstream %d' % mptcpstream )
+        group = self.data[self.data.mptcpstream == args.mptcpstream]
         tcpstreams = group.groupby('tcpstream')
+        self.data.head(5)
         print("mptcp.stream %d has %d subflow(s): " %
               (mptcpstream, len(tcpstreams)))
         for tcpstream, gr2 in tcpstreams:
-            line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
+            # print("gr2=", gr2.iloc[,'ipsrc'])
+            # TODO look for master
+            # and MP_JOIN   
+            master = False
+            
+            print(gr2.subtype)
+            print(gr2.addrid)
+            extra = ""
+            if len(gr2[gr2.master == 1]) > 0:
+                master = True
+                extra = "master"
+                print("this is the master")
+            else:
+                # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
+                # gr3 = gr2.query("
+                # grouby(addrid
+
+                gro= gr2[(gr2.flags == 2) & gr2.addrid]
+                # TODO assign good addr id to good direction
+                        #> 0 & gr2.subtype == 1]
+                gro.head(10)
+                print("Addrd id present")
+             
+            line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport} ({extra})".format(
                 tcpstream=tcpstream,
                 srcip=gr2['ipsrc'].iloc[0],
                 sport=gr2['sport'].iloc[0], 
                 dstip=gr2['ipdst'].iloc[0], 
-                dport=gr2['dport'].iloc[0]
+                dport=gr2['dport'].iloc[0],
+                extra=extra
+                # addressid1="master" if master else 0
                 )
             print(line)
+
+    def help_ls(self):
+
+        return "Use parser -h"
 
     def complete_ls(self, text, line, begidx, endidx):
         """ help to complete the args """
@@ -555,7 +597,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots'
         )
-        parser.add_argument("input_file", action="store", nargs="?",
+        parser.add_argument("input_file", action="store", 
+                #nargs="?",
                 help="Either a pcap or a csv file (in good format)."
                 "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
                 "If it can't find one (or with the flag --regen), it will generate a "
@@ -563,14 +606,16 @@ class MpTcpAnalyzer(cmd.Cmd):
                 )
         parser.add_argument("--regen", "-r", action="store_true",
                 help="Force the regeneration of the cached CSV file from the pcap input")
-        res = parser.parse_args(shlex.split(args))
-        print("Not implemented yet")
-        self._load_file(args.input_file, args.regen)
+
+        args = parser.parse_args(shlex.split(args))
+
+        # print("Not implemented yet")
+        csv_filename = self._get_matching_csv_filename (args.input_file, args.regen)
 
         self.data = self._load_into_pandas(csv_filename)
-        self.prompt = "%s> " % filename
+        self.prompt = "%s> " % csv_filename
 
-    def _load_file(self, filename, regen : bool= False):
+    def _get_matching_csv_filename(self, filename, regen : bool= False):
         """
         Accept either a .csv or a .pcap file 
         Returns resulting csv filename
@@ -612,7 +657,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         intput_file must be csv
         """
-        csv_filename = self._load_file(input_file)
+        csv_filename = self._get_matching_csv_filename(input_file)
 
 
 
@@ -651,10 +696,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
         columns = list(data.columns)
         print("==column names:", columns)
-        for field in mandatory_fields:
-            if field not in columns:
-                raise Exception(
-                    "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
+        # for field in mandatory_fields:
+        #     if field not in columns:
+        #         raise Exception(
+        #             "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
         print("== before returns\n", data.dtypes)
         return data
 
@@ -819,13 +864,14 @@ def cli():
         analyzer = MpTcpAnalyzer(cfg, )
 #         # TODO convert that into load
         if args.input_file:
-            csv_filename = analyzer._load_file(args.input_file, args.regen)
+            analyzer.do_load(args.input_file + " " + "--regen" if str(args.regen) else "")
+            # csv_filename = analyzer._get_matching_csv_filename(args.input_file, args.regen)
             # analyzer.do_load_csv(csv_filename)
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
         if unknown_args:
-            log.info("One-shot command")
+            log.info("One-shot command: %s" % unknown_args)
             analyzer.onecmd(' '.join(unknown_args))
         else:
             log.info("Interactive mode")
