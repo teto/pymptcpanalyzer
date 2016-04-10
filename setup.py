@@ -20,6 +20,26 @@
 
 from setuptools import setup, find_packages
 
+from distutils.cmd import Command
+from distutils.core import setup
+
+
+class TestCommand(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import sys, subprocess
+
+        raise SystemExit(
+            subprocess.call([sys.executable,
+                             '-m',
+                             'pisces.test']))
 # How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
 # http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
@@ -82,5 +102,10 @@ setup(name="mptcpanalyzer",
           'matplotlib',
           'pandas>=0.17.1'
           ],
+      # for now the core is not modular enough so just check that running the process produces the same files
+      # test_suite="tests",
+      cmdclass={
+        'test': TestCommand
+      }
       zip_safe=False,
       )
