@@ -692,6 +692,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         data.rename (inplace=True, columns=toto)
 
         data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
+        data.tcpflags.apply(lambda x: int(x,16), )
         # print(data.dtypes)
         # todo let wireshark write raw values and rename columns here
         # along with dtype
