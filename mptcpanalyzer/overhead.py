@@ -25,12 +25,12 @@ class OptionSize(IntEnum):
     # RmAddr 
 
 class DssAck(IntEnum):
-    None = 0
+    NoAck = 0
     SimpleAck = 4
     ExtendedAck = 8
 
 class DssMapping(IntEnum):
-    None = 4
+    NoDss = 4
     Simple = 8
     Extended = 12
 
@@ -42,7 +42,7 @@ class MpTcpOverhead(Command):
     def __init__(self):
         pass
 
-    def _dss_size(ack : DssAck, mapping : DssMapping, with_checksum=False : bool) -> int:
+    def _dss_size(ack : DssAck, mapping : DssMapping, with_checksum: bool=False) -> int:
         """
         """
         size = 4

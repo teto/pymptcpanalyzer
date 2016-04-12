@@ -349,6 +349,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (
                 tcpstream, subflow_load, total_transferred, subflow_load / total_transferred * 100))
 
+    @is_loaded
     def do_lc(self, *args):
         """ 
         List mptcp connections via their ids (mptcp.stream)
@@ -733,6 +734,15 @@ class MpTcpAnalyzer(cmd.Cmd):
         l = [x for x in types if x.startswith(text)]
         # print(l)
         return l
+
+
+    def _list_available_plots():
+        def _get_names(ext, names: list):
+            names.append (ext.name) 
+
+        self.plot_mgr.map(_get_names, names)
+        print(names)
+        return names
 
     def plot_mptcpstream(self, args):
         """

@@ -104,8 +104,8 @@ setup(name="mptcpanalyzer",
           ],
       # for now the core is not modular enough so just check that running the process produces the same files
       # test_suite="tests",
-      cmdclass={
-        'test': TestCommand
-      }
+      #  cmdclass={
+      #   'test': TestCommand
+      # },
       zip_safe=False,
       )
