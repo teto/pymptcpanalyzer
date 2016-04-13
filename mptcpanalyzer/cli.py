@@ -217,6 +217,19 @@ class MpTcpAnalyzer(cmd.Cmd):
         # there seems to be several improvements a
         # possible to set type of columns with dtype={'b': object, 'c': np.float64}
         # one can choose the column to use as index index_col=
+    def precmd(line):
+        """
+        """
+        # return shlex.split(line)
+        # default behavior
+        return line 
+
+    def postcmd(self, stop, line):
+        """
+        Override baseclass
+        returning false will cause interpretation to continue
+        """
+        return stop
 
     # TODO does not work yet
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
@@ -716,6 +729,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # print("Loading csv %s" % csv_filename)
         # self.data = self._load_into_pandas(csv_filename)
 
+    # TODO add a do_multiplot ?
     def do_plot(self, args):
         """
         Plot DSN vs time
@@ -736,12 +750,22 @@ class MpTcpAnalyzer(cmd.Cmd):
         return l
 
 
-    def _list_available_plots():
+    def do_list_available_plots(self, args):
+        
+        plot_names = self._list_available_plots()
+        print(names)
+
+    def _list_available_plots(self):
         def _get_names(ext, names: list):
             names.append (ext.name) 
-
+        
+        names = []
         self.plot_mgr.map(_get_names, names)
-        print(names)
+        def _get_names(ext, names: list):
+            names.append (ext.name) 
+        
+        names = []
+        self.plot_mgr.map(_get_names, names)
         return names
 
     def plot_mptcpstream(self, args):
@@ -752,12 +776,17 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots')
 
+        # parser.add_argument('--out', action="store", default="output.png", help='Name of the output file')
+        # parser.add_argument('--display', action="store_true", help='will display the generated plot')
+
         subparsers = parser.add_subparsers(
             dest="plot_type", title="Subparsers", help='sub-command help', )
         subparsers.required=True
 
         def _register_plots(ext, subparsers):
-            subparsers.add_parser(ext.name, parents=[ext.obj.default_parser()], add_help=False)
+            subparsers.add_parser(ext.name, parents=[ext.obj.default_parser()], 
+                    add_help=False
+                    )
 
         self.plot_mgr.map(_register_plots, subparsers)
 
@@ -767,13 +796,19 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # name, parents=[subplot.default_parser()], add_help=False)
 
         try:
-            # args = parser.parse_args( shlex.split(field + ' ' + args))
-            args, unknown = parser.parse_known_args(shlex.split(args))
+            # TODO passer les unknown
+            args = shlex.split(args)
+            args, unknown = parser.parse_known_args(args)
             print(args)
 # TODO fix
-            success = self.plot_mgr[args.plot_type].obj.plot(self.data, args)
-        except SystemExit:
-            print("Parser failure")
+            plotter = self.plot_mgr[args.plot_type].obj
+            success = plotter.plot(self.data, args)
+
+        except SystemExit as e:
+            # e is the error code to call sys.exit() with
+            print("Parser failure:", e)
+        except NotImplementedError:
+            print("Plot subclass miss a requested feature")
             return
 
         # instancier le bon puis appeler le plot dessus

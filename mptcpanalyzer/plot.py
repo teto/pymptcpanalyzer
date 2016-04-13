@@ -36,18 +36,37 @@ class Plot:
         parser.add_argument('out', action="store", nargs="?", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
 
-        # parser.add_argument("mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
-        # parser.add_argument('--out', action="store", default="", help='Name of the output folder, if default, a random one is generated')
         return parser
 
     # *args
     @abc.abstractmethod
-    def plot(self, data, **kwargs):
+    def _generate_plot(self, data, args, **kwargs):
+        pass
+
+#display : bool, savefig : bool, *
+    def plot(self, data, args, **kwargs):
         """
         Accepts 
         """
+        
+        self._generate_plot(data, args, **kwargs)
+
+        if args.display:
+            self.display(args.out)
         # raise NotImplementedError()
 
+    def savefigure(self):
+        raise NotImplementedError()
+
+    @staticmethod
+    def display(self, filename):
+
+        """
+        TODO command should be in the config
+        """
+        cmd = "xdg-open %s" % (filename)
+        print(cmd)
+        os.system(cmd)
 
     def get_client_uniflow_filename(self, id):
         # os.join.path()
@@ -68,5 +87,11 @@ class Plot:
 #         print("Saving into %s" % (args.out))
 #         fig.savefig(args.out)
 
-# class Matplotlib(Plot):
-    # def save
+class Matplotlib(Plot):
+    def savefig(self, fig):
+
+        args.out = os.path.join(os.getcwd(), args.out)
+        # logger.info
+        print("Saving into %s" % (args.out))
+        fig.savefig(args.out)
+

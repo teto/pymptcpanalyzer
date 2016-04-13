@@ -33,8 +33,8 @@ class SmoothedRtt(plot.Plot):
         # super(self, "dsn")
         pass
 
-    # def plot(self, data, *args, **kwargs):
-    def plot(self, data, args):
+    # def _generate_plot(self, data, *args, **kwargs):
+    def _generate_plot(self, data, args):
         print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
@@ -100,8 +100,8 @@ class DsnVsLatency(plot.Plot):
         # super(self, "dsn")
         pass
 
-    # def plot(self, data, *args, **kwargs):
-    def plot(self, data, args): # *args, **kwargs):
+    # def _generate_plot(self, data, *args, **kwargs):
+    def _generate_plot(self, data, args): # *args, **kwargs):
         print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
@@ -167,8 +167,8 @@ class LatencyHistogram(plot.Plot):
         # super(self, "dsn")
         pass
 
-    # def plot(self, data, *args, **kwargs):
-    def plot(self, data, args):
+    # def _generate_plot(self, data, *args, **kwargs):
+    def _generate_plot(self, data, args):
 
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
