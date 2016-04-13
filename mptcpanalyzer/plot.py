@@ -88,10 +88,12 @@ class Plot:
 #         fig.savefig(args.out)
 
 class Matplotlib(Plot):
-    def savefig(self, fig):
 
-        args.out = os.path.join(os.getcwd(), args.out)
+    @staticmethod
+    def savefig(self, fig, filename):
+
+        filename = os.path.join(os.getcwd(), filename)
         # logger.info
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
+        print("Saving into %s" % (filename))
+        fig.savefig(filename)
 

@@ -47,7 +47,7 @@ class AckInterArrivalTimes(plot.Plot):
         fig.savefig(args.out)
         return True
 
-class DsnInterArrivalTimes(plot.Plot):
+class DsnInterArrivalTimes(plot.Matplotlib):
     """
     TODO rename into interDSN ?
     In case traffic is biderctional we must filter on one direction only
@@ -61,7 +61,7 @@ class DsnInterArrivalTimes(plot.Plot):
                 help="list sender ips here to filter the dataset")
         return parser
 
-    def _generate_plot(self, data, args):
+    def _generate_plot(self, data, args, **kwargs):
         # print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
