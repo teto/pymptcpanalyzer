@@ -33,7 +33,7 @@ class Plot:
         # parse
         # parser.add_argument('field', action="store", choices=plot_types, help='Field to draw (see mptcp_fields.json)')
         parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
-        parser.add_argument('out', action="store", nargs="?", default="output.png", help='Name of the output file')
+        parser.add_argument('-o', '--out', action="store", nargs="?", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
 
         return parser
@@ -89,8 +89,14 @@ class Plot:
 
 class Matplotlib(Plot):
 
+    def plot(self, data, args, **kwargs):
+
+        super().plot(data, args, **kwargs)
+        # if args.out:
+        #     self.savefig
+
     @staticmethod
-    def savefig(self, fig, filename):
+    def savefig(fig, filename):
 
         filename = os.path.join(os.getcwd(), filename)
         # logger.info

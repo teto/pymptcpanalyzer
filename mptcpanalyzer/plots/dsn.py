@@ -47,6 +47,94 @@ class AckInterArrivalTimes(plot.Plot):
         fig.savefig(args.out)
         return True
 
+
+
+class CrossSubflowInterArrival(plot.Matplotlib):
+
+    def default_parser(self):
+        parser = super().default_parser()
+        # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", 
+                # help="Consider only cross-subflow arrivals")
+        parser.add_argument("sender_ips", nargs="+", 
+                help="list sender ips here to filter the dataset")
+        return parser
+
+    def _generate_plot(self, data, args, **kwargs):
+        """
+        goal is here to generate a new Dataframe that lists only switchings between 
+        subflows for DSN arrival
+        """
+        # print("data=", data) 
+        print("args", args)
+        # parser = plot.Plot.default_parser()
+        # args = parser.parse_args(*args)
+
+        query = " mptcpstream == %d and (" % args.mptcpstream
+        # filter to only account for one direction (departure or arrival)
+        # for ip in args.sender_ips:
+        #     query += % ip
+       # " or ".join( ipsrc == '{}' " 
+        query_ipdst = map( lambda x: "ipdst == '%s'" % x, args.sender_ips)
+        query += ' or '.join(query_ipdst)
+        query += ")"
+
+        # dat = data[data.mptcpstream == args.mptcpstream]
+        log.debug("Running query %s" % query)
+        dat = data.query(query)
+
+        tcpstreamcol = dat.columns.get_loc("tcpstream")
+
+        # TODO try replacing with dat.empty
+        if not len(dat.index):
+            print("no packet matching query %s" % query)
+            return
+
+        print("toto len=", len(dat))
+        df = pd.DataFrame([], columns=['from', 'to', 'delta'])
+        # as we just ran a query, we need to reindex it to have contiguous indexes
+        dat.reset_index(drop=True, inplace=True)
+        print(dat.index[1:])
+        for i in dat.index[1:]:
+            pass
+            if dat.iloc[i-1, tcpstreamcol] != dat.iloc[i, tcpstreamcol]:
+                # print("index i:", dat.iloc[i])
+                row = {
+                    'from': dat.iloc[i-1, tcpstreamcol], 
+                    'to':   dat.iloc[i, tcpstreamcol],
+                     'delta': dat.loc[i,"reltime"] - dat.loc[i-1,"reltime"] 
+                     }
+
+                # print("append row " , row)
+                df = df.append(row, ignore_index=True)
+
+        print( "head", df.head() )
+
+    	# todrop.append(i-1)
+
+        # if args.crosssubflows:
+
+
+        # else:
+        #     # compute delay between sending of 
+        #     # rename into "delays"
+        #     dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
+        #     # need to compute interdeparture times
+        ax = df.delta.plot.hist(
+            legend=False,
+            grid=True,
+            bins=10,
+            )   
+
+        ax.set_ylabel("Proportion")
+        ax.set_xlabel("Inter DSN departure time")
+        fig = ax.get_figure()
+
+        args.out = os.path.join(os.getcwd(), args.out)
+        print("Saving into %s" % (args.out))
+        fig.savefig(args.out)
+        return True
+
+
 class DsnInterArrivalTimes(plot.Matplotlib):
     """
     TODO rename into interDSN ?
@@ -55,7 +143,7 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 
     def default_parser(self):
         parser = super().default_parser()
-        parser.add_argument("--x-subflows", action="store_true", 
+        parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", 
                 help="Consider only cross-subflow arrivals")
         parser.add_argument("sender_ips", nargs="+", 
                 help="list sender ips here to filter the dataset")
@@ -81,16 +169,17 @@ class DsnInterArrivalTimes(plot.Matplotlib):
             return
 
         dat.sort_values("dsn", ascending=True, inplace=True)
-        
+       
         # compute delay between sending of 
         # rename into "delays"
         dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
         # need to compute interdeparture times
         ax = dat.interdeparture.plot.hist(
-            legend=False,
-            grid=True,
-            bins=10,
-        )   
+                legend=False,
+                grid=True,
+                bins=10,
+                )   
+
         ax.set_ylabel("Proportion")
         ax.set_xlabel("Inter DSN departure time")
         fig = ax.get_figure()

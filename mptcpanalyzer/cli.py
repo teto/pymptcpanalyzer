@@ -217,7 +217,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # there seems to be several improvements a
         # possible to set type of columns with dtype={'b': object, 'c': np.float64}
         # one can choose the column to use as index index_col=
-    def precmd(line):
+    def precmd(self, line):
         """
         """
         # return shlex.split(line)
@@ -295,6 +295,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                 addrid = ["master", "master"]
             else:
                 # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
+                # la ca foire 
                 for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
                     gro= gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
                     # print("nb of results:", len(gro))
@@ -857,6 +858,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         return True
 
     def preloop(intro):
+        """
+        Executed once when cmdloop is called
+        """
         print(intro)
 
 
