@@ -81,7 +81,8 @@ setup(name="mptcpanalyzer",
           "console_scripts": [
             # creates 2 system programs that can be called from PATH
             'mptcpanalyzer = mptcpanalyzer.cli:cli',
-            'mptcpexporter = mptcpanalyzer.exporter:main'
+            'mptcpexporter = mptcpanalyzer.exporter:main',
+            'mptcpnumerics = mptcpanalyzer.analysis:run'
           ],
         # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
           'mptcpanalyzer.plots': [

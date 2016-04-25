@@ -6,6 +6,7 @@ from enum import Enum, IntEnum
 import argparse
 import shlex
 import json
+import sympy as sy
 
 class OptionSize(IntEnum):
     """
@@ -72,6 +73,8 @@ class MpTcpOverhead(Command):
             print("Number of subflows=%d" % len(j["subflows"]))
             for s in j["subflows"]:
                 print("MSS=%d" % s["mss"])
+# TODO sy.add varying overhead
+                # sy.add 
             print("toto")
 
     def help(self):
