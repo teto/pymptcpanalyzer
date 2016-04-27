@@ -100,9 +100,13 @@ setup(name="mptcpanalyzer",
       },
       # pandas should include matplotlib dependancy right ?
       install_requires=[
-          'stevedore',
-          'matplotlib',
-          'pandas>=0.17.1'
+          'stevedore',  # to implement a plugin mechanism
+          'matplotlib', # for plotting
+          'pandas>=0.17.1', # to load and process csv files
+            # those dependancies might made optional later or the package split into two
+          'sympy', #for symbolic computing
+          'sortedcontainers' # for the mini mptcp simulator events list
+
           ],
       # for now the core is not modular enough so just check that running the process produces the same files
       # test_suite="tests",

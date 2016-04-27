@@ -1,16 +1,17 @@
 {
 	"sender": {
 		"snd_buffer": 40,
-		"rcv_buffer": 40,
 		"options": ["NR-SACK"]
 	},
 	"receiver": {
-		"snd_buffer": 40,
 		"rcv_buffer": 40,
 		"options": ["NR-SACK"]
 	},
+
+	"capabilities": ["NR-SACK"],
 	"subflows": [
 		{
+			"id": "sffb",
 			"mss": 1500,
 			"var": 10,
 			"f": 50,
@@ -18,6 +19,7 @@
 			"loss": 0.05
 		},
 		{
+			"id": "ffsb",
 			"mss": 1500,
 			"var": 10,
 			"f": 10,

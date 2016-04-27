@@ -29,6 +29,15 @@ class MpTcpSubflow:
 
 
 
+
+class MpTcpCapabilities(Enum):
+    """
+    string value should be the one found in json's "capabilities" section
+    """
+    NRSACK = "Non renegotiable ack"
+    DAckReplication =   "DAckReplication" 
+    OpportunisticRetransmission = "Opportunistic retransmissions"
+
 class OptionSize(IntEnum):
     """
     Size in byte of MPTCP options
@@ -137,7 +146,76 @@ class HOLTypes(Enum):
     RcvBufferBlocking = "rcv buffer RcvBufferBlocking"
     ReceiverWindowBlocking = "Window-Induced Receiver Buffer Blocking"
     ReceiverReorderingBlocking = "Reordering-Induced Receiver Buffer Blocking"
-	Transmission-Induced Sender Buffer Blocking (TSB)
+    # Transmission-Induced Sender Buffer Blocking (TSB)
+
+
+
+"""
+"""
+Event = collections.namedtuple('Event', ['time', 'subflow', 'direction', 'dsn', 'size', 'blocks'])
+
+
+
+class MpTcpSender:
+    snd_buf_max = 40
+    left = 0
+    subflows = None
+    
+    def __init__(self, max_snd_buffer, capabilities, subflows):
+        """
+        """
+        self.rcv_wnd_max = max_rcv_wnd
+        self.wnd = self.rcv_wnd_max
+
+    def recv(self, p):
+        """
+        """
+        return
+
+class MpTcpReceiver:
+    rcv_wnd_max = 40
+    left = 0
+    out_of_order
+    
+    def __init__(self, max_rcv_wnd, capabilities, subflows):
+        """
+        """
+        self.rcv_wnd_max = max_rcv_wnd
+        self.wnd = self.rcv_wnd_max
+
+    def available_window(self):
+        ooo = 0
+        for block in out_of_order:
+            ooo += block.size
+
+        return rcv_wnd_max - ooo
+
+    def right_edge(self):
+        return self.left + self.rcv_wnd_max
+
+    def in_range(self, dsn, size):
+        return dsn >= self.left and dsn < self.right_edge()
+
+    def add_packet(self, p):
+        pass
+
+    def recv(self, p):
+        """
+        @p packet
+        return a tuple of packet
+        """
+        if not self.in_range(p.dsn, p.size):
+            raise Exception("Error")
+
+        if p.
+
+        packets = []
+        if self.supports(MpTcpCapabilities.DAckReplication):
+            for sf in self.subflows:
+                e = Event()
+                packets.append(e)
+
+        return packets
 
 
 
@@ -182,7 +260,7 @@ class MpTcpNumerics(cmd.Cmd):
         """
         returns (approximate lcm of all subflows), (perfect lcm ?)
         """
-        rtts = list(map( lambda x: x["f"] + x["b"], self.j["subflows"]))
+        rtts = list(map(lambda x: x["f"] + x["b"], self.j["subflows"]))
         lcm = rtts.pop()
         print(lcm)
         # lcm = last["f"] + last["b"]
@@ -193,16 +271,49 @@ class MpTcpNumerics(cmd.Cmd):
 
     def do_compute_constraints(self, args):
         """
+        """
+        duration = self.compute_cycle()
+        pass
+
+    def _compute_constraints(self, duration):
+        """
         Options and buffer size are loaded from topologies
+        Compute constraints during `duration`
         """
         # sp.symbols("
         # out of order queue
         rcv_ooo = []
         rcv_left, rcv_wnd, rcv_max_wnd = sp.symbols("dsn_{rcv} w_{rcv} w^{max}_{rcv}")
+
+        capabilities = self.j["capabilities"]
+        receiver = MpTcpReceiver(self.j["receiver"]["rcv_buffer"], capabilities)
+        sender = MpTcpSender(self.j["sender"]["snd_buffer"],capabilities)
         # ds
+        # events = time + direction
+        # depending on direction, size may
+        # http://www.grantjenks.com/docs/sortedcontainers/sortedlistwithkey.html#id1
+        import sortedcontainers
+        events = sortedcontainers.SortedListWithKey(key=lambda x: x['time'])
+        # should be ordered according to time
+        # events = []
         nb_of_subflows = len(self.j["subflows"])
         snd_left, snd_cwnd = sp.symbols("")
         w = []
+        for e in events:
+            if e["time"] > duration:
+                print("Duration of simulation finished ! Break out of the loop")
+                break
+            #
+            if e['direction'] == "receiver":
+                if 
+            elif e['direction'] == "sender":
+                pass
+            else
+
+                raise Exception("wrong direction")
+
+
+        print("loop finished")
         return
 
 
@@ -212,22 +323,20 @@ class MpTcpNumerics(cmd.Cmd):
         """
         return True
 
-    def _overhead_variable(self):
-        """
-        depends on MTU and DSS ratio
-        In RFC6991, it is explicit that MSS does not include the TCP header.
-The fixed size of the TCP header is of 20 bytes. The fixed size of the IPv4
-header is 20 bytes (40 for Ipv6).
-The classic/widely available MSS is 1500 bytes (without Ethernet) hence
-1500- 40 (IP + TCP) = 1460 is available. 536 octets is the minimum MSS. 1360
-        We suppose one ack per 
-
-        a dss mapping can cover at most 2^16 = 65536 bytes
-        """
-# TODO try to get the latex for mean
-        n_dack, n_dss, mss, total_bytes, dss_coverage  = sp.symbols("n_{dack} n_{dss} N_{packets} MSS N DSS_{coverage}")
-        nb_of_packets = total_bytes/mss
-        return n_dack* nb_of_packets + n_dss * total_bytes/dss_coverage
+    # def _overhead_variable(self):
+    #     """
+    #     depends on MTU and DSS ratio
+    #     In RFC6991, it is explicit that MSS does not include the TCP header.
+# The fixed size of the TCP header is of 20 bytes. The fixed size of the IPv4
+# header is 20 bytes (40 for Ipv6).
+# The classic/widely available MSS is 1500 bytes (without Ethernet) hence
+# 1500- 40 (IP + TCP) = 1460 is available. 536 octets is the minimum MSS. 1360
+    #     We suppose one ack per a dss mapping can cover at most 2^16 = 65536 bytes
+        # """
+# # TODO try to get the latex for mean
+        # n_dack, n_dss, mss, total_bytes, dss_coverage  = sp.symbols("n_{dack} n_{dss} N_{packets} MSS N DSS_{coverage}")
+        # nb_of_packets = total_bytes/mss
+        # return n_dack* nb_of_packets + n_dss * total_bytes/dss_coverage
 
     def _overhead(self):
         """
@@ -236,21 +345,72 @@ The classic/widely available MSS is 1500 bytes (without Ethernet) hence
             # OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n
         # return OptionSize.Capable.value + total_nb_of_subflows * OptionSize.Join.value
 
-    def _overhead_const (self, total_nb_of_subflows : int):
-        """
-        Returns constant overhead for a connection
+    # def _overhead_const (self, total_nb_of_subflows : int):
+    #     """
+    #     Returns constant overhead for a connection
 
-        Mp_CAPABLE + MP_DSSfinal + sum of MP_JOIN
-        """
-        oh_mpc, oh_finaldss, oh_mpjoin, nb_subflows = sp.symbols("OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n")
-        # TODO test en remplacant les symboles
-        # TODO plot l'overhead d'une connexion
-        constant_oh = oh_mpc + oh_finaldss + oh_mpjoin * nb_subflows
-        return constant_oh
+    #     Mp_CAPABLE + MP_DSSfinal + sum of MP_JOIN
+    #     """
+    #     oh_mpc, oh_finaldss, oh_mpjoin, nb_subflows = sp.symbols("OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n")
+    #     # TODO test en remplacant les symboles
+    #     # TODO plot l'overhead d'une connexion
+    #     constant_oh = oh_mpc + oh_finaldss + oh_mpjoin * nb_subflows
+    #     return constant_oh
         # look at simpify
         # .subs(
         # todo provide a dict
         # constant_oh.evalf()
+
+    def do_plot_overhead(self, args):
+        """
+        total_bytes is the x axis,
+        y is overhead
+
+
+oh_mpc
+IN
+= 12 + 16 + 24 = 52
+
+OH_MPC= 12 + 12 + 24 
+OH_MPJOIN= 12 + 16 + 24 = 52
+To compute the variable part we can envisage 2 approache
+"""
+        print("Attempt to plot overhead via sympy")
+        # this should a valid sympy expression
+
+        real_nb_subflows = len(self.j["subflows"])
+        print("There are %d subflows" % real_nb_subflows)
+
+        oh_mpc, oh_finaldss, oh_mpjoin, nb_subflows = sp.symbols("OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n")
+
+        # this is per subflows
+        n_dack, n_dss, mss, total_bytes, dss_coverage  = sp.symbols("n_{dack} n_{dss} N_{packets} MSS N DSS_{coverage}")
+
+        def _const_overhead(): 
+            return oh_mpc + oh_finaldss + oh_mpjoin * nb_subflows
+
+        def _variable_overhead():
+            """
+            this is per subflow
+            """
+            nb_of_packets = total_bytes/mss
+
+            variable_oh =  n_dack* nb_of_packets + n_dss * total_bytes/dss_coverage
+            return variable_oh
+
+        total_oh = self._overhead_const() + self._overhead_variable()
+        # sympy_expr.free_symbols returns all unknown variables
+        d = {
+                oh_mpc: 48,
+                oh_mpjoin: 52,
+                nb_subflows: len(real_nb_subflows),
+                n_dack:
+                n_dss:
+
+                }
+        # then we substitute what we can (subs accept an iterable, dict/list)
+        total_oh.subs(d)
+        sp.plotting.Plot(total_oh)
 
 
 def run():
