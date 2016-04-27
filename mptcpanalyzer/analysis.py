@@ -13,7 +13,7 @@ import sympy as sy
 import cmd
 import sys
 import logging
-
+import collections
 
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
@@ -38,6 +38,7 @@ class MpTcpCapabilities(Enum):
     DAckReplication =   "DAckReplication" 
     OpportunisticRetransmission = "Opportunistic retransmissions"
 
+# TODO make it cleaner with Syn/Ack mentions etc..
 class OptionSize(IntEnum):
     """
     Size in byte of MPTCP options
@@ -74,7 +75,7 @@ def dss_size(ack : DssAck, mapping : DssMapping, with_checksum: bool=False) -> i
     size = 4
     size += ack.value
     size += mapping.value
-    size += 2 if checksum else 0
+    size += 2 if with_checksum else 0
     return size
 
 # class MpTcpOverhead(Command):
@@ -175,7 +176,8 @@ class MpTcpSender:
 class MpTcpReceiver:
     rcv_wnd_max = 40
     left = 0
-    out_of_order
+    # a list of blocks (dsn, size)
+    out_of_order = [] 
     
     def __init__(self, max_rcv_wnd, capabilities, subflows):
         """
@@ -207,7 +209,6 @@ class MpTcpReceiver:
         if not self.in_range(p.dsn, p.size):
             raise Exception("Error")
 
-        if p.
 
         packets = []
         if self.supports(MpTcpCapabilities.DAckReplication):
@@ -305,10 +306,10 @@ class MpTcpNumerics(cmd.Cmd):
                 break
             #
             if e['direction'] == "receiver":
-                if 
+                pass 
             elif e['direction'] == "sender":
                 pass
-            else
+            else:
 
                 raise Exception("wrong direction")
 
@@ -338,10 +339,10 @@ class MpTcpNumerics(cmd.Cmd):
         # nb_of_packets = total_bytes/mss
         # return n_dack* nb_of_packets + n_dss * total_bytes/dss_coverage
 
-    def _overhead(self):
-        """
-        """
-        return _overhead_const + _overead_variable():
+    # def _overhead(self):
+    #     """
+    #     """
+    #     return _overhead_const + _overead_variable()
             # OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n
         # return OptionSize.Capable.value + total_nb_of_subflows * OptionSize.Join.value
 
@@ -381,10 +382,18 @@ To compute the variable part we can envisage 2 approache
         real_nb_subflows = len(self.j["subflows"])
         print("There are %d subflows" % real_nb_subflows)
 
-        oh_mpc, oh_finaldss, oh_mpjoin, nb_subflows = sp.symbols("OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n")
+        oh_mpc, oh_finaldss, oh_mpjoin, nb_subflows = sp.symbols("OH_{MP_CAPABLE} OH_{DFIN} OH_{MP_JOIN} N")
+
+# cls=Idx
+        i = sp.Symbol('i', integer=True)
+        # nb_subflows = sp.Symbol('N', integer=True)
+        # mss = sp.IndexedBase('MSS', i )
+        sf_mss = sp.IndexedBase('MSS')
+        sf_dss_coverage = sp.IndexedBase('DSS')
+        sf_bytes = sp.IndexedBase('N_{bytes}')
 
         # this is per subflows
-        n_dack, n_dss, mss, total_bytes, dss_coverage  = sp.symbols("n_{dack} n_{dss} N_{packets} MSS N DSS_{coverage}")
+        n_dack, n_dss  = sp.symbols("S_{dack} S_{dss}") 
 
         def _const_overhead(): 
             return oh_mpc + oh_finaldss + oh_mpjoin * nb_subflows
@@ -393,24 +402,45 @@ To compute the variable part we can envisage 2 approache
             """
             this is per subflow
             """
-            nb_of_packets = total_bytes/mss
 
-            variable_oh =  n_dack* nb_of_packets + n_dss * total_bytes/dss_coverage
+            # nb_of_packets = total_bytes/mss
+
+            variable_oh =  sp.Sum(n_dack* sf_bytes[i]/sf_mss[i] + n_dss * sf_bytes[i]/sf_dss_coverage[i], (i,1,nb_subflows))
             return variable_oh
 
-        total_oh = self._overhead_const() + self._overhead_variable()
+        # sum of variable overhead
+        total_oh = _const_overhead() + _variable_overhead()
+        print("latex version=", sp.latex(total_oh))
+        print("MPC size=", OptionSize.Capable.value,)
         # sympy_expr.free_symbols returns all unknown variables
         d = {
-                oh_mpc: 48,
-                oh_mpjoin: 52,
-                nb_subflows: len(real_nb_subflows),
-                n_dack:
-                n_dss:
+                oh_mpc: OptionSize.Capable.value,
+                oh_mpjoin: OptionSize.Join.value,
+                oh_finaldss: DssAck.SimpleAck.value,
+                nb_subflows: real_nb_subflows,
+                # n_dack: nb_of_packets, # we send an ack for every packet
+                n_dack: DssAck.SimpleAck.value,
+                n_dss:  dss_size(DssAck.NoAck, DssMapping.Simple),
+        }
+        # TODO substiture indexed values
+# http://stackoverflow.com/questions/26402387/sympy-summation-with-indexed-variable 
+        # -- START -- 
+        f = lambda x: Subs(
+                s.doit(), 
+                [s.function.subs(s.variables[0], j) for j in range(s.limits[0][1], s.limits[0][2] + 1)], 
+                x
+                ).doit()
+        f((30,10,2))
+        # -- END --
 
-                }
+
         # then we substitute what we can (subs accept an iterable, dict/list)
-        total_oh.subs(d)
-        sp.plotting.Plot(total_oh)
+        # subs returns a new expression
+        numeric_oh = total_oh.subs(d)
+
+        print("After substitution=", sp.latex(numeric_oh))
+        print("After substitution=", sp.latex(numeric_oh.doit()))
+        sp.plotting.plot(total_oh)
 
 
 def run():
