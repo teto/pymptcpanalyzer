@@ -261,12 +261,15 @@ class MpTcpNumerics(cmd.Cmd):
         """
         returns (approximate lcm of all subflows), (perfect lcm ?)
         """
+
         rtts = list(map(lambda x: x["f"] + x["b"], self.j["subflows"]))
-        lcm = rtts.pop()
-        print(lcm)
-        # lcm = last["f"] + last["b"]
-        for rtt in rtts:
-            lcm = sp.lcm(rtt, lcm)
+        lcm = sp.ilcm(rtts)
+
+        # lcm = rtts.pop()
+        # print(lcm)
+        # # lcm = last["f"] + last["b"]
+        # for rtt in rtts:
+        #     lcm = sp.lcm(rtt, lcm)
         return lcm
         # sp.lcm(rtt)
 
@@ -386,11 +389,13 @@ To compute the variable part we can envisage 2 approache
 
 # cls=Idx
         i = sp.Symbol('i', integer=True)
+        total_bytes = sp.Symbol('bytes', )
         # nb_subflows = sp.Symbol('N', integer=True)
         # mss = sp.IndexedBase('MSS', i )
         sf_mss = sp.IndexedBase('MSS')
         sf_dss_coverage = sp.IndexedBase('DSS')
-        sf_bytes = sp.IndexedBase('N_{bytes}')
+        # sf_ratio = sp.IndexedBase('ratio')
+        sf_bytes = sp.IndexedBase('bytes')
 
         # this is per subflows
         n_dack, n_dss  = sp.symbols("S_{dack} S_{dss}") 
@@ -405,13 +410,12 @@ To compute the variable part we can envisage 2 approache
 
             # nb_of_packets = total_bytes/mss
 
-            variable_oh =  sp.Sum(n_dack* sf_bytes[i]/sf_mss[i] + n_dss * sf_bytes[i]/sf_dss_coverage[i], (i,1,nb_subflows))
+            variable_oh =  sp.Sum( (n_dack * sf_bytes[i])/sf_mss[i] + n_dss * sf_bytes[i]/sf_dss_coverage[i], (i,1,nb_subflows))
             return variable_oh
 
         # sum of variable overhead
-        total_oh = _const_overhead() + _variable_overhead()
-        print("latex version=", sp.latex(total_oh))
-        print("MPC size=", OptionSize.Capable.value,)
+        variable_oh = _variable_overhead()
+        # print("MPC size=", OptionSize.Capable.value,)
         # sympy_expr.free_symbols returns all unknown variables
         d = {
                 oh_mpc: OptionSize.Capable.value,
@@ -422,25 +426,63 @@ To compute the variable part we can envisage 2 approache
                 n_dack: DssAck.SimpleAck.value,
                 n_dss:  dss_size(DssAck.NoAck, DssMapping.Simple),
         }
+
+
         # TODO substiture indexed values
 # http://stackoverflow.com/questions/26402387/sympy-summation-with-indexed-variable 
         # -- START -- 
-        f = lambda x: Subs(
-                s.doit(), 
-                [s.function.subs(s.variables[0], j) for j in range(s.limits[0][1], s.limits[0][2] + 1)], 
-                x
-                ).doit()
-        f((30,10,2))
-        # -- END --
+        # f = lambda x: Subs(
+        #         s.doit(), 
+        #         [s.function.subs(s.variables[0], j) for j in range(s.limits[0][1], s.limits[0][2] + 1)], 
+        #         x
+        #         ).doit()
+        # f((30,10,2))
+        # # -- END --
 
 
         # then we substitute what we can (subs accept an iterable, dict/list)
         # subs returns a new expression
-        numeric_oh = total_oh.subs(d)
+        
+        total_oh = _const_overhead() + variable_oh 
+        # print("latex version=", sp.latex(total_oh))
+        # numeric_oh = total_oh.subs(d)
 
-        print("After substitution=", sp.latex(numeric_oh))
-        print("After substitution=", sp.latex(numeric_oh.doit()))
-        sp.plotting.plot(total_oh)
+        print("latex version=", sp.latex(variable_oh))
+        def _test_matt(s, ratios):
+            # print("%r %r" % (s.limits, s.limits[0][0] ) )
+            # print(self.j["subflows"][1])
+            # print(s.variables[0])
+            # print(s.limits[0][0].subs(i, 4) )
+            # for z in range(s.limits[0][1], s.limits[0][2] ): 
+            for z in range(1,real_nb_subflows+1):
+                # print(z)
+
+                print("After substitution s=", s)
+                s = s.subs( {
+                    sf_mss[z]: self.j["subflows"][z-1]["mss"],
+                    # sf_bytes[z]: total_bytes, # self.j["subflows"][i],
+                    sf_bytes[z]: ratios[z-1] * total_bytes, # self.j["subflows"][i],
+                    sf_dss_coverage[z]: 1500
+                }).doit()
+
+            return s.subs({
+
+                n_dack: DssAck.SimpleAck.value,
+                n_dss:  dss_size(DssAck.NoAck, DssMapping.Simple),
+                })
+        variable_oh = variable_oh.subs(nb_subflows,real_nb_subflows)
+        test = sp.Rational(1,2)
+        var_oh_numeric = _test_matt(variable_oh.doit(), [test,test])
+
+
+        # numeric_oh.subs(
+        print("After substitution=", sp.latex(var_oh_numeric))
+        print("After substitution=", sp.latex(var_oh_numeric))
+        # print("After substitution=", sp.latex(numeric_oh))
+        # print("After substitution=", sp.latex(numeric_oh.doit()))
+
+        # there should be only total_bytes free
+        sp.plotting.plot(var_oh_numeric)
 
 
 def run():
