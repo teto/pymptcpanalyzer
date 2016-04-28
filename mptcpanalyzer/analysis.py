@@ -69,6 +69,9 @@ class DssMapping(IntEnum):
 def rto(rtt, var):
     return rtt + 4*var
 
+def rtt(sf):
+    return sf["f"] + sf["b"]
+
 def dss_size(ack : DssAck, mapping : DssMapping, with_checksum: bool=False) -> int:
     """
     """
@@ -158,23 +161,43 @@ Event = collections.namedtuple('Event', ['time', 'subflow', 'direction', 'dsn', 
 
 
 class MpTcpSender:
+    """
+    By definition of the simulator, a cwnd is either fully outstanding or empty
+    """
     snd_buf_max = 40
-    left = 0
-    subflows = None
+    left = 0    # left edge of the window/dsn
+    rcv_wnd = 0 # updated only when
+    # subflow congestion windows
+    cwnds = {}
+    subflows = []
     
-    def __init__(self, max_snd_buffer, capabilities, subflows):
+    def __init__(self, config):
         """
         """
-        self.rcv_wnd_max = max_rcv_wnd
-        self.wnd = self.rcv_wnd_max
+        self.snd_buf_max = config["sender"]["snd_buffer"]
+        self.left = 0
+        # self.wnd = self.
+        self.subflows = config["subflows"]
+
+
+        for sf in self.subflows:
+            # TODO update with a symbol
+            cwnd = sp.IndexedBase("cwnd")
+            self.cwnds.update( {sf["id"]: cwnd})
+        # sp.Symbol()
 
     def recv(self, p):
         """
         """
         return
 
+class Direction(Enum):
+    Receiver = 0
+    Sender = 1
+
 class MpTcpReceiver:
-    rcv_wnd_max = 40
+
+    rcv_wnd_max = sp.Symbol("W^{receiver}_{MAX}")
     left = 0
     # a list of blocks (dsn, size)
     out_of_order = [] 
@@ -182,7 +205,7 @@ class MpTcpReceiver:
     def __init__(self, max_rcv_wnd, capabilities, subflows):
         """
         """
-        self.rcv_wnd_max = max_rcv_wnd
+        # self.rcv_wnd_max = max_rcv_wnd
         self.wnd = self.rcv_wnd_max
 
     def available_window(self):
@@ -190,7 +213,7 @@ class MpTcpReceiver:
         for block in out_of_order:
             ooo += block.size
 
-        return rcv_wnd_max - ooo
+        return self.rcv_wnd_max - ooo
 
     def right_edge(self):
         return self.left + self.rcv_wnd_max
@@ -200,6 +223,13 @@ class MpTcpReceiver:
 
     def add_packet(self, p):
         pass
+
+    def generate_ack(self):
+        """
+
+        """
+        e = Event()
+        e.direction = Direction.Sender
 
     def recv(self, p):
         """
@@ -211,11 +241,15 @@ class MpTcpReceiver:
 
 
         packets = []
+
+        e = self.generate_ack()
         if self.supports(MpTcpCapabilities.DAckReplication):
             for sf in self.subflows:
-                e = Event()
+                e.subflow = p.subflow
+                e.time = rtt(sf)
                 packets.append(e)
-
+        else:
+            packets.append(e)
         return packets
 
 
@@ -263,7 +297,7 @@ class MpTcpNumerics(cmd.Cmd):
         """
 
         rtts = list(map(lambda x: x["f"] + x["b"], self.j["subflows"]))
-        lcm = sp.ilcm(rtts)
+        lcm = sp.ilcm(*rtts)
 
         # lcm = rtts.pop()
         # print(lcm)
@@ -276,22 +310,28 @@ class MpTcpNumerics(cmd.Cmd):
     def do_compute_constraints(self, args):
         """
         """
-        duration = self.compute_cycle()
-        pass
+        duration = self._compute_cycle()
+        self._compute_constraints(duration)
 
     def _compute_constraints(self, duration):
         """
         Options and buffer size are loaded from topologies
         Compute constraints during `duration`
         """
+
+        print("Cycle duration ", duration)
         # sp.symbols("
         # out of order queue
         rcv_ooo = []
         rcv_left, rcv_wnd, rcv_max_wnd = sp.symbols("dsn_{rcv} w_{rcv} w^{max}_{rcv}")
 
         capabilities = self.j["capabilities"]
-        receiver = MpTcpReceiver(self.j["receiver"]["rcv_buffer"], capabilities)
-        sender = MpTcpSender(self.j["sender"]["snd_buffer"],capabilities)
+
+
+        # creation of the two hosts
+        receiver = MpTcpReceiver(self.j["receiver"]["rcv_buffer"], capabilities, self.j)
+        sender = MpTcpSender(self.j,) 
+
         # ds
         # events = time + direction
         # depending on direction, size may
@@ -300,21 +340,30 @@ class MpTcpNumerics(cmd.Cmd):
         events = sortedcontainers.SortedListWithKey(key=lambda x: x['time'])
         # should be ordered according to time
         # events = []
-        nb_of_subflows = len(self.j["subflows"])
-        snd_left, snd_cwnd = sp.symbols("")
-        w = []
+        # nb_of_subflows = len(self.j["subflows"])
+
+        # we start sending a full window over each path
+            # sort them depending on fowd
+        subflows = sorted(self.j["subflows"] , key="f" , reverse=True)
+        for sf in subflows:
+            # TODO check how to insert in 
+            events.add(sender.generate_pkt()
+
+
         for e in events:
             if e["time"] > duration:
                 print("Duration of simulation finished ! Break out of the loop")
                 break
-            #
-            if e['direction'] == "receiver":
-                pass 
-            elif e['direction'] == "sender":
-                pass
+            # events emitted by host
+            pkts = []
+            if e['direction'] == Direction.Receiver:
+                pkts = receiver.recv(e)
+            elif e['direction'] == Direction.Sender:
+                pkts = sender.rcv(e)
             else:
-
                 raise Exception("wrong direction")
+
+            # for p in pkts
 
 
         print("loop finished")
@@ -327,58 +376,16 @@ class MpTcpNumerics(cmd.Cmd):
         """
         return True
 
-    # def _overhead_variable(self):
-    #     """
-    #     depends on MTU and DSS ratio
-    #     In RFC6991, it is explicit that MSS does not include the TCP header.
-# The fixed size of the TCP header is of 20 bytes. The fixed size of the IPv4
-# header is 20 bytes (40 for Ipv6).
-# The classic/widely available MSS is 1500 bytes (without Ethernet) hence
-# 1500- 40 (IP + TCP) = 1460 is available. 536 octets is the minimum MSS. 1360
-    #     We suppose one ack per a dss mapping can cover at most 2^16 = 65536 bytes
-        # """
-# # TODO try to get the latex for mean
-        # n_dack, n_dss, mss, total_bytes, dss_coverage  = sp.symbols("n_{dack} n_{dss} N_{packets} MSS N DSS_{coverage}")
-        # nb_of_packets = total_bytes/mss
-        # return n_dack* nb_of_packets + n_dss * total_bytes/dss_coverage
-
-    # def _overhead(self):
-    #     """
-    #     """
-    #     return _overhead_const + _overead_variable()
-            # OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n
-        # return OptionSize.Capable.value + total_nb_of_subflows * OptionSize.Join.value
-
-    # def _overhead_const (self, total_nb_of_subflows : int):
-    #     """
-    #     Returns constant overhead for a connection
-
-    #     Mp_CAPABLE + MP_DSSfinal + sum of MP_JOIN
-    #     """
-    #     oh_mpc, oh_finaldss, oh_mpjoin, nb_subflows = sp.symbols("OH_{MP_CAPABLE} OH_{Final dss} OH_{MP_JOIN} n")
-    #     # TODO test en remplacant les symboles
-    #     # TODO plot l'overhead d'une connexion
-    #     constant_oh = oh_mpc + oh_finaldss + oh_mpjoin * nb_subflows
-    #     return constant_oh
-        # look at simpify
-        # .subs(
-        # todo provide a dict
-        # constant_oh.evalf()
-
     def do_plot_overhead(self, args):
         """
         total_bytes is the x axis,
         y is overhead
-
-
-oh_mpc
-IN
-= 12 + 16 + 24 = 52
-
-OH_MPC= 12 + 12 + 24 
-OH_MPJOIN= 12 + 16 + 24 = 52
-To compute the variable part we can envisage 2 approache
-"""
+        oh_mpc
+        IN
+        = 12 + 16 + 24 = 52 OH_MPC= 12 + 12 + 24 
+        OH_MPJOIN= 12 + 16 + 24 = 52
+        To compute the variable part we can envisage 2 approache
+        """
         print("Attempt to plot overhead via sympy")
         # this should a valid sympy expression
 
