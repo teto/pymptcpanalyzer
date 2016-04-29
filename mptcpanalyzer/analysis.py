@@ -156,7 +156,31 @@ class HOLTypes(Enum):
 
 """
 """
-Event = collections.namedtuple('Event', ['time', 'subflow', 'direction', 'dsn', 'size', 'blocks'])
+# Event = collections.namedtuple('Event', ['time', 'subflow', 'direction', 'dsn', 'size', 'blocks'])
+
+class Event:
+    """
+    Describe an event in simulator
+    """
+
+    time = None
+    subflow_id = None
+    def __init__(self):
+        pass
+
+
+class SenderEvent(Event):
+    dsn = None
+    def __init__(self):
+        self.direction = Direction.Receiver
+
+class ReceiverEvent(Event):
+
+    dack = None
+    rcv_wnd = None
+    blocks = []
+    def __init__(self):
+        self.direction = Direction.Sender
 
 
 
@@ -165,11 +189,13 @@ class MpTcpSender:
     By definition of the simulator, a cwnd is either fully outstanding or empty
     """
     snd_buf_max = 40
-    left = 0    # left edge of the window/dsn
+    snd_next = 0    # left edge of the window/dsn (rename to snd_una ?)
+    snd_una = 0
     rcv_wnd = 0 # updated only when
     # subflow congestion windows
+    # need to have dsn, cwnd, outstanding ?
     cwnds = {}
-    subflows = []
+    subflows = {}
     
     def __init__(self, config):
         """
@@ -177,18 +203,43 @@ class MpTcpSender:
         self.snd_buf_max = config["sender"]["snd_buffer"]
         self.left = 0
         # self.wnd = self.
-        self.subflows = config["subflows"]
+        # self.subflows = config["subflows"]
 
 
-        for sf in self.subflows:
+        for sf in config["subflows"]:
             # TODO update with a symbol
             cwnd = sp.IndexedBase("cwnd")
             self.cwnds.update( {sf["id"]: cwnd})
+            self.subflows.update( {sf["id"]: sf})
+        # sort them by subflow
         # sp.Symbol()
+    
+    def generate_pkt(self, sf_id):
+        """
+        """
+        e = SenderEvent()
+        sf = self.subflows[sf_id]
+        e.time = current_time + sf["f"]
+        e.subflow_id = sf_id
+        e.dsn  = self.snd_next
+
+        self.snd_next += self.cwnds[""]
+
+        e.size = self.cwnds[sf_id]
+        return e
+
 
     def recv(self, p):
         """
+        Process acks
+        pass a bool or function to choose how to increase cwnd ?
         """
+        log.debug("Sender received packet")
+
+
+        # TODO everytime here we should record the constraints
+        self.snd_una 
+        # cwnd
         return
 
 class Direction(Enum):
@@ -198,15 +249,21 @@ class Direction(Enum):
 class MpTcpReceiver:
 
     rcv_wnd_max = sp.Symbol("W^{receiver}_{MAX}")
-    left = 0
+    rcv_next = 0
+    subflows = {}
     # a list of blocks (dsn, size)
     out_of_order = [] 
     
-    def __init__(self, max_rcv_wnd, capabilities, subflows):
+    def __init__(self, capabilities, config):
         """
         """
+        self.config = config
         # self.rcv_wnd_max = max_rcv_wnd
+        # self.j["receiver"]["rcv_buffer"]
+        # rcv_left, rcv_wnd, rcv_max_wnd = sp.symbols("dsn_{rcv} w_{rcv} w^{max}_{rcv}")
         self.wnd = self.rcv_wnd_max
+        for sf in config["subflows"]:
+            self.subflows.update( {sf["id"]: sf})
 
     def available_window(self):
         ooo = 0
@@ -215,41 +272,52 @@ class MpTcpReceiver:
 
         return self.rcv_wnd_max - ooo
 
+    def left_edge(self):
+        return self.rcv_next
+
     def right_edge(self):
-        return self.left + self.rcv_wnd_max
+        return self.left_edge() + self.rcv_wnd_max
 
     def in_range(self, dsn, size):
-        return dsn >= self.left and dsn < self.right_edge()
+        return dsn >= self.left_edge() and dsn + size < self.right_edge()
 
     def add_packet(self, p):
         pass
 
-    def generate_ack(self):
+    def generate_ack(self, sf_id):
         """
-
         """
-        e = Event()
-        e.direction = Direction.Sender
+        # super().gen_packet(direction=)
+        log.debug("Generating ack for sf_id=%s" % sf_id)
+        e = ReceiverEvent()
+        e.time = current_time + self.subflows[sf_id]["b"]
+        e.ack = self.rcv_next
+        return e
 
     def recv(self, p):
         """
         @p packet
         return a tuple of packet
         """
-        if not self.in_range(p.dsn, p.size):
-            raise Exception("Error")
+        # assume it's always in range else we can get an error like 
+        # TypeError: cannot determine truth value of Relational
+        # if not self.in_range(p.dsn, p.size):
+        #     raise Exception("Error")
 
 
+        log.debug("Receiver received packet")
         packets = []
 
-        e = self.generate_ack()
-        if self.supports(MpTcpCapabilities.DAckReplication):
+        if MpTcpCapabilities.DAckReplication in self.config["receiver"]["capabilities"]:
             for sf in self.subflows:
+                self.generate_ack()
                 e.subflow = p.subflow
-                e.time = rtt(sf)
                 packets.append(e)
         else:
+            e = self.generate_ack(p.subflow_id)
             packets.append(e)
+
+        # print(packets)
         return packets
 
 
@@ -317,19 +385,21 @@ class MpTcpNumerics(cmd.Cmd):
         """
         Options and buffer size are loaded from topologies
         Compute constraints during `duration`
+
+        Create an alternative scenario where one flow has an rto
+
         """
 
         print("Cycle duration ", duration)
         # sp.symbols("
         # out of order queue
         rcv_ooo = []
-        rcv_left, rcv_wnd, rcv_max_wnd = sp.symbols("dsn_{rcv} w_{rcv} w^{max}_{rcv}")
 
         capabilities = self.j["capabilities"]
 
 
         # creation of the two hosts
-        receiver = MpTcpReceiver(self.j["receiver"]["rcv_buffer"], capabilities, self.j)
+        receiver = MpTcpReceiver(capabilities, self.j)
         sender = MpTcpSender(self.j,) 
 
         # ds
@@ -337,34 +407,46 @@ class MpTcpNumerics(cmd.Cmd):
         # depending on direction, size may
         # http://www.grantjenks.com/docs/sortedcontainers/sortedlistwithkey.html#id1
         import sortedcontainers
-        events = sortedcontainers.SortedListWithKey(key=lambda x: x['time'])
+        events = sortedcontainers.SortedListWithKey(key=lambda x: x.time)
         # should be ordered according to time
         # events = []
         # nb_of_subflows = len(self.j["subflows"])
 
         # we start sending a full window over each path
             # sort them depending on fowd
-        subflows = sorted(self.j["subflows"] , key="f" , reverse=True)
+        subflows = sorted(self.j["subflows"] , key=lambda x: x["f"] , reverse=True)
+
+        global current_time
+        current_time = 0
         for sf in subflows:
             # TODO check how to insert in 
-            events.add(sender.generate_pkt()
+            log.info("Initial send")
+            pkt = sender.generate_pkt(sf["id"])
+            events.add(pkt)
 
 
         for e in events:
-            if e["time"] > duration:
+            if e.time > duration:
                 print("Duration of simulation finished ! Break out of the loop")
                 break
+            current_time = e.time
+            log.debug("Current time=%d" % current_time)
             # events emitted by host
             pkts = []
-            if e['direction'] == Direction.Receiver:
+            if e.direction == Direction.Receiver:
                 pkts = receiver.recv(e)
-            elif e['direction'] == Direction.Sender:
-                pkts = sender.rcv(e)
+            elif e.direction == Direction.Sender:
+                pkts = sender.recv(e)
             else:
                 raise Exception("wrong direction")
-
-            # for p in pkts
-
+            
+            print(pkts)
+            if pkts:
+                for p in pkts:
+                    log.debug("Adding event %s"%p)
+                    events.add(p)
+            else:
+                log.debug("No pkt present")
 
         print("loop finished")
         return

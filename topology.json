@@ -1,11 +1,11 @@
 {
 	"sender": {
 		"snd_buffer": 40,
-		"options": ["NR-SACK"]
+		"capabilities": ["NR-SACK"]
 	},
 	"receiver": {
 		"rcv_buffer": 40,
-		"options": ["NR-SACK"]
+		"capabilities": ["NR-SACK"]
 	},
 
 	"capabilities": ["NR-SACK"],
