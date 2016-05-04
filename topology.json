@@ -1,4 +1,5 @@
 {
+	"name": "test00",
 	"sender": {
 		"snd_buffer": 40,
 		"capabilities": ["NR-SACK"]
@@ -11,19 +12,19 @@
 	"capabilities": ["NR-SACK"],
 	"subflows": [
 		{
-			"id": "sffb",
+			"name": "sffb",
 			"mss": 1500,
 			"var": 10,
-			"f": 50,
-			"b": 10,
+			"fowd": 50,
+			"bowd": 10,
 			"loss": 0.05
 		},
 		{
-			"id": "ffsb",
+			"name": "ffsb",
 			"mss": 1500,
 			"var": 10,
-			"f": 10,
-			"b": 50,
+			"fowd": 10,
+			"bowd": 50,
 			"loss": 0.05
 		}
 	]
