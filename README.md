@@ -4,28 +4,17 @@ Presentation
 
 Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
 
-<<<<<<< HEAD
 It accepts as input a capture file (\*.pcap) and from there can :
 - generate a CSV file with MPTCP fields for external processing
 - list the MPTCP connections in the pcap
 - display some statistics on a specific MPTCP connection (list of subflows etc...)
-||||||| merged common ancestors
 It accepts as input a capture file (\*.pcap) and depending on from there can :
 - generate a CSV file with MPTCP fields
-=======
-It accepts as input a capture file (\*.pcap) and from there can:
-- generate a CSV file with MPTCP fields
->>>>>>> plugin_system
 - plot data sequence numbers for all subflows
-<<<<<<< HEAD
 - plot DSN interarrival times
 - more to come...
-||||||| merged common ancestors
-- etc...
-=======
 - load 3rd party plugins
 - etc...
->>>>>>> plugin_system
 
 Most commands are self documented and/or with autocompletion.
 
@@ -45,11 +34,13 @@ Once wireshark is installed you can install mptcpanalyzer via pip:
 `$ python3.5 -mpip install mptcpanalyzer`
 
 python3.5+ is mandatory since we rely on its type hinting features.
-Dependancies are:
+Dependancies are (some will be made optional in the future):
 - [stevedore](http://docs.openstack.org/developer/stevedore/) to handle the
   plugins architecture
 - the data analysis library [pandas](http://pandas.pydata.org/) >= 0.17.1
+- lnumexpr to run specific queries in pandas
 - matplotlib to plot graphs
+- [sympy](https://github.com/sympy/sympy) for symbolic computation
 
 License
 ===
@@ -59,9 +50,12 @@ Though it might be tempting to release under the CRAPL licence (http://matt.migh
 How to use ?
 ===
 
-This package installs 2 programs in your PATH:
+This package installs 3 programs:
 - *mptcpexporter* can export a pcap into csv (exporting to sql should be easy).
 Run `mptcpexporter -h` to see how it works.
+- *mptcpnumerics* to generate some values (required buffer, etc...) depending on
+  a json file describing the setup (MSS, forward/backward OWD, send buffer size
+  etc...)
 - *mptcpanalyzer* to get details on a loaded pcap. mptcpanalyzer can run into 3 modes:
   1. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
   2. if a filename is passed as argument, it will load commands from this file
@@ -83,6 +77,8 @@ in `lc` output.
 
 
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
+
+The trace should be cleaned to get only direction for now.
 
 How does it work (internals) ?
 ===

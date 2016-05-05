@@ -242,6 +242,7 @@ class PerSubflowTimeVsDsn(plot.Plot):
             # lw=3
         )
 
+        # TODO should be able to set the direction
         # print(dir(axes))
         axes.set_xlabel("Time")
         axes.set_ylabel("DSN")
@@ -251,7 +252,7 @@ class PerSubflowTimeVsDsn(plot.Plot):
         #############################################################
         h, l = axes.get_legend_handles_labels()
 
-        axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
+        # axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
         # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
         print(h, l)
 
