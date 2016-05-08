@@ -342,7 +342,7 @@ class MpTcpReceiver:
         self.wnd = self.rcv_wnd_max
         self.rcv_wnd_max = sp.Symbol("W^{receiver}_{MAX}")
         self.rcv_next = 0
-        # a list of blocks (dsn, size)
+        # a list of tuples (headSeq, endSeq)
         self.out_of_order = []
         for sf in config["subflows"]:
             self.subflows.update( {sf["id"]: sf})
@@ -384,7 +384,16 @@ class MpTcpReceiver:
         """
         tcp-rx-buffer.cc:Add
         """
-        pass
+        temp = sorted(self.out_of_order, lambda x : x[0])
+        for head, tail in temp:
+            if head <= self.rcv_next:
+                self.rcv_next = tailSeq
+                logger.debug ("updated ")
+            else:
+                new_list.append( (head, tail) )
+
+        self.out_of_order = new_list
+
 
     def recv(self, p):
         """
@@ -399,17 +408,25 @@ class MpTcpReceiver:
 
         log.debug("Receiver received packet %" % p)
         packets = []
-        if p.dsn < self.rcv_next:
-            :w
-
-        if p.dsn + p.size > self.right_edge() or p.dsn < self.left_edge():
-            raise Exception("packet out of bounds")
+        
+        headSeq = p.dsn
+        tailSeq = p.dsn + p.size
 
 
-        if p.dsn == self.rcv_next:
-            self.rcv_next += p.size
-        else if p.dsn > self.rcv_next:
-            self.out_of_order.append( (p.dsn, p.size) )
+        if tailSeq > self.right_edge():
+            tailSeq = self.right_edge()    
+            log.error ("packet exceeds what should be received")
+
+        if headSeq < self.rcv_next:
+            headSeq = self.rcv_next
+
+        if headSeq > self.rcv_next:
+            if headSeq > self.right_edge():
+                raise Exception("packet out of bounds")
+            assert headSeq <= tailSeq
+            self.out_of_order.append ( (headSeq, tailSeq) )
+        else:
+            self.rcv_next = tailSeq
 
         self.update_out_of_order()
 
