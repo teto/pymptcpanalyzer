@@ -39,8 +39,8 @@ Dependancies are (some will be made optional in the future):
   plugins architecture
 - the data analysis library [pandas](http://pandas.pydata.org/) >= 0.17.1
 - lnumexpr to run specific queries in pandas
-- matplotlib to plot graphs
-- [sympy](https://github.com/sympy/sympy) for symbolic computation
+- [matplotlib](http://matplotlib) to plot graphs
+- [sympy](http://github.com/sympy/sympy) for symbolic computation
 
 License
 ===
@@ -79,6 +79,11 @@ in `lc` output.
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
 The trace should be cleaned to get only direction for now.
+
+
+You can customize your matplotlib plots by setting --style <yourStyle> as
+explained in http://matplotlib.org/users/style_sheets.html#style-sheets .
+
 
 How does it work (internals) ?
 ===

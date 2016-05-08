@@ -42,10 +42,7 @@ class AckInterArrivalTimes(plot.Plot):
         ax.set_xlabel("Inter DSN departure time")
         fig = ax.get_figure()
 
-        args.out = os.path.join(os.getcwd(), args.out)
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
+        return fig
 
 
 
@@ -68,19 +65,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
         print("args", args)
         # parser = plot.Plot.default_parser()
         # args = parser.parse_args(*args)
-
-        query = " mptcpstream == %d and (" % args.mptcpstream
-        # filter to only account for one direction (departure or arrival)
-        # for ip in args.sender_ips:
-        #     query += % ip
-       # " or ".join( ipsrc == '{}' " 
-        query_ipdst = map( lambda x: "ipdst == '%s'" % x, args.sender_ips)
-        query += ' or '.join(query_ipdst)
-        query += ")"
-
-        # dat = data[data.mptcpstream == args.mptcpstream]
-        log.debug("Running query %s" % query)
-        dat = data.query(query)
+        dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
 
         tcpstreamcol = dat.columns.get_loc("tcpstream")
 
@@ -110,10 +95,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
         print( "head", df.head() )
 
     	# todrop.append(i-1)
-
         # if args.crosssubflows:
-
-
         # else:
         #     # compute delay between sending of 
         #     # rename into "delays"
@@ -129,10 +111,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
         ax.set_xlabel("Inter DSN departure time")
         fig = ax.get_figure()
 
-        args.out = os.path.join(os.getcwd(), args.out)
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
+        return fig
 
 
 class DsnInterArrivalTimes(plot.Matplotlib):
@@ -143,32 +122,24 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 
     def default_parser(self):
         parser = super().default_parser()
-        parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", 
-                help="Consider only cross-subflow arrivals")
+        # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", help="Consider only cross-subflow arrivals")
         parser.add_argument("sender_ips", nargs="+", 
                 help="list sender ips here to filter the dataset")
         return parser
 
     def _generate_plot(self, data, args, **kwargs):
-        # print("data=", data) 
         print("args", args)
-        # parser = plot.Plot.default_parser()
-        # args = parser.parse_args(*args)
 
-        query = " mptcpstream == %d " % args.mptcpstream
+        dat = self.filter_ds(data, mptcpstream=args.mptcpstream, ipsrc=args.sender_ips)
+
         # filter to only account for one direction (departure or arrival)
-        for ip in args.sender_ips:
-            query += " or ip.src == %s " % ip
-        # dat = data[data.mptcpstream == args.mptcpstream]
-        log.debug("Running query %s" % query)
-        dat = data.query(query)
-
         # TODO try replacing with dat.empty
         if not len(dat.index):
-            print("no packet matching query %s" % query)
+            print("no packet matching query ")
             return
 
-        dat.sort_values("dsn", ascending=True, inplace=True)
+        # inplace=True generates warning
+        dat = dat.sort_values("dsn", ascending=True, )
        
         # compute delay between sending of 
         # rename into "delays"
@@ -184,11 +155,7 @@ class DsnInterArrivalTimes(plot.Matplotlib):
         ax.set_xlabel("Inter DSN departure time")
         fig = ax.get_figure()
 
-        args.out = os.path.join(os.getcwd(), args.out)
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
-
+        return fig
 
 
 # TODO use a handler as in http://matplotlib.org/1.3.1/users/legend_guide.html
@@ -206,6 +173,7 @@ class PerSubflowTimeVsDsn(plot.Plot):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
+
         # dssRawDSN could work as well
         # plot (subplots=True)
         fig = plt.figure()
@@ -220,8 +188,6 @@ class PerSubflowTimeVsDsn(plot.Plot):
         # field = "dsn"
         # field = "dss_dsn"
         field = "dss_ssn"
-
-
         axes = fig.gca()
         # df.plot(kind='line') is equivalent to df.plot.line() since panda 0.17
         # should return axes : matplotlib.AxesSubplot
@@ -245,21 +211,26 @@ class PerSubflowTimeVsDsn(plot.Plot):
         # TODO should be able to set the direction
         # print(dir(axes))
         axes.set_xlabel("Time")
-        axes.set_ylabel("DSN")
+        axes.set_ylabel("Data Sequence Number")
         # print("toto", type(pplot))
 
         ###  Correct legend for the linux 4 subflow case
         #############################################################
-        h, l = axes.get_legend_handles_labels()
+        handles, labels = axes.get_legend_handles_labels()
+        print(handles)
+
+        # Generate "subflow X" labels
+        axes.legend(handles, [ "Subflow %d" % x for x, _ in enumerate(labels) ])
 
         # axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
         # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
-        print(h, l)
+        
+        return fig
 
-        args.out = os.path.join(os.getcwd(), args.out)
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
+        # args.out = os.path.join(os.getcwd(), args.out)
+        # print("Saving into %s" % (args.out))
+        # fig.savefig(args.out)
+        # return True
 
 
 class DSSOverTime(plot.Plot):
@@ -345,8 +316,5 @@ class DSSOverTime(plot.Plot):
         # # fig = axes.get_figure()
         # # fig.savefig("/home/teto/test.png")
         # # fig = plot.get_figure()
-        args.out = os.path.join(os.getcwd(), args.out)
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
+        return fig
 

@@ -4,6 +4,8 @@ import argparse
 import sys
 import os
 import tempfile
+import matplotlib
+import logging
 # from plots import *
 # import mptcpanalyzer.sqlite_helpers
 
@@ -11,6 +13,31 @@ import tempfile
 import abc
 
 import six
+
+
+log = logging.getLogger("mptcpanalyzer")
+
+def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
+    """
+    filter dataset from ips
+    filter to only account for one direction (departure or arrival)
+    """
+    # if mptcpstream:
+    query = " mptcpstream == %d " % mptcpstream
+
+    if ipsrc:
+        query += " and ("
+        query_ipdst = map( lambda x: "ipsrc == '%s'" % x, ipsrc)
+        query += ' or '.join(query_ipdst)
+        query += ")"
+
+    if ipdst:
+        query += " and ("
+        query_ipdst = map( lambda x: "ipdst == '%s'" % x, ipdst)
+        query += ' or '.join(query_ipdst)
+        query += ")"
+
+    return query
 
 @six.add_metaclass(abc.ABCMeta)
 class Plot:
@@ -35,8 +62,17 @@ class Plot:
         parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
         parser.add_argument('-o', '--out', action="store", nargs="?", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
+# Move to matplotlib
 
         return parser
+
+    @staticmethod
+    def filter_ds(data, **kwargs):
+        query = gen_ip_filter(**kwargs)
+        # dat = data[data.mptcpstream == args.mptcpstream]
+        log.debug("Running query %s" % query)
+        dat = data.query(query)
+        return dat
 
     # *args
     @abc.abstractmethod
@@ -53,12 +89,11 @@ class Plot:
 
         if args.display:
             self.display(args.out)
-        # raise NotImplementedError()
 
     def savefigure(self):
         raise NotImplementedError()
 
-    @staticmethod
+    # @staticmethod
     def display(self, filename):
 
         """
@@ -89,11 +124,26 @@ class Plot:
 
 class Matplotlib(Plot):
 
-    def plot(self, data, args, **kwargs):
+    def default_parser(self):
+        parser = super().default_parser()
+        parser.add_argument('--style', dest="styles", action="append", default=[], help='List matplotlib styles')
+        return parser
 
-        super().plot(data, args, **kwargs)
-        # if args.out:
-        #     self.savefig
+    def plot(self, data, args, **kwargs):
+        """
+        """
+        # with plt.style.context(args.styles):
+        # setup styles if any
+        log.debug("Using styles: %s" % args.styles)
+        matplotlib.pyplot.style.use(args.styles)
+        fig = self._generate_plot(data, args, **kwargs)
+
+        if args.out:
+            self.savefig(fig,args.out)
+
+        if args.display:
+            # TODO show it from fig
+            self.display(args.out)
 
     @staticmethod
     def savefig(fig, filename):

@@ -670,6 +670,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         return csv_filename
 
     # @staticmethod
+
+    # TODO move to core or make static 
     def _load_into_pandas(self, input_file):
         """
         intput_file must be csv

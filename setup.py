@@ -92,6 +92,7 @@ setup(name="mptcpanalyzer",
               'xinterarrival = mptcpanalyzer.plots.dsn:CrossSubflowInterArrival',
               'ack = mptcpanalyzer.plots.dsn:AckInterArrivalTimes',
               'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
+              'owd = mptcpanalyzer.plots.owd:OneWayDelay',
               ],
           # namespace for plugins that monkey patch the main Cmd class
           'mptcpanalyzer.cmds': [
