@@ -9,7 +9,7 @@ import os
 
 log = logging.getLogger("mptcpanalyzer")
 
-class AckInterArrivalTimes(plot.Plot):
+class AckInterArrivalTimes(plot.Matplotlib):
 
     """
     TODO rename into interDSN ?
@@ -161,27 +161,18 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 # TODO use a handler as in http://matplotlib.org/1.3.1/users/legend_guide.html
 # my_handler = HandlerLine2D(numpoints=1)
 # legend(handler_map={Line2D:my_handler})
-class PerSubflowTimeVsDsn(plot.Plot):
-
+class PerSubflowTimeVsDsn(plot.Matplotlib):
+    """
+    TODO should be able to set the direction
+    """
     def _generate_plot(self, data, args):
-        # print("data=", data) 
-        print("args", args)
-        # parser = plot.Plot.default_parser()
-        # args = parser.parse_args(*args)
+
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
-
-        # dssRawDSN could work as well
-        # plot (subplots=True)
         fig = plt.figure()
-        # plt.title("hello world")
-        # ax = tcpstreams[args.field].plot(ax=fig.gca())
-        # want 
-        # columns allows to choose the correct legend
-        # df = self.data
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
         # TODO field should be DSN
@@ -195,42 +186,26 @@ class PerSubflowTimeVsDsn(plot.Plot):
         pplot = tcpstreams[field].plot.line(
             # gca = get current axes (Axes), create one if necessary
             ax=axes,
-            # x=tcpstreams["reltime"],
-            # x="Relative time", # ne marche pas
-            # title="Data Sequence Numbers over subflows", 
             # use_index=False,
             legend=True,
-            # style="-o",
             grid=True,
-            # xticks=tcpstreams["reltime"],
-            # rotation for ticks
-            # rot=45, 
-            # lw=3
         )
 
-        # TODO should be able to set the direction
-        # print(dir(axes))
         axes.set_xlabel("Time")
         axes.set_ylabel("Data Sequence Number")
-        # print("toto", type(pplot))
 
-        ###  Correct legend for the linux 4 subflow case
-        #############################################################
         handles, labels = axes.get_legend_handles_labels()
         print(handles)
 
         # Generate "subflow X" labels
         axes.legend(handles, [ "Subflow %d" % x for x, _ in enumerate(labels) ])
 
+        ###  Correct legend for the linux 4 subflow case
+        #############################################################
         # axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
         # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
         
         return fig
-
-        # args.out = os.path.join(os.getcwd(), args.out)
-        # print("Saving into %s" % (args.out))
-        # fig.savefig(args.out)
-        # return True
 
 
 class DSSOverTime(plot.Plot):

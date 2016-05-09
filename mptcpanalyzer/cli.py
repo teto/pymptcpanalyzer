@@ -20,6 +20,7 @@ import os
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.plot import Plot
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
+import mptcpanalyzer.data as core
 # import mptcpanalyzer.config
 # import config
 import pandas as pd
@@ -374,234 +375,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         for mptcpstream, group in mp:
             self.do_ls(mptcpstream)
 
-    @staticmethod
-    def _map_subflows_between_2_datasets(ds1,ds2):
-        """
-        Takes 2 datasets ALREADY FILTERED and returns 
-        # a dictiorary mapping
-        -> a list of tuples
-        ds1 TCP flows to ds2 TCP flows
-        """
-        
-        tcpstreams1 = ds1.groupby('tcpstream')
-        tcpstreams2 = ds2.groupby('tcpstream')
-        print("ds1 has %d subflow(s)." % (len(tcpstreams1)))
-        print("ds2 has %d subflow(s)." % (len(tcpstreams2)))
-        if len (tcpstreams1) != len(tcpstreams2):
-            print("FISHY: Datasets contain a different number of subflows")
-
-        # To filter the dataset, you can refer to 
-        mappings = []
-        for tcpstream1, gr2 in tcpstreams1:
-            # for tcpstream2, gr2 in tcpstreams2:
-            # look for similar packets in ds2
-            print ("=== toto")
-
-            # result = ds2[ (ds2.ipsrc == gr2['ipdst'].iloc[0])
-                 # & (ds2.ipdst == gr2['ipsrc'].iloc[0])
-                 # & (ds2.sport == gr2['dport'].iloc[0])
-                 # & (ds2.dport == gr2['sport'].iloc[0])
-                 # ]
-            # should be ok
-            sf = MpTcpSubflow ( gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0],
-                    gr2['sport'].iloc[0], gr2['dport'].iloc[0])
-
-            result = ds2[ (ds2.ipsrc == sf.ipsrc)
-                 & (ds2.ipdst == sf.ipdst)
-                 & (ds2.sport == sf.sport)
-                 & (ds2.dport == sf.dport)
-                 ]
-
-            if len(result):
-                print ("=== zozo")
-                entry = tuple([tcpstream1, result['tcpstream'].iloc[0], sf])
-                # print("Found a mapping %r" % entry) 
-                mappings.append(entry)
-
-                print("match for stream %s" % tcpstream1)
-            else:
-                print("No match for stream %s" % tcpstream1)
-
-                line = "\ttcp.stream {tcpstream} : {srcip}:{sport} <-> {dstip}:{dport}".format(
-                    tcpstream=tcpstream1,
-                    srcip=gr2['ipsrc'].iloc[0],
-                    sport=gr2['sport'].iloc[0], 
-                    dstip=gr2['ipdst'].iloc[0], 
-                    dport=gr2['dport'].iloc[0]
-                    )
-                print(line)
-        return mappings
 
     # def _print_subflow():
 
-    def do_plot_owd(self, args):
-        """
-        TODO should be moved as a plot
-        Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
-        it relies on the pcap absolute time field.
-        While this is true in discrete time simulators such as ns3
-        """
-        parser = argparse.ArgumentParser(
-                description='Generate MPTCP stats & plots'
-                )
-        # client = parser.add_argument_group("Client data")
-
-        parser.add_argument("client_input", action="store",
-                help="Either a pcap or a csv file (in good format)."
-                )
-        parser.add_argument("mptcp_client_id", action="store", type=int)
-
-        parser.add_argument("server_input", action="store",
-                help="Either a pcap or a csv file (in good format)."
-                )
-        parser.add_argument("mptcp_server_id", action="store", type=int)
-
-        parser.add_argument("host_ips", nargs="+",
-                help=("List here ips of one of the 2 hosts so that the program can"
-                    "deduce the flow directions.")
-                )
-        # parser.add_argument()
-
-        # server = parser.add_argument_group("Client data")
-        try:
-            # args = parser.parse_args( shlex.split(field + ' ' + args))
-            args, unknown = parser.parse_known_args(shlex.split(args))
-        except SystemExit:
-            return
-
-        # args = parser.parse_args(shlex.split(args))
-        ds1 = self._load_into_pandas(args.client_input)
-        ds2 = self._load_into_pandas(args.server_input)
-        # print("=== DS1 0==\n", ds1.dtypes)
-        
-        # Restrict dataset to mptcp connections of interest
-        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
-                
-        ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
-
-        # print("=== DS1 ==\n", ds1.dtypes)
-        # now we take only the subset matching the conversation
-        mappings = self._map_subflows_between_2_datasets(ds1, ds2)
-        print("Found %d valid mappings " % len(mappings))
-        print(mappings)
-        
-        print("Host ips: ", args.host_ips)
-
-        pattern = ' ipsrc == '
-        pattern += ' or ipsrc == '.join(args.host_ips)
-        print(pattern)
-        # TODO we should plot 2 graphs:
-        # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
-        # DeltaOWD
-        # group = self.data[self.data.mptcpstream == mptcpstream]
-        
-        # prepare a plot
-
-        fig = plt.figure()
-
-        axes = fig.gca()
-        # see interesting tutorial 
-        # http://pandas.pydata.org/pandas-docs/stable/merging.html
-        # how=inner renvoie 0, les choix sont outer/left/right
-        # ok ca marche mais faut faire gaffe aux datatypes
-        for tcpstreamid_host0, tcpstreamid_host1, sf in mappings:
-        
-            # todo split dataset depending on soruce or destination
-            print('sf',sf)
-            tcpstream0 = ds1.query("tcpstream == @tcpstreamid_host0 and ipsrc == '%s'" % sf.ipsrc)
-            print("toto")
-            tcpstream1 = ds2.query("tcpstream == @tcpstreamid_host1 and ipsrc == '%s'" % sf.ipsrc)
-            # # "indicator" shows from where originates 
-            print("=== tcpseq ")
-            print(tcpstream0.tcpseq.head(10))
-            print("=== tcpseq ")
-            print(tcpstream1.tcpseq.head(10))
-                # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
-
-            res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-            print("========================================")
-            # print(res.dtypes)
-            print("nb of rtesults", len(res))
-            # ensuite je dois soustraire les paquets
-            # stop after first run
-
-
-            # TODO creer un nouveau champ
-            res['owd'] = res['abstime_y'] - res['abstime_x']
-
-            filename ="merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-            res.to_csv(filename, columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y"  ], sep=delimiter)
-
-
-            pplot = res.owd.plot.line(
-                # gca = get current axes (Axes), create one if necessary
-                ax=axes,
-                # x=tcpstreams["reltime"],
-                # x="Relative time", # ne marche pas
-                # title="Data Sequence Numbers over subflows", 
-                # use_index=False,
-                legend=True,
-                # style="-o",
-                grid=True,
-                # xticks=tcpstreams["reltime"],
-                # rotation for ticks
-                # rot=45, 
-                # lw=3
-            )
-
-            # res.to_csv("temp.csv", sep=delimiter)
-            # stop after first run
-
-        # print(dir(axes))
-        axes.set_xlabel("Time")
-        axes.set_ylabel("OWD")
-        # print("toto", type(pplot))
-
-        ###  Correct legend for the linux 4 subflow case
-        #############################################################
-        h, l = axes.get_legend_handles_labels()
-
-        # axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
-        # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
-        print(h, l)
-
-        args.out = os.path.join(os.getcwd(), "owd.png")
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
-
-        ## JUSTE pour les tests, sinon commenter ce qu'il y a au dessus
-        # "indicator" shows from where originates 
-# %s "%(sf.ipsrc, ))
-        tcpstream0 = ds1.query("tcpstream == 0 and ipsrc == '10.1.0.1' ") 
-        tcpstream1 = ds2.query("tcpstream == 0 and ipsrc == '10.1.0.1' ")
-        print("=== tcpseq ")
-        print(tcpstream0.tcpseq.head(10))
-        print("=== tcpseq ")
-        print(tcpstream1.tcpseq.head(10))
-        # print("========================================")
-        # print(tcpstream0)
-        # print("========================================")
-        # print(tcpstream1)
-        # res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-        res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-        print("========================================")
-        # print(res.dtypes)
-        print("nb of rtesults", len(res))
-        # ensuite je dois soustraire les paquets
-        # stop after first run
-        # we need .copy else we get
-        # A value is trying to be set on a copy of a slice from a DataFrame.
-# Try using .loc[row_indexer,col_indexer] = value instead
-
-# See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
-# if __name__ == '__main__':
-        # r2 = r[["tcpseq","abstime_x","abstime_y"]].copy()
-        # r2['diff'] = r2['abstime_y'] - r2['abstime_x']
-        # Need to create a new table that 
-# df3 = df1[['Lat1', 'Lon1']]
-# df3['tp1-tp2'] = df1.tp1 - df2.tp2
-        return 
 
         # et ensuite tu fais reltime_x - reltime_y
         # to drop NA rows
@@ -627,101 +403,15 @@ class MpTcpAnalyzer(cmd.Cmd):
         args = parser.parse_args(shlex.split(args))
 
         # print("Not implemented yet")
-        csv_filename = self._get_matching_csv_filename (args.input_file, args.regen)
+        csv_filename = core.get_matching_csv_filename (args.input_file, args.regen)
 
-        self.data = self._load_into_pandas(csv_filename)
+        self.data = core.load_into_pandas(csv_filename)
         self.prompt = "%s> " % csv_filename
 
-    def _get_matching_csv_filename(self, filename, regen : bool= False):
-        """
-        Accept either a .csv or a .pcap file 
-        Returns resulting csv filename
-        """
-        basename, ext = os.path.splitext(filename)
-        print("Basename=%s" % basename)
-        csv_filename = filename
 
-        if ext == ".csv":
-            pass
-        else:
-            print("%s format is not supported as is. Needs to be converted first" %
-                (filename))
-            csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
-            cache = os.path.isfile(csv_filename)
-            if cache:
-                log.info("A cache %s was found" % csv_filename)
-            # if matching csv does not exist yet or if generation forced
-            if not cache or regen:
-                log.info("Preparing to convert %s into %s" %
-                        (filename, csv_filename))
-
-                exporter = TsharkExporter(
-                        self.config["DEFAULT"]["tshark_binary"], 
-                        delimiter=delimiter
-                    )
-                retcode, stderr = exporter.export_to_csv(
-                        filename, csv_filename, 
-                        get_default_fields().keys(),
-                        tshark_filter="mptcp and not icmp"
-                )
-                print("exporter exited with code=", retcode)
-                if retcode:
-                    raise Exception(stderr)
-        return csv_filename
 
     # @staticmethod
 
-    # TODO move to core or make static 
-    def _load_into_pandas(self, input_file):
-        """
-        intput_file must be csv
-        """
-        csv_filename = self._get_matching_csv_filename(input_file)
-
-
-
-        def _get_dtypes(d):
-            ret = dict()
-            for key, val in d.items():
-                if isinstance(val, tuple) and len(val) > 1:
-                    ret.update( {key:val[1]})
-            return ret
-        
-        dtypes = _get_dtypes(get_default_fields())
-        print("==dtypes", dtypes)
-        # TODO use nrows=20 to read only 20 first lines
-        # TODO use dtype parameters to enforce a type
-        data = pd.read_csv(csv_filename, sep=delimiter, ) #dtype=dtypes)
-        # data = pd.read_csv(csv_filename, sep=delimiter, engine="c", dtype=dtypes)
-        # print(data.dtypes)
-
-        def _get_wireshark_mptcpanalyzer_mappings(d):
-            def name(s):
-                return s[0] if isinstance(s, tuple) else s
-            # return map(name, d.values())
-            return dict( zip( d.keys(), map(name, d.values()) ) )
-            # return dict((v,a) for k,a,*v in a.iteritems())
-
-        # print("== tata", dict(get_default_fields()))
-        toto = _get_wireshark_mptcpanalyzer_mappings( get_default_fields() )
-        # print("== toto", toto)
-
-        data.rename (inplace=True, columns=toto)
-
-        data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
-        data.tcpflags.apply(lambda x: int(x,16), )
-        # print(data.dtypes)
-        # todo let wireshark write raw values and rename columns here
-        # along with dtype
-        # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
-        columns = list(data.columns)
-        print("==column names:", columns)
-        # for field in mandatory_fields:
-        #     if field not in columns:
-        #         raise Exception(
-        #             "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-        print("== before returns\n", data.dtypes)
-        return data
 
     # def do_load_csv(self, args):
         # """
@@ -866,7 +556,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         print(intro)
 
 
-# def generate_csv_from_pcap()
 
 def cli():
     """

@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
+import mptcpanalyzer.data as core
 
 
 
@@ -36,8 +37,15 @@ class IntegrationTest(TestCase):
 
     def test_mapping(self):
         # expects 2 datasets
-        # self._map_subflows_between_2_datasets ()
-        pass
+        # load from csv
+        ds1 = core.load_into_pandas("")
+        ds2 = core.load_into_pandas("")
+        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
+                
+        ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
+        # core.map_subflows_between_2_datasets ()
+
+        self.m.do_plot("plot owd 0")
 
     def test_load(self):
         # to test for errors
@@ -64,6 +72,9 @@ class IntegrationTest(TestCase):
         self.m.do_load("examples/iperf-mptcp-0-0.pcap")
         # TODO precise file
         self.m.do_plot("plot dsn 0")
+        self.m.do_plot("plot interarrival 0")
+
+        # TODO 
 
     # def test_plot_dsn(self):
     #     self.m.do_plot("plot dsn 0")
