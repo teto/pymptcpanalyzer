@@ -93,6 +93,7 @@ setup(name="mptcpanalyzer",
               'ack = mptcpanalyzer.plots.dsn:AckInterArrivalTimes',
               'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
               'owd = mptcpanalyzer.plots.owd:OneWayDelay',
+              'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
               ],
           # namespace for plugins that monkey patch the main Cmd class
           'mptcpanalyzer.cmds': [

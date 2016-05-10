@@ -76,6 +76,9 @@ class IntegrationTest(TestCase):
 
         # TODO 
 
+    def test_generate_plot_ns3(self):
+
+        self.m.do_plot("plot ns3 --meta examples/ cwnd 0")
     # def test_plot_dsn(self):
     #     self.m.do_plot("plot dsn 0")
 
