@@ -1,5 +1,15 @@
 import json
 
+def get_dtypes(d):
+    """
+    d being a dict with values as tuples, select item 1 of tuple
+
+    """
+    ret = dict()
+    for key, val in d.items():
+        if isinstance(val, tuple) and len(val) > 1:
+            ret.update( {key:val[1]})
+    return ret
 
 
 class MpTcpTopology:

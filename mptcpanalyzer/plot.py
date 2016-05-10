@@ -74,7 +74,8 @@ class Plot:
         if mptcpstream:
             parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
 
-        parser.add_argument('-o', '--out', action="store", nargs="?", default="output.png", help='Name of the output file')
+#nargs="?", 
+        parser.add_argument('-o', '--out', action="store", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
 # TODO move to matplotlib
         return parser
@@ -139,7 +140,7 @@ class Plot:
 class Matplotlib(Plot):
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args)
+        parser = super().default_parser(*args,**kwargs)
         parser.add_argument('--style', dest="styles", action="append", default=[], help='List matplotlib styles')
         return parser
 

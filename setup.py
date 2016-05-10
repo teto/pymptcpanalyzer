@@ -22,7 +22,7 @@ from setuptools import setup, find_packages
 
 from distutils.cmd import Command
 from distutils.core import setup
-
+from distutils.util import convert_path
 
 class TestCommand(Command):
     user_options = []
@@ -46,8 +46,15 @@ class TestCommand(Command):
 # 
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
+
+
+ver_path = convert_path('mymodule/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
+
 setup(name="mptcpanalyzer",
-      version="0.1",
+# TODO import version.py
+      version=main_ns['__version__'],
       description="Analyze mptcp traces (.pcap)",
       long_description=open('README.md').read(),
       url="http://github.com/lip6-mptcp/mptcpanalyzer",

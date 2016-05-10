@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import mptcpanalyzer.plot as plot
-import mptcpanalyzer.data as core
+import mptcpanalyzer.core as core
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
@@ -19,16 +19,17 @@ log = logging.getLogger(__name__)
 
 
 attributes = {
-        "txNext" : "{type} Tx Next",
-        "highestSeq" : "{type} Highest seq",
-        "unackSeq" : "{type} SND.UNA",
-        "rxNext": "",
-        "rxAvailable": "",
-        "rxTotal" : " rxtotal",
-        "cwnd": "{type} cwnd",
-        "rWnd": "RWnd",
-        "ssThresh": "{type} SS Thresh",
-        "state": "State",
+        "Time" : ("time (ns)", pd.datetime),
+        "txNext" : ("{type} Tx Next", np.int64),
+        "highestSeq" : ("{type} Highest seq", np.int64),
+        "unackSeq" : ("{type} SND.UNA", np.int64),
+        "rxNext": ("", np.int64),
+        "rxAvailable": ("", np.int64),
+        "rxTotal" : (" rxtotal", np.int64),
+        "cwnd": ("{type} cwnd", np.int64),
+        "rWnd": ("RWnd", np.int64),
+        "ssThresh": ("{type} SS Thresh", np.int64),
+        "state": ("State", np.int64),
         }
 
 prefixes = [
@@ -67,7 +68,8 @@ class PlotTraceSources(plot.Matplotlib):
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("attribute", choices=attributes, help="Choose client or server folder")
         # parser.add_argument("--node", "-n", dest="nodes", action="append", default=[0], help="Plot subflows along")
-        parser.add_argument("node", type=int, help="Choose node to filter from")
+#type=int, 
+        parser.add_argument("node", help="Choose node to filter from")
         parser.add_argument("--meta", "-m", action="store_true", default=False, help="Plot meta along")
         parser.add_argument("--subflows", "-s", action="store_true", default=False, help="Plot subflows along")
         return parser
@@ -122,7 +124,8 @@ class PlotTraceSources(plot.Matplotlib):
 
             for filename in matches:
                 print(filename)
-                d = pd.read_csv(filename , index_col="Time")
+                d = pd.read_csv(filename , index_col="Time", dtypes={
+                    })
                 d.index = pd.to_timedelta(d.index)
                 # print(d.index)
                 print( "prefix name=", attributes[attribute] )

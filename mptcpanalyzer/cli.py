@@ -21,6 +21,7 @@ from mptcpanalyzer.plot import Plot
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer import get_default_fields, __default_fields__
+from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as core
 # import mptcpanalyzer.config
 # import config
@@ -55,18 +56,18 @@ stream_parser.add_argument(
 
 
     
-# decorator
 def is_loaded(f):
+    """
+    Decorator checking that dataset has correct columns
+    """
     def wrapped(self, *args):
         print("wrapped")
         if self.data is not None:
             print("self.data")
             print("args=%r" % args)
             return f(self, *args)
-        # def toto(*args):
         else:   
             print("Please load a file first")
-        # return lambda _: print("Please load a file first")
         return None
     return wrapped
 
@@ -425,7 +426,6 @@ class MpTcpAnalyzer(cmd.Cmd):
                     raise Exception(stderr)
         return csv_filename
 
-# TODO move to core or make static 
     def load_into_pandas(self,input_file):
         """
         intput_file can be filename or fd
@@ -434,13 +434,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         # exporter
         csv_filename = self.get_matching_csv_filename(input_file)
 
+        
+        # TODO move to core
         def _get_dtypes(d):
             ret = dict()
             for key, val in d.items():
                 if isinstance(val, tuple) and len(val) > 1:
                     ret.update( {key:val[1]})
             return ret
-        
         dtypes = _get_dtypes(get_default_fields())
         print("==dtypes", dtypes)
         # TODO use nrows=20 to read only 20 first lines
@@ -593,6 +594,7 @@ def cli():
             "If it can't find one (or with the flag --regen), it will generate a "
             "csv from the pcap with the external tshark program."
             )
+    parser.add_argument('--version', action='version', version="%s" % (__version__))
     parser.add_argument("--config", "-c", action="store",
             help="Path towards the config file (use $XDG_CONFIG_HOME/mptcpanalyzer/config by default)")
     parser.add_argument("--debug", "-d", action="store_true",
