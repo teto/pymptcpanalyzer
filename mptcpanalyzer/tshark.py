@@ -60,15 +60,6 @@ class TsharkExporter:
         options = {}
         return options
 
-    # @staticmethod
-    # def build_csv_header_from_list_of_fields(fields, csv_delimiter):
-        # """
-        # fields should be iterable
-        # Returns "field0,field1,..."
-        # csv delimiter will probably be '|' or ','
-        # """
-        # return csv_delimiter.join(fields) + '\n'
-
     @staticmethod
     def find_type(filename):
         """
@@ -87,8 +78,6 @@ class TsharkExporter:
         else:
             return Filetype.unsupported
 
-    # def convert_to_csv(self, input_filename, output_filename, fields_to_export):
-        # pass
 
     def export_to_csv(self, input_filename: str, output_csv : str,
             fields_to_export : List[str], tshark_filter : str =None):
@@ -103,14 +92,6 @@ class TsharkExporter:
 
         if self.find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
-
-        # fields_to_export = fields_to_export or self.get_default_fields()
-        # header = self.build_csv_header_from_list_of_fields(fields_to_export.keys(), self.delimiter)        
-
-        # # output = output if output else ""
-        # log.info("Writing to file %s" % output_csv)
-        # with open(output_csv, "w") as f:
-            # f.write(header)
 
         return self.tshark_export_fields(
             self.tshark_bin, 

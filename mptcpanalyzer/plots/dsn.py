@@ -118,6 +118,7 @@ class DsnInterArrivalTimes(plot.Matplotlib):
     """
     TODO rename into interDSN ?
     In case traffic is biderctional we must filter on one direction only
+    TODO this is wrong
     """
 
     def default_parser(self):
@@ -127,9 +128,9 @@ class DsnInterArrivalTimes(plot.Matplotlib):
                 help="list sender ips here to filter the dataset")
         return parser
 
-    def _generate_plot(self, data, args, **kwargs):
+    def _generate_plot(self, main, args, **kwargs):
         print("args", args)
-
+        data = main.data
         dat = self.filter_ds(data, mptcpstream=args.mptcpstream, ipsrc=args.sender_ips)
 
         # filter to only account for one direction (departure or arrival)

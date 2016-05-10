@@ -7,16 +7,17 @@ import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import os
+import argparse
 
-log = logging.getLogger("mptcpanalyzer")
+log = logging.getLogger(__name__)
 
-class OneWayDelay()
+class OneWayDelay(plot.Matplotlib):
 
     def default_parser(self):
-        #parser = super().default_parser()
-        parser = argparse.ArgumentParser(
-                description='Generate MPTCP stats & plots'
-                )
+        parser = super().default_parser(mptcpstream=False)
+        # parser = argparse.ArgumentParser(
+        #         description='Generate MPTCP stats & plots'
+        #         )
         # client = parser.add_argument_group("Client data")
 
         parser.add_argument("client_input", action="store",
@@ -29,36 +30,31 @@ class OneWayDelay()
                 )
         parser.add_argument("mptcp_server_id", action="store", type=int)
 
-        parser.add_argument("host_ips", nargs="+",
-                help=("List here ips of one of the 2 hosts so that the program can"
-                    "deduce the flow directions.")
-                )
+        # parser.add_argument("sender_ips", nargs="+",
+        #         help=("List here ips of one of the 2 hosts so that the program can"
+        #             "deduce the flow directions.")
+        #         )
         return parser
 
     #def do_plot_owd(self, args):
-    def _generate_plot(self, data, args):
+    def _generate_plot(self, main, args):
         """
+        Ideally it should be mapped automatically
+        For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
         TODO should be moved as a plot
         This doesn't use "data"
         Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
         """
-        # it arrives already parsed
-        # try:
-        #     # args = parser.parse_args( shlex.split(field + ' ' + args))
-        #     args, unknown = parser.parse_known_args(shlex.split(args))
-        # except SystemExit:
-        #     return
 
         # args = parser.parse_args(shlex.split(args))
-        ds1 = core.load_into_pandas(args.client_input)
-        ds2 = core.load_into_pandas(args.server_input)
+        ds1 = main.load_into_pandas(args.client_input)
+        ds2 = main.load_into_pandas(args.server_input)
         # print("=== DS1 0==\n", ds1.dtypes)
         
         # Restrict dataset to mptcp connections of interest
         ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
-                
         ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
 
 
@@ -68,14 +64,12 @@ class OneWayDelay()
         print("Found %d valid mappings " % len(mappings))
         print(mappings)
         
-        print("Host ips: ", args.host_ips)
+        # print("Host ips: ", args.host_ips)
 
         # dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
         
-        pattern = ' ipsrc == '
-        pattern += ' or ipsrc == '.join(args.host_ips)
+        # ds1 = self.filter_ds(ds1, mptcpstream=args.mptcp_client_id, ipsrc=args.sender_ips)
 
-        print(pattern)
         # TODO we should plot 2 graphs:
         # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
         # DeltaOWD
@@ -94,6 +88,7 @@ class OneWayDelay()
         
             # todo split dataset depending on soruce or destination
             print('sf',sf)
+            # TODO add port/src/dst in case there are several subflows from a same interface
             tcpstream0 = ds1.query("tcpstream == @tcpstreamid_host0 and ipsrc == '%s'" % sf.ipsrc)
             print("toto")
             tcpstream1 = ds2.query("tcpstream == @tcpstreamid_host1 and ipsrc == '%s'" % sf.ipsrc)
@@ -116,8 +111,13 @@ class OneWayDelay()
             res['owd'] = res['abstime_y'] - res['abstime_x']
 
             filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-            res.to_csv(filename, columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y"  ], sep=delimiter)
-
+            res.to_csv(
+                    filename, 
+                    columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
+                    index=False,
+                    header=True,
+                    sep=main.config["DEFAULT"]["delimiter"],
+            )
 
             pplot = res.owd.plot.line(
                 # gca = get current axes (Axes), create one if necessary
@@ -131,12 +131,10 @@ class OneWayDelay()
                 # lw=3
             )
 
-            # res.to_csv("temp.csv", sep=delimiter)
-            # stop after first run
 
-        # print(dir(axes))
+        # TODO add units
         axes.set_xlabel("Time")
-        axes.set_ylabel("OWD")
+        axes.set_ylabel("One Way Delay")
         # print("toto", type(pplot))
 
         ###  Correct legend for the linux 4 subflow case
@@ -147,40 +145,4 @@ class OneWayDelay()
         # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
         print(h, l)
 
-        args.out = os.path.join(os.getcwd(), "owd.png")
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
-
-        ## JUSTE pour les tests, sinon commenter ce qu'il y a au dessus
-        # "indicator" shows from where originates 
-# %s "%(sf.ipsrc, ))
-        tcpstream0 = ds1.query("tcpstream == 0 and ipsrc == '10.1.0.1' ") 
-        tcpstream1 = ds2.query("tcpstream == 0 and ipsrc == '10.1.0.1' ")
-        print("=== tcpseq ")
-        print(tcpstream0.tcpseq.head(10))
-        print("=== tcpseq ")
-        print(tcpstream1.tcpseq.head(10))
-        # print("========================================")
-        # print(tcpstream0)
-        # print("========================================")
-        # print(tcpstream1)
-        # res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-        res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-        print("========================================")
-        # print(res.dtypes)
-        print("nb of rtesults", len(res))
-        # ensuite je dois soustraire les paquets
-        # stop after first run
-        # we need .copy else we get
-        # A value is trying to be set on a copy of a slice from a DataFrame.
-# Try using .loc[row_indexer,col_indexer] = value instead
-
-# See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
-# if __name__ == '__main__':
-        # r2 = r[["tcpseq","abstime_x","abstime_y"]].copy()
-        # r2['diff'] = r2['abstime_y'] - r2['abstime_x']
-        # Need to create a new table that 
-# df3 = df1[['Lat1', 'Lon1']]
-# df3['tp1-tp2'] = df1.tp1 - df2.tp2
-        return 
+        return fig
