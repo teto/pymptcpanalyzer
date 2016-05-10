@@ -348,7 +348,9 @@ class MpTcpReceiver:
             self.subflows.update( {sf["id"]: sf})
 
     def outstanding(self):
-        return map(self.subflows
+        raise Exception("TODO")
+        # return map(self.subflows)
+        pass
 
     def available_window(self):
         ooo = 0

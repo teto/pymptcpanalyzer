@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 # sadly, pandas ~ 0.18 does not support NA for np.int64 types and this files is full of NAs
 # hence we cast all fields to floats :'(
 # https://github.com/pydata/pandas/issues/2631
-attributes = {
+ns3_attributes = {
         "Time" : ("time (ns)", pd.datetime),
         "txNext" : ("{type} Tx Next", np.float64),
         "highestSeq" : ("{type} Highest seq", np.float64),
@@ -58,18 +58,15 @@ def gen_configs(with_meta: bool, gen_conf: Callable[[str], list]) -> list:
   return configs
 
 
-# slow start plot
-ss_plots = [
-
-]
-
-
 class PlotTraceSources(plot.Matplotlib):
     def default_parser(self):
         parser = super().default_parser(mptcpstream=False)
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("node", help="Choose node to filter from")
-        parser.add_argument("attribute", choices=attributes, action="append", help="Choose client or server folder")
+        parser.add_argument("attributes", choices=ns3_attributes, 
+                # dest="attributes", 
+                action="append",
+                help="Choose client or server folder")
         # parser.add_argument("--node", "-n", dest="nodes", action="append", default=[0], help="Plot subflows along")
 #type=int, 
         parser.add_argument("--meta", "-m", action="store_true", default=False, help="Plot meta along")
@@ -82,11 +79,11 @@ class PlotTraceSources(plot.Matplotlib):
 
         """
         node = args.node
-        attribute = args.attribute
+        attributes = args.attributes
         with_meta = args.meta
         with_subflows = args.subflows
 
-        log.info("Plotting attribute [%s]" % attribute)
+        log.info("Plotting attribute [%s]" % attributes)
         fig = plt.figure (figsize=(8,8))
         ax = fig.gca()
         legends = []
@@ -111,7 +108,7 @@ class PlotTraceSources(plot.Matplotlib):
             node = str(node),
             meta= "_meta" if args.meta else "",
             subflows= "_subflows" if args.subflows else "",
-            attr=args.attribute,
+            attr='_'.join(attributes),
             )
 
         log.info("Output set to %s" % output)
@@ -126,20 +123,18 @@ class PlotTraceSources(plot.Matplotlib):
 
             for filename in matches:
                 print(filename)
-                dtypes= core.get_dtypes( attributes)
+                dtypes= core.get_dtypes( ns3_attributes)
                 print(dtypes)
                 d = pd.read_csv(filename , index_col="Time", dtype=dtypes)
                 # d.index = pd.to_timedelta(d.index)
                 # print(d.index)
-                print( "prefix name=", attributes[attribute][0] )
-                # TODO filter na
-                dat = d[attribute].dropna()
-                # print(dat)
-# TODO augmenter la police
-                ax = dat.plot.line(ax=ax, grid=True, lw=3)
-# ax = d2["newUnackSequence"].plot.line(ax=ax)
-            # TODO retrieve legend from attributes + type
-                legends.append( attributes[attribute][0].format(type=name))
+                for attribute in attributes:
+                    print( "prefix name=", ns3_attributes[attribute][0] )
+                    dat = d[attribute].dropna()
+                    # print(dat)
+                    ax = dat.plot.line(ax=ax, grid=True, lw=3)
+                    # TODO retrieve legend from attributes + type
+                    legends.append( ns3_attributes[attribute][0].format(type=name))
 
         plt.legend(legends)
         log.info("Saving figure to %s" % output)

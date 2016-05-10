@@ -1,4 +1,5 @@
 from unittest import TestCase
+import unittest
 
 from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
@@ -35,11 +36,12 @@ class IntegrationTest(TestCase):
         cfg = MpTcpAnalyzerConfig("tests/test_config.ini")
         self.assertEqual(cfg["DEFAULT"]["tshark_binary"], "fake_tshark")
 
+    @unittest.skip("Not sure pcap are valid yet")
     def test_mapping(self):
         # expects 2 datasets
         # load from csv
-        ds1 = core.load_into_pandas("")
-        ds2 = core.load_into_pandas("")
+        ds1 = self.m.load_into_pandas("examples/node0.pcap")
+        ds2 = self.m.load_into_pandas("examples/node1.pcap")
         ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
                 
         ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
