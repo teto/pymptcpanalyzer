@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
 
 Presentation 
 ===

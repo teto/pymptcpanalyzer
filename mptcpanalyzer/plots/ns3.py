@@ -6,8 +6,8 @@ import mptcpanalyzer.core as core
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
-import os
 import argparse
+import numpy as np
 
 import collections
 import glob
@@ -17,19 +17,21 @@ from typing import Callable
 
 log = logging.getLogger(__name__)
 
-
+# sadly, pandas ~ 0.18 does not support NA for np.int64 types and this files is full of NAs
+# hence we cast all fields to floats :'(
+# https://github.com/pydata/pandas/issues/2631
 attributes = {
         "Time" : ("time (ns)", pd.datetime),
-        "txNext" : ("{type} Tx Next", np.int64),
-        "highestSeq" : ("{type} Highest seq", np.int64),
-        "unackSeq" : ("{type} SND.UNA", np.int64),
-        "rxNext": ("", np.int64),
-        "rxAvailable": ("", np.int64),
-        "rxTotal" : (" rxtotal", np.int64),
-        "cwnd": ("{type} cwnd", np.int64),
-        "rWnd": ("RWnd", np.int64),
-        "ssThresh": ("{type} SS Thresh", np.int64),
-        "state": ("State", np.int64),
+        "txNext" : ("{type} Tx Next", np.float64),
+        "highestSeq" : ("{type} Highest seq", np.float64),
+        "unackSeq" : ("{type} SND.UNA", np.float64),
+        "rxNext": ("", np.float64),
+        "rxAvailable": ("", np.float64),
+        "rxTotal" : (" rxtotal", np.float64),
+        "cwnd": ("{type} cwnd", np.float64),
+        "rWnd": ("RWnd", np.float64),
+        "ssThresh": ("{type} SS Thresh", np.float64),
+        "state": ("State", str),
         }
 
 prefixes = [
@@ -66,10 +68,10 @@ class PlotTraceSources(plot.Matplotlib):
     def default_parser(self):
         parser = super().default_parser(mptcpstream=False)
         parser.add_argument("folder", help="Choose client or server folder")
-        parser.add_argument("attribute", choices=attributes, help="Choose client or server folder")
+        parser.add_argument("node", help="Choose node to filter from")
+        parser.add_argument("attribute", choices=attributes, action="append", help="Choose client or server folder")
         # parser.add_argument("--node", "-n", dest="nodes", action="append", default=[0], help="Plot subflows along")
 #type=int, 
-        parser.add_argument("node", help="Choose node to filter from")
         parser.add_argument("--meta", "-m", action="store_true", default=False, help="Plot meta along")
         parser.add_argument("--subflows", "-s", action="store_true", default=False, help="Plot subflows along")
         return parser
@@ -124,11 +126,12 @@ class PlotTraceSources(plot.Matplotlib):
 
             for filename in matches:
                 print(filename)
-                d = pd.read_csv(filename , index_col="Time", dtypes={
-                    })
-                d.index = pd.to_timedelta(d.index)
+                dtypes= core.get_dtypes( attributes)
+                print(dtypes)
+                d = pd.read_csv(filename , index_col="Time", dtype=dtypes)
+                # d.index = pd.to_timedelta(d.index)
                 # print(d.index)
-                print( "prefix name=", attributes[attribute] )
+                print( "prefix name=", attributes[attribute][0] )
                 # TODO filter na
                 dat = d[attribute].dropna()
                 # print(dat)
@@ -136,7 +139,7 @@ class PlotTraceSources(plot.Matplotlib):
                 ax = dat.plot.line(ax=ax, grid=True, lw=3)
 # ax = d2["newUnackSequence"].plot.line(ax=ax)
             # TODO retrieve legend from attributes + type
-                legends.append( attributes[attribute].format(type=name))
+                legends.append( attributes[attribute][0].format(type=name))
 
         plt.legend(legends)
         log.info("Saving figure to %s" % output)
