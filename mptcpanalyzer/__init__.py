@@ -32,9 +32,26 @@ logger.setLevel(logging.CRITICAL)
 from collections import namedtuple
 
 MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
+Field = namedtuple('Field', ['fullname', 'name', 'type', 'plottable' ])
+
+
+def fields_v2():
+    l = [
+            Field("frame.number", "packetid", None, False),
+            Field("frame.time_relative", "reltime", None, False),
+            Field("frame.time_delta", "time_delta", None, False),
+            # Field("frame.time_delta", "time_delta", None, False),
+
+            Field("mptcp.dsn", "dsn", None, True),
+            # "mptcp.rawdsn64":        "dsnraw64",
+            # "mptcp.ack":        "dack",
+        ]
+    return l
 
 def get_default_fields():
     """
+    TODO should accept filters :)
+
     Mapping between short names easy to use as a column title (in a CSV file) 
     and the wireshark field name
     There are some specific fields that require to use -o instead, 
@@ -45,6 +62,7 @@ def get_default_fields():
 
 ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
 """
+
     return {
             "frame.number":        ("packetid",),
             # reestablish once format is changed (see options)

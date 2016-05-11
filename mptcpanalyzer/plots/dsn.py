@@ -6,6 +6,7 @@ import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import os
+from mptcpanalyzer import fields_v2
 
 log = logging.getLogger("mptcpanalyzer")
 
@@ -163,12 +164,25 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 # my_handler = HandlerLine2D(numpoints=1)
 # legend(handler_map={Line2D:my_handler})
 class PerSubflowTimeVsDsn(plot.Matplotlib):
+    """
 
-    def __init__(self, ):
-        super().__init__("Data Sequence Number over Time")
+    """
+    mptcp_attributes = map(lambda x: x.name if x.plottable, fields_v2())
+            # [
+            #     "dsn",
+            #     "dss_ssn"
+            # ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print (self.mptcp_attributes)
+        # self.field = field
 
     def  default_parser(self, *args, **kwargs):
-        return super().default_parser(mptcpstream=True)
+        parser = super().default_parser(mptcpstream=True)
+        #default=["dsn",  
+        parser.add_argument('attribute', choices=self.mptcp_attributes, nargs="+", help="")
+        return parser
 
     """
     TODO should be able to set the direction

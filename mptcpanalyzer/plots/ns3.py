@@ -122,7 +122,7 @@ class PlotTraceSources(plot.Matplotlib):
             if matches is None:
                 raise Exception("No meta file found")
 
-            for filename in matches:
+            for idx, filename in enumerate(matches):
                 print(filename)
                 dtypes= core.get_dtypes( ns3_attributes)
                 print(dtypes)
@@ -132,8 +132,19 @@ class PlotTraceSources(plot.Matplotlib):
                 for attribute in attributes:
                     print( "prefix name=", ns3_attributes[attribute][0] )
                     dat = d[attribute].dropna()
+                    print("len before dropping head", len(dat))
+
+                    # HACK to have nice plots else some initial parameters are set to 0 via ns3
+                    # and mess up the plot scale
+                    # dat.drop(dat.head(1).index, inplace=True)
+                    print("len after dropping head", len(dat))
                     # print(dat)
-                    axes = dat.plot.line(ax=axes, grid=True, lw=3)
+                    axes = dat.plot.line(
+                            ax=axes, grid=True, 
+                            lw=1,
+                            # label=ns3_attributes[attribute][0].format(type=name),
+                            # index=pd.date_range('1/1/2000', periods=1000)
+                            )
                     # dat.plot.line(ax=ax, grid=True, lw=3)
                     # TODO retrieve legend from attributes + type
                     legends.append( ns3_attributes[attribute][0].format(type=name))
