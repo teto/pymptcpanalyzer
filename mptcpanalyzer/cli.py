@@ -16,6 +16,7 @@ import sys
 import argparse
 import logging
 import os
+import subprocess
 # import glob
 from mptcpanalyzer.plot import Plot
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
@@ -39,9 +40,12 @@ log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 
 # "mptcpanalyzer"
-log = logging.getLogger(__name__)
+log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
+
+
+print ( "log ", __name__)
 
 # subparsers that need an mptcp_stream should inherit this parser
 stream_parser = argparse.ArgumentParser(
@@ -509,10 +513,13 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         try:
             # TODO passer les unknown
+
+            # log.debug("before shlex magic ", args)
             args = shlex.split(args)
+            # log.debug("before parsing %s"% args)
             args, unknown = parser.parse_known_args(args)
-            print(args)
-# TODO fix
+            # log.debug("args=", args)
+            # log.debug("unknown="% unknown)
             plotter = self.plot_mgr[args.plot_type].obj
             success = plotter.plot(self, args)
 
@@ -616,7 +623,7 @@ def cli():
     # log.info(" %s " % (args.input_file))
 
     # if I load from todo rename
-    input = None
+    # input = None
     try:
 
         # if args.batch:
@@ -638,8 +645,12 @@ def cli():
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
         if unknown_args:
-            log.info("One-shot command: %s" % unknown_args)
-            analyzer.onecmd(' '.join(unknown_args))
+            log.info("One-shot command with unknown_args=  %s" % unknown_args)
+
+            # undocumented function so it  might disappear 
+            # http://stackoverflow.com/questions/12130163/how-to-get-resulting-subprocess-command-string
+            # but just doing "analyzer.onecmd(' '.join(unknown_args))" is not enough
+            analyzer.onecmd(subprocess.list2cmdline(unknown_args))
         else:
             log.info("Interactive mode")
             analyzer.cmdloop()

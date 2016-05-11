@@ -163,11 +163,19 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 # my_handler = HandlerLine2D(numpoints=1)
 # legend(handler_map={Line2D:my_handler})
 class PerSubflowTimeVsDsn(plot.Matplotlib):
+
+    def __init__(self, ):
+        super().__init__("Data Sequence Number over Time")
+
+    def  default_parser(self, *args, **kwargs):
+        return super().default_parser(mptcpstream=True)
+
     """
     TODO should be able to set the direction
     """
-    def _generate_plot(self, data, args):
+    def _generate_plot(self, main, args):
 
+        data = main.data
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
@@ -176,16 +184,18 @@ class PerSubflowTimeVsDsn(plot.Matplotlib):
         fig = plt.figure()
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
+        log.info("%d streams in the MPTCP flow" % len(tcpstreams))
         # TODO field should be DSN
         # field = "dsn"
         # field = "dss_dsn"
         field = "dss_ssn"
+
+        # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
         # df.plot(kind='line') is equivalent to df.plot.line() since panda 0.17
         # should return axes : matplotlib.AxesSubplot
         # returns a panda.Series for a line :s
         pplot = tcpstreams[field].plot.line(
-            # gca = get current axes (Axes), create one if necessary
             ax=axes,
             # use_index=False,
             legend=True,

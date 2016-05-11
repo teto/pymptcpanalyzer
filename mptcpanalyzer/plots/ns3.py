@@ -25,9 +25,9 @@ ns3_attributes = {
         "txNext" : ("{type} Tx Next", np.float64),
         "highestSeq" : ("{type} Highest seq", np.float64),
         "unackSeq" : ("{type} SND.UNA", np.float64),
-        "rxNext": ("", np.float64),
-        "rxAvailable": ("", np.float64),
-        "rxTotal" : (" rxtotal", np.float64),
+        "rxNext": ("RxNext", np.float64),
+        "rxAvailable": ("{type} Rx Available", np.float64),
+        "rxTotal" : ("{type} rxtotal", np.float64),
         "cwnd": ("{type} cwnd", np.float64),
         "rWnd": ("RWnd", np.float64),
         "ssThresh": ("{type} SS Thresh", np.float64),
@@ -59,13 +59,14 @@ def gen_configs(with_meta: bool, gen_conf: Callable[[str], list]) -> list:
 
 
 class PlotTraceSources(plot.Matplotlib):
+
     def default_parser(self):
         parser = super().default_parser(mptcpstream=False)
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("node", help="Choose node to filter from")
         parser.add_argument("attributes", choices=ns3_attributes, 
                 # dest="attributes", 
-                action="append",
+                nargs="+",
                 help="Choose client or server folder")
         # parser.add_argument("--node", "-n", dest="nodes", action="append", default=[0], help="Plot subflows along")
 #type=int, 
@@ -84,8 +85,6 @@ class PlotTraceSources(plot.Matplotlib):
         with_subflows = args.subflows
 
         log.info("Plotting attribute [%s]" % attributes)
-        fig = plt.figure (figsize=(8,8))
-        ax = fig.gca()
         legends = []
         configs = []
 
@@ -114,6 +113,8 @@ class PlotTraceSources(plot.Matplotlib):
         log.info("Output set to %s" % output)
 
              
+        fig = plt.figure (figsize=(8,8))
+        axes = fig.gca()
 
         for pattern, name in configs:
 
@@ -132,12 +133,13 @@ class PlotTraceSources(plot.Matplotlib):
                     print( "prefix name=", ns3_attributes[attribute][0] )
                     dat = d[attribute].dropna()
                     # print(dat)
-                    ax = dat.plot.line(ax=ax, grid=True, lw=3)
+                    axes = dat.plot.line(ax=axes, grid=True, lw=3)
+                    # dat.plot.line(ax=ax, grid=True, lw=3)
                     # TODO retrieve legend from attributes + type
                     legends.append( ns3_attributes[attribute][0].format(type=name))
 
         plt.legend(legends)
-        log.info("Saving figure to %s" % output)
+        # log.info("Saving figure to %s" % output)
         fig.savefig(output)
         return fig
 

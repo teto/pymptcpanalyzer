@@ -1,4 +1,17 @@
 import json
+import subprocess
+
+
+
+# most liekly would be best into a "utils.py":
+def copy_to_x(content):
+    """
+    Copy to *clipboard*
+    http://stackoverflow.com/questions/7606062/is-there-a-way-to-directly-send-a-python-output-to-clipboard
+    """
+    from subprocess import Popen, PIPE
+    p = Popen(['xsel','-pi'], stdin=PIPE)
+    p.communicate(input=content)
 
 def get_dtypes(d):
     """

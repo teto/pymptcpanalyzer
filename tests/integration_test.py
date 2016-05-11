@@ -4,9 +4,10 @@ import unittest
 from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import mptcpanalyzer.data as core
+from stevedore import extension
 
-
-
+# https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
+# TODO use make_test_instance and pass directly instances 
 
 class IntegrationTest(TestCase):
     """

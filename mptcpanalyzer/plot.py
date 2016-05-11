@@ -59,11 +59,14 @@ class Plot:
     https://github.com/pymain/pandas/issues/11440
     """
 
-    # def __init__(self, accept_preload : bool, filter_destination):
-    #     """
-    #     TODO pass a boolean to know if main.data should be preloaded or not
-    #     """
-    #     self.accept_preload = accept_preload
+    def __init__(self, title : str = None, *args, **kwargs):
+        #accept_preload : bool, filter_destination):
+        """
+        TODO pass a boolean to know if main.data should be preloaded or not
+        """
+        print("title", title)
+        self.title = title
+        # self.accept_preload = accept_preload
 
     # @staticmethod
     def default_parser(self, mptcpstream: bool = False):
@@ -77,6 +80,8 @@ class Plot:
 #nargs="?", 
         parser.add_argument('-o', '--out', action="store", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
+        parser.add_argument('--title', action="store", help='Override plot title')
+        parser.add_argument('--primary', action="store_true", help="Copy to X clipboard, require xsel installed")
 # TODO move to matplotlib
         return parser
 
@@ -93,6 +98,8 @@ class Plot:
     @abc.abstractmethod
     def _generate_plot(self, main, args, **kwargs):
         pass
+
+
 
 #display : bool, savefig : bool, *
     def plot(self, main, args, **kwargs):
@@ -139,9 +146,18 @@ class Plot:
 
 class Matplotlib(Plot):
 
+    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args,**kwargs)
-        parser.add_argument('--style', dest="styles", action="append", default=[], help='List matplotlib styles')
+        parser = super().default_parser(*args, **kwargs)
+        parser.add_argument('--style', dest="styles", action="append", default=[],
+                help=("List matplotlib styles, you can specify several styles via several --style items."
+                      "The style should be either an absolute path or the name of a style in "
+                      "$XDG_CONFIG_HOME/matplotlib/stylelib")
+                )
         return parser
 
     def plot(self, main, args, **kwargs):
@@ -153,8 +169,14 @@ class Matplotlib(Plot):
         matplotlib.pyplot.style.use(args.styles)
         fig = self._generate_plot(main, args, **kwargs)
 
+        self.title = args.title if args.title else self.title
+        if self.title:
+            fig.suptitle(self.title,  fontsize=12)
+
         if args.out:
-            self.savefig(fig,args.out)
+            self.savefig(fig, args.out)
+            if args.primary:
+                core.copy_to_x(args.out)
 
         if args.display:
             # TODO show it from fig
