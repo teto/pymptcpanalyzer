@@ -4,11 +4,11 @@ import unittest
 from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import mptcpanalyzer.data as core
-from stevedore import extension
+import mptcpanalyzer.plots as plots
+from stevedore.extension import Extension
 
 # https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
 # TODO use make_test_instance and pass directly instances 
-
 class IntegrationTest(TestCase):
     """
     Few reminders :
@@ -19,6 +19,7 @@ class IntegrationTest(TestCase):
         config = MpTcpAnalyzerConfig()
 
         self.m = MpTcpAnalyzer (config)
+        self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
         # self.assertTrue
 
     def test_oneshot(self):
@@ -65,11 +66,27 @@ class IntegrationTest(TestCase):
         self.m.do_lc("0")
         self.m.do_lc("-1")
 
-    def test_list_plots(self):
+    def test_list_plots_misc(self):
+#http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
+# plugin, obj
+        self.m.plot_mgr.make_test_instance(
+                [ Extension("misc", "mptcpanalyzer.plots.dsn:PerSubflowTimeVsX",
+                    
+# pkg_resources.
+# entry_points.load
+                    None
+                    , 
+                    mptcpanalyzer.plots.dsn.PerSubflowTimeVsX()
+                    )]
+                )
         plot_names = self.m._list_available_plots()
-        self.assertIn("dsn", plot_names)
+        self.assertIn("misc", plot_names)
         # self.assertIn("", plot_names)
-        pass
+
+    def test_list_plots_2(self):
+        plot_names = self.m._list_available_plots()
+        # self.assertIn("misc", plot_names)
+        # self.assertIn("", plot_names)
 
     def test_generate_plots(self):
         self.m.do_load("examples/iperf-mptcp-0-0.pcap")

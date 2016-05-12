@@ -24,6 +24,7 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as core
+import stevedore
 # import mptcpanalyzer.config
 # import config
 import pandas as pd
@@ -94,6 +95,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         Press ? to get help
         """
     # ruler = "="
+    def stevedore_error_handler(manager, entrypoint, exception):
+        print ("Error while loading entrypoint %s" % entrypoint)
 
     def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin): 
         """
@@ -123,11 +126,12 @@ class MpTcpAnalyzer(cmd.Cmd):
             invoke_on_load=True,
             verify_requirements=True,
             invoke_args=(),
+            propagate_map_exceptions=False,
+            on_load_failure_callback=self.stevedore_error_handler
             )
-
         # TODO we should catch stevedore.exception.NoMatches
         
-        def _inject_cmd(ext,data):
+        def _inject_cmd(ext, data):
             print(ext.name)
             for prefix in ["do", "help", "complete"]:
                 method_name = prefix + "_" + ext.name
@@ -141,7 +145,11 @@ class MpTcpAnalyzer(cmd.Cmd):
                     log.debug("Plugin does not provide %s" % method_name)
             # setattr(MpTcpAnalyzer, 'help_stats', _test_help)
 
-        results = self.cmd_mgr.map(_inject_cmd, self)
+        # there is also map_method available
+        try:
+            results = self.cmd_mgr.map(_inject_cmd, self)
+        except stevedore.exception.NoMatches as e:
+            print("No matches")
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
@@ -382,13 +390,13 @@ class MpTcpAnalyzer(cmd.Cmd):
             names.append (ext.name) 
         
         names = []
-        self.plot_mgr.map(_get_names, names)
-        def _get_names(ext, names: list):
-            names.append (ext.name) 
+        # self.plot_mgr.map(_get_names, names)
+        # def _get_names(ext, names: list):
+        #     names.append (ext.name) 
         
-        names = []
-        self.plot_mgr.map(_get_names, names)
-        return names
+        # self.plot_mgr.map(_get_names, names)
+        # return names
+        return self.plot_mgr.names()
 
 # TODO rename look intocache ?
     def get_matching_csv_filename(self, filename, regen : bool= False):
