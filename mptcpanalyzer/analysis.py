@@ -265,10 +265,22 @@ class MpTcpSender:
         self.subflows = {}
         for sf in config["subflows"]:
             # print("test", sf)
-            self.subflows.update( {sf["id"]: MpTcpSubflow( **sf)} )
+            self.subflows.update( {sf["name"]: MpTcpSubflow( **sf)} )
         # sort them by subflow
         # sp.Symbol()
     
+
+    def outstanding(self):
+        outstanding = 0
+        for sf in self.subflows:
+            if sf.busy == True:
+                outstanding += sf.cwnd
+        return outstanding
+
+    def available_window(self):
+        min(self.snd_buf_max, self.rcv_wnd)
+        return self.rcv_wnd - outstanding
+
     # def generate_pkt(self, sf_id):
     #     """
     #     TODO removed in favor of MpTcpSubflow function
@@ -339,23 +351,21 @@ class MpTcpReceiver:
         # self.j["receiver"]["rcv_buffer"]
         # rcv_left, rcv_wnd, rcv_max_wnd = sp.symbols("dsn_{rcv} w_{rcv} w^{max}_{rcv}")
         self.subflows = {}
-        self.wnd = self.rcv_wnd_max
         self.rcv_wnd_max = sp.Symbol("W^{receiver}_{MAX}")
+        self.wnd = self.rcv_wnd_max
         self.rcv_next = 0
         # a list of tuples (headSeq, endSeq)
         self.out_of_order = []
         for sf in config["subflows"]:
-            self.subflows.update( {sf["id"]: sf})
-
-    def outstanding(self):
-        return map(self.subflows
+            self.subflows.update( {sf["name"]: sf})
 
     def available_window(self):
         ooo = 0
-        for block in out_of_order:
+        for block in self.out_of_order:
             ooo += block.size
 
-        return self.rcv_wnd_max - ooo - outstanding
+        return self.rcv_wnd_max - ooo 
+    #- outstanding
 
     def left_edge(self):
         return self.rcv_next
