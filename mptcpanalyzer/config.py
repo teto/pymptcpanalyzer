@@ -24,7 +24,10 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
 
         # ensure defaults for mandatory parameters
         self.read_dict({
-            "DEFAULT": { "tshark_binary": "tshark"}
+            "DEFAULT": { 
+                "tshark_binary": "tshark",
+                "delimiter": "|"
+                }
             })
 
         if not filename:

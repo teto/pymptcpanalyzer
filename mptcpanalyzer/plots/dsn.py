@@ -6,6 +6,7 @@ import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import os
+from mptcpanalyzer import fields_v2
 
 log = logging.getLogger("mptcpanalyzer")
 
@@ -118,6 +119,7 @@ class DsnInterArrivalTimes(plot.Matplotlib):
     """
     TODO rename into interDSN ?
     In case traffic is biderctional we must filter on one direction only
+    TODO this is wrong
     """
 
     def default_parser(self):
@@ -127,9 +129,9 @@ class DsnInterArrivalTimes(plot.Matplotlib):
                 help="list sender ips here to filter the dataset")
         return parser
 
-    def _generate_plot(self, data, args, **kwargs):
+    def _generate_plot(self, main, args, **kwargs):
         print("args", args)
-
+        data = main.data
         dat = self.filter_ds(data, mptcpstream=args.mptcpstream, ipsrc=args.sender_ips)
 
         # filter to only account for one direction (departure or arrival)
@@ -163,10 +165,31 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 # legend(handler_map={Line2D:my_handler})
 class PerSubflowTimeVsDsn(plot.Matplotlib):
     """
+
+    """
+    mptcp_attributes = map(lambda x: x.name if x.plottable, fields_v2())
+            # [
+            #     "dsn",
+            #     "dss_ssn"
+            # ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print (self.mptcp_attributes)
+        # self.field = field
+
+    def  default_parser(self, *args, **kwargs):
+        parser = super().default_parser(mptcpstream=True)
+        #default=["dsn",  
+        parser.add_argument('attribute', choices=self.mptcp_attributes, nargs="+", help="")
+        return parser
+
+    """
     TODO should be able to set the direction
     """
-    def _generate_plot(self, data, args):
+    def _generate_plot(self, main, args):
 
+        data = main.data
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
@@ -175,16 +198,18 @@ class PerSubflowTimeVsDsn(plot.Matplotlib):
         fig = plt.figure()
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
+        log.info("%d streams in the MPTCP flow" % len(tcpstreams))
         # TODO field should be DSN
         # field = "dsn"
         # field = "dss_dsn"
         field = "dss_ssn"
+
+        # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
         # df.plot(kind='line') is equivalent to df.plot.line() since panda 0.17
         # should return axes : matplotlib.AxesSubplot
         # returns a panda.Series for a line :s
         pplot = tcpstreams[field].plot.line(
-            # gca = get current axes (Axes), create one if necessary
             ax=axes,
             # use_index=False,
             legend=True,

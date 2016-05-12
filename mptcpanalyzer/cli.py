@@ -16,10 +16,13 @@ import sys
 import argparse
 import logging
 import os
+import subprocess
 # import glob
-from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.plot import Plot
+from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
+from mptcpanalyzer import get_default_fields, __default_fields__
+from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as core
 # import mptcpanalyzer.config
 # import config
@@ -36,9 +39,13 @@ log = logging.getLogger("stevedore")
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 
+# "mptcpanalyzer"
 log = logging.getLogger("mptcpanalyzer")
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
+
+
+print ( "log ", __name__)
 
 # subparsers that need an mptcp_stream should inherit this parser
 stream_parser = argparse.ArgumentParser(
@@ -50,88 +57,27 @@ stream_parser = argparse.ArgumentParser(
 stream_parser.add_argument(
     "mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
 
-#  tshark -T fields -e _ws.col.Source -r /mnt/ntfs/pcaps/demo.pcap
 
 
-def get_default_fields():
-    """
-    Mapping between short names easy to use as a column title (in a CSV file) 
-    and the wireshark field name
-    There are some specific fields that require to use -o instead, 
-    see tshark -G column-formats
-
-    CAREFUL: when setting the type to int, pandas will throw an error if there
-    are still NAs in the column. Relying on float64 permits to overcome this.
-
-ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
-"""
-    return {
-            "frame.number":        ("packetid",),
-            # reestablish once format is changed (see options)
-            # "time": "frame.time",
-            "frame.time_relative":        "reltime",
-            "frame.time_delta":        "time_delta",
-            # "frame.time":        "abstime",
-            "frame.time_epoch":        "abstime",
-            # "ipsrc": "_ws.col.Source",
-            # "ipdst": "_ws.col.Destination",
-            "_ws.col.ipsrc" : "ipsrc",
-            "_ws.col.ipdst" : "ipdst",
-            # "_ws.col.AbsTime": "abstime2",
-            # "_ws.col.DeltaTime": "deltatime",
-            # "ip.src":        "ipsrc",
-            # "ip.dst":        "ipdst",
-            "tcp.stream":        ("tcpstream", np.int64),
-            "mptcp.stream":        "mptcpstream",
-            "tcp.srcport":        "sport",
-            "tcp.dstport":        "dport",
-            # rawvalue is tcp.window_size_value
-            # tcp.window_size takes into account scaling factor !
-            "tcp.window_size":        "rwnd",
-            "tcp.options.mptcp.sendkey"        : "sendkey",
-            "tcp.options.mptcp.recvkey"        : "recvkey",
-            "tcp.options.mptcp.recvtok"        : "recvtok",
-            "tcp.options.mptcp.datafin.flag":        "datafin",
-            "tcp.options.mptcp.subtype":        ("subtype", np.float64),
-            "tcp.flags":        "tcpflags",
-            "tcp.options.mptcp.rawdataseqno":        "dss_dsn",
-            "tcp.options.mptcp.rawdataack":        "dss_rawack",
-            "tcp.options.mptcp.subflowseqno":        "dss_ssn",
-            "tcp.options.mptcp.datalvllen":        "dss_length",
-            "tcp.options.mptcp.addrid":        "addrid",
-            "mptcp.master":        "master",
-            # TODO add sthg related to mapping analysis ?
-            "tcp.seq":        ("tcpseq", np.float64),
-            "tcp.len":        ("tcplen", np.float64),
-            "mptcp.dsn":        "dsn",
-            "mptcp.rawdsn64":        "dsnraw64",
-            "mptcp.ack":        "dack",
-        }
     
-# decorator
 def is_loaded(f):
+    """
+    Decorator checking that dataset has correct columns
+    """
     def wrapped(self, *args):
         print("wrapped")
         if self.data is not None:
             print("self.data")
             print("args=%r" % args)
             return f(self, *args)
-        # def toto(*args):
         else:   
             print("Please load a file first")
-        # return lambda _: print("Please load a file first")
         return None
     return wrapped
 
 
-""" CSV delimiter """
-# TODO load from config
-delimiter = '|'
 
 
-from collections import namedtuple
-
-MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
 
 
 # class MpTcpSubflow:
@@ -142,18 +88,12 @@ MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
 #     def select_towards_host():
 
 class MpTcpAnalyzer(cmd.Cmd):
+    # TODO print version
     intro = """
         Welcome in mptcpanalyzer (http://github.com/lip6-mptcp/mptcpanalyzer)
         Press ? to get help
         """
-    ruler = "="
-    prompt = ">"
-    # config = None
-    plot_mgr = None
-    cmd_mgr = None
-    config = None
-    # pandas data
-    data = None 
+    # ruler = "="
 
     def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin): 
         """
@@ -162,6 +102,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # stdin ?
         self.prompt = "%s> " % "Ready"
         self.config = cfg
+        self.data = None
 
         ### LOAD PLOTS 
         ######################
@@ -403,24 +344,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         args = parser.parse_args(shlex.split(args))
 
         # print("Not implemented yet")
-        csv_filename = core.get_matching_csv_filename (args.input_file, args.regen)
+        csv_filename = self.get_matching_csv_filename (args.input_file, args.regen)
 
-        self.data = core.load_into_pandas(csv_filename)
+        self.data = self.load_into_pandas(args.input_file,)
         self.prompt = "%s> " % csv_filename
 
 
-
-    # @staticmethod
-
-
-    # def do_load_csv(self, args):
-        # """
-        # """
-        # # TODO run some check on the pcap to check if column names match
-        # print("Not implemented yet")
-        # csv_filename = args 
-        # print("Loading csv %s" % csv_filename)
-        # self.data = self._load_into_pandas(csv_filename)
 
     # TODO add a do_multiplot ?
     def do_plot(self, args):
@@ -461,6 +390,100 @@ class MpTcpAnalyzer(cmd.Cmd):
         self.plot_mgr.map(_get_names, names)
         return names
 
+# TODO rename look intocache ?
+    def get_matching_csv_filename(self, filename, regen : bool= False):
+        """
+        Accept either a .csv or a .pcap file 
+        Returns resulting csv filename
+        """
+        basename, ext = os.path.splitext(filename)
+        print("Basename=%s" % basename)
+        csv_filename = filename
+
+        if ext == ".csv":
+            pass
+        else:
+            print("%s format is not supported as is. Needs to be converted first" %
+                (filename))
+            csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
+            cache = os.path.isfile(csv_filename)
+            if cache:
+                log.info("A cache %s was found" % csv_filename)
+            # if matching csv does not exist yet or if generation forced
+            if not cache or regen:
+                log.info("Preparing to convert %s into %s" %
+                        (filename, csv_filename))
+
+                exporter = TsharkExporter(
+                        self.config["DEFAULT"]["tshark_binary"], 
+                        self.config["DEFAULT"]["delimiter"], 
+                    )
+                
+
+                retcode, stderr = exporter.export_to_csv(
+                        filename, csv_filename, 
+                        __default_fields__.keys(),
+                        tshark_filter="mptcp and not icmp"
+                )
+                print("exporter exited with code=", retcode)
+                if retcode:
+                    raise Exception(stderr)
+        return csv_filename
+
+    def load_into_pandas(self,input_file):
+        """
+        intput_file can be filename or fd
+        load csv mptpcp data into panda
+        """
+        # exporter
+        csv_filename = self.get_matching_csv_filename(input_file)
+
+        
+        # TODO move to core
+        def _get_dtypes(d):
+            ret = dict()
+            for key, val in d.items():
+                if isinstance(val, tuple) and len(val) > 1:
+                    ret.update( {key:val[1]})
+            return ret
+        dtypes = _get_dtypes(get_default_fields())
+        print("==dtypes", dtypes)
+        # TODO use nrows=20 to read only 20 first lines
+        # TODO use dtype parameters to enforce a type
+        log.debug ("Loading a csv file %s" % csv_filename)
+                        
+        data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"],) 
+        # data = pd.read_csv(csv_filename, sep=delimiter, engine="c", dtype=dtypes)
+        # print(data.dtypes)
+
+        def _get_wireshark_mptcpanalyzer_mappings(d):
+            def name(s):
+                return s[0] if isinstance(s, tuple) else s
+            # return map(name, d.values())
+            return dict( zip( d.keys(), map(name, d.values()) ) )
+            # return dict((v,a) for k,a,*v in a.iteritems())
+
+        # print("== tata", dict(get_default_fields()))
+        toto = _get_wireshark_mptcpanalyzer_mappings( get_default_fields() )
+        # print("== toto", toto)
+
+        data.rename (inplace=True, columns=toto)
+
+        data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
+        data.tcpflags.apply(lambda x: int(x,16), )
+        # print(data.dtypes)
+        # todo let wireshark write raw values and rename columns here
+        # along with dtype
+        # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
+        columns = list(data.columns)
+        print("==column names:", columns)
+        # for field in mandatory_fields:
+        #     if field not in columns:
+        #         raise Exception(
+        #             "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
+        print("== before returns\n", data.dtypes)
+        return data
+
     def plot_mptcpstream(self, args):
         """
         global member used by others do_plot members *
@@ -490,12 +513,15 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         try:
             # TODO passer les unknown
+
+            # log.debug("before shlex magic ", args)
             args = shlex.split(args)
+            # log.debug("before parsing %s"% args)
             args, unknown = parser.parse_known_args(args)
-            print(args)
-# TODO fix
+            # log.debug("args=", args)
+            # log.debug("unknown="% unknown)
             plotter = self.plot_mgr[args.plot_type].obj
-            success = plotter.plot(self.data, args)
+            success = plotter.plot(self, args)
 
         except SystemExit as e:
             # e is the error code to call sys.exit() with
@@ -565,12 +591,17 @@ def cli():
         description='Generate MPTCP stats & plots'
     )
     #  todo make it optional
-    parser.add_argument("input_file", action="store", nargs="?",
+    parser.add_argument(
+            "--load","-l", dest="input_file", 
+            # type=argparse
+            # "input_file",  nargs="?", 
+            # action="store", default=None,
             help="Either a pcap or a csv file (in good format)."
             "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
             "If it can't find one (or with the flag --regen), it will generate a "
             "csv from the pcap with the external tshark program."
             )
+    parser.add_argument('--version', action='version', version="%s" % (__version__))
     parser.add_argument("--config", "-c", action="store",
             help="Path towards the config file (use $XDG_CONFIG_HOME/mptcpanalyzer/config by default)")
     parser.add_argument("--debug", "-d", action="store_true",
@@ -591,12 +622,14 @@ def cli():
     print("Config", cfg)
     # log.info(" %s " % (args.input_file))
 
-    # if I load from
-    input = None
+    # if I load from todo rename
+    # input = None
     try:
 
         # if args.batch:
             # input = open(args.batch, 'rt')
+        print("input=", args.input_file)
+        print("unknown=", unknown_args)
 
         # stdin=input
         # Disable rawinput module use
@@ -607,15 +640,17 @@ def cli():
         analyzer = MpTcpAnalyzer(cfg, )
 #         # TODO convert that into load
         if args.input_file:
-            analyzer.do_load(args.input_file + " " + "--regen" if str(args.regen) else "")
-            # csv_filename = analyzer._get_matching_csv_filename(args.input_file, args.regen)
-            # analyzer.do_load_csv(csv_filename)
+            analyzer.do_load (args.input_file + " " + "--regen" if str(args.regen) else "")
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
         if unknown_args:
-            log.info("One-shot command: %s" % unknown_args)
-            analyzer.onecmd(' '.join(unknown_args))
+            log.info("One-shot command with unknown_args=  %s" % unknown_args)
+
+            # undocumented function so it  might disappear 
+            # http://stackoverflow.com/questions/12130163/how-to-get-resulting-subprocess-command-string
+            # but just doing "analyzer.onecmd(' '.join(unknown_args))" is not enough
+            analyzer.onecmd(subprocess.list2cmdline(unknown_args))
         else:
             log.info("Interactive mode")
             analyzer.cmdloop()

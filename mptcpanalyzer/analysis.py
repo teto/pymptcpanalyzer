@@ -358,6 +358,12 @@ class MpTcpReceiver:
         self.out_of_order = []
         for sf in config["subflows"]:
             self.subflows.update( {sf["name"]: sf})
+            self.subflows.update( {sf["id"]: sf})
+
+    def outstanding(self):
+        raise Exception("TODO")
+        # return map(self.subflows)
+        pass
 
     def available_window(self):
         ooo = 0

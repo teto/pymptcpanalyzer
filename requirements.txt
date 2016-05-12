@@ -1,0 +1,6 @@
+stevedore
+matplotlib
+pandas>=0.17.1
+# those dependancies might made optional later or the package split into two
+sympy
+sortedcontainers

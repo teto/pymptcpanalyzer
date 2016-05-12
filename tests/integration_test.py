@@ -1,11 +1,13 @@
 from unittest import TestCase
+import unittest
 
 from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import mptcpanalyzer.data as core
+from stevedore import extension
 
-
-
+# https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
+# TODO use make_test_instance and pass directly instances 
 
 class IntegrationTest(TestCase):
     """
@@ -35,11 +37,12 @@ class IntegrationTest(TestCase):
         cfg = MpTcpAnalyzerConfig("tests/test_config.ini")
         self.assertEqual(cfg["DEFAULT"]["tshark_binary"], "fake_tshark")
 
+    @unittest.skip("Not sure pcap are valid yet")
     def test_mapping(self):
         # expects 2 datasets
         # load from csv
-        ds1 = core.load_into_pandas("")
-        ds2 = core.load_into_pandas("")
+        ds1 = self.m.load_into_pandas("examples/node0.pcap")
+        ds2 = self.m.load_into_pandas("examples/node1.pcap")
         ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
                 
         ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
@@ -76,6 +79,9 @@ class IntegrationTest(TestCase):
 
         # TODO 
 
+    def test_generate_plot_ns3(self):
+
+        self.m.do_plot("plot ns3 --meta examples/ cwnd 0")
     # def test_plot_dsn(self):
     #     self.m.do_plot("plot dsn 0")
 
