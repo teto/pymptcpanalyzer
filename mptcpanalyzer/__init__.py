@@ -41,10 +41,36 @@ def fields_v2():
             Field("frame.time_relative", "reltime", None, False),
             Field("frame.time_delta", "time_delta", None, False),
             # Field("frame.time_delta", "time_delta", None, False),
+            Field("_ws.col.ipsrc", "ipsrc", None, False),
+            Field("_ws.col.ipdst", "ipdst", None, False),
 
             Field("mptcp.dsn", "dsn", None, True),
             # "mptcp.rawdsn64":        "dsnraw64",
             # "mptcp.ack":        "dack",
+            Field("tcp.stream", "tcpstream", np.int64, True),
+            Field("mptcp.stream", "mptcpstream", None, False),
+            Field("tcp.srcport", "sport", None, False),
+            Field("tcp.dstport", "dport", None, False),
+            # rawvalue is tcp.window_size_value
+            # tcp.window_size takes into account scaling factor !
+            Field("tcp.window_size", "rwnd", None, True),
+            Field("tcp.options.mptcp.sendkey", "sendkey", None, False),
+            Field("tcp.options.mptcp.recvkey", "recvkey", None, True),
+            Field("tcp.options.mptcp.recvtok", "recvtok", None, False),
+            Field("tcp.options.mptcp.datafin.flag", "datafin", None, False),
+            Field("tcp.options.mptcp.subtype", "subtype", np.float64, False),
+            Field("tcp.flags", "tcpflags", None, False),
+            Field("tcp.options.mptcp.rawdataseqno", "dss_dsn", None, True),
+            Field("tcp.options.mptcp.rawdataack", "dss_rawack",None, True),
+            Field("tcp.options.mptcp.subflowseqno", "dss_ssn", None, True),
+            Field("tcp.options.mptcp.datalvllen", "dss_length",None, True),
+            Field("tcp.options.mptcp.addrid", "addrid", None, False),
+            Field("mptcp.master", "master", None, True),
+            Field("tcp.seq", "tcpseq", np.float64, True),
+            Field("tcp.len", "tcplen", np.float64, True),
+            Field("mptcp.dsn", "dsn", None, True),
+            Field("mptcp.rawdsn64", "dsnraw64", None, True),
+            Field("mptcp.ack", "dack", None, True),
         ]
     return l
 

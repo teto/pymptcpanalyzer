@@ -47,8 +47,8 @@ class TestCommand(Command):
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
 
-
-ver_path = convert_path('mymodule/version.py')
+main_ns={}
+ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
@@ -93,12 +93,13 @@ setup(name="mptcpanalyzer",
           ],
         # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
           'mptcpanalyzer.plots': [
-              'dsn = mptcpanalyzer.plots.dsn:PerSubflowTimeVsDsn',
-              'interdeparture = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
-              'interarrival = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
+              'misc = mptcpanalyzer.plots.dsn:PerSubflowTimeVsX',
+              # 'interdeparture = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
+              'interarrival = mptcpanalyzer.plots.dsn:InterArrivalTimes',
               'xinterarrival = mptcpanalyzer.plots.dsn:CrossSubflowInterArrival',
-              'ack = mptcpanalyzer.plots.dsn:AckInterArrivalTimes',
               'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
+              'dss_len = mptcpanalyzer.plots.dsn:DssLengthHistogram',
+              'dss = mptcpanalyzer.plots.dsn:DSSOverTime',
               'owd = mptcpanalyzer.plots.owd:OneWayDelay',
               'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
               ],

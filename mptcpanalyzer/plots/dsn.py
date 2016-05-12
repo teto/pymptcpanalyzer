@@ -10,44 +10,47 @@ from mptcpanalyzer import fields_v2
 
 log = logging.getLogger("mptcpanalyzer")
 
-class AckInterArrivalTimes(plot.Matplotlib):
+# class AckInterArrivalTimes(plot.Matplotlib):
 
-    """
-    TODO rename into interDSN ?
-    In case traffic is biderctional we must filter on one direction only
-    """
+#     """
+#     TODO rename into interDSN ?
+#     In case traffic is biderctional we must filter on one direction only
+#     """
 
-    def _generate_plot(self, data, args):
-        # print("data=", data) 
-        print("args", args)
-        # parser = plot.Plot.default_parser()
-        # args = parser.parse_args(*args)
-        dat = data[data.mptcpstream == args.mptcpstream]
-        # TODO try replacing with dat.empty
-        if not len(dat.index):
-            print("no packet matching mptcp.stream %d" % args.mptcpstream)
-            return
+#     def _generate_plot(self, data, args):
+#         # print("data=", data) 
+#         print("args", args)
+#         # parser = plot.Plot.default_parser()
+#         # args = parser.parse_args(*args)
+#         dat = data[data.mptcpstream == args.mptcpstream]
+#         # TODO try replacing with dat.empty
+#         if not len(dat.index):
+#             print("no packet matching mptcp.stream %d" % args.mptcpstream)
+#             return
 
-        # TODO mptcp ack
-        dat.sort_values("dack", ascending=True, inplace=True)
+#         # TODO mptcp ack
+#         dat.sort_values("dack", ascending=True, inplace=True)
         
-        # compute delay between sending of 
-        dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
-        # need to compute interdeparture times
-        ax = dat.interdeparture.plot.hist(
-            legend=False,
-            grid=True,
-            bins=10,
-        )   
-        ax.set_ylabel("Proportion")
-        ax.set_xlabel("Inter DSN departure time")
-        fig = ax.get_figure()
+#         # compute delay between sending of 
+#         dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
+#         # need to compute interdeparture times
+#         ax = dat.interdeparture.plot.hist(
+#             legend=False,
+#             grid=True,
+#             bins=10,
+#         )   
+#         ax.set_ylabel("Proportion")
+#         ax.set_xlabel("Inter DSN departure time")
+#         fig = ax.get_figure()
 
-        return fig
+#         return fig
 
 
 
 class CrossSubflowInterArrival(plot.Matplotlib):
+    """
+    Compute arrival of new *attribute*
+    """
 
     def default_parser(self):
         parser = super().default_parser()
@@ -57,15 +60,14 @@ class CrossSubflowInterArrival(plot.Matplotlib):
                 help="list sender ips here to filter the dataset")
         return parser
 
-    def _generate_plot(self, data, args, **kwargs):
+    def _generate_plot(self, main, args, **kwargs):
         """
         goal is here to generate a new Dataframe that lists only switchings between 
         subflows for DSN arrival
         """
         # print("data=", data) 
         print("args", args)
-        # parser = plot.Plot.default_parser()
-        # args = parser.parse_args(*args)
+        data = main.data
         dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
 
         tcpstreamcol = dat.columns.get_loc("tcpstream")
@@ -115,22 +117,29 @@ class CrossSubflowInterArrival(plot.Matplotlib):
         return fig
 
 
-class DsnInterArrivalTimes(plot.Matplotlib):
+class InterArrivalTimes(plot.Matplotlib):
     """
     TODO rename into interDSN ?
     In case traffic is biderctional we must filter on one direction only
     TODO this is wrong
     """
+    available = [
+            "dsn",
+            "dack"
+            ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def default_parser(self):
         parser = super().default_parser()
         # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", help="Consider only cross-subflow arrivals")
+        parser.add_argument("attribute", choices=self.available, help="interarrival between which numbers")
         parser.add_argument("sender_ips", nargs="+", 
                 help="list sender ips here to filter the dataset")
         return parser
 
     def _generate_plot(self, main, args, **kwargs):
-        print("args", args)
         data = main.data
         dat = self.filter_ds(data, mptcpstream=args.mptcpstream, ipsrc=args.sender_ips)
 
@@ -163,11 +172,11 @@ class DsnInterArrivalTimes(plot.Matplotlib):
 # TODO use a handler as in http://matplotlib.org/1.3.1/users/legend_guide.html
 # my_handler = HandlerLine2D(numpoints=1)
 # legend(handler_map={Line2D:my_handler})
-class PerSubflowTimeVsDsn(plot.Matplotlib):
+class PerSubflowTimeVsX(plot.Matplotlib):
     """
-
+    Plot one or several mptcp attributes
     """
-    mptcp_attributes = map(lambda x: x.name if x.plottable, fields_v2())
+    mptcp_attributes = map(lambda x: x.name if x.plottable else None, fields_v2())
             # [
             #     "dsn",
             #     "dss_ssn"
@@ -199,9 +208,6 @@ class PerSubflowTimeVsDsn(plot.Matplotlib):
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
         log.info("%d streams in the MPTCP flow" % len(tcpstreams))
-        # TODO field should be DSN
-        # field = "dsn"
-        # field = "dss_dsn"
         field = "dss_ssn"
 
         # gca = get current axes (Axes), create one if necessary
@@ -233,54 +239,59 @@ class PerSubflowTimeVsDsn(plot.Matplotlib):
         return fig
 
 
+class DssLengthHistogram(plot.Matplotlib):
+    """
+    Plots histogram 
+    """
+
+    def __init__(self):
+        super().__init__(title="DSS Length")
+
+    def _generate_plot(self, main, args):
+        data = main.data
+        dat = data[data.mptcpstream == args.mptcpstream]
+        if not len(dat.index):
+            print("no packet matching mptcp.stream %d" % args.mptcpstream)
+            return
+
+        fig = plt.figure()
+        axes = fig.gca()
+        dat.set_index("reltime", inplace=True)
+        # tcpstreams = dat.groupby('tcpstream')
+        field = "dss_length"
+        pplot = dat[field].plot.hist(
+            ax=axes,
+            legend=True,
+            grid=True,
+        )
+        return fig
+    
 class DSSOverTime(plot.Plot):
     """
-    Draw small arrows based on length etc...
+    WIP
+    Draw small arrows with dsn as origin, and a *dss_length* length etc...
     """
 
     def __init__(self):
         # super(self, "dsn")
         pass
 
-    # def _generate_plot(self, data, *args, **kwargs):
-    def _generate_plot(self, data, args):
-        # print("data=", data) 
-        print("args", args)
-        # parser = plot.Plot.default_parser()
-        # args = parser.parse_args(*args)
+    def _generate_plot(self, main, args):
+        data = main.data
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
-        # dssRawDSN could work as well
-        # plot (subplots=True)
         fig = plt.figure()
-        # plt.title("hello world")
-        # ax = tcpstreams[args.field].plot(ax=fig.gca())
-        # want 
-        # columns allows to choose the correct legend
-        # df = self.data
+        axes = fig.gca()
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
-        # print(df)
-        # field = "dsn"
-        # field = "dss_dsn"
         field = "dss_ssn"
         pplot = tcpstreams[field].plot.line(
-            # gca = get current axis
-            ax=fig.gca(),
-            # x=tcpstreams["reltime"],
-            # x="Relative time", # ne marche pas
-            title="Data Sequence Numbers over subflows", 
-            # use_index=False,
+            ax=axes,
             legend=True,
-            # style="-o",
             grid=True,
-            # xticks=tcpstreams["reltime"],
-            # rotation for ticks
-            # rot=45, 
-            # lw=3
         )
 
         # field = "dack"
