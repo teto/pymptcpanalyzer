@@ -166,7 +166,7 @@ class TsharkExporter:
         cmd = ("{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression}"
                " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
                " -E header=y  -2 "
-               " > {outputFilename}").format(
+               " -w {outputFilename}").format(
             tsharkBinary=tshark_exe,
             tsharkOptions=convert_options_into_str(options),
             nameResolution="-n",
