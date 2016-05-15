@@ -23,12 +23,12 @@ log = logging.getLogger(__name__)
 ns3_attributes = {
         "Time" : ("time (ns)", pd.datetime),
         "txNext" : ("{type} Tx Next", np.float64),
-        "highestSeq" : ("{type} Highest seq", np.float64),
-        "unackSeq" : ("{type} SND.UNA", np.float64),
+        "highestSeq" : ("{type} {idx} Highest seq", np.float64),
+        "unackSeq" : ("{type} {idx} SND.UNA", np.float64),
         "rxNext": ("RxNext", np.float64),
         "rxAvailable": ("{type} Rx Available", np.float64),
         "rxTotal" : ("{type} rxtotal", np.float64),
-        "cwnd": ("{type} cwnd", np.float64),
+        "cwnd": ("{type} {idx} cwnd", np.float64),
         "rWnd": ("RWnd", np.float64),
         "ssThresh": ("{type} SS Thresh", np.float64),
         "state": ("State", str),
@@ -124,7 +124,7 @@ class PlotTraceSources(plot.Matplotlib):
 
             for idx, filename in enumerate(matches):
                 print(filename)
-                dtypes= core.get_dtypes( ns3_attributes)
+                dtypes= core.get_dtypes(ns3_attributes)
                 print(dtypes)
                 d = pd.read_csv(filename , index_col="Time", dtype=dtypes)
                 # d.index = pd.to_timedelta(d.index)
@@ -147,7 +147,7 @@ class PlotTraceSources(plot.Matplotlib):
                             )
                     # dat.plot.line(ax=ax, grid=True, lw=3)
                     # TODO retrieve legend from attributes + type
-                    legends.append( ns3_attributes[attribute][0].format(type=name))
+                    legends.append( ns3_attributes[attribute][0].format(idx=idx, type=name))
 
         plt.legend(legends)
         # log.info("Saving figure to %s" % output)

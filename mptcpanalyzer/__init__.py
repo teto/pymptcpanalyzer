@@ -35,19 +35,42 @@ MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
 Field = namedtuple('Field', ['fullname', 'name', 'type', 'plottable' ])
 
 
+def get_fields (field , field2=None):
+
+    # def name(s):
+        # return s[0] if isinstance(s, tuple) else s
+        # return map(name, d.values())
+    # fields_v2()
+    l = fields_v2()
+    keys = map ( lambda x: getattr(x, field), l)
+    if field2 is None:
+        return keys
+
+    return dict(zip (keys, map ( lambda x: getattr(x, field2), l)))
+    # return dict( 
+    #             zip( d.keys(), map(name, d.values()) ) 
+    #             )
+    # return dict((v,a) for k,a,*v in a.iteritems())
+
+    # print("== tata", dict(get_default_fields()))
+# toto = _get_wireshark_mptcpanalyzer_mappings( get_default_fields() )
+
+# data.rename (inplace=True, columns=toto)
+
 def fields_v2():
     l = [
             Field("frame.number", "packetid", None, False),
             Field("frame.time_relative", "reltime", None, False),
             Field("frame.time_delta", "time_delta", None, False),
+            Field("frame.time_epoch", "abstime", None, False),
             # Field("frame.time_delta", "time_delta", None, False),
             Field("_ws.col.ipsrc", "ipsrc", None, False),
-            Field("_ws.col.ipdst", "ipdst", None, False),
+            Field("_ws.col.ipdst", "ipdst", str, False),
 
-            Field("mptcp.dsn", "dsn", None, True),
+            Field("mptcp.dsn", "dsn", np.float64, True),
             # "mptcp.rawdsn64":        "dsnraw64",
             # "mptcp.ack":        "dack",
-            Field("tcp.stream", "tcpstream", np.int64, True),
+            Field("tcp.stream", "tcpstream", np.float64, True),
             Field("mptcp.stream", "mptcpstream", None, False),
             Field("tcp.srcport", "sport", None, False),
             Field("tcp.dstport", "dport", None, False),
@@ -58,7 +81,7 @@ def fields_v2():
             Field("tcp.options.mptcp.recvkey", "recvkey", None, True),
             Field("tcp.options.mptcp.recvtok", "recvtok", None, False),
             Field("tcp.options.mptcp.datafin.flag", "datafin", None, False),
-            Field("tcp.options.mptcp.subtype", "subtype", np.float64, False),
+            Field("tcp.options.mptcp.subtype", "subtype", None, False),
             Field("tcp.flags", "tcpflags", None, False),
             Field("tcp.options.mptcp.rawdataseqno", "dss_dsn", None, True),
             Field("tcp.options.mptcp.rawdataack", "dss_rawack",None, True),
@@ -69,7 +92,7 @@ def fields_v2():
             Field("tcp.seq", "tcpseq", np.float64, True),
             Field("tcp.len", "tcplen", np.float64, True),
             Field("mptcp.dsn", "dsn", None, True),
-            Field("mptcp.rawdsn64", "dsnraw64", None, True),
+            Field("mptcp.rawdsn64", "dsnraw64", np.float64, True),
             Field("mptcp.ack", "dack", None, True),
         ]
     return l

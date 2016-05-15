@@ -23,7 +23,7 @@ from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
-import mptcpanalyzer.data as core
+import mptcpanalyzer as mp
 import stevedore
 # import mptcpanalyzer.config
 # import config
@@ -325,14 +325,16 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.do_ls(mptcpstream)
 
 
-    # def _print_subflow():
+    def _load_data(self, filename, regen: bool =False):
+        """
+        Register into self.data a panda dataframe loaded from filename: a csv file either
+        from a previous 
+        """
+        # csv_filename = self.get_matching_csv_filename (args.input_file, args.regen)
 
+        self.data = self.load_into_pandas(filename, regen)
+        self.prompt = "%s> " % filename
 
-        # et ensuite tu fais reltime_x - reltime_y
-        # to drop NA rows
-        # s1.dropna(inplace=True)
-
-    # @staticmethod
     def do_load(self, args):
         """
         """
@@ -340,7 +342,6 @@ class MpTcpAnalyzer(cmd.Cmd):
             description='Generate MPTCP stats & plots'
         )
         parser.add_argument("input_file", action="store", 
-                #nargs="?",
                 help="Either a pcap or a csv file (in good format)."
                 "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
                 "If it can't find one (or with the flag --regen), it will generate a "
@@ -351,15 +352,8 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         args = parser.parse_args(shlex.split(args))
 
-        # print("Not implemented yet")
-        csv_filename = self.get_matching_csv_filename (args.input_file, args.regen)
+        return self._load_data(args.input_file, args.regen)
 
-        self.data = self.load_into_pandas(args.input_file,)
-        self.prompt = "%s> " % csv_filename
-
-
-
-    # TODO add a do_multiplot ?
     def do_plot(self, args):
         """
         Plot DSN vs time
@@ -399,38 +393,65 @@ class MpTcpAnalyzer(cmd.Cmd):
         return self.plot_mgr.names()
 
 # TODO rename look intocache ?
-    def get_matching_csv_filename(self, filename, regen : bool= False):
+    def get_matching_csv_filename(self, filename, force_regen : bool):
         """
         Accept either a .csv or a .pcap file 
         Returns resulting csv filename
         """
         basename, ext = os.path.splitext(filename)
         print("Basename=%s" % basename)
-        csv_filename = filename
+        # csv_filename = filename
 
         if ext == ".csv":
-            pass
+            log.debug("Filename already has a .csv extension")
+            csv_filename = filename
         else:
             print("%s format is not supported as is. Needs to be converted first" %
                 (filename))
-            csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
-            cache = os.path.isfile(csv_filename)
-            if cache:
+
+            def matching_cache_filename(filename):
+                l = filename.split(os.path.sep)
+                print("liste=", l)       
+                res = os.path.join(self.config["DEFAULT"]["cache"], '%'.join(l))
+                print(res)
+                _, ext = os.path.splitext(filename)
+                if ext != ".csv":
+                    res += ".csv"
+                return res
+
+            # csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
+            csv_filename = matching_cache_filename(filename)
+            cache_is_invalid = True
+            
+            print("Checking for %s" % csv_filename)
+            if os.path.isfile(csv_filename):
                 log.info("A cache %s was found" % csv_filename)
+                ctime_cached = os.path.getctime(csv_filename)
+                ctime_pcap = os.path.getctime(filename)
+                # print(ctime_cached , " vs ", ctime_pcap)
+
+                if ctime_cached > ctime_pcap:
+                    log.debug("Cache seems valid")
+                    cache_is_invalid = False
+                else:
+                    log.debug("Cache seems outdated")
+
+
             # if matching csv does not exist yet or if generation forced
-            if not cache or regen:
+            if force_regen or cache_is_invalid:
                 log.info("Preparing to convert %s into %s" %
                         (filename, csv_filename))
 
                 exporter = TsharkExporter(
                         self.config["DEFAULT"]["tshark_binary"], 
                         self.config["DEFAULT"]["delimiter"], 
-                    )
-                
+                )
 
                 retcode, stderr = exporter.export_to_csv(
-                        filename, csv_filename, 
-                        __default_fields__.keys(),
+                        filename,
+                        csv_filename, 
+                        # __default_fields__.keys(),
+                        mp.get_fields("fullname", "name"),
                         tshark_filter="mptcp and not icmp"
                 )
                 print("exporter exited with code=", retcode)
@@ -438,58 +459,39 @@ class MpTcpAnalyzer(cmd.Cmd):
                     raise Exception(stderr)
         return csv_filename
 
-    def load_into_pandas(self,input_file):
+    def load_into_pandas(self, input_file, regen : bool =False):
         """
         intput_file can be filename or fd
         load csv mptpcp data into panda
         """
         # exporter
-        csv_filename = self.get_matching_csv_filename(input_file)
+        log.debug("Asked to load %s" % input_file)
+        csv_filename = self.get_matching_csv_filename(input_file, regen)
 
-        
-        # TODO move to core
-        def _get_dtypes(d):
-            ret = dict()
-            for key, val in d.items():
-                if isinstance(val, tuple) and len(val) > 1:
-                    ret.update( {key:val[1]})
-            return ret
-        dtypes = _get_dtypes(get_default_fields())
+        # dtypes = _get_dtypes(get_default_fields())
+        # print("==dtypes", dtypes)
+        # dtypes = mp.get_fields("fullname", "type")
+        temp = mp.get_fields("fullname", "type")
+        # print(temp)
+        dtypes = { k:v for k,v in temp.items() if v is not None}
         print("==dtypes", dtypes)
-        # TODO use nrows=20 to read only 20 first lines
         # TODO use dtype parameters to enforce a type
         log.debug ("Loading a csv file %s" % csv_filename)
                         
-        data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"],) 
+        data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"], dtype=dtypes) 
         # data = pd.read_csv(csv_filename, sep=delimiter, engine="c", dtype=dtypes)
-        # print(data.dtypes)
 
-        def _get_wireshark_mptcpanalyzer_mappings(d):
-            def name(s):
-                return s[0] if isinstance(s, tuple) else s
-            # return map(name, d.values())
-            return dict( zip( d.keys(), map(name, d.values()) ) )
-            # return dict((v,a) for k,a,*v in a.iteritems())
 
-        # print("== tata", dict(get_default_fields()))
-        toto = _get_wireshark_mptcpanalyzer_mappings( get_default_fields() )
-        # print("== toto", toto)
-
-        data.rename (inplace=True, columns=toto)
+        data.rename (inplace=True, columns=mp.get_fields("fullname", "name"))
 
         data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
-        data.tcpflags.apply(lambda x: int(x,16), )
+        # convert from hexa to numeric
         # print(data.dtypes)
-        # todo let wireshark write raw values and rename columns here
-        # along with dtype
-        # f.rename(columns={'$a': 'a', '$b': 'b'}, inplace=True)
+        # data.tcpflags = data.tcpflags.apply(lambda x: int(x,16), )
+
         columns = list(data.columns)
-        print("==column names:", columns)
-        # for field in mandatory_fields:
-        #     if field not in columns:
-        #         raise Exception(
-        #             "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-        print("== before returns\n", data.dtypes)
+        # print("==column names:", columns)
+        # print("== before returns\n", data.dtypes)
         return data
 
     def plot_mptcpstream(self, args):
@@ -499,9 +501,6 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots')
-
-        # parser.add_argument('--out', action="store", default="output.png", help='Name of the output file')
-        # parser.add_argument('--display', action="store_true", help='will display the generated plot')
 
         subparsers = parser.add_subparsers(
             dest="plot_type", title="Subparsers", help='sub-command help', )
@@ -520,7 +519,6 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # name, parents=[subplot.default_parser()], add_help=False)
 
         try:
-            # TODO passer les unknown
 
             # log.debug("before shlex magic ", args)
             args = shlex.split(args)
@@ -537,21 +535,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         except NotImplementedError:
             print("Plot subclass miss a requested feature")
             return
-
-        # instancier le bon puis appeler le plot dessus
-        # mandatory_fields
-        # newPlot = plot_types[args.plot_type]()
-        # print(newPlot)
-        # self.plot_mgr["dsn"].obj.plot()
-        # success = newPlot.plot(self.data, args.out, unknown)
-        # returns a DataFrame
-        # os.path.realpath
-        # lines, labels = ax1.get_legend_handles_labels()
-
-        # cmd = "xdg-open %s" % (args.out,)
-        # print(cmd)
-        # if args.out and args.display:
-            # os.system(cmd)
 
     def do_dump(self, args):
         """
@@ -648,7 +631,7 @@ def cli():
         analyzer = MpTcpAnalyzer(cfg, )
 #         # TODO convert that into load
         if args.input_file:
-            analyzer.do_load (args.input_file + " " + "--regen" if str(args.regen) else "")
+            analyzer._load_data (args.input_file, args.regen)
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict

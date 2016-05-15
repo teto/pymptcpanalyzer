@@ -124,7 +124,8 @@ class TsharkExporter:
     def tshark_export_fields(
         tshark_exe, 
         fields_to_export,
-        inputFilename, outputFilename, 
+        inputFilename, 
+        outputFilename, 
         filter=None, 
         csv_delimiter='|',
         options={},
@@ -166,7 +167,7 @@ class TsharkExporter:
         cmd = ("{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression}"
                " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
                " -E header=y  -2 "
-               " -w {outputFilename}").format(
+               " > {outputFilename}").format(
             tsharkBinary=tshark_exe,
             tsharkOptions=convert_options_into_str(options),
             nameResolution="-n",

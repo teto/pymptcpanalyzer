@@ -64,7 +64,6 @@ class Plot:
         """
         TODO pass a boolean to know if main.data should be preloaded or not
         """
-        print("title", title)
         self.title = title
         # self.accept_preload = accept_preload
 
@@ -82,7 +81,6 @@ class Plot:
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
         parser.add_argument('--title', action="store", help='Override plot title')
         parser.add_argument('--primary', action="store_true", help="Copy to X clipboard, require xsel installed")
-# TODO move to matplotlib
         return parser
 
     # might move to standalone ?
@@ -115,7 +113,6 @@ class Plot:
     def savefigure(self):
         raise NotImplementedError()
 
-    # @staticmethod
     def display(self, filename):
 
         """
@@ -138,14 +135,10 @@ class Plot:
         return self.output_folder + "/" + "subflow_" + str(id) + ".csv"
 
 
-# class PandaPlot(Plot):
-#     def savefig()
-#         args.out = os.path.join(os.getcwd(), args.out)
-#         print("Saving into %s" % (args.out))
-#         fig.savefig(args.out)
-
 class Matplotlib(Plot):
-
+    """
+    Relies on matplotlib
+    """
     
 
     def __init__(self, *args, **kwargs):

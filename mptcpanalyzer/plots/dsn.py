@@ -123,6 +123,7 @@ class InterArrivalTimes(plot.Matplotlib):
     In case traffic is biderctional we must filter on one direction only
     TODO this is wrong
     """
+
     available = [
             "dsn",
             "dack"
@@ -176,7 +177,8 @@ class PerSubflowTimeVsX(plot.Matplotlib):
     """
     Plot one or several mptcp attributes
     """
-    mptcp_attributes = map(lambda x: x.name if x.plottable else None, fields_v2())
+# list(map(lambda x: x.name if x.plottable is not None else None, fields_v2()))
+    mptcp_attributes = [ x.name for x in fields_v2() if x.plottable ]
             # [
             #     "dsn",
             #     "dss_ssn"
@@ -186,11 +188,12 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         super().__init__(*args, **kwargs)
         print (self.mptcp_attributes)
         # self.field = field
+        print( "attributes=", self.mptcp_attributes)
 
     def  default_parser(self, *args, **kwargs):
         parser = super().default_parser(mptcpstream=True)
-        #default=["dsn",  
-        parser.add_argument('attribute', choices=self.mptcp_attributes, nargs="+", help="")
+        # parser.add_argument('field', choices=self.mptcp_attributes, nargs="+", help="")
+        parser.add_argument('field', choices=self.mptcp_attributes, help="Choose an mptcp attribute to plot")
         return parser
 
     """
@@ -204,11 +207,14 @@ class PerSubflowTimeVsX(plot.Matplotlib):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
+        field = args.field
+
         fig = plt.figure()
         dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
         log.info("%d streams in the MPTCP flow" % len(tcpstreams))
-        field = "dss_ssn"
+        log.info("Plotting field %s" % field)
+        # field = "dss_ssn"
 
         # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
@@ -218,18 +224,19 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         pplot = tcpstreams[field].plot.line(
             ax=axes,
             # use_index=False,
-            legend=True,
+            legend=False,
             grid=True,
         )
 
         axes.set_xlabel("Time")
+# TODO retrieve description from field
         axes.set_ylabel("Data Sequence Number")
 
         handles, labels = axes.get_legend_handles_labels()
         print(handles)
 
         # Generate "subflow X" labels
-        axes.legend(handles, [ "Subflow %d" % x for x, _ in enumerate(labels) ])
+        axes.legend(handles, [ "%s for Subflow %d" % (field,x) for x, _ in enumerate(labels) ])
 
         ###  Correct legend for the linux 4 subflow case
         #############################################################
@@ -266,7 +273,7 @@ class DssLengthHistogram(plot.Matplotlib):
         )
         return fig
     
-class DSSOverTime(plot.Plot):
+class DSSOverTime(plot.Matplotlib):
     """
     WIP
     Draw small arrows with dsn as origin, and a *dss_length* length etc...
@@ -276,24 +283,47 @@ class DSSOverTime(plot.Plot):
         # super(self, "dsn")
         pass
 
+    def default_parser(self, *args, **kwargs):
+        return super().default_parser(mptcpstream=True, *args, **kwargs)
+
     def _generate_plot(self, main, args):
+
         data = main.data
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
+        
+        dat = data[dat.dss_dsn > 0]
+        print("len=" , len(dat))
+
+# apparemment le mieux c'est ca 
+# http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.quiver
+# plt.quiver( dat.reltime, dat.dss_dsn, [0]* len(dat.dss_dsn) ,  dat.dss_length, scale_units="xy", scale=1, angles="xy",)
         fig = plt.figure()
         axes = fig.gca()
-        dat.set_index("reltime", inplace=True)
-        tcpstreams = dat.groupby('tcpstream')
-        field = "dss_ssn"
-        pplot = tcpstreams[field].plot.line(
-            ax=axes,
-            legend=True,
-            grid=True,
-        )
+        # dat.set_index("reltime", inplace=True)
 
+        # tcpstreams = dat.groupby('tcpstream')
+        # field = "dss_ssn"
+        
+        # pplot = tcpstreams[field].plot.line(
+        #     ax=axes,
+        #     legend=True,
+        #     grid=True,
+        # )
+
+        # quiver(X, Y, U, V, **kw)
+
+        print( dat.head())
+        plt.quiver( 
+                dat.reltime, # X
+                dat.dsn, # Y
+                [0]* len(dat.dss_dsn) ,
+               dat.dss_length,
+               scale_units="xy", scale=3, angles="xy",
+        )
         # field = "dack"
         # pplot = tcpstreams[field].plot.line(
         #     # gca = get current axis
@@ -321,11 +351,5 @@ class DSSOverTime(plot.Plot):
         # ax.set_xlabel("Relative time")
         # # pplot.set_xlabel("Time")
         # ax.set_ylabel("DSN")
-        # # fig = ax.get_figure()
-        # # for axes in plot:
-        # # print("Axis ", axes)
-        # # fig = axes.get_figure()
-        # # fig.savefig("/home/teto/test.png")
-        # # fig = plot.get_figure()
         return fig
 

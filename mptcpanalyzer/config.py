@@ -26,7 +26,8 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         self.read_dict({
             "DEFAULT": { 
                 "tshark_binary": "tshark",
-                "delimiter": "|"
+                "delimiter": "|",
+                "cache": os.getenv("XDG_CACHE_HOME/mptcpanalyzer", os.path.expanduser("~/.cache/mptcpanalyzer")),
                 }
             })
 

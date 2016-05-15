@@ -1,6 +1,7 @@
 from unittest import TestCase
 import unittest
 
+import mptcpanalyzer as mp
 from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import mptcpanalyzer.data as core
@@ -26,6 +27,18 @@ class IntegrationTest(TestCase):
         # TODO test when launched via subprocess 
         # - with a list of commands passed via stdin
         pass
+
+    def test_regen(self):
+        """
+        Test that with regen we update the file
+        """
+        dat = pd.DataFrame(columns=mp.get_fields("fullname"))
+        prefix = "examples/node0.pcap"
+        dat.to_csv ( prefix + ".csv", sep=self.config["DEFAULT"]["separator"])
+        with fopen("examples/node0.csv", "r+"):
+            #
+
+        self.assertEqual()
 
     def test_batch(self):
         # Test the --batch flag
