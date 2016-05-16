@@ -431,7 +431,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             cache_is_invalid = True
             
             print("Checking for %s" % csv_filename)
-            if os.path.isfile(realpath):
+            if os.path.isfile(csv_filename):
                 log.info("A cache %s was found" % csv_filename)
                 ctime_cached = os.path.getctime(csv_filename)
                 ctime_pcap = os.path.getctime(filename)
