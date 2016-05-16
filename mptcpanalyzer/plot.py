@@ -6,11 +6,9 @@ import os
 import tempfile
 import matplotlib
 import logging
-# from plots import *
-# import mptcpanalyzer.sqlite_helpers
+import mptcpanalyzer as mp
 from enum import Enum, IntEnum
 
-# from mptcpanalyzer.sqlite_helpers import MpTcpmainbase
 import abc
 
 import six
@@ -68,7 +66,7 @@ class Plot:
         # self.accept_preload = accept_preload
 
     # @staticmethod
-    def default_parser(self, mptcpstream: bool = False):
+    def default_parser(self, mptcpstream: bool = False, direction = None):
         """
         Generate parser with commonu arguments
         """
@@ -76,7 +74,10 @@ class Plot:
         if mptcpstream:
             parser.add_argument('mptcpstream', action="store", type=int, help='mptcp.stream id')
 
-#nargs="?", 
+        if direction:
+            parser.add_argument('direction', action="store", choices=mp.flow_directions.keys(), 
+                    help='Filter flows according to their direction (towards the client or the server)')
+
         parser.add_argument('-o', '--out', action="store", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
         parser.add_argument('--title', action="store", help='Override plot title')
@@ -85,11 +86,19 @@ class Plot:
 
     # might move to standalone ?
     @staticmethod
-    def filter_ds(data, **kwargs):
-        query = gen_ip_filter(**kwargs)
-        # dat = main[data.mptcpstream == args.mptcpstream]
-        log.debug("Running query %s" % query)
-        dat = data.query(query)
+    def filter_ds(data,  **kwargs):
+        """
+        direction = client or server
+        """
+        # query = gen_ip_filter(**kwargs)
+        direction = kwargs.get("direction")
+        if direction:
+            # dat = data[(data.mptcpstream == args.mptcpstream) & (data.direction == args.direction)]
+            # dat = main[data.mptcpstream == args.mptcpstream]
+            query = "direction == %d" % mp.flow_directions[direction]
+
+            log.debug("Running query %s" % query)
+            dat = data.query(query)
         return dat
 
     # *args

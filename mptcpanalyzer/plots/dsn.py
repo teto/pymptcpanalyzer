@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import mptcpanalyzer.plot as plot
+import mptcpanalyzer as mp
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
@@ -191,7 +192,7 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         print( "attributes=", self.mptcp_attributes)
 
     def  default_parser(self, *args, **kwargs):
-        parser = super().default_parser(mptcpstream=True)
+        parser = super().default_parser(mptcpstream=True, direction=True)
         # parser.add_argument('field', choices=self.mptcp_attributes, nargs="+", help="")
         parser.add_argument('field', choices=self.mptcp_attributes, help="Choose an mptcp attribute to plot")
         return parser
@@ -202,12 +203,16 @@ class PerSubflowTimeVsX(plot.Matplotlib):
     def _generate_plot(self, main, args):
 
         data = main.data
-        dat = data[data.mptcpstream == args.mptcpstream]
+# & (data.direction == args.direction)]
+        dat = data[(data.mptcpstream == args.mptcpstream)] 
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
 
+        dat = self.filter_ds(dat, direction=args.direction)
+
         field = args.field
+
 
         fig = plt.figure()
         dat.set_index("reltime", inplace=True)

@@ -57,102 +57,118 @@ def get_fields (field , field2=None):
 
 # data.rename (inplace=True, columns=toto)
 
+
+flow_directions = {
+ "toclient": 1,
+ # "unknown": 2,
+ "toserver": 3,
+}
+
 def fields_v2():
+    """
+    It's kinda scary to use float everywhere but when using integers, pandas
+    asserts at the first NaN
+    It is also not possible to assign "int" for instance to subtype as there may be 
+    several subtypes in a packet (=> "2,4" which is not recognized as an int)
+
+     Mapping between short names easy to use as a column title (in a CSV file) 
+     and the wireshark field name
+     There are some specific fields that require to use -o instead, 
+     see tshark -G column-formats
+
+     CAREFUL: when setting the type to int, pandas will throw an error if there
+     are still NAs in the column. Relying on float64 permits to overcome this.
+
+ ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
+    """
     l = [
-            Field("frame.number", "packetid", None, False),
+            Field("frame.number", "packetid", np.int64, False),
+            # TODO set tot datetime ?
             Field("frame.time_relative", "reltime", None, False),
+            # set to deltatime
             Field("frame.time_delta", "time_delta", None, False),
             Field("frame.time_epoch", "abstime", None, False),
-            # Field("frame.time_delta", "time_delta", None, False),
             Field("_ws.col.ipsrc", "ipsrc", None, False),
             Field("_ws.col.ipdst", "ipdst", str, False),
 
             Field("mptcp.dsn", "dsn", np.float64, True),
+            # set to categorical ?
+            Field("mptcp.client", "direction", np.float64, False),
             # "mptcp.rawdsn64":        "dsnraw64",
             # "mptcp.ack":        "dack",
             Field("tcp.stream", "tcpstream", np.float64, True),
-            Field("mptcp.stream", "mptcpstream", None, False),
-            Field("tcp.srcport", "sport", None, False),
-            Field("tcp.dstport", "dport", None, False),
+            Field("mptcp.stream", "mptcpstream", np.float, False),
+            Field("tcp.srcport", "sport", np.float, False),
+            Field("tcp.dstport", "dport", np.float, False),
             # rawvalue is tcp.window_size_value
             # tcp.window_size takes into account scaling factor !
-            Field("tcp.window_size", "rwnd", None, True),
-            Field("tcp.options.mptcp.sendkey", "sendkey", None, False),
+            Field("tcp.window_size", "rwnd", np.int64, True),
+            Field("tcp.options.mptcp.sendkey", "sendkey", np.float, False),
             Field("tcp.options.mptcp.recvkey", "recvkey", None, True),
             Field("tcp.options.mptcp.recvtok", "recvtok", None, False),
-            Field("tcp.options.mptcp.datafin.flag", "datafin", None, False),
-            Field("tcp.options.mptcp.subtype", "subtype", None, False),
-            Field("tcp.flags", "tcpflags", None, False),
-            Field("tcp.options.mptcp.rawdataseqno", "dss_dsn", None, True),
-            Field("tcp.options.mptcp.rawdataack", "dss_rawack",None, True),
-            Field("tcp.options.mptcp.subflowseqno", "dss_ssn", None, True),
-            Field("tcp.options.mptcp.datalvllen", "dss_length",None, True),
+            Field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False),
+            Field("tcp.options.mptcp.subtype", "subtype", np.object, False),
+            Field("tcp.flags", "tcpflags", np.float64, False),
+            Field("tcp.options.mptcp.rawdataseqno", "dss_dsn",  np.float64, True),
+            Field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64, True),
+            Field("tcp.options.mptcp.subflowseqno", "dss_ssn",  np.float64, True),
+            Field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, True),
             Field("tcp.options.mptcp.addrid", "addrid", None, False),
             Field("mptcp.master", "master", None, True),
             Field("tcp.seq", "tcpseq", np.float64, True),
             Field("tcp.len", "tcplen", np.float64, True),
-            Field("mptcp.dsn", "dsn", None, True),
             Field("mptcp.rawdsn64", "dsnraw64", np.float64, True),
-            Field("mptcp.ack", "dack", None, True),
+            Field("mptcp.ack", "dack", np.float64, True),
         ]
     return l
 
-def get_default_fields():
-    """
-    TODO should accept filters :)
+# def get_default_fields():
+#     """
+#     TODO should accept filters :)
 
-    Mapping between short names easy to use as a column title (in a CSV file) 
-    and the wireshark field name
-    There are some specific fields that require to use -o instead, 
-    see tshark -G column-formats
+# """
 
-    CAREFUL: when setting the type to int, pandas will throw an error if there
-    are still NAs in the column. Relying on float64 permits to overcome this.
+#     return {
+#             "frame.number":        ("packetid",),
+#             # reestablish once format is changed (see options)
+#             # "time": "frame.time",
+#             "frame.time_relative":        "reltime",
+#             "frame.time_delta":        "time_delta",
+#             # "frame.time":        "abstime",
+#             "frame.time_epoch":        "abstime",
+#             # "ipsrc": "_ws.col.Source",
+#             # "ipdst": "_ws.col.Destination",
+#             "_ws.col.ipsrc" : "ipsrc",
+#             "_ws.col.ipdst" : "ipdst",
+#             # "_ws.col.AbsTime": "abstime2",
+#             # "_ws.col.DeltaTime": "deltatime",
+#             # "ip.src":        "ipsrc",
+#             # "ip.dst":        "ipdst",
+#             "tcp.stream":        ("tcpstream", np.int64),
+#             "mptcp.stream":        "mptcpstream",
+#             "tcp.srcport":        "sport",
+#             "tcp.dstport":        "dport",
+#             # rawvalue is tcp.window_size_value
+#             # tcp.window_size takes into account scaling factor !
+#             "tcp.window_size":        "rwnd",
+#             "tcp.options.mptcp.sendkey"        : "sendkey",
+#             "tcp.options.mptcp.recvkey"        : "recvkey",
+#             "tcp.options.mptcp.recvtok"        : "recvtok",
+#             "tcp.options.mptcp.datafin.flag":        "datafin",
+#             "tcp.options.mptcp.subtype":        ("subtype", np.float64),
+#             "tcp.flags":        "tcpflags",
+#             "tcp.options.mptcp.rawdataseqno":        "dss_dsn",
+#             "tcp.options.mptcp.rawdataack":        "dss_rawack",
+#             "tcp.options.mptcp.subflowseqno":        "dss_ssn",
+#             "tcp.options.mptcp.datalvllen":        "dss_length",
+#             "tcp.options.mptcp.addrid":        "addrid",
+#             "mptcp.master":        "master",
+#             # TODO add sthg related to mapping analysis ?
+#             "tcp.seq":        ("tcpseq", np.float64),
+#             "tcp.len":        ("tcplen", np.float64),
+#             "mptcp.dsn":        "dsn",
+#             "mptcp.rawdsn64":        "dsnraw64",
+#             "mptcp.ack":        "dack",
+#         }
 
-ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
-"""
-
-    return {
-            "frame.number":        ("packetid",),
-            # reestablish once format is changed (see options)
-            # "time": "frame.time",
-            "frame.time_relative":        "reltime",
-            "frame.time_delta":        "time_delta",
-            # "frame.time":        "abstime",
-            "frame.time_epoch":        "abstime",
-            # "ipsrc": "_ws.col.Source",
-            # "ipdst": "_ws.col.Destination",
-            "_ws.col.ipsrc" : "ipsrc",
-            "_ws.col.ipdst" : "ipdst",
-            # "_ws.col.AbsTime": "abstime2",
-            # "_ws.col.DeltaTime": "deltatime",
-            # "ip.src":        "ipsrc",
-            # "ip.dst":        "ipdst",
-            "tcp.stream":        ("tcpstream", np.int64),
-            "mptcp.stream":        "mptcpstream",
-            "tcp.srcport":        "sport",
-            "tcp.dstport":        "dport",
-            # rawvalue is tcp.window_size_value
-            # tcp.window_size takes into account scaling factor !
-            "tcp.window_size":        "rwnd",
-            "tcp.options.mptcp.sendkey"        : "sendkey",
-            "tcp.options.mptcp.recvkey"        : "recvkey",
-            "tcp.options.mptcp.recvtok"        : "recvtok",
-            "tcp.options.mptcp.datafin.flag":        "datafin",
-            "tcp.options.mptcp.subtype":        ("subtype", np.float64),
-            "tcp.flags":        "tcpflags",
-            "tcp.options.mptcp.rawdataseqno":        "dss_dsn",
-            "tcp.options.mptcp.rawdataack":        "dss_rawack",
-            "tcp.options.mptcp.subflowseqno":        "dss_ssn",
-            "tcp.options.mptcp.datalvllen":        "dss_length",
-            "tcp.options.mptcp.addrid":        "addrid",
-            "mptcp.master":        "master",
-            # TODO add sthg related to mapping analysis ?
-            "tcp.seq":        ("tcpseq", np.float64),
-            "tcp.len":        ("tcplen", np.float64),
-            "mptcp.dsn":        "dsn",
-            "mptcp.rawdsn64":        "dsnraw64",
-            "mptcp.ack":        "dack",
-        }
-
-__default_fields__ = get_default_fields()
+# __default_fields__ = get_default_fields()

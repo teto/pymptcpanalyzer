@@ -21,7 +21,7 @@ import subprocess
 from mptcpanalyzer.plot import Plot
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
-from mptcpanalyzer import get_default_fields, __default_fields__
+# from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer as mp
 import stevedore
@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import shlex
 import cmd
 import traceback
+import pprint # for prettyprint
 
 from stevedore import extension
 
@@ -224,30 +225,28 @@ class MpTcpAnalyzer(cmd.Cmd):
         #     return
         
         args = parser.parse_args (shlex.split(args))
-        mptcpstream = args.mptcpstream
-        print('hello for mptcpstream %d' % mptcpstream )
-        group = self.data[self.data.mptcpstream == args.mptcpstream]
+        self._list_subflows(args.mptcpstream)
+
+    @is_loaded
+    def _list_subflows(self, mptcpstream : int):
+        group = self.data[self.data.mptcpstream == mptcpstream]
         tcpstreams = group.groupby('tcpstream')
         self.data.head(5)
         print("mptcp.stream %d has %d subflow(s): " %
               (mptcpstream, len(tcpstreams)))
         for tcpstream, gr2 in tcpstreams:
-            # print("gr2=", gr2.iloc[,'ipsrc'])
-            # TODO look for master
             # and MP_JOIN   
             master = False
             
-            # print(gr2.subtype)
-            # print(gr2.addrid)
             extra = ""
-            addrid = [] # (None,None,)
+            addrid = [] 
             if len(gr2[gr2.master == 1]) > 0:
                 addrid = ["master", "master"]
             else:
                 # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
                 # la ca foire 
                 for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
-                    gro= gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
+                    gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
                     # print("nb of results:", len(gro))
                     if len(gro):
                         # print("i=",i)
@@ -320,9 +319,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         print('mptcp connections')
         self.data.describe()
-        mp = self.data.groupby("mptcpstream")
-        for mptcpstream, group in mp:
-            self.do_ls(mptcpstream)
+        streams = self.data.groupby("mptcpstream")
+        for mptcpstream, group in streams:
+            self._list_subflows(mptcpstream)
 
 
     def _load_data(self, filename, regen: bool =False):
@@ -333,7 +332,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         # csv_filename = self.get_matching_csv_filename (args.input_file, args.regen)
 
         self.data = self.load_into_pandas(filename, regen)
-        self.prompt = "%s> " % filename
+
+        # os.path.basename()
+        self.prompt = "%s> " % os.path.basename(filename)
 
     def do_load(self, args):
         """
@@ -377,7 +378,7 @@ class MpTcpAnalyzer(cmd.Cmd):
     def do_list_available_plots(self, args):
         
         plot_names = self._list_available_plots()
-        print(names)
+        print(plot_names)
 
     def _list_available_plots(self):
         def _get_names(ext, names: list):
@@ -395,23 +396,29 @@ class MpTcpAnalyzer(cmd.Cmd):
 # TODO rename look intocache ?
     def get_matching_csv_filename(self, filename, force_regen : bool):
         """
+        Expects a realpath as filename
         Accept either a .csv or a .pcap file 
-        Returns resulting csv filename
+        Returns realpath towards resulting csv filename
         """
-        basename, ext = os.path.splitext(filename)
+        realpath = filename
+        basename, ext = os.path.splitext(realpath)
         print("Basename=%s" % basename)
         # csv_filename = filename
 
         if ext == ".csv":
             log.debug("Filename already has a .csv extension")
-            csv_filename = filename
+            csv_filename = realpath
         else:
             print("%s format is not supported as is. Needs to be converted first" %
                 (filename))
 
             def matching_cache_filename(filename):
-                l = filename.split(os.path.sep)
-                print("liste=", l)       
+                """
+                Expects a realpath else
+                """
+                # create a list of path elements (separated by system separator '/' or '\'
+                # from the absolute filename
+                l = os.path.realpath(filename).split(os.path.sep)
                 res = os.path.join(self.config["DEFAULT"]["cache"], '%'.join(l))
                 print(res)
                 _, ext = os.path.splitext(filename)
@@ -420,11 +427,11 @@ class MpTcpAnalyzer(cmd.Cmd):
                 return res
 
             # csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
-            csv_filename = matching_cache_filename(filename)
+            csv_filename = matching_cache_filename(realpath)
             cache_is_invalid = True
             
             print("Checking for %s" % csv_filename)
-            if os.path.isfile(csv_filename):
+            if os.path.isfile(realpath):
                 log.info("A cache %s was found" % csv_filename)
                 ctime_cached = os.path.getctime(csv_filename)
                 ctime_pcap = os.path.getctime(filename)
@@ -450,7 +457,6 @@ class MpTcpAnalyzer(cmd.Cmd):
                 retcode, stderr = exporter.export_to_csv(
                         filename,
                         csv_filename, 
-                        # __default_fields__.keys(),
                         mp.get_fields("fullname", "name"),
                         tshark_filter="mptcp and not icmp"
                 )
@@ -466,32 +472,40 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         # exporter
         log.debug("Asked to load %s" % input_file)
-        csv_filename = self.get_matching_csv_filename(input_file, regen)
+        pp = pprint.PrettyPrinter(indent=4)
 
-        # dtypes = _get_dtypes(get_default_fields())
-        # print("==dtypes", dtypes)
+        filename = os.path.expanduser(input_file)
+        filename = os.path.realpath(filename)
+        csv_filename = self.get_matching_csv_filename(filename, regen)
+
         # dtypes = mp.get_fields("fullname", "type")
         temp = mp.get_fields("fullname", "type")
         # print(temp)
         dtypes = { k:v for k,v in temp.items() if v is not None}
-        print("==dtypes", dtypes)
         # TODO use dtype parameters to enforce a type
         log.debug ("Loading a csv file %s" % csv_filename)
-                        
-        data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"], dtype=dtypes) 
+
+        pp.pprint(dtypes)
+        #converters
+            # log.debug("dtypes before loading: %s\n" % )
+        data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"], dtype=dtypes,
+                converters={
+                    "tcp.flags":lambda x: int(x,16),
+                    }
+                ) 
         # data = pd.read_csv(csv_filename, sep=delimiter, engine="c", dtype=dtypes)
 
 
         data.rename (inplace=True, columns=mp.get_fields("fullname", "name"))
 
-        data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
+        # data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
         # convert from hexa to numeric
         # print(data.dtypes)
-        # data.tcpflags = data.tcpflags.apply(lambda x: int(x,16), )
+        # data.tcpflags = data.tcpflags.apply( )
 
-        columns = list(data.columns)
-        # print("==column names:", columns)
-        # print("== before returns\n", data.dtypes)
+        # columns = list(data.columns)
+        # print("==> column names:", columns)
+        log.debug("Dtypes after load:%s\n" % pp.pprint(data.dtypes))
         return data
 
     def plot_mptcpstream(self, args):

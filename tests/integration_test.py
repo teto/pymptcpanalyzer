@@ -23,6 +23,11 @@ class IntegrationTest(TestCase):
         self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
         # self.assertTrue
 
+    def test_loadconfig(self):
+        """
+        Override XDG_CONFIG_HOME and checks it's correctly loaded
+        """
+        pass
     def test_oneshot(self):
         # TODO test when launched via subprocess 
         # - with a list of commands passed via stdin
@@ -35,7 +40,7 @@ class IntegrationTest(TestCase):
         dat = pd.DataFrame(columns=mp.get_fields("fullname"))
         prefix = "examples/node0.pcap"
         dat.to_csv ( prefix + ".csv", sep=self.config["DEFAULT"]["separator"])
-        with fopen("examples/node0.csv", "r+"):
+        # with fopen("examples/node0.csv", "r+"):
             #
 
         self.assertEqual()

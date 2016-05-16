@@ -27,12 +27,12 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             "DEFAULT": { 
                 "tshark_binary": "tshark",
                 "delimiter": "|",
-                "cache": os.getenv("XDG_CACHE_HOME/mptcpanalyzer", os.path.expanduser("~/.cache/mptcpanalyzer")),
+                "cache": os.path.join(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache/")), "mptcpanalyzer"),
                 }
             })
 
         if not filename:
-            xdg_config = os.getenv("XDG_DEFAULT_HOME", "~/.config")
+            xdg_config = os.getenv("XDG_CONFIG_HOME", "~/.config")
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")
             filenames.append(xdg_config)
 
