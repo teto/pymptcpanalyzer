@@ -80,6 +80,8 @@ def fields_v2():
      are still NAs in the column. Relying on float64 permits to overcome this.
 
  ark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
+
+    TODO use converters for datetime
     """
     l = [
             Field("frame.number", "packetid", np.int64, False),

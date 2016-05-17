@@ -28,6 +28,10 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
                 "tshark_binary": "tshark",
                 "delimiter": "|",
                 "cache": os.path.join(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache/")), "mptcpanalyzer"),
+                "style0": "",
+                "style1": "",
+                "style2": "",
+                "style3": ""
                 }
             })
 

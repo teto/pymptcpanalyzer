@@ -226,12 +226,64 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         # df.plot(kind='line') is equivalent to df.plot.line() since panda 0.17
         # should return axes : matplotlib.AxesSubplot
         # returns a panda.Series for a line :s
-        pplot = tcpstreams[field].plot.line(
-            ax=axes,
-            # use_index=False,
-            legend=False,
-            grid=True,
-        )
+        
+        # TODO load styles from config
+        styles = [
+                "red_o",
+                "blue",
+                ]
+
+
+        print("available matplotlib styles", plt.style.available)
+        # look into 'styles' list:
+        # print(tcpstreams)
+        counter = 0
+        print( "len of ", len(styles), " to compare with " , len(tcpstreams))
+        for idx, (streamid, ds) in enumerate(tcpstreams):
+            # print("id=",idx, "streamid=", streamid)
+            if streamid in [0,3]:
+                print ("skipping streamids ", streamid)
+                continue
+
+            print("Stream id=", streamid, ds.head())
+            if counter < len(styles):
+                print("counter=", counter)
+                print("Using style=", styles[counter])
+
+                plt.style.use( (styles[counter]))
+
+                counter += 1
+                #or
+            # with plt.style.context(('dark_background')):
+            pplot = ds[field].plot.line(
+                ax=axes,
+                # use_index=False,
+                legend=False,
+                grid=True,
+            )
+
+
+        # pplot = tcpstreams[field].plot.line(
+        #     ax=axes,
+        #     # use_index=False,
+        #     legend=False,
+        #     grid=True,
+        # )
+
+
+        # seems there is no easy way 
+        # http://stackoverflow.com/questions/14178194/python-pandas-plotting-options-for-multiple-lines
+        # styles1 = ['bs-','ro-','y^-']
+        # pplot = tcpstreams.plot.scatter(
+        #     x="abstime",
+        #     y=field,
+        #     ax=axes,
+        #     # use_index=False,
+        #     legend=False,
+        #     marker="o",
+        #     linestyle=None,
+        #     grid=True,
+        # )
 
         axes.set_xlabel("Time")
 # TODO retrieve description from field
