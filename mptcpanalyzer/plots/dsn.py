@@ -241,9 +241,9 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         print( "len of ", len(styles), " to compare with " , len(tcpstreams))
         for idx, (streamid, ds) in enumerate(tcpstreams):
             # print("id=",idx, "streamid=", streamid)
-            if streamid in [0,3]:
-                print ("skipping streamids ", streamid)
-                continue
+            # if streamid in [0,3]:
+            #     print ("skipping streamids ", streamid)
+            #     continue
 
             print("Stream id=", streamid, ds.head())
             if counter < len(styles):

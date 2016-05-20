@@ -35,6 +35,9 @@ class TsharkExporter:
         # used to be 'column.format' in older versions
         # "tshark -G column-formats" list available formats 
         # name is then considered as a field accessible via  -e _ws.col.<name>
+        # %Cus => Custom
+        # doc on this is not good, you have to check each function, for isntance: col_set_rel_time
+        # https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob;f=epan/column.c;h=5d3263d6ce0a814ae2480741e7233130cf0694e6;hb=HEAD
         "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
         "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,

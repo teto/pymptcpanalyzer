@@ -32,8 +32,9 @@ logger.setLevel(logging.CRITICAL)
 from collections import namedtuple
 
 MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
-Field = namedtuple('Field', ['fullname', 'name', 'type', 'plottable' ])
+Field = namedtuple('Field', ['fullname', 'name', 'type', 'plottable',]) #  'converter'
 
+Field.__new__.__defaults__ = (None, None)
 
 def get_fields (field , field2=None):
 
@@ -86,7 +87,7 @@ def fields_v2():
     l = [
             Field("frame.number", "packetid", np.int64, False),
             # TODO set tot datetime ?
-            Field("frame.time_relative", "reltime", None, False),
+            Field("frame.time_relative", "reltime", None, False,),
             # set to deltatime
             Field("frame.time_delta", "time_delta", None, False),
             Field("frame.time_epoch", "abstime", None, False),
