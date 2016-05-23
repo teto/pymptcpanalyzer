@@ -491,13 +491,13 @@ class MpTcpAnalyzer(cmd.Cmd):
         data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"],
                 dtype=dtypes,
                 # parse the following columns as date/time
-                parse_dates=[
-                    "frame.time_relative",
-
-#                    "frame.time_epoch", # for now we don't care about epoch
-                    ],
-                # Here we specify a format, can we do it on a per column basis ?
-                date_parser=lambda x: pd.datetime.strptime(x,),
+                # in fact it is not a datetime, just plain nanoseconds
+                # parse_dates=[
+                #     "frame.time_relative",
+# #                    "frame.time_epoch", # for now we don't care about epoch
+                #     ],
+                # # Here we specify a format, can we do it on a per column basis ?
+                # date_parser=lambda x: pd.datetime.strptime(x,),
                 converters={
                     "tcp.flags":lambda x: int(x,16),
                     # "frame.abs"

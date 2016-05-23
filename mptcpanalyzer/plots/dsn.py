@@ -179,7 +179,8 @@ class PerSubflowTimeVsX(plot.Matplotlib):
     Plot one or several mptcp attributes
     """
 # list(map(lambda x: x.name if x.plottable is not None else None, fields_v2()))
-    mptcp_attributes = [ x.name for x in fields_v2() if x.plottable ]
+    # dict field, label
+    mptcp_attributes =  dict((x.name, x.label) for x in fields_v2() if x.label )
             # [
             #     "dsn",
             #     "dss_ssn"
@@ -194,7 +195,10 @@ class PerSubflowTimeVsX(plot.Matplotlib):
     def  default_parser(self, *args, **kwargs):
         parser = super().default_parser(mptcpstream=True, direction=True)
         # parser.add_argument('field', choices=self.mptcp_attributes, nargs="+", help="")
-        parser.add_argument('field', choices=self.mptcp_attributes, help="Choose an mptcp attribute to plot")
+        parser.add_argument('field', choices=self.mptcp_attributes.keys(), help="Choose an mptcp attribute to plot")
+        parser.add_argument('--skip', dest="skipped_subflows", type=int, action="append", default=[],
+                help=("You can type here the tcp.stream of a subflow not to take into account (because"
+                "it was filtered by iptables or else)"))
         return parser
 
     """
@@ -228,31 +232,31 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         # returns a panda.Series for a line :s
         
         # TODO load styles from config
-        styles = [
-                "red_o",
-                "blue",
-                ]
+        # styles = [
+        #         "red_o",
+        #         "blue",
+        #         ]
 
 
-        print("available matplotlib styles", plt.style.available)
+        # print("available matplotlib styles", plt.style.available)
         # look into 'styles' list:
         # print(tcpstreams)
-        counter = 0
-        print( "len of ", len(styles), " to compare with " , len(tcpstreams))
+        # counter = 0
+        # print( "len of ", len(styles), " to compare with " , len(tcpstreams))
         for idx, (streamid, ds) in enumerate(tcpstreams):
             # print("id=",idx, "streamid=", streamid)
-            # if streamid in [0,3]:
-            #     print ("skipping streamids ", streamid)
-            #     continue
+            if streamid in args.skipped_subflows:
+                print ("skipping tcp streamid ", streamid)
+                continue
 
             print("Stream id=", streamid, ds.head())
-            if counter < len(styles):
-                print("counter=", counter)
-                print("Using style=", styles[counter])
+            # if counter < len(styles):
+            #     print("counter=", counter)
+            #     print("Using style=", styles[counter])
 
-                plt.style.use( (styles[counter]))
+            #     plt.style.use( (styles[counter]))
 
-                counter += 1
+            #     counter += 1
                 #or
             # with plt.style.context(('dark_background')):
             pplot = ds[field].plot.line(
@@ -285,15 +289,17 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         #     grid=True,
         # )
 
-        axes.set_xlabel("Time")
-# TODO retrieve description from field
-        axes.set_ylabel("Data Sequence Number")
+        axes.set_xlabel("Time (s)")
+        # TODO retrieve description from field (instead of 
+        # axes.set_ylabel("Data Sequence Number")
+        axes.set_ylabel(self.mptcp_attributes[field])
 
         handles, labels = axes.get_legend_handles_labels()
-        print(handles)
+        # print(handles)
 
         # Generate "subflow X" labels
-        axes.legend(handles, [ "%s for Subflow %d" % (field,x) for x, _ in enumerate(labels) ])
+        # location: 3 => bottom left, 4 => bottom right
+        axes.legend(handles, [ "%s for Subflow %d" % (field, x) for x, _ in enumerate(labels) ], loc=4)
 
         ###  Correct legend for the linux 4 subflow case
         #############################################################

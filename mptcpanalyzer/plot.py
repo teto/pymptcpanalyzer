@@ -5,6 +5,7 @@ import sys
 import os
 import tempfile
 import matplotlib
+import matplotlib.pyplot as plt
 import logging
 import mptcpanalyzer as mp
 from enum import Enum, IntEnum
@@ -168,8 +169,10 @@ class Matplotlib(Plot):
         # with plt.style.context(args.styles):
         # setup styles if any
         log.debug("Using styles: %s" % args.styles)
-        matplotlib.pyplot.style.use(args.styles)
-        fig = self._generate_plot(main, args, **kwargs)
+        # matplotlib.pyplot.style.use(args.styles)
+        # ('dark_background')
+        with plt.style.context(args.styles):
+            fig = self._generate_plot(main, args, **kwargs)
 
         self.title = args.title if args.title else self.title
         if self.title:
