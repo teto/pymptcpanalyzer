@@ -89,7 +89,7 @@ setup(name="mptcpanalyzer",
             # creates 2 system programs that can be called from PATH
             'mptcpanalyzer = mptcpanalyzer.cli:cli',
             'mptcpexporter = mptcpanalyzer.exporter:main',
-            'mptcpnumerics = mptcpanalyzer.analysis:run'
+            # 'mptcpnumerics = mptcpanalyzer.analysis:run'
           ],
         # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
           'mptcpanalyzer.plots': [
@@ -104,9 +104,9 @@ setup(name="mptcpanalyzer",
               'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
               ],
           # namespace for plugins that monkey patch the main Cmd class
-          'mptcpanalyzer.cmds': [
-              'stats = mptcpanalyzer.stats:DoStats',
-            ]
+          # 'mptcpanalyzer.cmds': [
+          #     'stats = mptcpanalyzer.stats:DoStats',
+          #   ]
       },
       # pandas should include matplotlib dependancy right ?
       install_requires=[
@@ -114,8 +114,8 @@ setup(name="mptcpanalyzer",
           'matplotlib', # for plotting
           'pandas>=0.17.1', # to load and process csv files
             # those dependancies might made optional later or the package split into two
-          'sympy', #for symbolic computing
-          'sortedcontainers' # for the mini mptcp simulator events list
+          # 'sympy', #for symbolic computing
+          # 'sortedcontainers' # for the mini mptcp simulator events list
 
           ],
       # for now the core is not modular enough so just check that running the process produces the same files
