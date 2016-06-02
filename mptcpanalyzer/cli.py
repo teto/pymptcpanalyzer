@@ -452,6 +452,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                 exporter = TsharkExporter(
                         self.config["DEFAULT"]["tshark_binary"], 
                         self.config["DEFAULT"]["delimiter"], 
+                        self.config["DEFAULT"]["wireshark_profile"], 
                 )
 
                 retcode, stderr = exporter.export_to_csv(

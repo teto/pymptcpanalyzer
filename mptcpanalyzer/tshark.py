@@ -22,14 +22,9 @@ class TsharkExporter:
     TODO 
     in fact we could convert towards all formats supported by pandas:
     http://pandas.pydata.org/pandas-docs/stable/api.html#id12
-    """
-
-    input_pcap = ""
-    tshark_bin = None
-    # TODO pass as an option !
-    tcp_relative_seq = True
-
-    """
+    
+    if you plan to add several options, you should use a specific profile instead, 
+    these options are meant to override a base profile
     """
     options = { 
         # used to be 'column.format' in older versions
@@ -38,23 +33,29 @@ class TsharkExporter:
         # %Cus => Custom
         # doc on this is not good, you have to check each function, for isntance: col_set_rel_time
         # https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob;f=epan/column.c;h=5d3263d6ce0a814ae2480741e7233130cf0694e6;hb=HEAD
+        # rd => resolved
         "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
-        "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
+        # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
+# "nameres.hosts_file_handling": True,
+# nameres.use_external_name_resolver: True,
+# nameres.network_name: True
         "mptcp.relative_sequence_numbers" : True,
         "mptcp.intersubflows_retransmission": True,
         # Disable DSS checks which consume quite a lot
         "mptcp.analyze_mptcp": True,
     }
 
-    delimiter = '|'
 
-    # mptcp.stream
-
-    def __init__(self, tshark_bin="wireshark", delimiter="|"):
+    def __init__(self, tshark_bin="wireshark", delimiter="|", profile=None):
+        """
+        :param profile wireshark profiles will setup everything as it should except the gui column format that 
+        will be overriden to ensure compatibility with dissection system
+        """
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
+        self.profile = profile
 
     @staticmethod
     def get_default_options():
@@ -102,6 +103,7 @@ class TsharkExporter:
             input_filename,
             output_csv,
             tshark_filter,
+            profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
             # relative_sequence_numbers=self.tcp_relative_seq
@@ -130,6 +132,7 @@ class TsharkExporter:
         inputFilename, 
         outputFilename, 
         filter=None, 
+        profile=None,
         csv_delimiter='|',
         options={},
     ):
@@ -167,13 +170,13 @@ class TsharkExporter:
         #  -E quote=n 
         # the -2 is very important, else some mptcp parameters are not exported
         # TODO try with -w <outputFile> ?
-        cmd = ("{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression}"
+        cmd = ("{tsharkBinary} {profile} {tsharkOptions} {filterExpression}"
                " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
                " -E header=y  -2 "
                " > {outputFilename}").format(
             tsharkBinary=tshark_exe,
+            profile=" -C %s" % profile if profile else "",
             tsharkOptions=convert_options_into_str(options),
-            nameResolution="-n",
             inputPcap=inputFilename,
             outputCsv=outputFilename,
             fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),

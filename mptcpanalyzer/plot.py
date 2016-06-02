@@ -67,7 +67,7 @@ class Plot:
         # self.accept_preload = accept_preload
 
     # @staticmethod
-    def default_parser(self, mptcpstream: bool = False, direction = None):
+    def default_parser(self, mptcpstream: bool = False, direction: bool = False, dst_host : bool=False):
         """
         Generate parser with commonu arguments
         """
@@ -78,6 +78,9 @@ class Plot:
         if direction:
             parser.add_argument('direction', action="store", choices=mp.flow_directions.keys(), 
                     help='Filter flows according to their direction (towards the client or the server)')
+        if dst_host:
+            parser.add_argument('ipdst_host', action="store", 
+                    help='Filter flows according to the destination hostnames')
 
         parser.add_argument('-o', '--out', action="store", default="output.png", help='Name of the output file')
         parser.add_argument('--display', action="store_true", help='will display the generated plot')
@@ -92,11 +95,16 @@ class Plot:
         direction = client or server
         """
         # query = gen_ip_filter(**kwargs)
-        direction = kwargs.get("direction")
-        if direction:
-            # dat = data[(data.mptcpstream == args.mptcpstream) & (data.direction == args.direction)]
-            # dat = main[data.mptcpstream == args.mptcpstream]
-            query = "direction == %d" % mp.flow_directions[direction]
+        dat = data
+        for field, value in dict(**kwargs).items():
+            print("name, value", field)
+            query = "{field} == '{value}'".format(field=field,value=value)
+
+        # direction = kwargs.get("direction")
+        # if direction:
+        #     # dat = data[(data.mptcpstream == args.mptcpstream) & (data.direction == args.direction)]
+        #     # dat = main[data.mptcpstream == args.mptcpstream]
+        #     query = "direction == %d" % mp.flow_directions[direction]
 
             log.debug("Running query %s" % query)
             dat = data.query(query)
@@ -166,6 +174,14 @@ class Matplotlib(Plot):
     def plot(self, main, args, **kwargs):
         """
         """
+
+        # autofilter dataset if needed
+        # for name, val in args.__dict__.items():
+        #     if name in get_default_fields():
+                #exporter
+                # filter_ds()
+        # check filetered dataset is not empty 
+
         # with plt.style.context(args.styles):
         # setup styles if any
         log.debug("Using styles: %s" % args.styles)

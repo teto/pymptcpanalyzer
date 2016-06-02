@@ -91,11 +91,13 @@ def fields_v2():
             # set to deltatime
             Field("frame.time_delta", "time_delta", None, False),
             Field("frame.time_epoch", "abstime", None, False),
-            Field("_ws.col.ipsrc", "ipsrc", None, False),
+            Field("_ws.col.ipsrc", "ipsrc", str, False),
             Field("_ws.col.ipdst", "ipdst", str, False),
+            Field("ip.src_host", "ipsrc_host", str, False),
+            Field("ip.dst_host", "ipdst_host", str, False),
 
             # set to categorical ?
-            Field("mptcp.client", "direction", np.float64, False),
+            # Field("mptcp.client", "direction", np.float64, False),
             # "mptcp.rawdsn64":        "dsnraw64",
             # "mptcp.ack":        "dack",
             Field("tcp.stream", "tcpstream", np.float64, False),
@@ -125,53 +127,3 @@ def fields_v2():
         ]
     return l
 
-# def get_default_fields():
-#     """
-#     TODO should accept filters :)
-
-# """
-
-#     return {
-#             "frame.number":        ("packetid",),
-#             # reestablish once format is changed (see options)
-#             # "time": "frame.time",
-#             "frame.time_relative":        "reltime",
-#             "frame.time_delta":        "time_delta",
-#             # "frame.time":        "abstime",
-#             "frame.time_epoch":        "abstime",
-#             # "ipsrc": "_ws.col.Source",
-#             # "ipdst": "_ws.col.Destination",
-#             "_ws.col.ipsrc" : "ipsrc",
-#             "_ws.col.ipdst" : "ipdst",
-#             # "_ws.col.AbsTime": "abstime2",
-#             # "_ws.col.DeltaTime": "deltatime",
-#             # "ip.src":        "ipsrc",
-#             # "ip.dst":        "ipdst",
-#             "tcp.stream":        ("tcpstream", np.int64),
-#             "mptcp.stream":        "mptcpstream",
-#             "tcp.srcport":        "sport",
-#             "tcp.dstport":        "dport",
-#             # rawvalue is tcp.window_size_value
-#             # tcp.window_size takes into account scaling factor !
-#             "tcp.window_size":        "rwnd",
-#             "tcp.options.mptcp.sendkey"        : "sendkey",
-#             "tcp.options.mptcp.recvkey"        : "recvkey",
-#             "tcp.options.mptcp.recvtok"        : "recvtok",
-#             "tcp.options.mptcp.datafin.flag":        "datafin",
-#             "tcp.options.mptcp.subtype":        ("subtype", np.float64),
-#             "tcp.flags":        "tcpflags",
-#             "tcp.options.mptcp.rawdataseqno":        "dss_dsn",
-#             "tcp.options.mptcp.rawdataack":        "dss_rawack",
-#             "tcp.options.mptcp.subflowseqno":        "dss_ssn",
-#             "tcp.options.mptcp.datalvllen":        "dss_length",
-#             "tcp.options.mptcp.addrid":        "addrid",
-#             "mptcp.master":        "master",
-#             # TODO add sthg related to mapping analysis ?
-#             "tcp.seq":        ("tcpseq", np.float64),
-#             "tcp.len":        ("tcplen", np.float64),
-#             "mptcp.dsn":        "dsn",
-#             "mptcp.rawdsn64":        "dsnraw64",
-#             "mptcp.ack":        "dack",
-#         }
-
-# __default_fields__ = get_default_fields()

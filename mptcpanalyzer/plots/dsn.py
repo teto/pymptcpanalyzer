@@ -193,7 +193,7 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         print( "attributes=", self.mptcp_attributes)
 
     def  default_parser(self, *args, **kwargs):
-        parser = super().default_parser(mptcpstream=True, direction=True)
+        parser = super().default_parser(mptcpstream=True, direction=False, dst_host=True)
         # parser.add_argument('field', choices=self.mptcp_attributes, nargs="+", help="")
         parser.add_argument('field', choices=self.mptcp_attributes.keys(), help="Choose an mptcp attribute to plot")
         parser.add_argument('--skip', dest="skipped_subflows", type=int, action="append", default=[],
@@ -212,11 +212,14 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
             return
-
-        dat = self.filter_ds(dat, direction=args.direction)
+        # print(args."ip.dst_host")
+        # if getattr()
+        print( type(args.__dict__))
+        for name, val in args.__dict__.items():
+            print("name=",name)
+        dat = self.filter_ds(dat, ipdst_host=args.ipdst_host)
 
         field = args.field
-
 
         fig = plt.figure()
         dat.set_index("reltime", inplace=True)
