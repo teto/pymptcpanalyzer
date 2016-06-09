@@ -20,14 +20,41 @@
 
 from setuptools import setup, find_packages
 
+from distutils.cmd import Command
+from distutils.core import setup
+from distutils.util import convert_path
+
+class TestCommand(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import sys, subprocess
+
+        raise SystemExit(
+            subprocess.call([sys.executable,
+                             '-m',
+                             'pisces.test']))
 # How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
 # http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
 # 
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
+
+main_ns={}
+ver_path = convert_path('mptcpanalyzer/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
+
 setup(name="mptcpanalyzer",
-      version="0.1",
+# TODO import version.py
+      version=main_ns['__version__'],
       description="Analyze mptcp traces (.pcap)",
       long_description=open('README.md').read(),
       url="http://github.com/lip6-mptcp/mptcpanalyzer",
@@ -61,23 +88,40 @@ setup(name="mptcpanalyzer",
           "console_scripts": [
             # creates 2 system programs that can be called from PATH
             'mptcpanalyzer = mptcpanalyzer.cli:cli',
-            'mptcpexporter = mptcpanalyzer.exporter:main'
+            'mptcpexporter = mptcpanalyzer.exporter:main',
+            # 'mptcpnumerics = mptcpanalyzer.analysis:run'
           ],
         # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
           'mptcpanalyzer.plots': [
-              'dsn = mptcpanalyzer.plots.dsn:TimeVsDsn',
+              'misc = mptcpanalyzer.plots.dsn:PerSubflowTimeVsX',
+              # 'interdeparture = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
+              'interarrival = mptcpanalyzer.plots.dsn:InterArrivalTimes',
+              'xinterarrival = mptcpanalyzer.plots.dsn:CrossSubflowInterArrival',
               'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
+              'dss_len = mptcpanalyzer.plots.dsn:DssLengthHistogram',
+              'dss = mptcpanalyzer.plots.dsn:DSSOverTime',
+              'owd = mptcpanalyzer.plots.owd:OneWayDelay',
+              'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
               ],
           # namespace for plugins that monkey patch the main Cmd class
-          'mptcpanalyzer.cmds': [
-              'stats = mptcpanalyzer.stats:DoStats',
-            ]
+          # 'mptcpanalyzer.cmds': [
+          #     'stats = mptcpanalyzer.stats:DoStats',
+          #   ]
       },
       # pandas should include matplotlib dependancy right ?
       install_requires=[
-          'stevedore',
-          'matplotlib',
-          'pandas>=0.17.1'
+          'stevedore',  # to implement a plugin mechanism
+          'matplotlib', # for plotting
+          'pandas>=0.17.1', # to load and process csv files
+            # those dependancies might made optional later or the package split into two
+          # 'sympy', #for symbolic computing
+          # 'sortedcontainers' # for the mini mptcp simulator events list
+
           ],
+      # for now the core is not modular enough so just check that running the process produces the same files
+      # test_suite="tests",
+      #  cmdclass={
+      #   'test': TestCommand
+      # },
       zip_safe=False,
       )

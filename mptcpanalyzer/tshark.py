@@ -3,6 +3,7 @@ import logging
 import subprocess
 import os
 import tempfile
+from typing import List
 
 from enum import Enum
 
@@ -18,43 +19,43 @@ class Filetype(Enum):
 
 class TsharkExporter:
     """
-    TODO tshark.py devrait plutot accepter des streams
-
+    TODO 
+    in fact we could convert towards all formats supported by pandas:
+    http://pandas.pydata.org/pandas-docs/stable/api.html#id12
+    
+    if you plan to add several options, you should use a specific profile instead, 
+    these options are meant to override a base profile
     """
-
-    input_pcap = ""
-    tshark_bin = None
-    tcp_relative_seq = True
     options = { 
         # used to be 'column.format' in older versions
-        "gui.column.format": '"Time","%Cus:frame.time"',
-        "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
+        # "tshark -G column-formats" list available formats 
+        # name is then considered as a field accessible via  -e _ws.col.<name>
+        # %Cus => Custom
+        # doc on this is not good, you have to check each function, for isntance: col_set_rel_time
+        # https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob;f=epan/column.c;h=5d3263d6ce0a814ae2480741e7233130cf0694e6;hb=HEAD
+        # rd => resolved
+        "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
+        # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
         "mptcp.analyze_mappings" : True,
+# "nameres.hosts_file_handling": True,
+# nameres.use_external_name_resolver: True,
+# nameres.network_name: True
         "mptcp.relative_sequence_numbers" : True,
-        "mptcp.interdsn_latency": True,
         "mptcp.intersubflows_retransmission": True,
         # Disable DSS checks which consume quite a lot
-        # "tcp.analyze_mptcp_seq": False,
         "mptcp.analyze_mptcp": True,
-        # "tcp.analyze_mptcp_mapping": False,
     }
 
-    delimiter = '|'
-    # fields_to_export = (
-    #     "packetid", 
-    #     "time",
-    #     "mptcpstream", 
-    #     "tcpstream", 
-    # )
 
-    # TODO should be settable
-    # mptcp.stream
-    filter = ""
-
-    def __init__(self, tshark_bin="/usr/bin/wireshark", delimiter=","):
+    def __init__(self, tshark_bin="wireshark", delimiter="|", profile=None):
+        """
+        :param profile wireshark profiles will setup everything as it should except the gui column format that 
+        will be overriden to ensure compatibility with dissection system
+        """
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
+        self.profile = profile
 
     @staticmethod
     def get_default_options():
@@ -62,55 +63,6 @@ class TsharkExporter:
         """
         options = {}
         return options
-
-    @staticmethod
-    def get_default_fields():
-        """
-        Mapping between short names easy to use as a column title (in a CSV file) 
-        and the wireshark field name
-        """
-        return {
-            "packetid": "frame.number",
-            # reestablish once format is changed (see options)
-            # "time": "frame.time",
-            "reltime": "frame.time_relative",
-            "time_delta": "frame.time_delta",
-            "ipsrc": "_ws.col.Source",
-            "ipdst": "_ws.col.Destination",
-            "tcpstream": "tcp.stream",
-            "mptcpstream": "mptcp.stream",
-            "sport": "tcp.srcport",
-            "dport": "tcp.dstport",
-            # rawvalue is tcp.window_size_value
-            # tcp.window_size takes into account scaling factor !
-            "rwnd": "tcp.window_size",
-            # "sendkey": "tcp.options.mptcp.sendkey",
-            # "recvkey": "tcp.options.mptcp.recvkey",
-            # "recvtok": "tcp.options.mptcp.recvtok",
-            "datafin": "tcp.options.mptcp.datafin.flag",
-            "subtype": "tcp.options.mptcp.subtype",
-            "tcpflags": "tcp.flags",
-            "dss_dsn": "tcp.options.mptcp.rawdataseqno",
-            "dss_rawack": "tcp.options.mptcp.rawdataack",
-            "dss_ssn": "tcp.options.mptcp.subflowseqno",
-            "dss_length": "tcp.options.mptcp.datalvllen",
-            "master": "mptcp.master",
-            "latency": "mptcp.app_latency",
-            # TODO add sthg related to mapping analysis ?
-            "tcpseq": "tcp.seq",
-            "dsn": "mptcp.dsn",
-            "dack": "mptcp.ack",
-            # "dataack": "mptcp.ack",
-        }
-
-    @staticmethod
-    def build_csv_header_from_list_of_fields(fields, csv_delimiter):
-        """
-        fields should be iterable
-        Returns "field0,field1,..."
-        csv delimiter will probably be '|' or ','
-        """
-        return csv_delimiter.join(fields) + '\n'
 
     @staticmethod
     def find_type(filename):
@@ -130,10 +82,9 @@ class TsharkExporter:
         else:
             return Filetype.unsupported
 
-    # def convert_to_csv(self, input_filename, output_filename, fields_to_export):
-        # pass
 
-    def export_to_csv(self, input_filename, output_csv, fields_to_export=None, filter=None):
+    def export_to_csv(self, input_filename: str, output_csv : str,
+            fields_to_export : List[str], tshark_filter : str =None):
         """
         fields_to_export = dict
         Returns exit code, stderr
@@ -146,20 +97,13 @@ class TsharkExporter:
         if self.find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
 
-        fields_to_export = fields_to_export or self.get_default_fields()
-        header = self.build_csv_header_from_list_of_fields(fields_to_export.keys(), self.delimiter)        
-
-        # output = output if output else ""
-        log.info("Writing to file %s" % output_csv)
-        with open(output_csv, "w") as f:
-            f.write(header)
-
         return self.tshark_export_fields(
             self.tshark_bin, 
-            fields_to_export.values(), 
+            fields_to_export, 
             input_filename,
             output_csv,
-            self.filter,
+            tshark_filter,
+            profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
             # relative_sequence_numbers=self.tcp_relative_seq
@@ -185,8 +129,10 @@ class TsharkExporter:
     def tshark_export_fields(
         tshark_exe, 
         fields_to_export,
-        inputFilename, outputFilename, 
+        inputFilename, 
+        outputFilename, 
         filter=None, 
+        profile=None,
         csv_delimiter='|',
         options={},
     ):
@@ -204,7 +150,7 @@ class TsharkExporter:
         # fields that tshark should export
         # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
         # to filter connection
-        filter = '-2 -R "%s"' % (filter) if filter else ''
+        filter = ' -R "%s"' % (filter) if filter else ''
 
         def convert_options_into_str(options):
             """
@@ -217,21 +163,22 @@ class TsharkExporter:
                 out += ' -o {option}:{value}'.format(option=option, value=value)
             return out
 
-        print(fields_to_export)
+        # print(fields_to_export)
         # for some unknown reasons, -Y does not work so I use -2 -R instead
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
         #  -E quote=n 
+        # the -2 is very important, else some mptcp parameters are not exported
         # TODO try with -w <outputFile> ?
-        cmd = ("{tsharkBinary} {tsharkOptions} {nameResolution} {filterExpression}"
+        cmd = ("{tsharkBinary} {profile} {tsharkOptions} {filterExpression}"
                " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
-               " >> {outputFilename}").format(
+               " -E header=y  -2 "
+               " > {outputFilename}").format(
             tsharkBinary=tshark_exe,
+            profile=" -C %s" % profile if profile else "",
             tsharkOptions=convert_options_into_str(options),
-            nameResolution="-n",
             inputPcap=inputFilename,
             outputCsv=outputFilename,
-            # ' -E header=y ' +
             fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
             filterExpression=filter,
             delimiter=csv_delimiter,
@@ -260,6 +207,7 @@ class TsharkExporter:
 # TODO replace with pandas export
 def convert_csv_to_sql(csv_filename, database, table_name):
     """
+    TODO this should be done using pandas library
     csv_filename
     csv_content should be a string
     Then you can run SQL commands via SQLite Manager (firefox addo 
@@ -281,16 +229,6 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     ).format(delimiter="|",
              csvFile=csv_filename,
              table=table_name)
-
-    # initCommand=
-    #     "DROP TABLE IF EXISTS {table};\n"
-    #     ".separator '{separator}'\n"
-    #         ".import {csvFile} {table}\n").format(
-    #         separator=",",
-    #         csvFile=csv_filename,
-    #         table=table_name
-    #         )
-    # print(initCommand)
     log.info("Creating db %s (if does not exist)" % database)
     with tempfile.NamedTemporaryFile("w+", delete=False) as f:
         # with open(tempInitFilename, "w+") as f:
@@ -300,15 +238,10 @@ def convert_csv_to_sql(csv_filename, database, table_name):
         cmd = "sqlite3 -init {initFilename} {db} ".format(
             initFilename=f.name,
             db=database,
-            # init=init_command
         )
 
-        # cmd="sqlite3"
-        # tempInitFilename      
         log.info("Running command:\n%s" % cmd)
-        # input=init_command.encode(),
         try:
-
             output = subprocess.check_output(cmd, 
                                              input=".exit".encode(),
                                              shell=True)

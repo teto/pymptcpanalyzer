@@ -1,42 +1,51 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# import os
-import csv
 import json
-# from mptcpanalyzer import fields_to_export
+import subprocess
 
 
-def load_fields_to_export_from_file(file_):
+
+# most liekly would be best into a "utils.py":
+def copy_to_x(content):
     """
-    Returns list of fields to export, EOL does not matter
-    TODO check it s a list
+    Copy to *clipboard*
+    http://stackoverflow.com/questions/7606062/is-there-a-way-to-directly-send-a-python-output-to-clipboard
     """
-    import json
+    from subprocess import Popen, PIPE
+    p = Popen(['xsel','-pi'], stdin=PIPE)
+    p.communicate(input=content)
 
-    # with open(filename, newline=None) as input:
-    with file_ as input:
-        # results = list(csv.reader(inputfile))
-        return json.load(input)
-
-    raise RuntimeError("error")
-
-
-
-
-def sniff_csv_fields(csv_file):
+def get_dtypes(d):
     """
+    d being a dict with values as tuples, select item 1 of tuple
+
     """
-    with open(csv_file) as f:
-        reader = csv.DictReader(f, delimiter="|")
+    ret = dict()
+    for key, val in d.items():
+        if isinstance(val, tuple) and len(val) > 1:
+            ret.update( {key:val[1]})
+    return ret
 
-        print("fieldnames:\n", reader.fieldnames)
-        print(dir(reader))
 
-# def get_column_id(field_name):
-#   """
-#   Return index of column (0-based)
-#   """
-#   try:
-#       return fields_to_export.index(field_name)
-#   except ValueError as e:
-#       return -1
+# class MpTcpTopology:
+#     """
+#     subflow configuration
+#     """
+    
+#     data
+
+#     def __init__(self):
+#         pass
+
+#     def load_topology(filename):
+
+#         print("topology=", filename ) 
+#         with open(filename) as f:
+#             self.data = json.load(f)
+
+#     def print(self):
+
+#             print("Number of subflows=%d" % len(j["subflows"]))
+#             for s in j["subflows"]:
+#                 print("MSS=%d" % s["mss"])
+#             print("toto")
+
+

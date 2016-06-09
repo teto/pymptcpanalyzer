@@ -3,6 +3,10 @@ Todo listed by authors:
 CDFs are omitted since they would be a variation of the following scripts
 Use ~~ delimiters to strikethrough task when it is done.
 
+import sympy as sp
+
+sp.init_printing(use_unicode=True)
+
 
 Juan:
 - BW benefit

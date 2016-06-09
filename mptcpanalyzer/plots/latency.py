@@ -33,8 +33,8 @@ class SmoothedRtt(plot.Plot):
         # super(self, "dsn")
         pass
 
-    # def plot(self, data, *args, **kwargs):
-    def plot(self, data, args):
+    # def _generate_plot(self, data, *args, **kwargs):
+    def _generate_plot(self, data, args):
         print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
@@ -94,14 +94,15 @@ class SmoothedRtt(plot.Plot):
 
 
 # TODO provide several versions; one with histograms for instance
-class DsnVsLatency(plot.Plot):
+class DsnVsLatency(plot.Matplotlib):
 
     def __init__(self):
         # super(self, "dsn")
         pass
 
-    # def plot(self, data, *args, **kwargs):
-    def plot(self, data, args): # *args, **kwargs):
+    # def _generate_plot(self, data, *args, **kwargs):
+    def _generate_plot(self, main, args): # *args, **kwargs):
+        data = main.data
         print("data=", data) 
         print("args", args)
         # parser = plot.Plot.default_parser()
@@ -161,15 +162,16 @@ class DsnVsLatency(plot.Plot):
 
 
 # TODO provide several versions; one with histograms for instance
-class LatencyHistogram(plot.Plot):
+class LatencyHistogram(plot.Matplotlib):
 
     def __init__(self):
         # super(self, "dsn")
         pass
 
-    # def plot(self, data, *args, **kwargs):
-    def plot(self, data, args):
+    # def _generate_plot(self, data, *args, **kwargs):
+    def _generate_plot(self, main, args):
 
+        data = main.data
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)
@@ -183,8 +185,4 @@ class LatencyHistogram(plot.Plot):
         ax.set_xlabel("Relative time")
         ax.set_ylabel("Latency")
         fig = ax.get_figure()
-
-        args.out = os.path.join(os.getcwd(), args.out)
-        print("Saving into %s" % (args.out))
-        fig.savefig(args.out)
-        return True
+        return fig

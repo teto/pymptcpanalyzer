@@ -40,10 +40,9 @@ def main():
         fromfile_prefix_chars='@',
     )
     parser.add_argument('--relative', action="store_true", help="set to export relative TCP seq number")
-    parser.add_argument('--tshark', dest="tshark_exe", action="store", default="/usr/bin/wireshark", type=argparse.FileType('r'), help="Path to shark binary")
-    # parser.add_argument('--config', action="store", default=False, help="Can load config from file")
-
-    # readconfigFromFile
+    parser.add_argument('--tshark', dest="tshark_exe", action="store", default="tshark", help="Path to shark binary")
+    parser.add_argument('--profile', dest="tshark_exe", action="store", default=None, 
+        help="Wireshark profile which contains many options to customize output")
 
     # TODO tshark.py devrait plutot accepter des streams
     # argparse.FileType('r')
@@ -99,7 +98,7 @@ def main():
     # print(fields_to_export)
     # sys.exit(0)
 
-    exporter = TsharkExporter(tshark_exe)
+    exporter = TsharkExporter(tshark_exe, profile=args.profile)
     # exporter.tcp_relative_seq = args.relative if args.relative else True
     exporter.tcp_relative_seq = args.relative 
     # exporter.fields_to_export = fields_to_export
