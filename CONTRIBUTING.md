@@ -1,4 +1,4 @@
-How to contribute to mptcpanalyzer ?
+# How to contribute to mptcpanalyzer ?
 
 Submission of code should be done via the github pull requests system.
 
@@ -34,3 +34,6 @@ regardless of their package.
 In order to test while modifying mptcpanalyzer, you should install it like this: 
 $ python3.5 setup.py develop --user
 
+# How to upload it to pypy (for the forgetful maintainer)
+python3.5 setup.py sdist upload
+(test first the package locally pip install /path/toarchive.gz)

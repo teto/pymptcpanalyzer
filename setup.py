@@ -60,6 +60,7 @@ setup(name="mptcpanalyzer",
       url="http://github.com/lip6-mptcp/mptcpanalyzer",
       license="GPL",
       author="Matthieu Coudron",
+      author_email="matthieu.coudron@lip6.fr",
       classifiers=[
           'Development Status :: 3 - Alpha',
           'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
