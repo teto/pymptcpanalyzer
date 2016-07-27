@@ -2,4 +2,4 @@
 # -*- coding: utf-8 -*-
 
 # there doesn't seem to be a standard way but this seems to be the best
-__version__ = '0.1'
+__version__ = '0.2'
