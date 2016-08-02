@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8
 # PYTHON_ARGCOMPLETE_OK
 # vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
@@ -17,8 +17,7 @@ import argparse
 import logging
 import os
 import subprocess
-# import glob
-from mptcpanalyzer.plot import Plot
+# from mptcpanalyzer.plot import Plot
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
@@ -26,38 +25,32 @@ from mptcpanalyzer.version import __version__
 import mptcpanalyzer as mp
 import stevedore
 # import mptcpanalyzer.config
-# import config
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import shlex
 import cmd
 import traceback
-import pprint # for prettyprint
+import pprint
 
 from stevedore import extension
 
 log = logging.getLogger("stevedore")
-log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 
-# "mptcpanalyzer"
 log = logging.getLogger("mptcpanalyzer")
-log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
-
-
-print ( "log ", __name__)
 
 # subparsers that need an mptcp_stream should inherit this parser
-stream_parser = argparse.ArgumentParser(
-    description='',
-    # else conflicts with
-    add_help=False
-)
+# stream_parser = argparse.ArgumentParser(
+#     description='',
+#     # else conflicts with subparsers
+#     add_help=False
+# )
 
-stream_parser.add_argument(
-    "mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
+# stream_parser.add_argument(
+#     "mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
 
 
 
@@ -81,21 +74,12 @@ def is_loaded(f):
 
 
 
-
-# class MpTcpSubflow:
-#     def __init__(self, ):
-#         pass
-#     def is_master():
-#     def look_for_addrid():
-#     def select_towards_host():
-
 class MpTcpAnalyzer(cmd.Cmd):
     # TODO print version
     intro = """
         Welcome in mptcpanalyzer (http://github.com/lip6-mptcp/mptcpanalyzer)
         Press ? to get help
         """
-    # ruler = "="
     def stevedore_error_handler(manager, entrypoint, exception):
         print ("Error while loading entrypoint %s" % entrypoint)
 
@@ -110,11 +94,10 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         ### LOAD PLOTS 
         ######################
-# you can have list available plots under the namespace 
+# you can  list available plots under the namespace 
 # https://pypi.python.org/pypi/entry_point_inspector
 
         # mgr = driver.DriverManager(
-        # TODO move to a load_plot_plugins function
         self.plot_mgr = extension.ExtensionManager(
             namespace='mptcpanalyzer.plots',
             invoke_on_load=True,
@@ -171,7 +154,6 @@ class MpTcpAnalyzer(cmd.Cmd):
     def precmd(self, line):
         """
         """
-        # return shlex.split(line)
         # default behavior
         return line 
 
@@ -195,7 +177,6 @@ class MpTcpAnalyzer(cmd.Cmd):
                 if field not in columns:
                     raise Exception(
                         "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-            func
         return check_fields
 
     # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
@@ -302,12 +283,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         total_transferred = dsn_max - dsn_min
         d = df.groupby('tcpstream')
         # drop_duplicates(subset='rownum', take_last=True)
-        print("mptcpstream %d transferred %d" %
-              (mptcpstream, total_transferred))
+        print("mptcpstream %d transferred %d" % (mptcpstream, total_transferred))
         for tcpstream, group in d:
             subflow_load = group.drop_duplicates(
                 subset="dss_dsn").dss_length.sum()
-            print(subflow_load)
             print(subflow_load)
             print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (
                 tcpstream, subflow_load, total_transferred, subflow_load / total_transferred * 100))
@@ -333,11 +312,11 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         self.data = self.load_into_pandas(filename, regen)
 
-        # os.path.basename()
         self.prompt = "%s> " % os.path.basename(filename)
 
     def do_load(self, args):
         """
+        Load the file as the current one
         """
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots'
@@ -363,7 +342,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         self.plot_mptcpstream(args)
 
     def help_plot(self):
-        print("Hello world")
+        print("Run plot -h")
 
     def complete_plot(self, text, line, begidx, endidx):
         # types = self._get_available_plots()
@@ -371,7 +350,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         # print("text=%s" % text)
         # print(types)
         l = [x for x in types if x.startswith(text)]
-        # print(l)
         return l
 
 
@@ -446,6 +424,11 @@ class MpTcpAnalyzer(cmd.Cmd):
 
             # if matching csv does not exist yet or if generation forced
             if force_regen or cache_is_invalid:
+
+                # recursively create the directories
+                log.debug("Creating cache directory [%s]" % os.makedirs(self.config["DEFAULT"]["cache"]))
+                os.makedirs(self.config["DEFAULT"]["cache"], exist_ok=True)
+
                 log.info("Preparing to convert %s into %s" %
                         (filename, csv_filename))
 
@@ -635,16 +618,10 @@ def cli():
     # TODO here one could use parse_known_args
     args, unknown_args = parser.parse_known_args(sys.argv[1:])
     cfg = MpTcpAnalyzerConfig(args.config)
-    print("Config", cfg)
-    # log.info(" %s " % (args.input_file))
 
-    # if I load from todo rename
-    # input = None
     try:
 
-        # if args.batch:
-            # input = open(args.batch, 'rt')
-        print("input=", args.input_file)
+        # print("input=", args.input_file)
         print("unknown=", unknown_args)
 
         # stdin=input
@@ -654,7 +631,7 @@ def cli():
 #         # here I want to generate automatically the csv file
 #         # stdin = open(args.batch, 'rt') if args.batch else sys.stdin
         analyzer = MpTcpAnalyzer(cfg, )
-#         # TODO convert that into load
+
         if args.input_file:
             analyzer._load_data (args.input_file, args.regen)
 
