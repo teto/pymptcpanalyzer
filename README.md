@@ -24,7 +24,8 @@ Then you have an interpreter with autocompletion that can generate & display plo
 ![Data Sequence Number (DSN) per subflow plot](examples/dsn.png)
 
 
-You can reference mptcpanalyzer via the following Digital Object Identifier [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
+You can reference mptcpanalyzer via the following Digital Object Identifier:
+[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
 
 # How to install ?
 
@@ -63,7 +64,7 @@ Run `mptcpexporter -h` to see how it works.
 For example, we can load an mptcp pcap (I made one available on [wireshark wiki]
 (https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository, in the _examples_ folder).
 
-Run  `$ mptcpanalyzer examples/iperf-mptcp-0-0.pcap`. The script will try to generate
+Run  `$ mptcpanalyzer --load examples/iperf-mptcp-0-0.pcap`. The script will try to generate
 a csv file, it can take a few minutes depending on your computer.
 Then you have a command line: you can type `?` to list available commands. You have for instance:
 - `lc` (list connections)
