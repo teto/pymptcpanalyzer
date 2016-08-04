@@ -6,6 +6,7 @@ from mptcpanalyzer.cli import MpTcpAnalyzer
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import mptcpanalyzer.data as core
 import mptcpanalyzer.plots as plots
+import pandas as pd
 from stevedore.extension import Extension
 
 # https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
@@ -19,7 +20,7 @@ class IntegrationTest(TestCase):
 
         config = MpTcpAnalyzerConfig()
 
-        self.m = MpTcpAnalyzer (config)
+        self.m = MpTcpAnalyzer(config)
         self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
         # self.assertTrue
 
@@ -28,6 +29,7 @@ class IntegrationTest(TestCase):
         Override XDG_CONFIG_HOME and checks it's correctly loaded
         """
         pass
+
     def test_oneshot(self):
         # TODO test when launched via subprocess 
         # - with a list of commands passed via stdin
@@ -39,9 +41,8 @@ class IntegrationTest(TestCase):
         """
         dat = pd.DataFrame(columns=mp.get_fields("fullname"))
         prefix = "examples/node0.pcap"
-        dat.to_csv ( prefix + ".csv", sep=self.config["DEFAULT"]["separator"])
+        dat.to_csv( prefix + ".csv", sep=self.m.config["DEFAULT"]["delimiter"])
         # with fopen("examples/node0.csv", "r+"):
-            #
 
         self.assertEqual()
 
@@ -51,13 +52,20 @@ class IntegrationTest(TestCase):
         pass 
 
     def test_config(self):
+        """
+        Reads a config file and make sure some default values are ok
+        """
 
         # config = MpTcpAnalyzerConfig()
         cfg = MpTcpAnalyzerConfig("tests/test_config.ini")
         self.assertEqual(cfg["DEFAULT"]["tshark_binary"], "fake_tshark")
+        self.assertEqual(cfg["DEFAULT"]["delimiter"], "|")
 
     @unittest.skip("Not sure pcap are valid yet")
-    def test_mapping(self):
+    def test_mapping_connections(self):
+        """
+        Test to check if the program correctly mapped one connection to another
+        """
         # expects 2 datasets
         # load from csv
         ds1 = self.m.load_into_pandas("examples/node0.pcap")
@@ -70,32 +78,44 @@ class IntegrationTest(TestCase):
         self.m.do_plot("plot owd 0")
 
     def test_load(self):
+        """
+        Check that it can load a basic mptcp pcap
+        """
         # to test for errors
         # with self.assertRaises(ValueError):
         self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
 
     def test_list_subflows(self):
+        """
+        Test that it can list subflows
+        """
         # self.m.do_ls("0")
         # self.m.do_load("examples/iperf-mptcp-0-0.pcap")
         self.m.do_ls("0")
         self.m.do_ls("-1")
 
     def test_list_connections(self):
+        """
+        TODO should return different number
+        """
         self.m.do_lc("0")
         self.m.do_lc("-1")
 
     def test_list_plots_misc(self):
+        """
+        Check if properly list available plugins
+        """
 #http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
 # plugin, obj
-        self.m.plot_mgr.make_test_instance(
-                [ Extension("misc", "mptcpanalyzer.plots.dsn:PerSubflowTimeVsX",
-                    
+        mgr = self.m.plot_mgr.make_test_instance(
+        #name , entry point, plugin, obj
+                [ Extension("misc", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsX',
 # pkg_resources.
 # entry_points.load
                     None
                     , 
-                    mptcpanalyzer.plots.dsn.PerSubflowTimeVsX()
-                    )]
+                    mp.plots.dsn.PerSubflowTimeVsX()
+                    ) ]
                 )
         plot_names = self.m._list_available_plots()
         self.assertIn("misc", plot_names)
@@ -107,6 +127,8 @@ class IntegrationTest(TestCase):
         # self.assertIn("", plot_names)
 
     def test_generate_plots(self):
+        """
+        """
         self.m.do_load("examples/iperf-mptcp-0-0.pcap")
         # TODO precise file
         self.m.do_plot("plot dsn 0")
@@ -115,8 +137,9 @@ class IntegrationTest(TestCase):
         # TODO 
 
     def test_generate_plot_ns3(self):
+        """
+        Not a good test, too involving
+        """
 
         self.m.do_plot("plot ns3 --meta examples/ cwnd 0")
-    # def test_plot_dsn(self):
-    #     self.m.do_plot("plot dsn 0")
 

@@ -4,3 +4,15 @@
 [DEFAULT]
 # If you have several installations of tshark, then you can put the fullpath here
 tshark_binary = tshark
+
+# by default, look into  ${XDG_CACHE_HOME:.config}/mptcpanalyzer/config
+cache = /tmp
+
+# in case you want to export special options
+wireshark_profile = default
+
+# TODO add example
+# style0 = 
+# style0 = 
+# style2 = 
+# style3 = 

@@ -9,6 +9,8 @@ log = logging.getLogger("mptcpanalyzer")
 class MpTcpAnalyzerConfig(configparser.ConfigParser):
     """
     Thin wrapper around configparser to set up default values
+
+
     """
 
     def __init__(self, filename: str = None):
@@ -27,14 +29,14 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             "DEFAULT": { 
                 "tshark_binary": "tshark",
                 "delimiter": "|",
-                "cache": os.path.join(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache/")), "mptcpanalyzer"),
+                "cache": os.path.join(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "mptcpanalyzer"),
                 "wireshark_profile": "",
                 "style0": "",
                 "style1": "",
                 "style2": "",
                 "style3": "",
-                }
-            })
+            }
+        })
 
         if not filename:
             xdg_config = os.getenv("XDG_CONFIG_HOME", "~/.config")
@@ -44,7 +46,6 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         if filename:
             log.info("Config file set to %s" % filename)
             filenames = [filename]
-        
 
         # if os.path.exists(filename):
         loaded_from = self.read(filenames)
@@ -53,4 +54,3 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         log.info("Configuration loaded from %s", loaded_from)
         # else:
         #     log.debug("Could not find config file %s" % filename)
-

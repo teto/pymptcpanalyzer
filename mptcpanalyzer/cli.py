@@ -42,6 +42,8 @@ log = logging.getLogger("mptcpanalyzer")
 # log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 
+# handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
+
 # subparsers that need an mptcp_stream should inherit this parser
 # stream_parser = argparse.ArgumentParser(
 #     description='',
@@ -60,10 +62,7 @@ def is_loaded(f):
     Decorator checking that dataset has correct columns
     """
     def wrapped(self, *args):
-        print("wrapped")
         if self.data is not None:
-            print("self.data")
-            print("args=%r" % args)
             return f(self, *args)
         else:   
             print("Please load a file first")
@@ -75,13 +74,13 @@ def is_loaded(f):
 
 
 class MpTcpAnalyzer(cmd.Cmd):
-    # TODO print version
     intro = """
-        Welcome in mptcpanalyzer (http://github.com/lip6-mptcp/mptcpanalyzer)
+        Welcome in mptcpanalyzer {} (http://github.com/lip6-mptcp/mptcpanalyzer)
         Press ? to get help
-        """
+        """.format(__version__)
+
     def stevedore_error_handler(manager, entrypoint, exception):
-        print ("Error while loading entrypoint %s" % entrypoint)
+        print("Error while loading entrypoint [%s]" % entrypoint)
 
     def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin): 
         """
@@ -103,7 +102,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             invoke_on_load=True,
             verify_requirements=True,
             invoke_args=(),
-            )
+        )
 
         self.cmd_mgr = extension.ExtensionManager(
             namespace='mptcpanalyzer.cmds',
@@ -112,11 +111,11 @@ class MpTcpAnalyzer(cmd.Cmd):
             invoke_args=(),
             propagate_map_exceptions=False,
             on_load_failure_callback=self.stevedore_error_handler
-            )
+        )
         # TODO we should catch stevedore.exception.NoMatches
         
         def _inject_cmd(ext, data):
-            print(ext.name)
+            log.debug("Injecting plugin %s" % ext.name)
             for prefix in ["do", "help", "complete"]:
                 method_name = prefix + "_" + ext.name
                 # obj2 = getattr(ext.obj, "help_" + ext.name)
@@ -133,7 +132,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         try:
             results = self.cmd_mgr.map(_inject_cmd, self)
         except stevedore.exception.NoMatches as e:
-            print("No matches")
+            log.error("No matches")
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
@@ -172,7 +171,6 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         def check_fields(self, *args, **kwargs):
             columns = list(self.data.columns)
-            # print(columns)
             for field in mandatory_fields:
                 if field not in columns:
                     raise Exception(
@@ -185,25 +183,17 @@ class MpTcpAnalyzer(cmd.Cmd):
         """ list mptcp subflows 
                 [mptcp.stream id]
         """
-        print(args)
-
         parser = argparse.ArgumentParser(
-                description="Display help"
-                )
-        # client = parser.add_argument_group("Client data")
+            description="Display help"
+        )
 
         parser.add_argument("mptcpstream", action="store", type=int,
-                help="Equivalent to mptcp.stream id" 
-                )
+            help="Equivalent to mptcp.stream id" 
+        )
 
         parser.add_argument("--json", action="store_true", 
-                help="Return results but in json format"
-                )
-        # try:
-        #     mptcpstream = int(mptcpstream)
-        # except ValueError as e:
-        #     print("Expecting the mptcp.stream id as argument")
-        #     return
+            help="Return results but in json format"
+        )
         
         args = parser.parse_args (shlex.split(args))
         self._list_subflows(args.mptcpstream)
@@ -269,7 +259,6 @@ class MpTcpAnalyzer(cmd.Cmd):
                 [mptcp.stream id]
         For now it is naive, does not look at retransmissions ?
                 """
-        print("arg=", mptcpstream)
         try:
             mptcpstream = int(mptcpstream)
         except ValueError as e:
@@ -308,8 +297,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         Register into self.data a panda dataframe loaded from filename: a csv file either
         from a previous 
         """
-        # csv_filename = self.get_matching_csv_filename (args.input_file, args.regen)
-
         self.data = self.load_into_pandas(filename, regen)
 
         self.prompt = "%s> " % os.path.basename(filename)
@@ -380,7 +367,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         realpath = filename
         basename, ext = os.path.splitext(realpath)
-        print("Basename=%s" % basename)
+        # print("Basename=%s" % basename)
         # csv_filename = filename
 
         if ext == ".csv":
@@ -398,7 +385,6 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # from the absolute filename
                 l = os.path.realpath(filename).split(os.path.sep)
                 res = os.path.join(self.config["DEFAULT"]["cache"], '%'.join(l))
-                print(res)
                 _, ext = os.path.splitext(filename)
                 if ext != ".csv":
                     res += ".csv"
@@ -426,7 +412,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             if force_regen or cache_is_invalid:
 
                 # recursively create the directories
-                log.debug("Creating cache directory [%s]" % os.makedirs(self.config["DEFAULT"]["cache"]))
+                log.debug("Creating cache directory [%s]" % self.config["DEFAULT"]["cache"])
                 os.makedirs(self.config["DEFAULT"]["cache"], exist_ok=True)
 
                 log.info("Preparing to convert %s into %s" %
@@ -449,10 +435,12 @@ class MpTcpAnalyzer(cmd.Cmd):
                     raise Exception(stderr)
         return csv_filename
 
-    def load_into_pandas(self, input_file, regen : bool =False):
+    def load_into_pandas(self, input_file, regen: bool =False):
         """
         intput_file can be filename or fd
         load csv mptpcp data into panda
+
+        :rtype a panda.DataFrame
         """
         # exporter
         log.debug("Asked to load %s" % input_file)
@@ -465,9 +453,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         # dtypes = mp.get_fields("fullname", "type")
         temp = mp.get_fields("fullname", "type")
         # print(temp)
-        dtypes = { k:v for k,v in temp.items() if v is not None}
+        dtypes = { k: v for k,v in temp.items() if v is not None}
         # TODO use dtype parameters to enforce a type
-        log.debug ("Loading a csv file %s" % csv_filename)
+        log.debug("Loading a csv file %s" % csv_filename)
 
         pp.pprint(dtypes)
         #converters
@@ -558,9 +546,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         Should return a list of possibilities
         """
-        # print("text=", text)
         l = [x for x in self.data.columns if x.startswith(text)]
-        # print(l)
         return l
 
     def do_q(self, *args):
@@ -621,8 +607,7 @@ def cli():
 
     try:
 
-        # print("input=", args.input_file)
-        print("unknown=", unknown_args)
+        log.debug("unknown arguments=", unknown_args)
 
         # stdin=input
         # Disable rawinput module use

@@ -4,17 +4,10 @@
 # author: Matthieu coudron , matthieu.coudron@lip6.fr
 
 import argparse
-# import csv
 import os
-# import shutil
 import subprocess
 import logging
 import sys
-# from mptcpanalyzer import *
-# , load_fields_to_export_from_file
-# fields_dict, 
-# import sqlite3 as sql
-# from core import
 from mptcpanalyzer.tshark import TsharkExporter, convert_csv_to_sql
 
 log = logging.getLogger(__name__)
@@ -27,7 +20,6 @@ def get_basename(fullname, ext):
     return os.path.splitext(os.path.basename(fullname))[0] + "." + ext
 
 
-# todo should be able to 
 # -o force an option, else we can set a profile like -C <profileName>
 tshark_exe = "tshark"
 
@@ -62,7 +54,9 @@ def main():
     # subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
     subparser_csv.add_argument('--output', "-o", action="store", help="csv filename")
     subparser_csv.add_argument('--filter', "-f", action="store", help="Filter", default="")
-    subparser_csv.add_argument('fields_filename', type=argparse.FileType('r'), action="store", help="json file mapping name to their wireshark name")
+    subparser_csv.add_argument('fields_filename', type=argparse.FileType('r'), action="store", 
+        help="json file mapping name to their wireshark name"
+    )
 
     # List MPTCP connections and subflows
     sp_csv2sql = subparsers.add_parser('csv2sql', help='Imports csv file to an sqlite database')
@@ -73,30 +67,7 @@ def main():
     sp_pcap2sql.add_argument('inputPcap', action="store", help="Input pcap")
     sp_pcap2sql.add_argument('output', nargs="?", action="store", help="db filename")
 
-    # parent
-    # subparser_list = subparsers.add_parser('list', help='List MPTCP connections and subflows and saves them to a csv file',aliases=["l"])
-    # subparser_list.add_argument('db', action="store", help="Input sql")
-    # subparser_list.add_argument('outputCsv',  action="store", help="sql filename")
-
-    # subparser_query = subparsers.add_parser('query', help='Run an SQL query',aliases=["q"])
-    # subparser_query.add_argument('db', action="store", help="could be csv or sql")
-    # parser_list.add_argument('outputCsv', action="store",  help="src IP")
-
-    # subparser_plot = subparsers.add_parser('plot', help='Run an SQL query',aliases=["q"])
-    # subparser_plot.add_argument('connectionCsv', action="store", help="Csv file that describes connection")
-
     args = parser.parse_args(sys.argv[1:])
-    # if args.subparser_name == "list":
-    #     list_mptcp_connections(args.db)
-    # if(args.tosql):
-    #   convert_csv_to_sql( "connections.csv",args.tosql,"connections")
-
-    # elif args.subparser_name == "query":
-    #     print("query")
-
-    # fields_to_export = load_fields_to_export_from_file("fields_to_export.json")
-    # print(fields_to_export)
-    # sys.exit(0)
 
     exporter = TsharkExporter(tshark_exe, profile=args.profile)
     # exporter.tcp_relative_seq = args.relative if args.relative else True
