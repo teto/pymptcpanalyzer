@@ -33,7 +33,7 @@ First of all you will need a wireshark version that supports MPTCP dissection.
 
 Once wireshark is installed you can install mptcpanalyzer via pip:
 
-`$ python3.5 -mpip install mptcpanalyzer`
+`$ python3.5 -mpip install mptcpanalyzer --user`
 
 python3.5+ is mandatory since we rely on its type hinting features.
 Dependancies are (some will be made optional in the future):

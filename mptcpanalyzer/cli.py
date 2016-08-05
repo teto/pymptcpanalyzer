@@ -34,27 +34,14 @@ import pprint
 
 from stevedore import extension
 
-log = logging.getLogger("stevedore")
-# log.setLevel(logging.DEBUG)
-log.addHandler(logging.StreamHandler())
+plugin_logger = logging.getLogger("stevedore")
+plugin_logger.addHandler(logging.StreamHandler())
 
 log = logging.getLogger("mptcpanalyzer")
-# log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
+log.setLevel(logging.ERROR)
 
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
-
-# subparsers that need an mptcp_stream should inherit this parser
-# stream_parser = argparse.ArgumentParser(
-#     description='',
-#     # else conflicts with subparsers
-#     add_help=False
-# )
-
-# stream_parser.add_argument(
-#     "mptcp_stream", action="store", type=int, help="identifier of the MPTCP stream")
-
-
 
     
 def is_loaded(f):
@@ -132,7 +119,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         try:
             results = self.cmd_mgr.map(_inject_cmd, self)
         except stevedore.exception.NoMatches as e:
-            log.error("No matches")
+            log.error("stevedore: No matches")
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
@@ -144,12 +131,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         The optional arguments stdin and stdout specify the input and output file objects that the Cmd instance or subclass instance will use for input and output. If not specified, they will default to sys.stdin and sys.stdout.
         """
-        # stdin
         super().__init__(completekey='tab', stdin=stdin)
-# , sep='|'
         # there seems to be several improvements a
-        # possible to set type of columns with dtype={'b': object, 'c': np.float64}
         # one can choose the column to use as index index_col=
+
     def precmd(self, line):
         """
         """
@@ -361,6 +346,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 # TODO rename look intocache ?
     def get_matching_csv_filename(self, filename, force_regen : bool):
         """
+        Name is bad, since the function can generate  the file if required
         Expects a realpath as filename
         Accept either a .csv or a .pcap file 
         Returns realpath towards resulting csv filename
@@ -442,24 +428,16 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         :rtype a panda.DataFrame
         """
-        # exporter
         log.debug("Asked to load %s" % input_file)
-        pp = pprint.PrettyPrinter(indent=4)
 
         filename = os.path.expanduser(input_file)
         filename = os.path.realpath(filename)
         csv_filename = self.get_matching_csv_filename(filename, regen)
 
-        # dtypes = mp.get_fields("fullname", "type")
         temp = mp.get_fields("fullname", "type")
-        # print(temp)
-        dtypes = { k: v for k,v in temp.items() if v is not None}
-        # TODO use dtype parameters to enforce a type
+        dtypes = {k: v for k, v in temp.items() if v is not None}
         log.debug("Loading a csv file %s" % csv_filename)
 
-        pp.pprint(dtypes)
-        #converters
-            # log.debug("dtypes before loading: %s\n" % )
         data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"],
                 dtype=dtypes,
                 # parse the following columns as date/time
@@ -471,23 +449,15 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # # Here we specify a format, can we do it on a per column basis ?
                 # date_parser=lambda x: pd.datetime.strptime(x,),
                 converters={
-                    "tcp.flags":lambda x: int(x,16),
+                    "tcp.flags": lambda x: int(x, 16),
                     # "frame.abs"
-                    }
-                ) 
-        # data = pd.read_csv(csv_filename, sep=delimiter, engine="c", dtype=dtypes)
+                }
+        ) 
 
+        data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
 
-        data.rename (inplace=True, columns=mp.get_fields("fullname", "name"))
-
-        # data.tcpseq = data.apply(pd.to_numeric, errors='coerce')
-        # convert from hexa to numeric
-        # print(data.dtypes)
-        # data.tcpflags = data.tcpflags.apply( )
-
-        # columns = list(data.columns)
-        # print("==> column names:", columns)
-        log.debug("Dtypes after load:%s\n" % pp.pprint(data.dtypes))
+        pp = pprint.PrettyPrinter(indent=4)
+        log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
         return data
 
     def plot_mptcpstream(self, args):
@@ -500,12 +470,12 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         subparsers = parser.add_subparsers(
             dest="plot_type", title="Subparsers", help='sub-command help', )
-        subparsers.required=True
+        subparsers.required = True
 
         def _register_plots(ext, subparsers):
             subparsers.add_parser(ext.name, parents=[ext.obj.default_parser()], 
                     add_help=False
-                    )
+            )
 
         self.plot_mgr.map(_register_plots, subparsers)
 
@@ -515,13 +485,8 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # name, parents=[subplot.default_parser()], add_help=False)
 
         try:
-
-            # log.debug("before shlex magic ", args)
             args = shlex.split(args)
-            # log.debug("before parsing %s"% args)
             args, unknown = parser.parse_known_args(args)
-            # log.debug("args=", args)
-            # log.debug("unknown="% unknown)
             plotter = self.plot_mgr[args.plot_type].obj
             success = plotter.plot(self, args)
 
@@ -588,33 +553,39 @@ def cli():
             )
     parser.add_argument('--version', action='version', version="%s" % (__version__))
     parser.add_argument("--config", "-c", action="store",
-            help="Path towards the config file (use $XDG_CONFIG_HOME/mptcpanalyzer/config by default)")
-    parser.add_argument("--debug", "-d", action="store_true",
-            help="To output debug information")
+            help="Path towards the config file. If not set, mptcpanalyzer will try"
+                " to load first $XDG_CONFIG_HOME/mptcpanalyzer/config and then "
+                " $HOME/.config/mptcpanalyzer/config"
+    )
+    parser.add_argument("--debug", "-d", action="count", default=0,
+            help="More verbose output, can be repeated to be even more "
+                " verbose such as '-dddd'"
+    )
     parser.add_argument("--regen", "-r", action="store_true",
-            help="Force the regeneration of the cached CSV file from the pcap input")
+            help="mptcpanalyzer creates a cache of files in the folder "
+                "$XDG_CACHE_HOME/mptcpanalyzer or $HOME/.config/mptcpanalyzer"
+            "Force the regeneration of the cached CSV file from the pcap input"
+    )
     parser.add_argument("--batch", "-b", action="store", type=argparse.FileType('r'),
             default=sys.stdin,
             help="Accepts a filename as argument from which commands will be loaded."
             "Commands follow the same syntax as in the interpreter"
-            )
-    # parser.add_argument("--command", "-c", action="store", type=str, nargs="*", help="Accepts a filename as argument from which commands will be loaded")
+    )
 
 
     # TODO here one could use parse_known_args
     args, unknown_args = parser.parse_known_args(sys.argv[1:])
     cfg = MpTcpAnalyzerConfig(args.config)
 
+    # logging.CRITICAL = 50
+    level = logging.CRITICAL - args.debug * 10
+    log.setLevel(level)
+    print("Log level set to %s " % logging.getLevelName(level))
+    log.debug("Arguments unknown to the parser= %s" % unknown_args)
+
+
     try:
 
-        log.debug("unknown arguments=", unknown_args)
-
-        # stdin=input
-        # Disable rawinput module use
-        # use_rawinput = False
-
-#         # here I want to generate automatically the csv file
-#         # stdin = open(args.batch, 'rt') if args.batch else sys.stdin
         analyzer = MpTcpAnalyzer(cfg, )
 
         if args.input_file:
