@@ -4,6 +4,7 @@ Presentation
 ===
 
 Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
+It works on linux only.
 
 It accepts as input a capture file (\*.pcap) and from there generates a CSV file 
 (via a call to tshark, the terminal version of wireshark) with MPTCP fields for external processing.
@@ -29,7 +30,9 @@ You can reference mptcpanalyzer via the following Digital Object Identifier:
 
 # How to install ?
 
-First of all you will need a wireshark version that supports MPTCP dissection. 
+First of all you will need a wireshark version that supports MPTCP dissection,
+i.e., wireshark > 2.1.0. If you are on ubuntu, there are dev builds on
+https://launchpad.net/~dreibh/+archive/ubuntu/ppa/ .
 
 Once wireshark is installed you can install mptcpanalyzer via pip:
 
