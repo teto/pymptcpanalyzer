@@ -4,7 +4,7 @@ import logging
 import os
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
-from mptcpanalyzer import MpTcpSubflow
+from mptcpanalyzer.connection import MpTcpSubflow
 
 log = logging.getLogger(__name__)
 

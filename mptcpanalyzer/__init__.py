@@ -12,7 +12,6 @@ from collections import namedtuple
 
 logger = logging.getLogger(__name__)
 
-MpTcpSubflow = namedtuple('Subflow', ['ipsrc', 'ipdst', 'sport', 'dport'])
 Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ]) # 'converter'
 
 Field.__new__.__defaults__ = (None, None)
@@ -66,7 +65,7 @@ def fields_v2():
         Field("_ws.col.ipdst", "ipdst", str, False),
         Field("ip.src_host", "ipsrc_host", str, False),
         Field("ip.dst_host", "ipdst_host", str, False),
-
+        Field("mptcp.expected_token", "expected_token", str, False),
         # set to categorical ?
         # Field("mptcp.client", "direction", np.float64, False),
         # "mptcp.rawdsn64":        "dsnraw64",
@@ -78,7 +77,7 @@ def fields_v2():
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         Field("tcp.window_size", "rwnd", np.int64, True),
-        Field("tcp.options.mptcp.sendkey", "sendkey", np.float, False),
+        Field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False),
         Field("tcp.options.mptcp.recvkey", "recvkey", None, False),
         Field("tcp.options.mptcp.recvtok", "recvtok", None, False),
         Field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False),
@@ -89,7 +88,7 @@ def fields_v2():
         Field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number"),
         Field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length"),
         Field("tcp.options.mptcp.addrid", "addrid", None, False),
-        Field("mptcp.master", "master", None, False),
+        Field("mptcp.master", "master", bool, False),
         Field("tcp.seq", "tcpseq", np.float64, "TCP sequence number"),
         Field("tcp.len", "tcplen", np.float64, "TCP segment length"),
         Field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number"),

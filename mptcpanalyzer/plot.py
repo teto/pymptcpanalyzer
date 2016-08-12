@@ -4,7 +4,7 @@ import argparse
 import sys
 import os
 import tempfile
-import core
+# import core
 import matplotlib
 import matplotlib.pyplot as plt
 import logging
@@ -24,6 +24,8 @@ class Destination(Enum):
     Both = "Both"
 
 log = logging.getLogger("mptcpanalyzer")
+
+
 
 
 def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
@@ -97,6 +99,7 @@ class Plot:
         return parser
 
     # might move to standalone ?
+    # TODO move to MpTcpConnection
     @staticmethod
     def filter_ds(data, **kwargs):
         """
@@ -151,17 +154,6 @@ class Plot:
         print(cmd)
         os.system(cmd)
 
-    def get_client_uniflow_filename(self, id):
-        # os.join.path()
-        return self.output_folder + "/" + "client_" + str(id) + ".csv"    
-
-    def get_server_uniflow_filename(self, id):
-        # os.join.path()
-        return self.output_folder + "/" + "server_" + str(id) + ".csv"
-
-    def get_subflow_filename(self, id):
-        # os.join.path()
-        return self.output_folder + "/" + "subflow_" + str(id) + ".csv"
 
 
 class Matplotlib(Plot):

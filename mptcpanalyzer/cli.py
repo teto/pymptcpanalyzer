@@ -210,7 +210,8 @@ class MpTcpAnalyzer(cmd.Cmd):
                     else:
                         value = "Unknown"
                     addrid.insert(i, value)
-
+            
+            # en fait la on ne tient pas compte de l'ordre ?
             line = ("\ttcp.stream {tcpstream} : {srcip}:{sport} (addrid={addrid[0]})"
                     " <-> {dstip}:{dport} (addrid={addrid[1]})").format(
                     tcpstream=tcpstream,
