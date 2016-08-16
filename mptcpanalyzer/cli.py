@@ -5,13 +5,13 @@
 
 # Copyright 2015-2016 Université Pierre et Marie Curie
 # author: Matthieu coudron , matthieu.coudron@lip6.fr
+"""
+# the PYTHON_ARGCOMPLETE_OK line a few lines up can enable shell completion
+for argparse scripts as explained in 
+- http://dingevoninteresse.de/wpblog/?p=176
+- https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
 
-# TODO list
-# -would like to draw a bar with the repartition of the data between the different subflows with sthg like
-#  plot(kind='barh', stacked=True);
-# explaing how argparse to shell completion works;
-# http://dingevoninteresse.de/wpblog/?p=176
-# https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
+"""
 import sys
 import argparse
 import logging
@@ -22,6 +22,7 @@ from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
+import mptcpanalyzer.connection as mc
 import mptcpanalyzer as mp
 import stevedore
 # import mptcpanalyzer.config
@@ -39,7 +40,7 @@ plugin_logger.addHandler(logging.StreamHandler())
 
 log = logging.getLogger("mptcpanalyzer")
 log.addHandler(logging.StreamHandler())
-log.setLevel(logging.ERROR)
+# log.setLevel(logging.ERROR)
 
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
@@ -77,11 +78,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         self.prompt = "%s> " % "Ready"
         self.config = cfg
         self.data = None
+        """ This is the default dataframe in use"""
 
         ### LOAD PLOTS 
         ######################
-# you can  list available plots under the namespace 
-# https://pypi.python.org/pypi/entry_point_inspector
+        # you can  list available plots under the namespace 
+        # https://pypi.python.org/pypi/entry_point_inspector
 
         # mgr = driver.DriverManager(
         self.plot_mgr = extension.ExtensionManager(
@@ -105,21 +107,18 @@ class MpTcpAnalyzer(cmd.Cmd):
             log.debug("Injecting plugin %s" % ext.name)
             for prefix in ["do", "help", "complete"]:
                 method_name = prefix + "_" + ext.name
-                # obj2 = getattr(ext.obj, "help_" + ext.name)
-                # print(obj)
                 try:
                     obj = getattr(ext.obj, prefix)
                     if obj:
                         setattr(MpTcpAnalyzer, method_name, obj)
                 except AttributeError:
                     log.debug("Plugin does not provide %s" % method_name)
-            # setattr(MpTcpAnalyzer, 'help_stats', _test_help)
 
         # there is also map_method available
         try:
             results = self.cmd_mgr.map(_inject_cmd, self)
         except stevedore.exception.NoMatches as e:
-            log.error("stevedore: No matches")
+            log.error("stevedore: No matches (%s)" % e)
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
@@ -137,6 +136,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     def precmd(self, line):
         """
+        Here we can preprocess line, with for instance shlex.split() ?
         """
         # default behavior
         return line 
@@ -175,55 +175,26 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser.add_argument("mptcpstream", action="store", type=int,
             help="Equivalent to mptcp.stream id" 
         )
-
-        parser.add_argument("--json", action="store_true", 
-            help="Return results but in json format"
-        )
-        
+ 
         args = parser.parse_args (shlex.split(args))
         self._list_subflows(args.mptcpstream)
 
     @is_loaded
-    def _list_subflows(self, mptcpstream : int):
-        group = self.data[self.data.mptcpstream == mptcpstream]
-        tcpstreams = group.groupby('tcpstream')
-        self.data.head(5)
-        print("mptcp.stream %d has %d subflow(s): " %
-              (mptcpstream, len(tcpstreams)))
-        for tcpstream, gr2 in tcpstreams:
-            # and MP_JOIN   
-            master = False
-            
-            extra = ""
-            addrid = [] 
-            if len(gr2[gr2.master == 1]) > 0:
-                addrid = ["master", "master"]
-            else:
-                # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
-                # la ca foire 
-                for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
-                    gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
-                    # print("nb of results:", len(gro))
-                    if len(gro):
-                        # print("i=",i)
-                        value = int(gro["addrid"].iloc[0])
-                    else:
-                        value = "Unknown"
-                    addrid.insert(i, value)
-            
-            # en fait la on ne tient pas compte de l'ordre ?
-            line = ("\ttcp.stream {tcpstream} : {srcip}:{sport} (addrid={addrid[0]})"
-                    " <-> {dstip}:{dport} (addrid={addrid[1]})").format(
-                    tcpstream=tcpstream,
-                    srcip=gr2['ipsrc'].iloc[0],
-                    sport=gr2['sport'].iloc[0], 
-                    dstip=gr2['ipdst'].iloc[0], 
-                    dport=gr2['dport'].iloc[0],
-                    addrid=addrid,
-                    # extra=extra
-                    # addressid1="master" if master else 0
-                    )
-            print(line)
+    def _list_subflows(self, mptcpstreamid : int):
+        # try:
+            con = mc.MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
+            print("Description of mptcp.stream %d " % mptcpstreamid)
+            print(con)
+
+            print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
+        # except Exception as e:
+        #     print("Error: %s" % e)
+
+        # group = self.data[self.data.mptcpstream == mptcpstream]
+        # tcpstreams = group.groupby('tcpstream')
+        # self.data.head(5)
+            for sf in con.subflows:
+                print ("\t%s" % sf)
 
     def help_ls(self):
 
@@ -244,11 +215,11 @@ class MpTcpAnalyzer(cmd.Cmd):
         Summarize contributions of each subflow
                 [mptcp.stream id]
         For now it is naive, does not look at retransmissions ?
-                """
+        """
         try:
             mptcpstream = int(mptcpstream)
         except ValueError as e:
-            print("Expecting the mptcp.stream id as argument")
+            print("Expecting the mptcp.stream id as argument: %s" % e)
             return
 
         df = self.data[self.data.mptcpstream == mptcpstream]
@@ -278,15 +249,6 @@ class MpTcpAnalyzer(cmd.Cmd):
             self._list_subflows(mptcpstream)
 
 
-    def _load_data(self, filename, regen: bool =False):
-        """
-        Register into self.data a panda dataframe loaded from filename: a csv file either
-        from a previous 
-        """
-        self.data = self.load_into_pandas(filename, regen)
-
-        self.prompt = "%s> " % os.path.basename(filename)
-
     def do_load(self, args):
         """
         Load the file as the current one
@@ -305,12 +267,12 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         args = parser.parse_args(shlex.split(args))
 
-        return self._load_data(args.input_file, args.regen)
+        self.data = self.load_into_pandas(args.input_file, args.regen)
+        self.prompt = "%s> " % os.path.basename(args.input_file,)
 
     def do_plot(self, args):
         """
         Plot DSN vs time
-            [mptcp.stream]
         """
         self.plot_mptcpstream(args)
 
@@ -332,10 +294,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         print(plot_names)
 
     def _list_available_plots(self):
-        def _get_names(ext, names: list):
-            names.append (ext.name) 
+        # def _get_names(ext, names: list):
+        #     names.append (ext.name) 
         
-        names = []
+        # names = []
         # self.plot_mgr.map(_get_names, names)
         # def _get_names(ext, names: list):
         #     names.append (ext.name) 
@@ -381,7 +343,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             csv_filename = matching_cache_filename(realpath)
             cache_is_invalid = True
             
-            print("Checking for %s" % csv_filename)
+            log.debug("Checking for %s" % csv_filename)
             if os.path.isfile(csv_filename):
                 log.info("A cache %s was found" % csv_filename)
                 ctime_cached = os.path.getctime(csv_filename)
@@ -417,7 +379,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                         mp.get_fields("fullname", "name"),
                         tshark_filter="mptcp and not icmp"
                 )
-                print("exporter exited with code=", retcode)
+                log.info("exporter exited with code=", retcode)
                 if retcode:
                     raise Exception(stderr)
         return csv_filename
@@ -426,6 +388,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         intput_file can be filename or fd
         load csv mptpcp data into panda
+        :param regen Ignore the cache and regenerate any cached csv file from the input pcap
 
         :rtype a panda.DataFrame
         """
@@ -461,20 +424,28 @@ class MpTcpAnalyzer(cmd.Cmd):
         log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
         return data
 
-    def plot_mptcpstream(self, args):
+    def plot_mptcpstream(self, cli_args):
         """
         global member used by others do_plot members *
+        Loads required dataframes when necessary
         """
 
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots')
+
+        # TODO if no df loaded, add an argument ? or the plot should 
+        # say how many it needs?
+        # if self.data is None:
+        #     parser.add_argument()
 
         subparsers = parser.add_subparsers(
             dest="plot_type", title="Subparsers", help='sub-command help', )
         subparsers.required = True
 
         def _register_plots(ext, subparsers):
-            subparsers.add_parser(ext.name, parents=[ext.obj.default_parser()], 
+            tmp = subparsers.add_parser(ext.name, parents=[
+                    ext.obj.default_parser(self.data is not None)
+                ], 
                     add_help=False
             )
 
@@ -486,10 +457,26 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # name, parents=[subplot.default_parser()], add_help=False)
 
         try:
-            args = shlex.split(args)
-            args, unknown = parser.parse_known_args(args)
+            cli_args = shlex.split(cli_args)
+            args, unknown_args = parser.parse_known_args(cli_args)
+            # TODO generic filter
             plotter = self.plot_mgr[args.plot_type].obj
-            success = plotter.plot(self, args)
+            
+            dataframes = []
+            if self.data is not None:
+                dataframes.append(self.data)
+
+            for pcap in getattr(args, "pcap", []):
+                df = self.load_into_pandas(pcap)
+                dataframes.append(df)
+
+
+            dargs = vars(args) # 'converts' the namespace to a dict
+            print(dargs)
+            dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
+            result = plotter.run(dataframes, **dargs)
+                    # cli_args=vars(args), unknown_args=vars(unknown_args))
+            plotter.postprocess(result, **dargs)
 
         except SystemExit as e:
             # e is the error code to call sys.exit() with
@@ -505,6 +492,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser = argparse.ArgumentParser(description="dumps csv content")
         parser.add_argument('columns', default=[
                             "ipsrc", "ipdst"], choices=self.data.columns, nargs="*")
+
+        parser.add_argument('-n', default=10, action="store",
+                help="Number of results to display")
         args = parser.parse_args(shlex.split(args))
         print(self.data[args.columns])
 
@@ -574,7 +564,6 @@ def cli():
     )
 
 
-    # TODO here one could use parse_known_args
     args, unknown_args = parser.parse_known_args(sys.argv[1:])
     cfg = MpTcpAnalyzerConfig(args.config)
 
@@ -582,7 +571,6 @@ def cli():
     level = logging.CRITICAL - args.debug * 10
     log.setLevel(level)
     print("Log level set to %s " % logging.getLevelName(level))
-    log.debug("Arguments unknown to the parser= %s" % unknown_args)
 
 
     try:
@@ -590,7 +578,9 @@ def cli():
         analyzer = MpTcpAnalyzer(cfg, )
 
         if args.input_file:
-            analyzer._load_data (args.input_file, args.regen)
+            cmd = args.input_file
+            cmd += " -r" if args.regen else ""
+            analyzer.do_load ( cmd )
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
@@ -602,7 +592,7 @@ def cli():
             # but just doing "analyzer.onecmd(' '.join(unknown_args))" is not enough
             analyzer.onecmd(subprocess.list2cmdline(unknown_args))
         else:
-            log.info("Interactive mode")
+            log.info("Starting interactive mode")
             analyzer.cmdloop()
 
     except Exception as e:
@@ -611,7 +601,6 @@ def cli():
         print(traceback.print_exc())
         return 1
     finally:
-        # input.close() if input else None
         return 0
 
 

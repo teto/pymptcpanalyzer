@@ -9,12 +9,22 @@ import mptcpanalyzer.plots as plots
 import pandas as pd
 from stevedore.extension import Extension
 
+
+mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
+
+
+
 # https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
 # TODO use make_test_instance and pass directly instances 
+"""
+
+"""
 class IntegrationTest(TestCase):
     """
     Few reminders :
         :w @unittest.expectedFailure
+
+    TODO how to test the options --title ? --skip_subflow ?
     """
     def setUp(self):
 
@@ -23,6 +33,22 @@ class IntegrationTest(TestCase):
         self.m = MpTcpAnalyzer(config)
         self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
         # self.assertTrue
+
+    def load_all_plugins(self):
+        """
+        We have to load them manually
+        """
+        mgr = self.m.plot_mgr.make_test_instance(
+        #name , entry point, plugin, obj
+                [ Extension("attr", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsX',
+# pkg_resources.
+# entry_points.load
+                    None
+                    , 
+                    mp.plots.dsn.PerSubflowTimeVsX()
+                    ) ]
+                )
+
 
     def test_loadconfig(self):
         """
@@ -35,16 +61,15 @@ class IntegrationTest(TestCase):
         # - with a list of commands passed via stdin
         pass
 
-    def test_regen(self):
-        """
-        Test that with regen we update the file
-        """
-        dat = pd.DataFrame(columns=mp.get_fields("fullname"))
-        prefix = "examples/node0.pcap"
-        dat.to_csv( prefix + ".csv", sep=self.m.config["DEFAULT"]["delimiter"])
-        # with fopen("examples/node0.csv", "r+"):
-
-        self.assertEqual()
+    # def test_regen(self):
+    #     """
+    #     Test that with regen we update the file
+    #     """
+    #     dat = pd.DataFrame(columns=mp.get_fields("fullname"))
+    #     prefix = "examples/node0.pcap"
+    #     dat.to_csv( prefix + ".csv", sep=self.m.config["DEFAULT"]["delimiter"])
+    #     # with fopen("examples/node0.csv", "r+"):
+    #     self.assertEqual()
 
     def test_batch(self):
         # Test the --batch flag
@@ -101,29 +126,35 @@ class IntegrationTest(TestCase):
         self.m.do_lc("0")
         self.m.do_lc("-1")
 
-    def test_list_plots_misc(self):
+    def test_list_plots_attr(self):
         """
         Check if properly list available plugins
         """
 #http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
 # plugin, obj
-        mgr = self.m.plot_mgr.make_test_instance(
-        #name , entry point, plugin, obj
-                [ Extension("misc", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsX',
-# pkg_resources.
-# entry_points.load
-                    None
-                    , 
-                    mp.plots.dsn.PerSubflowTimeVsX()
-                    ) ]
-                )
+        # load_all_plugins
+        self.load_all_plugins()
         plot_names = self.m._list_available_plots()
-        self.assertIn("misc", plot_names)
+        self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
+
+    def test_plot_attr_preloaded(self):
+        """
+        Loads the dataset first 
+        """
+        self.load_all_plugins()
+        self.m.do_load("examples/iperf-mptcp-0-0.pcap")
+        self.m.do_plot("attr 0 Client dsn")
+
+    def test_plot_attr_postloaded(self):
+        self.load_all_plugins()
+        # self.m.do_load("examples/iperf-mptcp-0-0.pcap")
+        self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 Client dsn")
+
 
     def test_list_plots_2(self):
         plot_names = self.m._list_available_plots()
-        # self.assertIn("misc", plot_names)
+        # self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
 
     def test_generate_plots(self):

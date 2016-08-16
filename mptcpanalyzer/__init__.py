@@ -4,6 +4,7 @@
 
 import logging
 import numpy as np
+from enum import Enum
 
 from collections import namedtuple
 
@@ -29,11 +30,15 @@ def get_fields (field, field2=None):
 
     return dict(zip(keys, map( lambda x: getattr(x, field2), l)))
 
-flow_directions = {
- "toclient": 1,
- # "unknown": 2,
- "toserver": 3,
-}
+
+class Destination(Enum):
+    """
+    Used to filter datasets
+    """
+    Client = "client"
+    Server = "server"
+    Both = "Both"
+
 
 def fields_v2():
     """
@@ -96,4 +101,29 @@ def fields_v2():
         Field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number"),
     ]
     return l
+
+
+def filter_df(skip_subflows=None, **kwargs):
+        """
+        Filters a pandas DataFrame
+        :param data a Pandas dataset
+        :param kwargs Accepted keywords are
+
+        direction = client or server
+        """
+        # query = gen_ip_filter(**kwargs)
+        dat = data
+        for field, value in dict(**kwargs).items():
+            print("name, value", field)
+            query = "{field} == '{value}'".format(field=field, value=value)
+
+        # direction = kwargs.get("direction")
+        # if direction:
+        #     # dat = data[(data.mptcpstream == args.mptcpstream) & (data.direction == args.direction)]
+        #     # dat = main[data.mptcpstream == args.mptcpstream]
+        #     query = "direction == %d" % mp.flow_directions[direction]
+
+            log.debug("Running query %s" % query)
+            dat = data.query(query)
+        return dat
 

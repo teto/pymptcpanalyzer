@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 # TODO use a handler as in http://matplotlib.org/1.3.1/users/legend_guide.html
 # my_handler = HandlerLine2D(numpoints=1)
 # legend(handler_map={Line2D:my_handler})
-class PerSubflowTimeVsX(plot.Matplotlib):
+class PerSubflowTimeVsAttribute(plot.Matplotlib):
     """
     Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
     This should be the most straightforward plot.
@@ -29,33 +29,28 @@ class PerSubflowTimeVsX(plot.Matplotlib):
 
     def default_parser(self, *args, **kwargs):
 
-        parser = super().default_parser(mptcpstream=True, direction=True, dst_host=True)
+        parser = super().default_parser(*args, mptcpstream=True, direction=True, 
+                filter_subflows=True, **kwargs)
         parser.add_argument('field', choices=self.mptcp_attributes.keys(),
                 help="Choose an mptcp attribute to plot")
-        parser.add_argument('--skip', dest="skipped_subflows", type=int, action="append", default=[],
-                help=("You can type here the tcp.stream of a subflow not to take into account (because"
-                "it was filtered by iptables or else)"))
         return parser
 
-    def _generate_plot(self, main, args):
+    def _generate_plot(self, df,  mptcpstream, field, **kwargs):
+        """
+        TODO replace main with dataframes, should be a list loaded by the main program
+        automatically
+        """
 
-        data = main.data
+        # data = dataframes[0]
         # dat = data[(data.mptcpstream == args.mptcpstream)] 
-        con = MpTcpConnection.build_from_dataframe(data, args.mptcpstream )
+        # con = MpTcpConnection.build_from_dataframe(df,  mptcpstream)
+        dat = df
 
+        # exit(1)
 
-        exit(1)
+        # dat = con.filter_ds(dat, ipdst_host=args.ipdst_host)
 
-        if not len(dat.index):
-            print("no packet matching mptcp.stream %d" % args.mptcpstream)
-            return
-
-        print( type(args.__dict__))
-        for name, val in args.__dict__.items():
-            print("name=",name)
-        dat = self.filter_ds(dat, ipdst_host=args.ipdst_host)
-
-        field = args.field
+        # field = args.field
 
         fig = plt.figure()
         dat.set_index("reltime", inplace=True)
@@ -81,9 +76,9 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         # counter = 0
         # print( "len of ", len(styles), " to compare with " , len(tcpstreams))
         for idx, (streamid, ds) in enumerate(tcpstreams):
-            if streamid in args.skipped_subflows:
-                print("skipping tcp streamid ", streamid)
-                continue
+            # if streamid in args.skipped_subflows:
+            #     print("skipping tcp streamid ", streamid)
+            #     continue
 
             # if counter < len(styles):
             #     print("counter=", counter)
@@ -116,8 +111,6 @@ class PerSubflowTimeVsX(plot.Matplotlib):
         # )
 
         axes.set_xlabel("Time (s)")
-        # TODO retrieve description from field (instead of 
-        # axes.set_ylabel("Data Sequence Number")
         axes.set_ylabel(self.mptcp_attributes[field])
 
         handles, labels = axes.get_legend_handles_labels()
@@ -136,11 +129,12 @@ class PerSubflowTimeVsX(plot.Matplotlib):
 
 class CrossSubflowInterArrival(plot.Matplotlib):
     """
-    Compute arrival of new *attribute*
+    Compute arrival between updates of a *value* only when this 
+    update arrived from another subflow.
     """
 
-    def default_parser(self):
-        parser = super().default_parser()
+    def default_parser(self, *args, **kwargs):
+        parser = super().default_parser(*args, **kwargs)
         # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", 
                 # help="Consider only cross-subflow arrivals")
         parser.add_argument("sender_ips", nargs="+", 
@@ -204,8 +198,6 @@ class CrossSubflowInterArrival(plot.Matplotlib):
 
 class InterArrivalTimes(plot.Matplotlib):
     """
-    TODO rename into interDSN ?
-    In case traffic is biderctional we must filter on one direction only
     """
 
     available = [
@@ -216,8 +208,8 @@ class InterArrivalTimes(plot.Matplotlib):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def default_parser(self):
-        parser = super().default_parser()
+    def default_parser(self, *args, **kwargs):
+        parser = super().default_parser(*args, **kwargs)
         # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", help="Consider only cross-subflow arrivals")
         parser.add_argument("attribute", choices=self.available, help="interarrival between which numbers")
         parser.add_argument("sender_ips", nargs="+", 
@@ -263,12 +255,12 @@ class DssLengthHistogram(plot.Matplotlib):
     def __init__(self):
         super().__init__(title="DSS Length")
 
-    def _generate_plot(self, main, args):
-        data = main.data
-        dat = data[data.mptcpstream == args.mptcpstream]
-        if not len(dat.index):
-            print("no packet matching mptcp.stream %d" % args.mptcpstream)
-            return
+    def _generate_plot(self, data, args):
+        # data = main.data
+        # dat = data[data.mptcpstream == args.mptcpstream]
+        # if not len(dat.index):
+        #     print("no packet matching mptcp.stream %d" % args.mptcpstream)
+        #     return
 
         fig = plt.figure()
         axes = fig.gca()
@@ -282,6 +274,7 @@ class DssLengthHistogram(plot.Matplotlib):
         )
         return fig
     
+
 class DSSOverTime(plot.Matplotlib):
     """
     WIP
@@ -293,7 +286,7 @@ class DSSOverTime(plot.Matplotlib):
         pass
 
     def default_parser(self, *args, **kwargs):
-        return super().default_parser(mptcpstream=True, *args, **kwargs)
+        return super().default_parser( *args, mptcpstream=True, **kwargs)
 
     def _generate_plot(self, main, args):
 
@@ -307,7 +300,7 @@ class DSSOverTime(plot.Matplotlib):
         dat = data[dat.dss_dsn > 0]
         print("len=" , len(dat))
 
-# apparemment le mieux c'est ca 
+# best might be this
 # http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.quiver
 # plt.quiver( dat.reltime, dat.dss_dsn, [0]* len(dat.dss_dsn) ,  dat.dss_length, scale_units="xy", scale=1, angles="xy",)
         fig = plt.figure()

@@ -60,24 +60,23 @@ def gen_configs(with_meta: bool, gen_conf: Callable[[str], list]) -> list:
 
 class PlotTraceSources(plot.Matplotlib):
 
-    def default_parser(self):
-        parser = super().default_parser(mptcpstream=False)
+    def default_parser(self, *args, **kwargs):
+        parser = super().default_parser(*args, mptcpstream=False)
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("node", help="Choose node to filter from")
         parser.add_argument("attributes", choices=ns3_attributes, 
-                # dest="attributes", 
                 nargs="+",
                 help="Choose client or server folder")
         # parser.add_argument("--node", "-n", dest="nodes", action="append", default=[0], help="Plot subflows along")
-#type=int, 
-        parser.add_argument("--meta", "-m", action="store_true", default=False, help="Plot meta along")
-        parser.add_argument("--subflows", "-s", action="store_true", default=False, help="Plot subflows along")
+        parser.add_argument("--meta", "-m", action="store_true", default=False,
+                help="Plot meta along")
+        parser.add_argument("--subflows", "-s", action="store_true", default=False,
+                help="Plot subflows along")
         return parser
 
     def _generate_plot(self, main, args, ):
         """
         Plot column "attribute" to "output" file (*.png)
-
         """
         node = args.node
         attributes = args.attributes

@@ -35,10 +35,6 @@ class SmoothedRtt(plot.Plot):
 
     # def _generate_plot(self, data, *args, **kwargs):
     def _generate_plot(self, data, args):
-        print("data=", data) 
-        print("args", args)
-        # parser = plot.Plot.default_parser()
-        # args = parser.parse_args(*args)
         dat = data[data.mptcpstream == args.mptcpstream]
         if not len(dat.index):
             print("no packet matching mptcp.stream %d" % args.mptcpstream)

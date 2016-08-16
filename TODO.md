@@ -7,6 +7,9 @@ import sympy as sp
 
 sp.init_printing(use_unicode=True)
 
+# TODO list
+# -would like to draw a bar with the repartition of the data between the different subflows with sthg like
+#  plot(kind='barh', stacked=True);
 
 Juan:
 - BW benefit

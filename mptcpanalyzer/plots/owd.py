@@ -13,12 +13,8 @@ log = logging.getLogger(__name__)
 
 class OneWayDelay(plot.Matplotlib):
 
-    def default_parser(self):
-        parser = super().default_parser(mptcpstream=False)
-        # parser = argparse.ArgumentParser(
-        #         description='Generate MPTCP stats & plots'
-        #         )
-        # client = parser.add_argument_group("Client data")
+    def default_parser(self, *args, **kwargs):
+        parser = super().default_parser( *args, mptcpstream=False, **kwargs)
 
         parser.add_argument("client_input", action="store",
                 help="Either a pcap or a csv file (in good format)."
