@@ -1,13 +1,12 @@
 
 
-| test1 | test2 |
-| --- | --- |
-|Documentation (dev) | ![http://mptcpanalyzer.readthedocs.io/en/dev/](https://readthedocs.org/projects/pip/badge/?version=latest) |
-|Documentation (stable) | ![https://readthedocs.org/projects/pip/badge/?version=master](https://readthedocs.org/projects/pip/badge/?version=master) |
-|License | ![License](https://img.shields.io/badge/license-GPL-brightgreen.svg) |
-|Build Status | ![https://travis-ci.org/teto/mptcpanalyzer](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=master) |
-|PyPI|![https://pypi.python.org/pypi/mptcpanalyzer/](https://img.shields.io/pypi/dm/mptcpanalyzer.svg)|
-
+|  |  |
+| --- | --- |
+| Documentation (latest) | [![Dev doc](https://readthedocs.org/projects/pip/badge/?version=latest)](http://mptcpanalyzer.readthedocs.io/en/latest/) |
+| Documentation (stable) | [![Master doc](https://readthedocs.org/projects/pip/badge/?version=stable)](http://mptcpanalyzer.readthedocs.io/en/stable/) |
+| License | ![License](https://img.shields.io/badge/license-GPL-brightgreen.svg) |
+| Build Status | [![Build status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=master)](https://travis-ci.org/teto/mptcpanalyzer) |
+| PyPI |[![PyPI package](https://img.shields.io/pypi/dm/mptcpanalyzer.svg)](https://pypi.python.org/pypi/mptcpanalyzer/) |
 
 # [![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
 
