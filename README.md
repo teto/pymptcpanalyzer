@@ -1,39 +1,13 @@
 
-<table>
 
-<tr>
-  <td>Documentation (dev)</td>
-  <td>![http://mptcpanalyzer.readthedocs.io/en/dev/](https://readthedocs.org/projects/pip/badge/?version=latest")</td>
-</tr>
-<tr>
-  <td>Documentation (stable)</td>
-  <td><img src="https://readthedocs.org/projects/pip/badge/?version=master" alt="latest release" /></td>
-</tr>
-<tr>
-  <td>License</td>
-  <td><img src="https://img.shields.io/badge/license-GPL-brightgreen.svg" alt="license" /></td>
-</tr>
-<tr>
-  <td>Build Status</td>
-  <td>
-    <a href="https://travis-ci.org/teto/mptcpanalyzer">
-    <img src="https://travis-ci.org/teto/mptcpanalyzer.svg?branch=master" alt="travis build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td>PyPI</td>
-  <td>
-    <a href="https://pypi.python.org/pypi/mptcpanalyzer/">
-    <img src="https://img.shields.io/pypi/dm/mptcpanalyzer.svg" alt="pypi downloads" />
-    </a>
-  </td>
-</tr>
-</table>
+|Documentation (dev) | ![http://mptcpanalyzer.readthedocs.io/en/dev/](https://readthedocs.org/projects/pip/badge/?version=latest") |
+|Documentation (stable) | ![https://readthedocs.org/projects/pip/badge/?version=master](https://readthedocs.org/projects/pip/badge/?version=master) |
+|License | ![License](https://img.shields.io/badge/license-GPL-brightgreen.svg) |
+|Build Status | ![https://travis-ci.org/teto/mptcpanalyzer](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=master) |
+|PyPI|![https://pypi.python.org/pypi/mptcpanalyzer/](https://img.shields.io/pypi/dm/mptcpanalyzer.svg)|
 
-TODO lien vers la doc
 
-[![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
+# [![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
 
 Presentation 
 ===
