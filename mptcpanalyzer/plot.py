@@ -73,7 +73,7 @@ class Plot:
         :param mptcpstream to accept an mptcp.stream id
         :param available_dataframe True if a pcap was preloaded
         :param direction Enable filtering the stream depending if the packets were sent
-            towards the MPTCP client or the MPTCP server 
+        towards the MPTCP client or the MPTCP server 
         :param filter_subflows Allow to hide some subflows from the plot
         """
         parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
@@ -160,9 +160,10 @@ class Plot:
 
         :param opt Should be the expanded result of argparse
         This baseclass can filter on:
-            - mptcpstream
-            - destination (mptcpstream required)
-            -skipped_subflows
+
+        - mptcpstream
+        - destination (mptcpstream required)
+        - skipped_subflows
 
         Returns updated dataframe
         """

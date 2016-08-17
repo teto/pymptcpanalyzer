@@ -4,9 +4,9 @@ How to contribute to mptcpanalyzer ?
 There are several things you can do:
 * submit bug reports at https://github.com/lip6-mptcp/mptcpanalyzer/issues
 * develop new plugins, for instance new plots (see later), if you do, please warn us so that we
-  can add you to the list of plugins
-* Send patches to https://github.com/lip6-mptcp/mptcpanalyzer/pulls to either fix
-  a bug, improve documentation or flake8 compliance
+an add you to the list of plugins
+* Send patches to https://github.com/lip6-mptcp/mptcpanalyzer/pulls to either fix 
+a bug, improve documentation or flake8 compliance
   
 
 
@@ -20,6 +20,7 @@ To add a plugin, just mimic what is done for existing plugins, see stevedore's
 plugin documentation plus check our setup.py:
 
 .. code-block:: python
+
       entry_points={
           "console_scripts": [
             # creates 2 system programs that can be called from PATH
@@ -37,6 +38,7 @@ plugin documentation plus check our setup.py:
             ]
       },
 
+
 mptcpanalyzer will load all plugins residing in these two namespaces:
 - mptcpanalyzer.plots 
 - mptcpanalyzer.cmds
@@ -45,13 +47,16 @@ regardless of their package.
 In order to test while modifying mptcpanalyzer, you can install it like this: 
 
 .. code-block:: console
+
     $ python3.5 setup.py develop --user
 
 
 How to upload it to pypy (for the forgetful maintainer)
 ============================================================
 
-..code-block:
+.. code-block:: console
+
     $ python3.5 setup.py sdist upload
+
 
 (test first the package locally pip install /path/toarchive.gz)

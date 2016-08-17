@@ -1,8 +1,13 @@
 
 <table>
+
 <tr>
-  <td>Latest Release</td>
-  <td><img src="https://img.shields.io/pypi/v/mptcpanalyzer.svg" alt="latest release" /></td>
+  <td>Documentation (dev)</td>
+  <td>![http://mptcpanalyzer.readthedocs.io/en/dev/](https://readthedocs.org/projects/pip/badge/?version=latest")</td>
+</tr>
+<tr>
+  <td>Documentation (stable)</td>
+  <td><img src="https://readthedocs.org/projects/pip/badge/?version=master" alt="latest release" /></td>
 </tr>
 <tr>
   <td>License</td>
@@ -27,8 +32,8 @@
 </table>
 
 TODO lien vers la doc
-https://readthedocs.org/projects/pip/badge/?version=latest
-> [![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
+
+[![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
 
 Presentation 
 ===
