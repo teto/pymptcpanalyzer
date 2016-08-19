@@ -11,25 +11,36 @@ import argparse
 
 log = logging.getLogger(__name__)
 
+
 class OneWayDelay(plot.Matplotlib):
+    """
+    The purpose of this plot is to display the one-way delay between the client 
+    and the server.
+    To do this, you need to capture a communication at both ends, client and server.
+
+    Wireshark assigns an id (mptcp.stream) to each mptcp communications, ideally this plugin
+    could try to match both ids but for now you need
+
+    .. note:: both hosts should have their clock synchronized. If this can be hard
+    with real hosts, perfect synchronization is available in network simulators
+    such as ns3.
+
+    .. warning:: This plugin is experimental.
+    """
 
     def default_parser(self, *args, **kwargs):
         parser = super().default_parser( *args, mptcpstream=False, **kwargs)
 
         parser.add_argument("client_input", action="store",
                 help="Either a pcap or a csv file (in good format)."
-                )
+        )
         parser.add_argument("mptcp_client_id", action="store", type=int)
 
         parser.add_argument("server_input", action="store",
                 help="Either a pcap or a csv file (in good format)."
-                )
+        )
         parser.add_argument("mptcp_server_id", action="store", type=int)
 
-        # parser.add_argument("sender_ips", nargs="+",
-        #         help=("List here ips of one of the 2 hosts so that the program can"
-        #             "deduce the flow directions.")
-        #         )
         return parser
 
     #def do_plot_owd(self, args):

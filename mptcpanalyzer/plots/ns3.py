@@ -59,9 +59,23 @@ def gen_configs(with_meta: bool, gen_conf: Callable[[str], list]) -> list:
 
 
 class PlotTraceSources(plot.Matplotlib):
+    """
+    This plugin aims at plotting ns3 *TraceSource* results. As such, it does not 
+    rely on pcap files.
+
+    ..warning:: The format for this file is not upstreamed yet
+
+    :Example:
+
+    plot 
+
+    """
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, mptcpstream=False)
+        """
+        This plugin does not need any dataframe
+        """
+        parser = super().default_parser(required_nb_of_dataframes=0, *args, mptcpstream=False)
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("node", help="Choose node to filter from")
         parser.add_argument("attributes", choices=ns3_attributes, 
@@ -74,7 +88,7 @@ class PlotTraceSources(plot.Matplotlib):
                 help="Plot subflows along")
         return parser
 
-    def _generate_plot(self, main, args, ):
+    def _generate_plot(self, df, args, ):
         """
         Plot column "attribute" to "output" file (*.png)
         """

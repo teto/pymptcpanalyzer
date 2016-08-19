@@ -12,20 +12,17 @@ from mptcpanalyzer import fields_v2
 
 log = logging.getLogger(__name__)
 
-# TODO use a handler as in http://matplotlib.org/1.3.1/users/legend_guide.html
-# my_handler = HandlerLine2D(numpoints=1)
-# legend(handler_map={Line2D:my_handler})
 class PerSubflowTimeVsAttribute(plot.Matplotlib):
     """
     Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
     This should be the most straightforward plot.
 
-    For now it relies on the profile host file being 
     """
     mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
 
     def default_parser(self, *args, **kwargs):
 
@@ -131,30 +128,22 @@ class CrossSubflowInterArrival(plot.Matplotlib):
     """
     Compute arrival between updates of a *value* only when this 
     update arrived from another subflow.
-    """
 
+    .. warning:: WIP
+    """
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, **kwargs)
-        # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", 
-                # help="Consider only cross-subflow arrivals")
-        parser.add_argument("sender_ips", nargs="+", 
-                help="list sender ips here to filter the dataset")
+        parser = super().default_parser(*args, mptcpstream=True, direction=True, **kwargs)
         return parser
 
-    def _generate_plot(self, main, args, **kwargs):
+    def _generate_plot(self, rawdf, *args, **kwargs):
         """
         goal is here to generate a new Dataframe that lists only switchings between 
         subflows for DSN arrival
         """
-        # print("data=", data) 
-        print("args", args)
-        data = main.data
-        dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
-
-        tcpstreamcol = dat.columns.get_loc("tcpstream")
+        tcpstreamcol = rawdf.columns.get_loc("tcpstream")
 
         # TODO try replacing with dat.empty
-        if not len(dat.index):
+        if not len(rawdf.index):
             print("no packet matching query %s" % query)
             return
 
@@ -170,7 +159,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
                     'from': dat.iloc[i-1, tcpstreamcol], 
                     'to':   dat.iloc[i, tcpstreamcol],
                      'delta': dat.loc[i,"reltime"] - dat.loc[i-1,"reltime"] 
-                     }
+                }
 
                 # print("append row " , row)
                 df = df.append(row, ignore_index=True)
@@ -198,6 +187,12 @@ class CrossSubflowInterArrival(plot.Matplotlib):
 
 class InterArrivalTimes(plot.Matplotlib):
     """
+    Generate
+
+    .. see:: CrossSubflowInterArrival
+
+
+    .. warning:: WIP
     """
 
     available = [
@@ -209,16 +204,14 @@ class InterArrivalTimes(plot.Matplotlib):
         super().__init__(*args, **kwargs)
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, **kwargs)
+        parser = super().default_parser(*args, destination=True, **kwargs)
         # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", help="Consider only cross-subflow arrivals")
-        parser.add_argument("attribute", choices=self.available, help="interarrival between which numbers")
-        parser.add_argument("sender_ips", nargs="+", 
-                help="list sender ips here to filter the dataset")
+        parser.add_argument("attribute", choices=self.available,
+            help="interarrival between which numbers"
+        )
         return parser
 
-    def _generate_plot(self, main, args, **kwargs):
-        data = main.data
-        dat = self.filter_ds(data, mptcpstream=args.mptcpstream, ipsrc=args.sender_ips)
+    def _generate_plot(self, dat, *args, **kwargs):
 
         # filter to only account for one direction (departure or arrival)
         # TODO try replacing with dat.empty
@@ -250,6 +243,8 @@ class InterArrivalTimes(plot.Matplotlib):
 class DssLengthHistogram(plot.Matplotlib):
     """
     Plots histogram 
+
+    .. warning:: WIP
     """
 
     def __init__(self):
@@ -279,6 +274,8 @@ class DSSOverTime(plot.Matplotlib):
     """
     WIP
     Draw small arrows with dsn as origin, and a *dss_length* length etc...
+
+    .. warning:: WIP
     """
 
     def __init__(self):

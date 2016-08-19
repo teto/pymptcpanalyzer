@@ -20,11 +20,13 @@ Field.__new__.__defaults__ = (None, None)
 
 def get_fields (field, field2=None):
     """
-    If field2 is absent, returns a list with the field asked 
+    :param field: should be a string in Field
+    :param field2: If field2 is None, returns a list with the field asked, else 
+    returns a dict( field values: field2 values)
     """
 
     l = fields_v2()
-    keys = map( lambda x: getattr(x, field), l)
+    keys = map(lambda x: getattr(x, field), l)
     if field2 is None:
         return keys
 
@@ -33,7 +35,7 @@ def get_fields (field, field2=None):
 
 class Destination(Enum):
     """
-    Used to filter datasets
+    Used to filter dataset
     """
     Client = "client"
     Server = "server"

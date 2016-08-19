@@ -32,6 +32,7 @@ import shlex
 import cmd
 import traceback
 import pprint
+import textwrap
 
 from stevedore import extension
 
@@ -41,7 +42,6 @@ plugin_logger.addHandler(logging.StreamHandler())
 log = logging.getLogger("mptcpanalyzer")
 log.addHandler(logging.StreamHandler())
 # log.setLevel(logging.ERROR)
-
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
     
@@ -53,30 +53,44 @@ def is_loaded(f):
         if self.data is not None:
             return f(self, *args)
         else:   
-            print("Please load a file first")
+            raise Exception("Please load with `load` a pcap first")
         return None
     return wrapped
 
 
 
-
-
 class MpTcpAnalyzer(cmd.Cmd):
-    intro = """
+    """
+    - *mptcpanalyzer* to get details on a loaded pcap. mptcpanalyzer can run into 3 modes:
+    1. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
+    2. if a filename is passed as argument, it will load commands from this file
+    3. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
+
+
+
+    """
+
+    intro = textwrap.dedent("""
         Welcome in mptcpanalyzer {} (http://github.com/lip6-mptcp/mptcpanalyzer)
-        Press ? to get help
-        """.format(__version__)
+        Press ? to list the available commands and `help <command>` or `<command> -h`
+        for a detailed help of the command
+        """.format(__version__))
 
     def stevedore_error_handler(manager, entrypoint, exception):
         print("Error while loading entrypoint [%s]" % entrypoint)
 
     def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin): 
         """
-        stdin 
+        :param cfg: A valid configuration
+
+
+        .. see:: _inject_cmd
         """
         # stdin ?
         self.prompt = "%s> " % "Ready"
+        """Prompt seen by the user, displays currently loaded pcpa"""
         self.config = cfg
+        """configution to get user parameters"""
         self.data = None
         """ This is the default dataframe in use"""
 
@@ -101,24 +115,6 @@ class MpTcpAnalyzer(cmd.Cmd):
             propagate_map_exceptions=False,
             on_load_failure_callback=self.stevedore_error_handler
         )
-        # TODO we should catch stevedore.exception.NoMatches
-        
-        def _inject_cmd(ext, data):
-            log.debug("Injecting plugin %s" % ext.name)
-            for prefix in ["do", "help", "complete"]:
-                method_name = prefix + "_" + ext.name
-                try:
-                    obj = getattr(ext.obj, prefix)
-                    if obj:
-                        setattr(MpTcpAnalyzer, method_name, obj)
-                except AttributeError:
-                    log.debug("Plugin does not provide %s" % method_name)
-
-        # there is also map_method available
-        try:
-            results = self.cmd_mgr.map(_inject_cmd, self)
-        except stevedore.exception.NoMatches as e:
-            log.error("stevedore: No matches (%s)" % e)
 
         # if loading commands from a file, we disable prompt not to pollute
         # output
@@ -134,6 +130,33 @@ class MpTcpAnalyzer(cmd.Cmd):
         # there seems to be several improvements a
         # one can choose the column to use as index index_col=
 
+
+    def load_plugins(self, mgr = None):
+        """
+        This function monkey patches the class to inject Command plugins
+
+        :param mgr: override the default plugin manager when set. 
+        Useful to run tests
+        """
+        mgr = mgr if mgr is not None else self.cmd_mgr
+        
+        def _inject_cmd(ext, data):
+            log.debug("Injecting plugin %s" % ext.name)
+            for prefix in ["do", "help", "complete"]:
+                method_name = prefix + "_" + ext.name
+                try:
+                    obj = getattr(ext.obj, prefix)
+                    if obj:
+                        setattr(MpTcpAnalyzer, method_name, obj)
+                except AttributeError:
+                    log.debug("Plugin does not provide %s" % method_name)
+
+        # there is also map_method available
+        try:
+            results = mgr.map(_inject_cmd, self)
+        except stevedore.exception.NoMatches as e:
+            log.error("stevedore: No matches (%s)" % e)
+
     def precmd(self, line):
         """
         Here we can preprocess line, with for instance shlex.split() ?
@@ -141,12 +164,25 @@ class MpTcpAnalyzer(cmd.Cmd):
         # default behavior
         return line 
 
+    def cmdloop(self):
+        """
+        overrides baseclass just to be able to catch exceptions
+        """
+        try:
+            cmd.Cmd.cmdloop(self)
+        except KeyboardInterrupt as e:
+            self.cmdloop()
+
     def postcmd(self, stop, line):
         """
         Override baseclass
-        returning false will cause interpretation to continue
+        returning true will stop the program
         """
-        return stop
+        print("postcmd", stop)
+
+        return True if stop == True else False
+            # return True
+        # return 1
 
     # TODO does not work yet
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
@@ -165,15 +201,19 @@ class MpTcpAnalyzer(cmd.Cmd):
     # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     @is_loaded
     def do_ls(self, args):
-        """ list mptcp subflows 
+        """ 
+        list mptcp subflows 
                 [mptcp.stream id]
+        :Example:
+
+        ls 0
         """
         parser = argparse.ArgumentParser(
-            description="Display help"
+            description="List subflows of an MPTCP connection"
         )
 
         parser.add_argument("mptcpstream", action="store", type=int,
-            help="Equivalent to mptcp.stream id" 
+            help="Equivalent to wireshark mptcp.stream id" 
         )
  
         args = parser.parse_args (shlex.split(args))
@@ -483,11 +523,12 @@ class MpTcpAnalyzer(cmd.Cmd):
             print("Parser failure:", e)
         except NotImplementedError:
             print("Plot subclass miss a requested feature")
-            return
+            return 1
 
     def do_dump(self, args):
         """
-        Dumps content of the csv file, with columns selected by the user
+        Dumps content of the csv file, with columns selected by the user.
+        Mostly used for debug
         """
         parser = argparse.ArgumentParser(description="dumps csv content")
         parser.add_argument('columns', default=[
@@ -505,7 +546,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         l = [x for x in self.data.columns if x.startswith(text)]
         return l
 
-    def do_q(self, *args):
+    def do_quit(self, *args):
         """
         Quit/exit program
         """
@@ -513,6 +554,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     def do_EOF(self, line):
         """
+        Keep it to be able to exit with CTRL+D
         """
         return True
 

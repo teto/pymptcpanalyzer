@@ -53,7 +53,6 @@ with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
 setup(name="mptcpanalyzer",
-        # TODO import version.py
         version=main_ns['__version__'],
         description="Analyze mptcp traces (.pcap)",
         long_description=open('README.md').read(),
@@ -87,15 +86,12 @@ setup(name="mptcpanalyzer",
                 # creates 2 system programs that can be called from PATH
                 'mptcpanalyzer = mptcpanalyzer.cli:cli',
                 'mptcpexporter = mptcpanalyzer.exporter:main',
-                # 'mptcpnumerics = mptcpanalyzer.analysis:run'
                 ],
             # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
             'mptcpanalyzer.plots': [
                 'attr = mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
-                # 'interdeparture = mptcpanalyzer.plots.dsn:DsnInterArrivalTimes',
                 'interarrival = mptcpanalyzer.plots.dsn:InterArrivalTimes',
                 'xinterarrival = mptcpanalyzer.plots.dsn:CrossSubflowInterArrival',
-                'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
                 'dss_len = mptcpanalyzer.plots.dsn:DssLengthHistogram',
                 'dss = mptcpanalyzer.plots.dsn:DSSOverTime',
                 'owd = mptcpanalyzer.plots.owd:OneWayDelay',

@@ -51,14 +51,14 @@ class Plot:
 
     See http://docs.openstack.org/developer/stevedore/tutorial/creating_plugins.html
 
-    There is a bug in Pandas that prevents from plotting raw DSNs as uint64 see
+    ..There is a bug in Pandas that prevents from plotting raw DSNs as uint64 see
     https://github.com/pymain/pandas/issues/11440
     """
 
-    def __init__(self, needed_dataframes: int = 1, title : str = None, *args, **kwargs):
+    def __init__(self, title : str = None, *args, **kwargs):
         #accept_preload : bool, filter_destination):
         """
-        TODO pass a boolean to know if main.data should be preloaded or not
+        :param title: Plot title
         """
         self.title = title
         """Title to give to the plot"""
@@ -69,17 +69,19 @@ class Plot:
             direction: bool = False, filter_subflows: bool = True,
             dst_host : bool=False):
         """
-        Generates a default parser that can be then modified by the child class
-        :param mptcpstream to accept an mptcp.stream id
-        :param available_dataframe True if a pcap was preloaded
-        :param direction Enable filtering the stream depending if the packets were sent
+        Generates a parser with common options.
+        This parser can be completed or overridden by its children.
+
+        :param mptcpstream: to accept an mptcp.stream id
+        :param available_dataframe: True if a pcap was preloaded at start
+        :param direction: Enable filtering the stream depending if the packets were sent
         towards the MPTCP client or the MPTCP server 
-        :param filter_subflows Allow to hide some subflows from the plot
+        :param filter_subflows: Allow to hide some subflows from the plot
         """
         parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
 
+        # how many pcaps shall we load ?
         count = required_nb_of_dataframes - (1 if available_dataframe else 0)
-        print("COUNT=%d" % count)
         for i in range(0, required_nb_of_dataframes - (1 if available_dataframe else 0)):
 
             parser.add_argument("pcap",  action="append",
@@ -159,6 +161,11 @@ class Plot:
         Can filter a dataframe beforehand
 
         :param opt Should be the expanded result of argparse
+        :param mptcpstream: Filters the dataframe so as to keep only the packets
+        related to mptcp.stream == mptcpstream
+        :type mptcpstream: int
+        :param skipped_subflows: 
+
         This baseclass can filter on:
 
         - mptcpstream
@@ -168,7 +175,6 @@ class Plot:
         Returns updated dataframe
         """
         queries = []
-        # if opt.get('mptcpstream', False):
         if mptcpstream:
             queries.append("mptcpstream == %d" % mptcpstream ) 
             if opt.get('destination', False):
@@ -183,8 +189,6 @@ class Plot:
 
         query = " and ".join(queries)
 
-
-
         # throws when querying with an empty query
         if len(query) > 0:
             log.info("Running query:\n%s" % query)
@@ -198,9 +202,12 @@ class Plot:
 
         return dataframe
 
-    def postprocess(self, v, display=False, out="output.png", **opt):
+
+    def postprocess(self, v, display: bool=False, out="output.png", **opt):
         """
         :param v is the value returned by the plot
+        :param display: Wether we should display the resulting plot
+        ;param out: if the file was saved to a file
         """
 
         if display:
@@ -211,8 +218,8 @@ class Plot:
         """
         This function automatically filters the dataset according to the 
         options enabled 
-        :param dataframes an array of dataframes loaded by the main program
-        :param cli_args Array of parameters forwarded to argparse parser.
+        :param dataframes: an array of dataframes loaded by the main program
+        :param pargs: Array of parameters forwarded to argparse parser.
         """
         # these options
         # if getattr(args, "direction"):
@@ -231,6 +238,7 @@ class Plot:
     def display(self, filename):
         """
         Opens filename in your usual picture viewer
+        Relies on xdg-open by default so set your mimetypes correctly !
         """
         log.debug("Displaying file")
         cmd = "xdg-open %s" % (filename)
@@ -265,20 +273,14 @@ class Matplotlib(Plot):
 
     def postprocess(self, v, **opt):
         """
+        :param v: Value returned by `run` member, its type may depend on the plot
+        :param **opt: 
         """
         # self.title = args.title if args.title else self.title
         if opt.get('title', self.title):
             fig.suptitle(self.title, fontsize=12)
 
         super().postprocess(v, **opt)
-        # if args.out:
-        #     self.savefig(fig, args.out)
-        #     if args.primary:
-        #         core.copy_to_x (args.out)
-
-        # if args.display:
-        #     # TODO show it from fig
-        #     self.display(args.out)
 
 
     def run(self, dataframes, styles, *pargs, **kwargs):

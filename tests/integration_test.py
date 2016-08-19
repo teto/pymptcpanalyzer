@@ -14,47 +14,36 @@ mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
 
 
 
-# https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
-# TODO use make_test_instance and pass directly instances 
-"""
-
-"""
+# 
 class IntegrationTest(TestCase):
     """
     Few reminders :
         :w @unittest.expectedFailure
-
-    TODO how to test the options --title ? --skip_subflow ?
+    List of builtin exceptions
+    https://docs.python.org/3/library/exceptions.html
     """
     def setUp(self):
 
         config = MpTcpAnalyzerConfig()
 
         self.m = MpTcpAnalyzer(config)
-        self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
-        # self.assertTrue
+        # self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
 
     def load_all_plugins(self):
         """
         We have to load them manually
+
+        .. see:: https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
         """
-        mgr = self.m.plot_mgr.make_test_instance(
+
         #name , entry point, plugin, obj
-                [ Extension("attr", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsX',
-# pkg_resources.
-# entry_points.load
-                    None
-                    , 
-                    mp.plots.dsn.PerSubflowTimeVsX()
-                    ) ]
-                )
+        plots = [
+            Extension("attr", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
+                None, mp.plots.dsn.PerSubflowTimeVsAttribute()) 
+        ]
+        mgr = self.m.plot_mgr.make_test_instance(plots)
+        # TODO now we need to use that !
 
-
-    def test_loadconfig(self):
-        """
-        Override XDG_CONFIG_HOME and checks it's correctly loaded
-        """
-        pass
 
     def test_oneshot(self):
         # TODO test when launched via subprocess 
@@ -76,15 +65,6 @@ class IntegrationTest(TestCase):
         # subprocess.Popen()
         pass 
 
-    def test_config(self):
-        """
-        Reads a config file and make sure some default values are ok
-        """
-
-        # config = MpTcpAnalyzerConfig()
-        cfg = MpTcpAnalyzerConfig("tests/test_config.ini")
-        self.assertEqual(cfg["DEFAULT"]["tshark_binary"], "fake_tshark")
-        self.assertEqual(cfg["DEFAULT"]["delimiter"], "|")
 
     @unittest.skip("Not sure pcap are valid yet")
     def test_mapping_connections(self):
@@ -116,6 +96,7 @@ class IntegrationTest(TestCase):
         """
         # self.m.do_ls("0")
         # self.m.do_load("examples/iperf-mptcp-0-0.pcap")
+        # TODO the file is not loaded yet
         self.m.do_ls("0")
         self.m.do_ls("-1")
 
@@ -124,7 +105,8 @@ class IntegrationTest(TestCase):
         TODO should return different number
         """
         self.m.do_lc("0")
-        self.m.do_lc("-1")
+        with self.assertRaises(ValueError):
+            self.m.do_lc("-1")
 
     def test_list_plots_attr(self):
         """
@@ -137,6 +119,9 @@ class IntegrationTest(TestCase):
         plot_names = self.m._list_available_plots()
         self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
+        # for i in range():
+        #     with self.subTest(i=i):
+        #         self.assertIn()
 
     def test_plot_attr_preloaded(self):
         """
@@ -148,7 +133,6 @@ class IntegrationTest(TestCase):
 
     def test_plot_attr_postloaded(self):
         self.load_all_plugins()
-        # self.m.do_load("examples/iperf-mptcp-0-0.pcap")
         self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 Client dsn")
 
 

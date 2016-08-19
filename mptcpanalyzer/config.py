@@ -11,6 +11,12 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
     Thin wrapper around configparser to set up default values
 
 
+    By default, mptcpanalyzer will try to load the config file first in $XDG_CACHE_HOME/mptcpanalyzer/config, then in 
+    $HOME/.config/mptcpanalyzer/config.
+
+    :Example:
+
+    .. literalinclude:: /../../../examples/config
     """
 
     def __init__(self, filename: str = None):
@@ -24,12 +30,17 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         # possible list of config filenames
         filenames = []
 
+        cache_filename = os.path.join(
+            os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), 
+            "mptcpanalyzer"
+        )
+
         # ensure defaults for mandatory parameters
         self.read_dict({
             "DEFAULT": { 
                 "tshark_binary": "tshark",
                 "delimiter": "|",
-                "cache": os.path.join(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "mptcpanalyzer"),
+                "cache": cache_filename,
                 "wireshark_profile": "",
                 "style0": "",
                 "style1": "",
@@ -38,7 +49,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             }
         })
 
-        if not filename:
+        if filename is None:
             xdg_config = os.getenv("XDG_CONFIG_HOME", "~/.config")
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")
             filenames.append(xdg_config)
