@@ -29,7 +29,13 @@ class IntegrationTest(TestCase):
         self.m = MpTcpAnalyzer(config)
         # self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
 
-    def load_all_plugins(self):
+    def preload_pcap(self, regen: bool =False):
+        cmd = "examples/iperf-mptcp-0-0.pcap"
+        if regen:
+            cmd += " --regen"
+        self.m.do_load(cmd)
+
+    def setup_plot_mgr(self):
         """
         We have to load them manually
 
@@ -95,18 +101,25 @@ class IntegrationTest(TestCase):
         Test that it can list subflows
         """
         # self.m.do_ls("0")
-        # self.m.do_load("examples/iperf-mptcp-0-0.pcap")
-        # TODO the file is not loaded yet
+        # fails because the file is not loaded yet
+        with self.assertRaises(mp.MpTcpException):
+            self.m.do_ls("0")
+
+        self.preload_pcap()
         self.m.do_ls("0")
-        self.m.do_ls("-1")
+
+        # fails because there is no packets with this id
+        with self.assertRaises(mp.MpTcpException):
+            self.m.do_ls("4")
 
     def test_list_connections(self):
         """
         TODO should return different number
         """
-        self.m.do_lc("0")
-        with self.assertRaises(ValueError):
-            self.m.do_lc("-1")
+        # fails because file not loaded
+        self.assertRaises(mp.MpTcpException, self.m.do_lc, "")
+        self.preload_pcap()
+        self.m.do_lc("")
 
     def test_list_plots_attr(self):
         """
@@ -114,8 +127,8 @@ class IntegrationTest(TestCase):
         """
 #http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
 # plugin, obj
-        # load_all_plugins
-        self.load_all_plugins()
+        # setup_plot_mgr
+        self.setup_plot_mgr()
         plot_names = self.m._list_available_plots()
         self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
@@ -127,34 +140,39 @@ class IntegrationTest(TestCase):
         """
         Loads the dataset first 
         """
-        self.load_all_plugins()
+        self.setup_plot_mgr()
         self.m.do_load("examples/iperf-mptcp-0-0.pcap")
         self.m.do_plot("attr 0 Client dsn")
 
     def test_plot_attr_postloaded(self):
-        self.load_all_plugins()
+        self.setup_plot_mgr()
+        self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 Client dsn")
+        # TODO test --title
         self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 Client dsn")
 
 
     def test_list_plots_2(self):
         plot_names = self.m._list_available_plots()
+        print("plot names=", plot_names)
         # self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
 
     def test_generate_plots(self):
         """
         """
-        self.m.do_load("examples/iperf-mptcp-0-0.pcap")
+        self.preload_pcap()
         # TODO precise file
-        self.m.do_plot("plot dsn 0")
-        self.m.do_plot("plot interarrival 0")
+        # self.m.do_plot("attr 0")
+        # self.m.do_plot("interarrival 0")
 
         # TODO 
 
+
+    @unittest.skip("not upstreamed yet")
     def test_generate_plot_ns3(self):
         """
         Not a good test, too involving
         """
 
-        self.m.do_plot("plot ns3 --meta examples/ cwnd 0")
+        # self.m.do_plot("ns3 --meta examples/ cwnd 0")
 

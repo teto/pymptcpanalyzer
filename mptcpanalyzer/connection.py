@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 from collections import namedtuple
-from mptcpanalyzer import Destination
+from mptcpanalyzer import Destination, MpTcpException
 
 from enum import Enum
 
@@ -80,7 +80,7 @@ class MpTcpConnection:
         # TODO cache the structure of the communication
         
         self.mptcpstreamid = mptcpstreamid
-        self.subflows = subflows
+        self._subflows = subflows
         self.client_key = client_key
         self.client_token = client_token
         self.server_key = server_key
@@ -105,10 +105,13 @@ class MpTcpConnection:
 
     @property
     def subflows(self):
-        return self.subflows
+        return self._subflows
 
     @staticmethod
     def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: int):
+        """
+        Instantiates a class that describes an MPTCP connection
+        """
 
 
         def get_index_of_non_null_values(serie):
@@ -118,15 +121,18 @@ class MpTcpConnection:
 
         
         ds = ds[ds.mptcpstream == mptcpstreamid]
-        client_key = None
-        client_token = None
-        server_key = None
-        server_token = None
+        if len(ds.index) == 0:
+            raise MpTcpException("No packet with this stream id")
+
+        # client_key = None
+        # client_token = None
+        # server_key = None
+        # server_token = None
 
         # this returns the indexes where a sendkey is set :
         res = get_index_of_non_null_values(ds["sendkey" ])
         if len(res) < 2:
-            raise Exception("Could not find the initial keys")
+            raise MpTcpException("Could not find the initial keys")
 
         cid = res[0]
         client_key = ds["sendkey"].iloc[ cid ]
@@ -152,10 +158,10 @@ class MpTcpConnection:
                 continue
             res = get_index_of_non_null_values(subflow_ds["recvtok"])
             if len(res) < 1:
-                raise Exception("Missing MP_JOIN")
+                raise MpTcpException("Missing MP_JOIN")
             row = res[0] 
             token = subflow_ds["recvtok"].iloc[ row ] 
-            subflow = MpTcpSubflow.create_subflow ( tcpstreamid, subflow_ds['ipsrc'].iloc[ row ], subflow_ds['ipdst'].iloc[ row ],
+            subflow = MpTcpSubflow.create_subflow (tcpstreamid, subflow_ds['ipsrc'].iloc[ row ], subflow_ds['ipdst'].iloc[ row ],
                 subflow_ds['sport'].iloc[ row ], subflow_ds['dport'].iloc[ row ],
                 addrid=None, swap = (token == client_token) )
             subflows.append(subflow)

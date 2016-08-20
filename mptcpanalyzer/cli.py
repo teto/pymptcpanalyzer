@@ -18,7 +18,7 @@ import logging
 import os
 import subprocess
 # from mptcpanalyzer.plot import Plot
-from mptcpanalyzer.tshark import TsharkExporter, Filetype
+from mptcpanalyzer.tshark import TsharkExporter 
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
@@ -53,7 +53,7 @@ def is_loaded(f):
         if self.data is not None:
             return f(self, *args)
         else:   
-            raise Exception("Please load with `load` a pcap first")
+            raise mp.MpTcpException("Please load a pcap with `load` first")
         return None
     return wrapped
 
@@ -71,7 +71,6 @@ class MpTcpAnalyzer(cmd.Cmd):
     """
 
     intro = textwrap.dedent("""
-        Welcome in mptcpanalyzer {} (http://github.com/lip6-mptcp/mptcpanalyzer)
         Press ? to list the available commands and `help <command>` or `<command> -h`
         for a detailed help of the command
         """.format(__version__))
@@ -83,10 +82,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         :param cfg: A valid configuration
 
-
         .. see:: _inject_cmd
+
         """
-        # stdin ?
         self.prompt = "%s> " % "Ready"
         """Prompt seen by the user, displays currently loaded pcpa"""
         self.config = cfg
@@ -127,8 +125,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         The optional arguments stdin and stdout specify the input and output file objects that the Cmd instance or subclass instance will use for input and output. If not specified, they will default to sys.stdin and sys.stdout.
         """
         super().__init__(completekey='tab', stdin=stdin)
-        # there seems to be several improvements a
-        # one can choose the column to use as index index_col=
+
+
+    def setup_plot_mgr(self, mgr):
+        """
+        Override the default plot manager, only used for testing
+        :param mgr: a stevedore plugin manager
+        """
+        self.plot_mgr = mgr
 
 
     def load_plugins(self, mgr = None):
@@ -164,25 +168,46 @@ class MpTcpAnalyzer(cmd.Cmd):
         # default behavior
         return line 
 
-    def cmdloop(self):
+    def cmdloop(self, intro=None):
         """
         overrides baseclass just to be able to catch exceptions
         """
         try:
-            cmd.Cmd.cmdloop(self)
+            super().cmdloop()
         except KeyboardInterrupt as e:
+            pass
+
+        # Exception raised by sys.exit(), which is called by argparse
+        # we don't want the program to finish just when there is an input error
+        except SystemExit as e:
+        #     # e is the error code to call sys.exit() with
+            # log.debug("Input error: " % e)
+            # print("Error: %s"% e)
             self.cmdloop()
+        # you can set a tuple of exceptions
+        except mp.MpTcpException as e:
+            print(e)
+            self.cmdloop()
+        except Exception as e:
+            log.critical("Unknown error, aborting...")
+            log.critical(e)
+            print("Displaying backtrace:\n")
+            print(traceback.print_exc())
+
+        # finally:
+        #     log.debug("Error logged")
+        # except NotImplementedError:
+        #     print("Plot subclass miss a requested feature")
+        #     return 1
 
     def postcmd(self, stop, line):
         """
         Override baseclass
         returning true will stop the program
         """
-        print("postcmd", stop)
+        log.debug("postcmd result for line [%s] => %d", line, stop)
 
         return True if stop == True else False
-            # return True
-        # return 1
 
     # TODO does not work yet
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
@@ -221,20 +246,13 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     @is_loaded
     def _list_subflows(self, mptcpstreamid : int):
-        # try:
-            con = mc.MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-            print("Description of mptcp.stream %d " % mptcpstreamid)
-            print(con)
+        con = mc.MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
+        print("Description of mptcp.stream %d " % mptcpstreamid)
+        print(con)
 
-            print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
-        # except Exception as e:
-        #     print("Error: %s" % e)
-
-        # group = self.data[self.data.mptcpstream == mptcpstream]
-        # tcpstreams = group.groupby('tcpstream')
-        # self.data.head(5)
-            for sf in con.subflows:
-                print ("\t%s" % sf)
+        print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
+        for sf in con.subflows:
+            print ("\t%s" % sf)
 
     def help_ls(self):
 
@@ -282,9 +300,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         """ 
         List mptcp connections via their ids (mptcp.stream)
         """
-        print('mptcp connections')
-        self.data.describe()
+        # self.data.describe()
         streams = self.data.groupby("mptcpstream")
+
+        print('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
             self._list_subflows(mptcpstream)
 
@@ -310,7 +329,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         self.data = self.load_into_pandas(args.input_file, args.regen)
         self.prompt = "%s> " % os.path.basename(args.input_file,)
 
-    def do_plot(self, args):
+    def do_plot(self, args, mgr=None):
         """
         Plot DSN vs time
         """
@@ -464,7 +483,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
         return data
 
-    def plot_mptcpstream(self, cli_args):
+
+    def plot_mptcpstream(self, cli_args, ):
         """
         global member used by others do_plot members *
         Loads required dataframes when necessary
@@ -482,48 +502,49 @@ class MpTcpAnalyzer(cmd.Cmd):
             dest="plot_type", title="Subparsers", help='sub-command help', )
         subparsers.required = True
 
-        def _register_plots(ext, subparsers):
-            tmp = subparsers.add_parser(ext.name, parents=[
+        def register_plots(ext, subparsers):
+            """Adds a parser per plot"""
+            subparsers.add_parser(ext.name, parents=[
                     ext.obj.default_parser(self.data is not None)
                 ], 
-                    add_help=False
+                add_help=False
             )
 
-        self.plot_mgr.map(_register_plots, subparsers)
+        self.plot_mgr.map(register_plots, subparsers)
 
         # results = mgr.map(_get_plot_names, "toto")
         # for name, subplot in plot_types.items():
             # subparsers.add_parser(
                 # name, parents=[subplot.default_parser()], add_help=False)
 
-        try:
-            cli_args = shlex.split(cli_args)
-            args, unknown_args = parser.parse_known_args(cli_args)
-            # TODO generic filter
-            plotter = self.plot_mgr[args.plot_type].obj
-            
-            dataframes = []
-            if self.data is not None:
-                dataframes.append(self.data)
+        # try:
+        cli_args = shlex.split(cli_args)
+        args, unknown_args = parser.parse_known_args(cli_args)
+        # TODO generic filter
+        plotter = self.plot_mgr[args.plot_type].obj
+        
+        dataframes = []
+        if self.data is not None:
+            dataframes.append(self.data)
 
-            for pcap in getattr(args, "pcap", []):
-                df = self.load_into_pandas(pcap)
-                dataframes.append(df)
+        for pcap in getattr(args, "pcap", []):
+            df = self.load_into_pandas(pcap)
+            dataframes.append(df)
 
 
-            dargs = vars(args) # 'converts' the namespace to a dict
-            print(dargs)
-            dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
-            result = plotter.run(dataframes, **dargs)
-                    # cli_args=vars(args), unknown_args=vars(unknown_args))
-            plotter.postprocess(result, **dargs)
+        dargs = vars(args) # 'converts' the namespace to a dict
+        print(dargs)
+        dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
+        result = plotter.run(dataframes, **dargs)
+                # cli_args=vars(args), unknown_args=vars(unknown_args))
+        plotter.postprocess(result, **dargs)
 
-        except SystemExit as e:
-            # e is the error code to call sys.exit() with
-            print("Parser failure:", e)
-        except NotImplementedError:
-            print("Plot subclass miss a requested feature")
-            return 1
+        # except SystemExit as e:
+        #     # e is the error code to call sys.exit() with
+        #     print("Parser failure:", e)
+        # except NotImplementedError:
+        #     print("Plot subclass miss a requested feature")
+        #     return 1
 
     def do_dump(self, args):
         """
@@ -558,11 +579,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         return True
 
-    def preloop(intro):
+    def preloop(self):
         """
         Executed once when cmdloop is called
         """
-        print(intro)
+        super().preloop()
+        # print("toto")
 
 
 

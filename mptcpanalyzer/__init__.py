@@ -41,6 +41,16 @@ class Destination(Enum):
     Server = "server"
     Both = "Both"
 
+class MpTcpException(Exception):
+    """
+    Exceptions thrown by this module should inherit this in order to let the cli
+    filter exceptions
+    """
+    pass
+
+
+class MpTcpMissingPcap(MpTcpException):
+    pass
 
 def fields_v2():
     """

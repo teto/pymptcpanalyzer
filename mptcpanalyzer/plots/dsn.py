@@ -204,7 +204,7 @@ class InterArrivalTimes(plot.Matplotlib):
         super().__init__(*args, **kwargs)
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, destination=True, **kwargs)
+        parser = super().default_parser(*args, direction=True, **kwargs)
         # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", help="Consider only cross-subflow arrivals")
         parser.add_argument("attribute", choices=self.available,
             help="interarrival between which numbers"

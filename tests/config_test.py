@@ -3,6 +3,7 @@ from unittest import TestCase
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import tempfile
 import shutil
+import os
 
 
 
