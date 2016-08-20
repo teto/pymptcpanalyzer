@@ -127,7 +127,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         super().__init__(completekey='tab', stdin=stdin)
 
 
-    def setup_plot_mgr(self, mgr):
+    @property
+    def plot_manager(self):
+        return self.plot_mgr
+
+    @plot_manager.setter
+    def plot_manager(self, mgr):
         """
         Override the default plot manager, only used for testing
         :param mgr: a stevedore plugin manager
@@ -242,10 +247,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         )
  
         args = parser.parse_args (shlex.split(args))
-        self._list_subflows(args.mptcpstream)
+        self.list_subflows(args.mptcpstream)
 
     @is_loaded
-    def _list_subflows(self, mptcpstreamid : int):
+    def list_subflows(self, mptcpstreamid : int):
         con = mc.MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
         print("Description of mptcp.stream %d " % mptcpstreamid)
         print(con)
@@ -305,7 +310,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         print('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
-            self._list_subflows(mptcpstream)
+            self.list_subflows(mptcpstream)
 
 
     def do_load(self, args):
@@ -349,10 +354,10 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     def do_list_available_plots(self, args):
         
-        plot_names = self._list_available_plots()
+        plot_names = self.list_available_plots()
         print(plot_names)
 
-    def _list_available_plots(self):
+    def list_available_plots(self):
         # def _get_names(ext, names: list):
         #     names.append (ext.name) 
         

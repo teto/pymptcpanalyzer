@@ -50,6 +50,8 @@ In order to test while modifying mptcpanalyzer, you can install it like this:
 
     $ python3.5 setup.py develop --user
 
+.. note :: Add --uninstall to remove
+
 
 How to upload it to pypy (for the forgetful maintainer)
 ============================================================

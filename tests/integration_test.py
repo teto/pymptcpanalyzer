@@ -47,7 +47,8 @@ class IntegrationTest(TestCase):
             Extension("attr", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
                 None, mp.plots.dsn.PerSubflowTimeVsAttribute()) 
         ]
-        mgr = self.m.plot_mgr.make_test_instance(plots)
+        mgr = self.m.plot_manager.make_test_instance(plots)
+        self.m.plot_manager = mgr
         # TODO now we need to use that !
 
 
@@ -96,7 +97,7 @@ class IntegrationTest(TestCase):
         # with self.assertRaises(ValueError):
         self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
 
-    def test_list_subflows(self):
+    def testlist_subflows(self):
         """
         Test that it can list subflows
         """
@@ -125,11 +126,12 @@ class IntegrationTest(TestCase):
         """
         Check if properly list available plugins
         """
-#http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
-# plugin, obj
+        #http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
+        # plugin, obj
         # setup_plot_mgr
         self.setup_plot_mgr()
-        plot_names = self.m._list_available_plots()
+        plot_names = self.m.list_available_plots()
+        print("plot names=", plot_names)
         self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
         # for i in range():
@@ -152,7 +154,7 @@ class IntegrationTest(TestCase):
 
 
     def test_list_plots_2(self):
-        plot_names = self.m._list_available_plots()
+        plot_names = self.m.list_available_plots()
         print("plot names=", plot_names)
         # self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
