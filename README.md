@@ -123,6 +123,10 @@ Other then that:
 Copy the config.example in the repository in `$XDG_CONFIG_HOME/mptcpanalyzer/config` and set
 the *tshark_binary* value to the full path towards the tshark version that supports mptcp dissection.
 
+2. tshark complains about a corrupted pcap
+For instance `tshark: The file "/home/user/file.pcap" appears to have been cut short in the middle of a packet.`
+Analyze your pcap with https://f00l.de/pcapfix/.
+
 # Similar tools
 
 If I have forgotten about your tool, file an issue, for know we are aware of:

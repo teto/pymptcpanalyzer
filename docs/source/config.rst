@@ -13,7 +13,7 @@ By default, mptcpanalyzer will try to load the config file first in $XDG_CACHE_H
 $HOME/.config/mptcpanalyzer/config.
 
 
-.. literalinclude:: /../../../examples/config
+.. literalinclude:: /../../examples/config
 
 
 * delimiter is the csv separator used by thsark when exporting the pcap

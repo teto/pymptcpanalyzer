@@ -61,7 +61,7 @@ def is_loaded(f):
 
 class MpTcpAnalyzer(cmd.Cmd):
     """
-    - *mptcpanalyzer* to get details on a loaded pcap. mptcpanalyzer can run into 3 modes:
+    mptcpanalyzer can run into 3 modes:
     1. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
     2. if a filename is passed as argument, it will load commands from this file
     3. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
@@ -145,6 +145,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         This function monkey patches the class to inject Command plugins
 
         :param mgr: override the default plugin manager when set. 
+
         Useful to run tests
         """
         mgr = mgr if mgr is not None else self.cmd_mgr
@@ -276,7 +277,6 @@ class MpTcpAnalyzer(cmd.Cmd):
     def do_summary(self, mptcpstream):
         """
         Summarize contributions of each subflow
-                [mptcp.stream id]
         For now it is naive, does not look at retransmissions ?
         """
         try:
@@ -467,19 +467,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         log.debug("Loading a csv file %s" % csv_filename)
 
         data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"],
-                dtype=dtypes,
-                # parse the following columns as date/time
-                # in fact it is not a datetime, just plain nanoseconds
-                # parse_dates=[
-                #     "frame.time_relative",
-# #                    "frame.time_epoch", # for now we don't care about epoch
-                #     ],
-                # # Here we specify a format, can we do it on a per column basis ?
-                # date_parser=lambda x: pd.datetime.strptime(x,),
-                converters={
-                    "tcp.flags": lambda x: int(x, 16),
-                    # "frame.abs"
-                }
+            dtype=dtypes,
+            converters={
+                "tcp.flags": lambda x: int(x, 16),
+            }
         ) 
 
         data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
@@ -593,12 +584,20 @@ class MpTcpAnalyzer(cmd.Cmd):
 
 
 
-def cli():
+
+def main(arguments_to_parse):
     """
-    return value will be passed to sys.exit
+    This is the entry point of the program 
+    :param arguments_to_parse: Made as a parameter since it makes testing easier
+    :type arguments_to_parse: list parsable by argparse.parse_args.
+
+    :return: 
+    :rtype: int
+    Returns:
+        return value will be passed to sys.exit
     """
     parser = argparse.ArgumentParser(
-        description='Generate MPTCP stats & plots'
+        description='Generate MPTCP (Multipath Transmission Control Protocol) stats & plots'
     )
     #  todo make it optional
     parser.add_argument(
@@ -630,10 +629,11 @@ def cli():
             default=sys.stdin,
             help="Accepts a filename as argument from which commands will be loaded."
             "Commands follow the same syntax as in the interpreter"
+            "can also be used as " 
     )
 
 
-    args, unknown_args = parser.parse_known_args(sys.argv[1:])
+    args, unknown_args = parser.parse_known_args(arguments_to_parse)
     cfg = MpTcpAnalyzerConfig(args.config)
 
     # logging.CRITICAL = 50
@@ -674,4 +674,4 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    main(sys.argv[1:])

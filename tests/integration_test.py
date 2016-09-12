@@ -2,17 +2,25 @@ from unittest import TestCase
 import unittest
 
 import mptcpanalyzer as mp
-from mptcpanalyzer.cli import MpTcpAnalyzer
+from mptcpanalyzer.cli import MpTcpAnalyzer, test_main
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 import mptcpanalyzer.data as core
 import mptcpanalyzer.plots as plots
 import pandas as pd
 from stevedore.extension import Extension
-
+import tempfile
+import shlex
 
 mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
 
 
+
+
+def test_main(arguments_to_parse: str):
+    """
+    Used in the testsuite
+    """
+    main(shlex.split(arguments_to_parse))
 
 # 
 class IntegrationTest(TestCase):
@@ -27,7 +35,6 @@ class IntegrationTest(TestCase):
         config = MpTcpAnalyzerConfig()
 
         self.m = MpTcpAnalyzer(config)
-        # self.m.cmd_mgr.make_test_instance("placeholder", None, None, None)
 
     def preload_pcap(self, regen: bool =False):
         cmd = "examples/iperf-mptcp-0-0.pcap"
@@ -55,6 +62,8 @@ class IntegrationTest(TestCase):
     def test_oneshot(self):
         # TODO test when launched via subprocess 
         # - with a list of commands passed via stdin
+        # cmd = " --load " + mptcp_pcap
+        # test_main(cmd)
         pass
 
     # def test_regen(self):
@@ -68,9 +77,16 @@ class IntegrationTest(TestCase):
     #     self.assertEqual()
 
     def test_batch(self):
+        """
+        Run several commands written in a file and make sure
+        some files are created 
+        """
+        with tempfile.TemporaryDirectory() as dirname:
+            # test_main()
+            # self.batch
         # Test the --batch flag
         # subprocess.Popen()
-        pass 
+            pass 
 
 
     @unittest.skip("Not sure pcap are valid yet")
@@ -89,9 +105,11 @@ class IntegrationTest(TestCase):
 
         self.m.do_plot("plot owd 0")
 
-    def test_load(self):
+    def test_load_pcap(self):
         """
-        Check that it can load a basic mptcp pcap
+        Check that it can load a basic mptcp pcap, w/o regen
+        check it takes into account the cache
+        check it fails when file does not exist or is corrupted
         """
         # to test for errors
         # with self.assertRaises(ValueError):
