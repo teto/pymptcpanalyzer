@@ -7,8 +7,7 @@
 | License | ![License](https://img.shields.io/badge/license-GPL-brightgreen.svg) |
 | Build Status | [![Build status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=master)](https://travis-ci.org/teto/mptcpanalyzer) |
 | PyPI |[![PyPI package](https://img.shields.io/pypi/dm/mptcpanalyzer.svg)](https://pypi.python.org/pypi/mptcpanalyzer/) |
-
-# [![Build Status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=stats)](https://travis-ci.org/teto/mptcpanalyzer)
+| DOI | [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)|
 
 Presentation 
 ===
@@ -57,19 +56,9 @@ Dependancies are (some will be made optional in the future):
 - lnumexpr to run specific queries in pandas
 - [matplotlib](http://matplotlib) to plot graphs
 
-# License
-Though it might be tempting to release under the CRAPL licence (http://matt.might.net/articles/crapl/), mptcpanalyzer is shamelessly released under the GPLv3 license.
-
-
 # How to use ?
 
-This package installs 3 programs:
-- *mptcpexporter* can export a pcap into csv (exporting to sql should be easy).
-Run `mptcpexporter -h` to see how it works.
-- *mptcpnumerics* to generate some values (required buffer, etc...) depending on
-  a json file describing the setup (MSS, forward/backward OWD, send buffer size
-  etc...)
-- *mptcpanalyzer* to get details on a loaded pcap. mptcpanalyzer can run into 3 modes:
+ mptcpanalyzer can run into 3 modes:
   1. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
   2. if a filename is passed as argument, it will load commands from this file
   3. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
@@ -93,7 +82,7 @@ It expects a trace to work with. If the trace has the form *XXX.pcap* extension,
 # Similar tools
 
 If I have forgotten about your tool, file an issue, for know we are aware of:
-[mptcptrace](https://bitbucket.org/bhesmans/mptcptrace) with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
+- [mptcptrace](https://bitbucket.org/bhesmans/mptcptrace) with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
 
 
 [mptcptrace]: https://bitbucket.org/bhesmans/mptcptrace
