@@ -107,10 +107,7 @@ setup(name="mptcpanalyzer",
               'stevedore',  # to implement a plugin mechanism
               'matplotlib', # for plotting
               'pandas>=0.17.1', # to load and process csv files
-              # those dependancies might made optional later or the package split into two
-              # 'sympy', #for symbolic computing
-              # 'sortedcontainers' # for the mini mptcp simulator events list
-
+              # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
               ],
       # for now the core is not modular enough so just check that running the process produces the same files
       # test_suite="tests",
