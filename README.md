@@ -88,44 +88,7 @@ Then you have a command line: you can type `?` to list available commands. You h
 `help ls` will return the syntax of the command, i.e. `ls [mptcp.stream]` where mptcp.stream is one of the number appearing 
 in `lc` output.
 
-
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
-
-# How does it work (internals) ?
-mptcpanalyzer consists of small python scripts. the heavy task is done by wireshark.
-It relies on tshark (terminal version of wireshark) to convert pcap to csv files.
-
-It accepts as input a pcap (or csv file following a proper format). 
-Upon pcap detection, mptcpanalyzer the formats supported by tshark (terminal version of wireshark).
-
-# How to add new plots ? new commands ?
-
-
-mptcpanalyzer supports plugins, see CONTRIBUTING.md to learn how to add new
-plots, commands, etc...
-
-
-# Features
-
-mptcpanalyzer is XDG compliant and will try to load your configuration from:
-`$XDG_CONFIG_HOME/mptcpanalyzer/config` 
-
-Other then that:
-* caching mechanism: mptcpanalyzer compares your pcap creation time and will
-  regenerate the cache if it exists in `$XDG_CACHE_HOME/mptcpanalyzer/<path_to_the_file>`
-* support 3rd party plugins (be it plots or commands)
-
-
-
-# FAQ
-
-1. What if I have several versions of wireshark installed ?
-Copy the config.example in the repository in `$XDG_CONFIG_HOME/mptcpanalyzer/config` and set
-the *tshark_binary* value to the full path towards the tshark version that supports mptcp dissection.
-
-2. tshark complains about a corrupted pcap
-For instance `tshark: The file "/home/user/file.pcap" appears to have been cut short in the middle of a packet.`
-Analyze your pcap with https://f00l.de/pcapfix/.
 
 # Similar tools
 

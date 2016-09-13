@@ -1,0 +1,4 @@
+load --regen examples/iperf-mptcp-0-0.pcap
+plot attr 0 Client dsn 
+plot attr 0 Client dsn  --title "custom title" --out test_with_title.png
+plot attr 0 Client dsn  --skip 1 --skip 3 --style examples/red_o.mplstyle --title "Test with matplotlib colors" --out test_title_style.png

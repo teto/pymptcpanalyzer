@@ -2,47 +2,35 @@ How to contribute to mptcpanalyzer ?
 ****************************************
 
 There are several things you can do:
-* submit bug reports at https://github.com/lip6-mptcp/mptcpanalyzer/issues
-* develop new plugins, for instance new plots (see later), if you do, please warn us so that we
-an add you to the list of plugins
-* Send patches to https://github.com/lip6-mptcp/mptcpanalyzer/pulls to either fix 
-a bug, improve documentation or flake8 compliance
-  
+
+* submit bug reports in our `tracker <https://github.com/lip6-mptcp/mptcpanalyzer/issues>`_
+* :ref:`develop-new-plugins`, if you do, please warn us so that we can add you to the list of plugins
+* `Send patches <https://github.com/lip6-mptcp/mptcpanalyzer/pulls>`_ to either fix a bug, improve the documentation or flake8 compliance 
 
 
-How to develop an mptcpanalyzer plugin ?
-========================================
+.. _develop-new-plugins:
 
-mptcpanalyzer can load plugins following stevedore's [plugin](http://docs.openstack.org/developer/stevedore/tutorial/creating_plugins.html#adding-plugins-in-other-packages), i.e. mptcpanalyzer will look for specific disttools entry points
+Develop an mptcpanalyzer plugin 
+===============================
+|prog|_ can load plugins following `stevedore's plugin <http://docs.openstack.org/developer/stevedore/tutorial/creating_plugins.html#adding-plugins-in-other-packages>`_, i.e. mptcpanalyzer will look for specific disttools entry points
 in order to find and load plugins.
 
 To add a plugin, just mimic what is done for existing plugins, see stevedore's
 plugin documentation plus check our setup.py:
 
-.. code-block:: python
 
-      entry_points={
-          "console_scripts": [
-            # creates 2 system programs that can be called from PATH
-            'mptcpanalyzer = mptcpanalyzer.cli:cli',
-            'mptcpexporter = mptcpanalyzer.exporter:main'
-          ],
-        # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
-          'mptcpanalyzer.plots': [
-              'dsn = mptcpanalyzer.plots.dsn:TimeVsDsn',
-              'latency = mptcpanalyzer.plots.latency:LatencyHistogram',
-              ],
-          # namespace for plugins that monkey patch the main Cmd class
-          'mptcpanalyzer.cmds': [
-              'stats = mptcpanalyzer.stats:DoStats',
-            ]
-      },
+.. literalinclude:: /../../setup.py
+    :emphasize-lines: 1,11
+    :linenos:
+    :lines: 91-103
 
 
-mptcpanalyzer will load all plugins residing in these two namespaces:
-- mptcpanalyzer.plots 
-- mptcpanalyzer.cmds
-regardless of their package.
+|prog| will load all plugins residing in these two namespaces:
+
+- **mptcpanalyzer.plots**
+- **mptcpanalyzer.cmds**
+
+regardless of which python package they belong
 
 In order to test while modifying mptcpanalyzer, you can install it like this: 
 
@@ -50,11 +38,31 @@ In order to test while modifying mptcpanalyzer, you can install it like this:
 
     $ python3.5 setup.py develop --user
 
-.. note :: Add --uninstall to remove
+.. note :: Add --uninstall to remove the installation.
+
+Develop a new plot
+------------------------------------------------------------
+
+You must create a new class that inherits from :py:class:`mptcpanalyzer.plot.Plot` 
+(or one of its children).
+Then you most likely need to override.
+
+.. automodule:: mptcpanalyzer.plot
+    :members:  
+
+Develop a command plugin
+------------------------------------------------------------
+
+Just follow the example in:
+
+.. literalinclude:: /../../mptcpanalyzer/command_example.py
+    :linenos:
+
+.. automodule:: mptcpanalyzer.command_example
 
 
 How to upload it to pypy (for the forgetful maintainer)
-============================================================
+--------------------------------------------------------------------------------
 
 .. code-block:: console
 
@@ -62,3 +70,5 @@ How to upload it to pypy (for the forgetful maintainer)
 
 
 (test first the package locally pip install /path/toarchive.gz)
+
+

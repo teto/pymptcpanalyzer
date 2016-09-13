@@ -13,6 +13,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+# To understand attributes:
+# http://www.sphinx-doc.org/en/stable/config.html
 import sys
 import os
 
@@ -31,6 +33,7 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinxcontrib.napoleon',
 ]
 
 sys.path.insert(0, os.path.abspath('.'))
@@ -79,7 +82,9 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = []
+exclude_patterns = [
+    'prolog.rst'
+]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -264,6 +269,24 @@ man_pages = [
 # If true, show URL addresses after external links.
 #man_show_urls = False
 
+
+# will be included at the beginning of each file
+with open("prolog.rst") as fd:
+
+    rst_prolog = fd.read()
+
+"""
+<https://github.com/lip6-mptcp/mptcpanalyzer/
+.. |prog| replace:: **mptcpanalyzer**
+"""
+
+# added at the end
+rst_epilog = """
+"""
+
+# see http://www.sphinx-doc.org/en/stable/ext/autodoc.html
+autoclass_content = "both" # accepts both/init/class
+# autodoc_default_flags
 
 # -- Options for Texinfo output -------------------------------------------
 

@@ -43,7 +43,7 @@ class TestCommand(Command):
                 # How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
 # http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
-# 
+#
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
 
@@ -98,9 +98,9 @@ setup(name="mptcpanalyzer",
                 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
                 ],
             # namespace for plugins that monkey patch the main Cmd class
-            # 'mptcpanalyzer.cmds': [
-            #     'stats = mptcpanalyzer.stats:DoStats',
-            #   ]
+            'mptcpanalyzer.cmds': [
+                'stats = mptcpanalyzer.command_example:CommandExample',
+              ]
             },
         # pandas should include matplotlib dependancy right ?
       install_requires=[

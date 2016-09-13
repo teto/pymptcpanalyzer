@@ -1,6 +1,5 @@
 import pandas as pd
 import logging
-from collections import namedtuple
 from mptcpanalyzer import Destination, MpTcpException
 
 from enum import Enum
@@ -15,20 +14,10 @@ class Filetype(Enum):
     csv = 3
 
 
-# TIME 
-# addrid ?
-# MpTcpSubflow = namedtuple('Subflow', [
-#     'tcpstreamid',
-#     'clientip', 'serverip', 'cport', 'sport', 'addrid'
-#     ])
-
-
-
-
 class MpTcpSubflow:
-    def __init__(self, 
-   tcpstreamid, 
-   clientip, serverip, cport, sport, 
+    def __init__(self,
+   tcpstreamid,
+   clientip, serverip, cport, sport,
    addrid
             ):
         self.client_ip = clientip
@@ -39,9 +28,9 @@ class MpTcpSubflow:
         """ Equivalent to wireshark tcp.stream"""
 
     @staticmethod
-    def create_subflow(tcpid, ipsrc, ipdst, sport, dport, addrid, swap=False):
+    def create_subflow(tcpid, ipsrc, ipdst, sport, dport, addrid, swap: bool=False):
         """
-        :param swap Swap src and destination
+        :param swap: Swap src and destination
         """
         if swap:
             return  MpTcpSubflow(tcpid, ipdst, ipsrc, dport, sport, addrid )
@@ -52,7 +41,7 @@ class MpTcpSubflow:
         """
         q = "tcpstream == %d " % self.tcpstreamid
         if dest == Destination.Both:
-            return q 
+            return q
 
         if dest == Destination.Client:
             ipsrc = self.server_ip
@@ -74,17 +63,17 @@ class MpTcpConnection:
     """
     Holds key characteristics of an MPTCP connection: keys, tokens, subflows
     """
-    def __init__(self, mptcpstreamid, client_key, client_token, server_key, 
+    def __init__(self, mptcpstreamid, client_key, client_token, server_key,
             server_token, subflows, **kwargs):
-        # self.ds = ds
-        # TODO cache the structure of the communication
-        
+
         self.mptcpstreamid = mptcpstreamid
         self._subflows = subflows
         self.client_key = client_key
         self.client_token = client_token
         self.server_key = server_key
         self.server_token = server_token
+
+
 
     def generate_direction_query(destination):
         """
@@ -93,7 +82,7 @@ class MpTcpConnection:
         Returns
             Query
         """
-# TODO test this function
+        # TODO test this function
 
         queries = []
         queries.append("mptcpstream == %d" % mptcpstreamid)
@@ -119,15 +108,10 @@ class MpTcpConnection:
             # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
             return serie.notnull().nonzero()[0]
 
-        
+
         ds = ds[ds.mptcpstream == mptcpstreamid]
         if len(ds.index) == 0:
             raise MpTcpException("No packet with this stream id")
-
-        # client_key = None
-        # client_token = None
-        # server_key = None
-        # server_token = None
 
         # this returns the indexes where a sendkey is set :
         res = get_index_of_non_null_values(ds["sendkey" ])
@@ -145,13 +129,10 @@ class MpTcpConnection:
         subflows = []
         master_sf = MpTcpSubflow.create_subflow (
                 master_id, ds['ipsrc'].iloc[ cid ], ds['ipdst'].iloc[ cid ],
-                ds['sport'].iloc[ cid ], ds['dport'].iloc[ cid ], 
+                ds['sport'].iloc[ cid ], ds['dport'].iloc[ cid ],
                 "master", swap=False)
 
         subflows.append(master_sf)
-        # sender_key = res.iloc[0][ds.sendkey]
-        # receiver_key = res.iloc[0, ds.recvkey]
-        # self.expected_token
         tcpstreams = ds.groupby('tcpstream')
         for tcpstreamid, subflow_ds in tcpstreams:
             if tcpstreamid == master_id:
@@ -159,25 +140,26 @@ class MpTcpConnection:
             res = get_index_of_non_null_values(subflow_ds["recvtok"])
             if len(res) < 1:
                 raise MpTcpException("Missing MP_JOIN")
-            row = res[0] 
-            token = subflow_ds["recvtok"].iloc[ row ] 
+            row = res[0]
+            token = subflow_ds["recvtok"].iloc[ row ]
             subflow = MpTcpSubflow.create_subflow (tcpstreamid, subflow_ds['ipsrc'].iloc[ row ], subflow_ds['ipdst'].iloc[ row ],
                 subflow_ds['sport'].iloc[ row ], subflow_ds['dport'].iloc[ row ],
                 addrid=None, swap = (token == client_token) )
             subflows.append(subflow)
-            # print("Token", token)
 
-        return MpTcpConnection(mptcpstreamid, client_key, client_token, 
+        result =  MpTcpConnection(mptcpstreamid, client_key, client_token,
                 server_key, server_token,
                 subflows)
+        log.debug("Creating connection %s", result)
+        return result
 
 
     @staticmethod
     def filter_ds(data, **kwargs):
         """
         Filters a pandas dataset
-        :param data a Pandas dataset
-        :param kwargs Accepted keywords are
+        :param data: a Pandas dataset
+        :param kwargs: Accepted keywords are
 
         direction = client or server
         """
@@ -195,7 +177,7 @@ class MpTcpConnection:
         """
         """
         tcpstreams = self.ds.groupby('tcpstream')
-    
+
     def __repr__(self):
         return self.__str__()
 
@@ -210,12 +192,12 @@ Client key/token: {ckey}/{ctoken}
         ctoken=self.client_token,
         )
         # extra = ""
-        # addrid = [] 
+        # addrid = []
         # if len(gr2[gr2.master == 1]) > 0:
         #     addrid = ["master", "master"]
         # else:
         #     # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
-        #     # la ca foire 
+        #     # la ca foire
         #     for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
         #         gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
         #         # print("nb of results:", len(gro))
@@ -225,5 +207,5 @@ Client key/token: {ckey}/{ctoken}
         #         else:
         #             value = "Unknown"
         #         addrid.insert(i, value)
-        
+
         return res

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#  vim: set et fdm=manual fenc= ff=unix sts=4 sw=4 ts=8 : 
+#  vim: set et fdm=manual fenc= ff=unix sts=4 sw=4 ts=8 :
 import configparser
 import os
 import logging
@@ -10,13 +10,13 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
     """
     Thin wrapper around configparser to set up default values
 
-
-    By default, mptcpanalyzer will try to load the config file first in $XDG_CACHE_HOME/mptcpanalyzer/config, then in 
+    By default, mptcpanalyzer will try to load the config file first in $XDG_CACHE_HOME/mptcpanalyzer/config, then in
     $HOME/.config/mptcpanalyzer/config.
 
-    :Example:
+    Example:
 
     .. literalinclude:: /../../../examples/config
+
     """
 
     def __init__(self, filename: str = None):
@@ -31,13 +31,13 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         filenames = []
 
         cache_filename = os.path.join(
-            os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), 
+            os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
             "mptcpanalyzer"
         )
 
         # ensure defaults for mandatory parameters
         self.read_dict({
-            "DEFAULT": { 
+            "DEFAULT": {
                 "tshark_binary": "tshark",
                 "delimiter": "|",
                 "cache": cache_filename,
@@ -65,3 +65,8 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         log.info("Configuration loaded from %s", loaded_from)
         # else:
         #     log.debug("Could not find config file %s" % filename)
+
+
+    @property
+    def cache(self):
+        return self["DEFAULT"]["cache"]

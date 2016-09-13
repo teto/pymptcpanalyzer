@@ -4,7 +4,7 @@ import logging
 
 
 """
-While in mptcpanalyzer sources, one can do getLogger(__name__) to retrieve a 
+While in mptcpanalyzer sources, one can do getLogger(__name__) to retrieve a
 (sub)logger, your plugin can be in another package and as such, you have to name
 the logger explicitly with mptcpanalyzer.**
 """
@@ -12,7 +12,7 @@ log = logging.getLogger("mptcpanalyzer")
 
 class CommandExample(Command):
     """
-    This is just an example of how to write a plugin that will be automatically 
+    This is just an example of how to write a plugin that will be automatically
     loaded by mptcpanalyzer.
 
     """
@@ -26,7 +26,7 @@ class CommandExample(Command):
         """
         Message printed when the author writes
         """
-        print("Prints 'Hello world !' followed by the user message") 
+        print("Prints 'Hello world !' followed by the user message")
 
     def complete(self, text, line, begidx, endidx):
         """

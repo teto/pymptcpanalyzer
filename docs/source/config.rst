@@ -9,14 +9,17 @@ The file can be specified on the command line via the '--config' (or '-c') switc
 
     $ mptcpanalyzer --config myconfig.cfg
 
-By default, mptcpanalyzer will try to load the config file first in $XDG_CACHE_HOME/mptcpanalyzer/config, then in 
-$HOME/.config/mptcpanalyzer/config.
+By default, mptcpanalyzer will try to load the config file in the following order:
+
+#. $XDG_CACHE_HOME/mptcpanalyzer/config, then in 
+#. $HOME/.config/mptcpanalyzer/config
 
 
 .. literalinclude:: /../../examples/config
+   :linenos:
 
 
-* delimiter is the csv separator used by thsark when exporting the pcap
-* styleX follow matplotlib conventions to set lines color/style
-* tshark_bin in case you want to run a specific tshark binary
+* *delimiter* is the csv separator used by |tshark| when exporting the pcap
+* *styleX* follow matplotlib conventions to set lines color/style
+* *tshark_bin* in case you want to run a specific tshark binary
 
