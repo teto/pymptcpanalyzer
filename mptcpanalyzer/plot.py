@@ -56,17 +56,15 @@ class Plot:
 
 
     Attributes:
-        title (str): to give to the plot
+        title (str): title to give to the plot
     """
 
     def __init__(self, title : str = None, *args, **kwargs):
-        #accept_preload : bool, filter_destination):
         """
         Args:
             title (str): Plot title
         """
         self.title = title
-        #"""Title to give to the plot"""
 
     def default_parser(self, available_dataframe : bool,
             required_nb_of_dataframes : int = 1,
@@ -92,7 +90,7 @@ class Plot:
 
         # how many pcaps shall we load ?
         count = required_nb_of_dataframes - (1 if available_dataframe else 0)
-        for i in range(0, required_nb_of_dataframes - (1 if available_dataframe else 0)):
+        for i in range(0, count):
 
             parser.add_argument("pcap",  action="append",
                     metavar="pcap%d" % i,
@@ -140,9 +138,8 @@ class Plot:
     #     return mp.filter_df(data, **kwargs)
 
 
-# TODO rename into plot
     @abc.abstractmethod
-    def _generate_plot(self, dataframes, **kwargs):
+    def plot(self, dataframes, **kwargs):
         """
         This is the command
 
@@ -168,13 +165,13 @@ class Plot:
 
     def preprocess(self, dataframe, mptcpstream=None, skipped_subflows=[], **opt):
         """
-        Can filter a dataframe beforehand
+        Can filter a single dataframe beforehand 
+        (hence call it several times for several dataframes).
 
-        :param opt Should be the expanded result of argparse
-        :param mptcpstream: Filters the dataframe so as to keep only the packets
-        related to mptcp.stream == mptcpstream
-        :type mptcpstream: int
-        :param skipped_subflows:
+        Args:
+            opt: Should be the expanded result of argparse
+            mptcpstream: Filters the dataframe so as to keep only the packets related to mptcp.stream == mptcpstream
+            skipped_subflows: list of skipped subflows
 
         This baseclass can filter on:
 
@@ -184,16 +181,16 @@ class Plot:
 
         Returns updated dataframe
         """
+        log.debug("Preprocessing dataframe")
         queries = []
-        if mptcpstream:
-            queries.append("mptcpstream == %d" % mptcpstream )
+        if mptcpstream is not None:
+            queries.append("mptcpstream==%d" % mptcpstream )
             if opt.get('destination', False):
                 # Generate a filter for the connection
                 con = MpTcpConnection.build_from_dataframe(dataframe, mptcpstream)
-                q = con.generate_direction_query( opt.get('destination'))
+                q = con.generate_direction_query(opt.get('destination'))
                 queries.append(q)
 
-        # for skipped_subflow in opt.get("skipped_subflows", []):
         for skipped_subflow in skipped_subflows:
             queries.append(" tcpstream != %d " % skipped_subflow)
 
@@ -201,7 +198,7 @@ class Plot:
 
         # throws when querying with an empty query
         if len(query) > 0:
-            log.info("Running query:\n%s" % query)
+            log.info("Running query: %s" % query)
             dataframe = dataframe.query(query)
 
         if not len(dataframe.index):
@@ -227,20 +224,12 @@ class Plot:
         options enabled
 
         Args:
-        :param dataframes: an array of dataframes loaded by the main program
-        :param pargs: Array of parameters forwarded to argparse parser.
+            dataframes: an array of dataframes loaded by the main program
+            pargs: Array of parameters forwarded to argparse parser.
         """
-        # these options
-        # if getattr(args, "direction"):
-        print("cli_args:" % cli_args)
-
-        # args, unknown_args = parser.parse_known_args(cli_args)
-        # dargs = vars(args)
-        # dataframes = [ self.preprocess(df, **dargs) for df in dataframes ]
-
         if len(dataframes) == 1:
             dataframes = dataframes[0]
-        self._generate_plot(dataframes)
+        self.plot(dataframes)
 
 
 
@@ -304,7 +293,7 @@ class Matplotlib(Plot):
 
     def run(self, dataframes, styles, *pargs, **kwargs):
         """
-        user should override _generate_plot() -> TODO plot
+        user should override plot() -> TODO plot
 
         Args:
             dataframes: a list of
@@ -329,7 +318,7 @@ class Matplotlib(Plot):
         # matplotlib.pyplot.style.use(args.styles)
         # ('dark_background')
         with plt.style.context(styles):
-            fig = self._generate_plot(dataframes, **kwargs)
+            fig = self.plot(dataframes, **kwargs)
 
         return fig
 
