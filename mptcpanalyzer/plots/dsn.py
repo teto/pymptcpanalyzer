@@ -1,16 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer as mp
 from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
-import os
 from mptcpanalyzer import fields_v2
+import inspect
 
 log = logging.getLogger(__name__)
+
 
 class PerSubflowTimeVsAttribute(plot.Matplotlib):
     """
@@ -21,7 +21,7 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
     mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(preprocess_dataframes=True, *args, **kwargs)
 
 
     def default_parser(self, *args, **kwargs):
@@ -32,16 +32,17 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
                 help="Choose an mptcp attribute to plot")
         return parser
 
-    def _generate_plot(self, df,  mptcpstream, field, **kwargs):
+
+    def plot(self, rawdf,  mptcpstream, field, **kwargs):
         """
-        TODO replace main with dataframes, should be a list loaded by the main program
-        automatically
+        getcallargs
         """
+
+        # inspect.getfullargspec(fileinput.input))
+        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
         dat = df
 
         fig = plt.figure()
-        # print(dat.head())
-        # dat.set_index("reltime", inplace=True)
         tcpstreams = dat.groupby('tcpstream')
 
         print("%d streams in the MPTCP flow" % len(tcpstreams))
@@ -50,14 +51,8 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
 
-
-        # print("available matplotlib styles", plt.style.available)
-        # look into 'styles' list:
-        # print(tcpstreams)
-        # counter = 0
-        # print( "len of ", len(styles), " to compare with " , len(tcpstreams))
         for idx, (streamid, ds) in enumerate(tcpstreams):
-            pplot = ds[field].plot.line(
+            ds[field].plot.line(
                 ax=axes,
                 # use_index=False,
                 legend=False,
@@ -81,17 +76,20 @@ class CrossSubflowInterArrival(plot.Matplotlib):
     Compute arrival between updates of a *value* only when this
     update arrived from another subflow.
 
-    .. warning:: WIP
+    .. warning: WIP
     """
     def default_parser(self, *args, **kwargs):
         parser = super().default_parser(*args, mptcpstream=True, direction=True, **kwargs)
         return parser
 
-    def _generate_plot(self, rawdf, *args, **kwargs):
+    def plot(self, rawdf, *args, **kwargs):
         """
         goal is here to generate a new Dataframe that lists only switchings between
         subflows for DSN arrival
         """
+
+        # inspect.getfullargspec(fileinput.input))
+        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
         tcpstreamcol = rawdf.columns.get_loc("tcpstream")
 
         # TODO try replacing with dat.empty
@@ -141,7 +139,7 @@ class InterArrivalTimes(plot.Matplotlib):
     """
     Generate
 
-    .. see:: CrossSubflowInterArrival
+    .. see: CrossSubflowInterArrival
 
 
     .. warning:: WIP
@@ -163,13 +161,7 @@ class InterArrivalTimes(plot.Matplotlib):
         )
         return parser
 
-    def _generate_plot(self, dat, *args, **kwargs):
-
-        # filter to only account for one direction (departure or arrival)
-        # TODO try replacing with dat.empty
-        if not len(dat.index):
-            print("no packet matching query ")
-            return
+    def plot(self, dat, mptcpstream, *args, **kwargs):
 
         # inplace=True generates warning
         dat = dat.sort_values("dsn", ascending=True, )
@@ -191,89 +183,4 @@ class InterArrivalTimes(plot.Matplotlib):
         return fig
 
 
-
-class DssLengthHistogram(plot.Matplotlib):
-    """
-    Plots histogram
-
-    .. warning:: WIP
-    """
-
-    def __init__(self):
-        super().__init__(title="DSS Length")
-
-    def _generate_plot(self, data, args):
-        # data = main.data
-        # dat = data[data.mptcpstream == args.mptcpstream]
-        # if not len(dat.index):
-        #     print("no packet matching mptcp.stream %d" % args.mptcpstream)
-        #     return
-
-        fig = plt.figure()
-        axes = fig.gca()
-        dat.set_index("reltime", inplace=True)
-        # tcpstreams = dat.groupby('tcpstream')
-        field = "dss_length"
-        pplot = dat[field].plot.hist(
-            ax=axes,
-            legend=True,
-            grid=True,
-        )
-        return fig
-
-
-class DSSOverTime(plot.Matplotlib):
-    """
-    WIP
-    Draw small arrows with dsn as origin, and a *dss_length* length etc...
-
-    .. warning:: WIP
-    """
-
-    def __init__(self):
-        # super(self, "dsn")
-        pass
-
-    def default_parser(self, *args, **kwargs):
-        return super().default_parser( *args, mptcpstream=True, **kwargs)
-
-    def _generate_plot(self, main, args):
-
-        data = main.data
-        dat = data[data.mptcpstream == args.mptcpstream]
-        if not len(dat.index):
-            print("no packet matching mptcp.stream %d" % args.mptcpstream)
-            return
-
-
-        dat = data[dat.dss_dsn > 0]
-        print("len=" , len(dat))
-
-        # best might be this
-        # http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.quiver
-        # plt.quiver( dat.reltime, dat.dss_dsn, [0]* len(dat.dss_dsn) ,  dat.dss_length, scale_units="xy", scale=1, angles="xy",)
-        fig = plt.figure()
-        axes = fig.gca()
-        # dat.set_index("reltime", inplace=True)
-
-        # tcpstreams = dat.groupby('tcpstream')
-        # field = "dss_ssn"
-
-        # pplot = tcpstreams[field].plot.line(
-        #     ax=axes,
-        #     legend=True,
-        #     grid=True,
-        # )
-
-        # quiver(X, Y, U, V, **kw)
-
-        print( dat.head())
-        plt.quiver(
-                dat.reltime, # X
-                dat.dsn, # Y
-                [0]* len(dat.dss_dsn) ,
-               dat.dss_length,
-               scale_units="xy", scale=3, angles="xy",
-        )
-        return fig
 

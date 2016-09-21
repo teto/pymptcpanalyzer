@@ -87,14 +87,14 @@ class MpTcpConnection:
         # TODO test this function
 
         queries = []
-        queries.append("mptcpstream == %d" % self.mptcpstreamid)
+        # queries.append("mptcpstream == %d" % self.mptcpstreamid)
         for sf in self.subflows:
             q = " (" + sf.generate_direction_query(destination) + ") "
             print(q)
             queries.append(q)
-
-        result = " or ".join(queries)
-        # print(result)
+        result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
+        
+        print(result)
         return result
 
     @property

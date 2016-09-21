@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# from pkgutil import extend_path
 
 import logging
 import numpy as np
@@ -8,21 +7,21 @@ from enum import Enum
 
 from collections import namedtuple
 
-# h = logging.FileHandler(".mptcpanalyzer-" + str(os.getpid()), delay=True)
-# TODO let final script set the handler
-
 logger = logging.getLogger(__name__)
 
-Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ]) # 'converter'
 
+Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ]) # 'converter'
 Field.__new__.__defaults__ = (None, None)
 
 
 def get_fields (field, field2=None):
     """
-    :param field: should be a string in Field
-    :param field2: If field2 is None, returns a list with the field asked, else 
-    returns a dict( field values: field2 values)
+    Args:
+        field: should be a string in Field
+        field2: If field2 is None, returns a list with the field asked, else 
+
+    Returns:
+        a dict( field values: field2 values)
     """
 
     l = fields_v2()
@@ -35,11 +34,12 @@ def get_fields (field, field2=None):
 
 class Destination(Enum):
     """
-    Used to filter dataset
+    Used to filter datasets and keep packets flowing in only one direction !
     """
     Client = "client"
     Server = "server"
     Both = "Both"
+
 
 class MpTcpException(Exception):
     """
@@ -51,6 +51,7 @@ class MpTcpException(Exception):
 
 class MpTcpMissingPcap(MpTcpException):
     pass
+
 
 def fields_v2():
     """
@@ -67,9 +68,10 @@ def fields_v2():
      CAREFUL: when setting the type to int, pandas will throw an error if there
      are still NAs in the column. Relying on float64 permits to overcome this.
 
-    tshark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
+    .. note:
+        
+        tshark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
 
-    TODO use converters for datetime
     """
     l = [
         Field("frame.number", "packetid", np.int64, False),
@@ -115,6 +117,7 @@ def fields_v2():
     return l
 
 
+# TODO remove ?
 def filter_df(skip_subflows=None, **kwargs):
         """
         Filters a pandas DataFrame

@@ -180,7 +180,7 @@ class IntegrationTest(TestCase):
         # self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
 
-    def test_generate_plots(self):
+    def testplots(self):
         """
         """
         self.preload_pcap()
@@ -192,7 +192,7 @@ class IntegrationTest(TestCase):
 
 
     @unittest.skip("not upstreamed yet")
-    def test_generate_plot_ns3(self):
+    def testplot_ns3(self):
         """
         Not a good test, too involving
         """

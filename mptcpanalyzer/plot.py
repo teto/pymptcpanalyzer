@@ -57,14 +57,16 @@ class Plot:
 
     Attributes:
         title (str): title to give to the plot
+        enabel_preprocessing (bool): Automatically filters dataframes beforehand
     """
 
-    def __init__(self, title : str = None, *args, **kwargs):
+    def __init__(self, title: str = None, preprocess_dataframes: bool=False, *args, **kwargs):
         """
         Args:
             title (str): Plot title
         """
         self.title = title
+        self.enable_preprocessing = preprocess_dataframes
 
     def default_parser(self, available_dataframe : bool,
             required_nb_of_dataframes : int = 1,
@@ -132,36 +134,18 @@ class Plot:
                 help="Copy to X clipboard, requires `xsel` to be installed")
         return parser
 
-    # TODO move to MpTcpConnection
-    # @staticmethod
-    # def filter_ds(data, **kwargs):
-    #     return mp.filter_df(data, **kwargs)
-
-
     @abc.abstractmethod
-    def plot(self, dataframes, **kwargs):
+    def plot(self, rawdataframes, **kwargs):
         """
         This is the command
 
+        Args:
+            rawdataframes: A single pandas.DataFrame or a list of them depending on your plot.
+            The dataframe is unfiltered thus in most cases, you would need to preprocess it with
+            :member:`.preprocess`
+
         """
         pass
-
-    @staticmethod
-    def filter_df(df, mptcpstream = None, skip_subflows = []):
-        """
-        """
-
-        queries = []
-        if getattr(args, "mptcpstream", None):
-            log.debug("Filtering mptcpstream")
-            queries.append("mptcpstream == %d" % args.mptcpstream )
-
-        for skipped_subflow in getattr(args, "skipped_subflows", []):
-            queries.append(" tcpstream != %d " % skipped_subflow)
-
-        query = " and ".join(queries)
-        result = dataframes[0].query(query)
-
 
     def preprocess(self, dataframe, mptcpstream=None, skipped_subflows=[], **opt):
         """
@@ -179,7 +163,8 @@ class Plot:
         - destination (mptcpstream required)
         - skipped_subflows
 
-        Returns updated dataframe
+        Returns:
+            Filtered dataframe
         """
         log.debug("Preprocessing dataframe")
         queries = []
@@ -192,7 +177,7 @@ class Plot:
                 queries.append(q)
 
         for skipped_subflow in skipped_subflows:
-            queries.append(" tcpstream != %d " % skipped_subflow)
+            queries.append(" tcpstream!=%d " % skipped_subflow)
 
         query = " and ".join(queries)
 
@@ -203,9 +188,6 @@ class Plot:
 
         if not len(dataframe.index):
             raise Exception("Empty dataframe after running query [%s]" % query)
-            # print("no packet matching mptcp.stream %d"
-            #     "(use 'lc' command to list connections)" % args.mptcpstream)
-            # return
 
         return dataframe
 
@@ -227,6 +209,7 @@ class Plot:
             dataframes: an array of dataframes loaded by the main program
             pargs: Array of parameters forwarded to argparse parser.
         """
+        if 
         if len(dataframes) == 1:
             dataframes = dataframes[0]
         self.plot(dataframes)
@@ -323,12 +306,16 @@ class Matplotlib(Plot):
         return fig
 
     @staticmethod
-    def savefig(fig, filename):
+    def savefig(fig, filename, **kwargs):
         """
         Save a figure to a file
+
+        Args:
+            kwargs: Forwarded to :member:`matplotlib.Figure.savefig`. 
+            You can set *dpi* for instance  (80 by default ?)
         """
         filename = os.path.join(os.getcwd(), filename)
-        # logger.info
         print("Saving into %s" % (filename))
-        fig.savefig(filename)
+        # dpi can be set from resource config
+        fig.savefig(filename, **kwargs)
 

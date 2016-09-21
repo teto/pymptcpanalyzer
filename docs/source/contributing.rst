@@ -30,7 +30,7 @@ plugin documentation plus check our setup.py:
 - **mptcpanalyzer.plots**
 - **mptcpanalyzer.cmds**
 
-regardless of which python package they belong
+Regardless of which python package they belong.
 
 In order to test while modifying mptcpanalyzer, you can install it like this: 
 
@@ -45,10 +45,22 @@ Develop a new plot
 
 You must create a new class that inherits from :py:class:`mptcpanalyzer.plot.Plot` 
 (or one of its children).
-Then you most likely need to override.
+I recommend to inherit from :class:`mptcpanalyzer.plot.Matplotlib` which provides 
+some additional features.
 
-.. automodule:: mptcpanalyzer.plot
-    :members:  
+The easiest way to start is to copy the source code of `.plot.PerSubflowTimeVsAttribute` 
+and change the `plot` function. Once this is done, you should update :file:setup.py and
+add an entry in the **mptcpanalyzer.cmds** namespace as is done for the other plots.
+
+Everything else should be taken care of by mptcpanalyzer: congratulations you finished your first plot !
+
+If you want to change the parser, you can also override the `default_parser` member.
+
+.. note: It is in general a good idea to inherit from the parent parser so call parser = super().default_parser first.
+
+
+.. .. automodule:: mptcpanalyzer.plot
+..     :members:  
 
 Develop a command plugin
 ------------------------------------------------------------

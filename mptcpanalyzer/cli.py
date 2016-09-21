@@ -231,7 +231,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         return True if stop == True else False
 
-    # TODO does not work yet
+
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
         """
         Decorator used to check dataset contains all fields required by function
@@ -251,9 +251,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         list mptcp subflows
                 [mptcp.stream id]
-        :Example:
 
-        ls 0
+        Example:
+            ls 0
         """
         parser = argparse.ArgumentParser(
             description="List subflows of an MPTCP connection"
@@ -549,8 +549,10 @@ class MpTcpAnalyzer(cmd.Cmd):
 
 
         dargs = vars(args) # 'converts' the namespace to a dict
-        # print(dargs)
-        dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
+
+        # TODO
+        # inspect.getfullargspec(fileinput.input))
+            # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes]
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
 

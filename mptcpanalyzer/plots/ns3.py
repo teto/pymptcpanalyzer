@@ -88,7 +88,7 @@ class PlotTraceSources(plot.Matplotlib):
                 help="Plot subflows along")
         return parser
 
-    def _generate_plot(self, df, args, ):
+    def plot(self, df, args, ):
         """
         Plot column "attribute" to "output" file (*.png)
         """

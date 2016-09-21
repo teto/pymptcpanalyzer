@@ -5,4 +5,6 @@
 .. |ns_cmd| replace:: mptcpanalyzer.cmds
 .. |ns_plots| replace:: mptcpanalyzer.plots
 
+.. |matplotlibrc| replace:: `matplotlibrc file <http://matplotlib.org/users/customizing.html`_
+
 .. _prog: https://github.com/lip6-mptcp/mptcpanalyzer/

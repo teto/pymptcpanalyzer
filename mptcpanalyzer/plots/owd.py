@@ -44,7 +44,7 @@ class OneWayDelay(plot.Matplotlib):
         return parser
 
     #def do_plot_owd(self, args):
-    def _generate_plot(self, main, args):
+    def plot(self, main, args):
         """
         Ideally it should be mapped automatically
         For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
