@@ -30,16 +30,17 @@ class MpTcpSubflow:
     @staticmethod
     def create_subflow(tcpid, ipsrc, ipdst, sport, dport, addrid, swap: bool=False):
         """
-        :param swap: Swap src and destination
+        Args:
+            swap: Swap src and destination
         """
         if swap:
             return  MpTcpSubflow(tcpid, ipdst, ipsrc, dport, sport, addrid )
         return  MpTcpSubflow(tcpid, ipsrc, ipdst, sport, dport, addrid)
 
-    def generate_query(self, dest : Destination ):
+    def generate_direction_query(self, dest : Destination ):
         """
         """
-        q = "tcpstream == %d " % self.tcpstreamid
+        q = "tcpstream==%d " % self.tcpstreamid
         if dest == Destination.Both:
             return q
 
@@ -50,7 +51,7 @@ class MpTcpSubflow:
             ipsrc = self.client_ip
             sport = self.client_port
 
-        q += " and ipsrc == (%s) an sport == %d" % (ipsrc, sport)
+        q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
         return q
 
     def __str__(self):
@@ -62,6 +63,8 @@ class MpTcpSubflow:
 class MpTcpConnection:
     """
     Holds key characteristics of an MPTCP connection: keys, tokens, subflows
+
+    This should be created via :member:`.build_from_dataframe`
     """
     def __init__(self, mptcpstreamid, client_key, client_token, server_key,
             server_token, subflows, **kwargs):
@@ -75,9 +78,8 @@ class MpTcpConnection:
 
 
 
-    def generate_direction_query(destination):
+    def generate_direction_query(self, destination: Destination):
         """
-        :param destination Destination
 
         Returns
             Query
@@ -85,12 +87,15 @@ class MpTcpConnection:
         # TODO test this function
 
         queries = []
-        queries.append("mptcpstream == %d" % mptcpstreamid)
+        queries.append("mptcpstream == %d" % self.mptcpstreamid)
         for sf in self.subflows:
-            q = "(" + sf.generate_direction_query(destination) + ")"
+            q = " (" + sf.generate_direction_query(destination) + ") "
+            print(q)
             queries.append(q)
 
-        return " or ".join(q)
+        result = " or ".join(queries)
+        # print(result)
+        return result
 
     @property
     def subflows(self):
@@ -165,7 +170,7 @@ class MpTcpConnection:
         """
         dat = data
         for field, value in dict(**kwargs).items():
-            print("name, value", field)
+            # print("name, value", field)
             query = "{field} == '{value}'".format(field=field, value=value)
 
             log.debug("Running query %s" % query)
@@ -176,36 +181,37 @@ class MpTcpConnection:
     def compute_subflows(self):
         """
         """
-        tcpstreams = self.ds.groupby('tcpstream')
+        # tcpstreams = self.ds.groupby('tcpstream')
+        pass
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
         res = """
-Server key/token: {skey}/{stoken}
-Client key/token: {ckey}/{ctoken}
-""".format(
-        skey=self.server_key,
-        stoken=self.server_token,
-        ckey=self.client_key,
-        ctoken=self.client_token,
-        )
-        # extra = ""
-        # addrid = []
-        # if len(gr2[gr2.master == 1]) > 0:
-        #     addrid = ["master", "master"]
-        # else:
-        #     # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
-        #     # la ca foire
-        #     for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
-        #         gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
-        #         # print("nb of results:", len(gro))
-        #         if len(gro):
-        #             # print("i=",i)
-        #             value = int(gro["addrid"].iloc[0])
-        #         else:
-        #             value = "Unknown"
-        #         addrid.insert(i, value)
+        Server key/token: {skey}/{stoken}
+        Client key/token: {ckey}/{ctoken}
+        """.format(
+                skey=self.server_key,
+                stoken=self.server_token,
+                ckey=self.client_key,
+                ctoken=self.client_token,
+                )
+                # extra = ""
+                # addrid = []
+                # if len(gr2[gr2.master == 1]) > 0:
+                #     addrid = ["master", "master"]
+                # else:
+                #     # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
+                #     # la ca foire
+                #     for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
+                #         gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
+                #         # print("nb of results:", len(gro))
+                #         if len(gro):
+                #             # print("i=",i)
+                #             value = int(gro["addrid"].iloc[0])
+                #         else:
+                #             value = "Unknown"
+                #         addrid.insert(i, value)
 
         return res
