@@ -35,10 +35,25 @@ def get_fields (field, field2=None):
 class Destination(Enum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
+    Parser should accept --destination Client --destination Server if you want both.
     """
     Client = "client"
     Server = "server"
-    Both = "Both"
+    # Both = "Both" # TODO remove ?
+
+
+def reverse_destination(dest: Destination):
+
+    if dest == Destination.Client:
+        return Destination.Server
+    elif dest == Destination.Server:
+        return Destination.Client
+
+    raise Exception()
+    # else:
+    #     # or assert .
+    #     return Destination.Both
+
 
 
 class MpTcpException(Exception):

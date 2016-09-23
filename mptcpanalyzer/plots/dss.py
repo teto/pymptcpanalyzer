@@ -62,21 +62,29 @@ class DSSOverTime(plot.Matplotlib):
                 direction=True, **kwargs)
         parser.add_argument('--dack', action="store_true", default=False,
                 help="Adds data acks to the graph")
+        return parser
 
-    def plot(self, rawdf, dack, **args):
+    def plot(self, rawdf, destination, dack=False, **args):
         """
         Might be 
         """
-
         # dat = data[data.mptcpstream == args.mptcpstream]
         # if not len(dat.index):
         #     ("no packet matching mptcp.stream %d" % args.mptcpstream)
         #     return
         df_forward = self.preprocess(rawdf, **args)
+        print("**args=%s" % (args))
+        # if args.destination == Destination:
+        # args.update(destination="toto")
+        print(args)
+        df_backward = self.preprocess(rawdf, **args, destination=mp.reverse_destination(destination))
         # if dack:
         #     df_backward = self.preprocess(rawdf, **args, direction=Directinalon.)
 
-        dat = df_forward[df_forward.dss_dsn > 0]
+        dat = df_forward[df_forward.dss_dsn >= 0]
+        
+        # tout ceux ou c pas nan
+        # df_backward = df_backward[df_forward.dack >=0]
 
         # best might be this
         # http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.quiver
@@ -87,6 +95,7 @@ class DSSOverTime(plot.Matplotlib):
 
         # quiver(X, Y, U, V, **kw)
 
+        # TODO groupby subflows so that we can have different colors
         print( dat.head())
         # plt.quiver(
         #         dat.reltime, # X
@@ -123,13 +132,16 @@ class DSSOverTime(plot.Matplotlib):
         # does not preserve dtypes !
         # http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.iterrows.html
         i = 0
-        print(dat.tail())
-        for index, row in dat.iterrows():
-            # print("%r" % row)
-            # print("%r" % row["dss_dsn"])
-            i += 1
-            if not i % downsampling:
-                show_dss(index, row)
+        print(dat[ ["ipdst", "ipsrc"] ].tail(2))
+        # df_by_streams = dat.groupby('tcpstream')
+        # df_by_streams
+        for tcpstream, df in dat.groupby('tcpstream'):
+            for index, row in dat.iterrows():
+                # print("%r" % row)
+                # print("%r" % row["dss_dsn"])
+                i += 1
+                if not i % downsampling:
+                    show_dss(index, row)
         return fig
 
 

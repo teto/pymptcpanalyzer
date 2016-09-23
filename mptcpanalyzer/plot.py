@@ -88,7 +88,9 @@ class Plot:
             An argparse.ArgumentParser
 
         """
-        parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
+        parser = argparse.ArgumentParser(
+            description=self.__doc__)
+        #'Generate MPTCP stats & plots'
 
         # how many pcaps shall we load ?
         count = required_nb_of_dataframes - (1 if available_dataframe else 0)
@@ -105,8 +107,15 @@ class Plot:
             )
 
             if direction:
+                # a bit hackish: we want the object to be of type class
+                # but we want to display the user readable version
+                # so we subclass list to convert the Enum to str value first.
+                class CustomDestinationChoices(list):
+                    def __contains__(self, other):
+                        return super().__contains__(other.value)
                 parser.add_argument('destination', action="store",
-                        choices=[e.name for e in mp.Destination],
+                        choices=CustomDestinationChoices([e.value for e in mp.Destination]),
+                        type=lambda x: mp.Destination(x),
                         help='Filter flows according to their direction'
                             '(towards the client or the server)'
                             'Depends on mptcpstream'
@@ -147,12 +156,13 @@ class Plot:
         """
         pass
 
-    def preprocess(self, dataframe, mptcpstream=None, skipped_subflows=[], **opt):
+    def preprocess(self, rawdf, mptcpstream=None, skipped_subflows=[], **opt):
         """
         Can filter a single dataframe beforehand 
         (hence call it several times for several dataframes).
 
         Args:
+            rawdf: Raw dataframe
             opt: Should be the expanded result of argparse
             mptcpstream: Filters the dataframe so as to keep only the packets related to mptcp.stream == mptcpstream
             skipped_subflows: list of skipped subflows
@@ -168,6 +178,8 @@ class Plot:
         """
         log.debug("Preprocessing dataframe")
         queries = []
+        dataframe = rawdf
+
         if mptcpstream is not None:
             queries.append("mptcpstream==%d" % mptcpstream )
             if opt.get('destination', False):
@@ -184,7 +196,7 @@ class Plot:
         # throws when querying with an empty query
         if len(query) > 0:
             log.info("Running query: %s" % query)
-            dataframe = dataframe.query(query)
+            dataframe = rawdf.query(query)
 
         if not len(dataframe.index):
             raise Exception("Empty dataframe after running query [%s]" % query)
@@ -200,7 +212,7 @@ class Plot:
         """
         pass
 
-    def run(self, dataframes, *pargs, **kwargs):
+    def run(self, rawdataframes, *pargs, **kwargs):
         """
         This function automatically filters the dataset according to the
         options enabled
@@ -209,10 +221,14 @@ class Plot:
             dataframes: an array of dataframes loaded by the main program
             pargs: Array of parameters forwarded to argparse parser.
         """
-        if 
-        if len(dataframes) == 1:
-            dataframes = dataframes[0]
-        self.plot(dataframes)
+        dataframes = rawdataframes
+        if self.enable_preprocessing:
+            dataframes = [self.preprocess(df, **kwargs) for df in dataframes]
+
+        # if only one element, pass it directly instead of a list
+        # if len(dataframes) == 1:
+        #     dataframes = dataframes[0]
+        self.plot(dataframes[0] if len(dataframes) == 1 else dataframes)
 
 
 

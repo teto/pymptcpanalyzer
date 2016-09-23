@@ -41,7 +41,7 @@ class MpTcpSubflow:
         """
         """
         q = "tcpstream==%d " % self.tcpstreamid
-        if dest == Destination.Both:
+        if dest is None:
             return q
 
         if dest == Destination.Client:

@@ -520,8 +520,11 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         def register_plots(ext, subparsers):
             """Adds a parser per plot"""
+            # check if dat is loaded
+            parser = ext.obj.default_parser(self.data is not None)
+            assert parser, "Forgot to return parser"
             subparsers.add_parser(ext.name, parents=[
-                    ext.obj.default_parser(self.data is not None)
+                 parser   
                 ],
                 add_help=False
             )
