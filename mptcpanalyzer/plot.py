@@ -156,16 +156,22 @@ class Plot:
         """
         pass
 
-    def preprocess(self, rawdf, mptcpstream=None, skipped_subflows=[], **opt):
+    def preprocess(self, rawdf, mptcpstream=None, skipped_subflows=[], 
+            destination: mp.Destination=None,
+            extra_query: str =None, **kwargs):
         """
         Can filter a single dataframe beforehand 
         (hence call it several times for several dataframes).
 
+        Feel free to inherit/override this class.
+
         Args:
             rawdf: Raw dataframe
-            opt: Should be the expanded result of argparse
+            kwargs: expanded arguments returned by the parser
+            destination: Filters packets depending on their :enum:`.Destination`
             mptcpstream: Filters the dataframe so as to keep only the packets related to mptcp.stream == mptcpstream
             skipped_subflows: list of skipped subflows
+            extra_query: Add some more filters to the pandas query
 
         This baseclass can filter on:
 
@@ -176,30 +182,38 @@ class Plot:
         Returns:
             Filtered dataframe
         """
-        log.debug("Preprocessing dataframe")
+        log.debug("Preprocessing dataframe with extra args %s" % kwargs)
         queries = []
         dataframe = rawdf
 
         if mptcpstream is not None:
+            log.debug("Filtering mptcpstream")
             queries.append("mptcpstream==%d" % mptcpstream )
-            if opt.get('destination', False):
+            if destination is not None:
+                log.debug("Filtering destination")
                 # Generate a filter for the connection
                 con = MpTcpConnection.build_from_dataframe(dataframe, mptcpstream)
-                q = con.generate_direction_query(opt.get('destination'))
+                q = con.generate_direction_query(destination)
                 queries.append(q)
 
         for skipped_subflow in skipped_subflows:
+            log.debug("Skipping subflow %d" % skipped_subflow)
             queries.append(" tcpstream!=%d " % skipped_subflow)
+
+        if extra_query:
+            log.debug("Appending extra_query=%s" % extra_query)
+            queries.append(extra_query)
 
         query = " and ".join(queries)
 
         # throws when querying with an empty query
         if len(query) > 0:
-            log.info("Running query: %s" % query)
+            log.info("Running query:\n%s\n" % query)
             dataframe = rawdf.query(query)
 
-        if not len(dataframe.index):
-            raise Exception("Empty dataframe after running query [%s]" % query)
+        # TODO remove should be left to plot df.empty
+        # if not len(dataframe.index):
+        #     raise Exception("Empty dataframe after running query [%s]" % query)
 
         return dataframe
 
@@ -207,19 +221,22 @@ class Plot:
     def postprocess(self, v, **opt):
         """
         Args:
-            v is the value returned by :class:`.run`
+            v: the value returned by :class:`.run`
 
         """
         pass
 
-    def run(self, rawdataframes, *pargs, **kwargs):
+    def run(self, rawdataframes, **kwargs):
         """
         This function automatically filters the dataset according to the
         options enabled
 
         Args:
-            dataframes: an array of dataframes loaded by the main program
-            pargs: Array of parameters forwarded to argparse parser.
+            rawdataframes: an array of dataframes loaded by the main program
+            kwargs: parameters forwarded from the argparse parser return by :method:`.default_parser`.
+
+        Returns:
+            None: has to be subclassed as the return value is used in :member:`.postprocess`
         """
         dataframes = rawdataframes
         if self.enable_preprocessing:
@@ -247,6 +264,13 @@ class Plot:
 class Matplotlib(Plot):
     """
     This class is specifically designed to generate matplotlib-based plots
+
+    Relying on matplotlib plots allow for more customizations via the use of `style sheets
+    <http://matplotlib.org/users/style_sheets.html>`_
+
+    For instance to
+    http://matplotlib.org/users/whats_new.html#added-axes-prop-cycle-key-to-rcparams
+
     """
 
 
@@ -309,7 +333,7 @@ class Matplotlib(Plot):
         # check filetered dataset is not empty
         # with plt.style.context(args.styles):
         # setup styles if any
-        log.debug("Using styles: %s" % styles)
+        log.debug("Using matplotlib styles: %s" % styles)
 
         if len(dataframes) == 1:
             dataframes = dataframes[0]

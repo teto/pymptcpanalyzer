@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer as mp
-from mptcpanalyzer.connection import MpTcpConnection
+# from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
-import os
-from mptcpanalyzer import fields_v2
+import matplotlib  as mpl
+# from mptcpanalyzer import fields_v2
+from itertools import cycle
 
 log = logging.getLogger(__name__)
+
 
 class DssLengthHistogram(plot.Matplotlib):
     """
@@ -51,7 +53,8 @@ class DSSOverTime(plot.Matplotlib):
     a |matplotlibrc| with high dimensions and high dpi.
 
     Todo:
-        Adds
+        - if there is an ack add that to legend
+        - ability to display relative #seq
     """
 
     def __init__(self):
@@ -62,86 +65,112 @@ class DSSOverTime(plot.Matplotlib):
                 direction=True, **kwargs)
         parser.add_argument('--dack', action="store_true", default=False,
                 help="Adds data acks to the graph")
+
+        # can only be raw as there are no relative dss_dsn exported yet ?
+        # parser.add_argument('--relative', action="store_true", default=False,
+        #         help="Adds data acks to the graph")
         return parser
 
-    def plot(self, rawdf, destination, dack=False, **args):
+    def plot(self, rawdf, destination=None, dack=False, relative=None, **args):
         """
         Might be 
+
         """
-        # dat = data[data.mptcpstream == args.mptcpstream]
-        # if not len(dat.index):
-        #     ("no packet matching mptcp.stream %d" % args.mptcpstream)
-        #     return
-        df_forward = self.preprocess(rawdf, **args)
-        print("**args=%s" % (args))
-        # if args.destination == Destination:
-        # args.update(destination="toto")
-        print(args)
-        df_backward = self.preprocess(rawdf, **args, destination=mp.reverse_destination(destination))
-        # if dack:
-        #     df_backward = self.preprocess(rawdf, **args, direction=Directinalon.)
+        dack_str = "dss_rawack"
+        dsn_str = "dss_dsn"
+ 
+        ymin, ymax = float('inf'), 0
 
-        dat = df_forward[df_forward.dss_dsn >= 0]
+        rawdf.set_index("reltime", inplace=True)
         
-        # tout ceux ou c pas nan
-        # df_backward = df_backward[df_forward.dack >=0]
+        df_forward = self.preprocess(rawdf, destination=destination, extra_query="dss_dsn > 0", **args)
 
-        # best might be this
-        # http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.quiver
-        # plt.quiver( dat.reltime, dat.dss_dsn, [0]* len(dat.dss_dsn) ,  dat.dss_length, scale_units="xy", scale=1, angles="xy",)
-        fig = plt.figure()
+        # compute limits of the plot
+        ymin, ymax = min(ymin, df_forward[dsn_str].min()), max(ymax, df_forward[dsn_str].max())
+
+        print("dack=", dack)
+        fig = plt.figure(figsize=(40, 40))
         axes = fig.gca()
-        dat.set_index("reltime", inplace=True)
 
-        # quiver(X, Y, U, V, **kw)
-
-        # TODO groupby subflows so that we can have different colors
-        print( dat.head())
-        # plt.quiver(
-        #         dat.reltime, # X
-        #         dat.dsn, # Y
-        #         [0]* len(dat.dss_dsn) ,
-        #        dat.dss_length,
-        #        scale_units="xy", scale=3, angles="xy",
-        # )
-        # dss_dsn
-        dat["dss_dsn"].plot.line(ax=axes)
-
-        def show_dss(idx, row,):
+        def show_dss(idx, row, style):
             """
             dss_dsn
             """
-            # print(row["dss_dsn"])
-            # x , y, dx, dy, **kwarg
-# row["dss_dsn"]
-            # axes.arrow(row["reltime"], 0 , 0, row["dss_length"], head_width=0.05, head_length=0.1, fc='k', ec='k')
-            axes.arrow(idx, int(row["dss_dsn"]) , 0, row["dss_length"]*100,
-                    head_width=0.05, head_length=0.1, fc='k', ec='k')
-    # for row in DataFrame.itertuples(index=True):
-    # for i in range(0, len(df)):
-    # print df.iloc[i]['c1'], df.iloc[i]['c2']
-        # df.apply(show_dss)
+            # returns a FancyArrow
+            res = axes.arrow(idx, int(row[dsn_str]) , 0, row["dss_length"],
+                    head_width=0.05, head_length=0.1, **style) 
+            res.set_label("hello")
+            return res
 
-        # TODO pass as argument or upscale the figure dimension
-        downsampling = 100
-            
+        handles, labels = axes.get_legend_handles_labels()
 
         axes.set_ylabel("Data Sequence Number (DSN)")
         axes.set_xlabel("Relative time (s)")
 
-        # does not preserve dtypes !
-        # http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.iterrows.html
-        i = 0
-        print(dat[ ["ipdst", "ipsrc"] ].tail(2))
-        # df_by_streams = dat.groupby('tcpstream')
-        # df_by_streams
-        for tcpstream, df in dat.groupby('tcpstream'):
-            for index, row in dat.iterrows():
-                # print("%r" % row)
-                # print("%r" % row["dss_dsn"])
-                i += 1
-                if not i % downsampling:
-                    show_dss(index, row)
+        # TODO cycle manually through 
+        cycler = mpl.rcParams['axes.prop_cycle']
+        styles = cycle(cycler)
+        print(cycler)
+        print(styles)
+        legends = []
+        legend_artists = []
+
+        ### Plot dss dsn (forward)
+        ######################################################
+        for tcpstream, df in df_forward.groupby('tcpstream'):
+            style = next(styles)
+            print("arrows for tcpstream %d" % tcpstream)
+
+            style = next(styles)
+
+            artist_recorded = False
+            for index, row in df_forward.iterrows():
+                artist = show_dss(index, row, style)
+                if not artist_recorded:
+                    legend_artists.append(artist)
+                    artist_recorded = True
+
+            if artist_recorded:
+                legends.append("dss for Subflow %d" % tcpstream)
+
+
+
+        ### if enabled, plot dack (backward)
+        ######################################################
+        if dack:
+            df_backward = self.preprocess(rawdf, **args, destination=mp.reverse_destination(destination),
+                    extra_query=dack_str + " >=0 ")
+
+            markers = cycle(mpl.cycler(marker=['s', 'o', 'x']))
+            for tcpstream, df in df_backward.groupby('tcpstream'):
+                marker = next(markers)
+                artist_recorded = False
+                if df.empty:
+                    log.debug("No dack for tcpstream %d" % tcpstream)
+                else:
+                    # df_backward = df_backward[df_backward.dack >=0]
+
+                    ax1 = df[dack_str].plot.line(ax=axes, 
+                            ls="None",
+                            style=marker
+                            )
+                    lines, labels = ax1.get_legend_handles_labels()
+                    print("lines=", lines)
+                    legend_artists.append(lines[0])
+                    legends.append("dack for sf %d" % tcpstream)
+
+        print("handles", legend_artists,  legends)
+        # Generate "subflow X" labels
+        # location: 3 => bottom left, 4 => bottom right
+        # axes.legend(handles, legends, loc=4) loc='best'
+        axes.legend(legend_artists, legends, loc=4)
+        # axes.legend()
+        # ymin , ymax =  dat[dsn_str].min(), dat[dsn_str].max() 
+        # if dack == True:
+        #     ymin, ymax = min(ymin, df_backward[dack_str].min()), max(ymax, df_backward[dack_str].max())
+        # axes.set_xlim([4,10])
+        print(ymin, ymax)
+        axes.set_ylim([ymin,ymax])
         return fig
 
 

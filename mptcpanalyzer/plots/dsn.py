@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
-import mptcpanalyzer as mp
-from mptcpanalyzer.connection import MpTcpConnection
+# import mptcpanalyzer as mp
+# from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 from mptcpanalyzer import fields_v2
-import inspect
+# import inspect
 
 log = logging.getLogger(__name__)
 
@@ -33,14 +33,14 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         return parser
 
 
-    def plot(self, rawdf,  mptcpstream, field, **kwargs):
+    def plot(self, dat,  mptcpstream, field=None, **kwargs):
         """
         getcallargs
         """
 
         # inspect.getfullargspec(fileinput.input))
         # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
-        dat = df
+        # dat = rawdf
 
         fig = plt.figure()
         tcpstreams = dat.groupby('tcpstream')
