@@ -89,7 +89,8 @@ class DSSOverTime(plot.Matplotlib):
         ymin, ymax = min(ymin, df_forward[dsn_str].min()), max(ymax, df_forward[dsn_str].max())
 
         print("dack=", dack)
-        fig = plt.figure(figsize=(40, 40))
+        # figsize=(40, 40)
+        fig = plt.figure()
         axes = fig.gca()
 
         def show_dss(idx, row, style):
@@ -104,14 +105,12 @@ class DSSOverTime(plot.Matplotlib):
 
         handles, labels = axes.get_legend_handles_labels()
 
-        axes.set_ylabel("Data Sequence Number (DSN)")
-        axes.set_xlabel("Relative time (s)")
 
         # TODO cycle manually through 
         cycler = mpl.rcParams['axes.prop_cycle']
         styles = cycle(cycler)
-        print(cycler)
-        print(styles)
+        # print(cycler)
+        # print(styles)
         legends = []
         legend_artists = []
 
@@ -141,35 +140,39 @@ class DSSOverTime(plot.Matplotlib):
             df_backward = self.preprocess(rawdf, **args, destination=mp.reverse_destination(destination),
                     extra_query=dack_str + " >=0 ")
 
-            markers = cycle(mpl.cycler(marker=['s', 'o', 'x']))
+
+            cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
+
+            # mpl_cycle = mpl.cycler(marker=['s', 'o', 'x']) + mpl.cycl
+            markers = cycle(cycler)
             for tcpstream, df in df_backward.groupby('tcpstream'):
                 marker = next(markers)
-                artist_recorded = False
+                print("len(df)=", len(df))
+                # artist_recorded = False
                 if df.empty:
                     log.debug("No dack for tcpstream %d" % tcpstream)
                 else:
                     # df_backward = df_backward[df_backward.dack >=0]
 
                     ax1 = df[dack_str].plot.line(ax=axes, 
-                            ls="None",
-                            style=marker
-                            )
+                            style=marker,
+                            legend=False
+                    )
                     lines, labels = ax1.get_legend_handles_labels()
-                    print("lines=", lines)
-                    legend_artists.append(lines[0])
+                    # print("lines/ax1/axes", lines[-1] )
+                    legend_artists.append(lines[-1])
                     legends.append("dack for sf %d" % tcpstream)
 
-        print("handles", legend_artists,  legends)
-        # Generate "subflow X" labels
         # location: 3 => bottom left, 4 => bottom right
         # axes.legend(handles, legends, loc=4) loc='best'
         axes.legend(legend_artists, legends, loc=4)
-        # axes.legend()
-        # ymin , ymax =  dat[dsn_str].min(), dat[dsn_str].max() 
+
+        axes.set_ylabel("Data Sequence Number (DSN)")
+        axes.set_xlabel("Relative time (s)")
         # if dack == True:
         #     ymin, ymax = min(ymin, df_backward[dack_str].min()), max(ymax, df_backward[dack_str].max())
         # axes.set_xlim([4,10])
-        print(ymin, ymax)
+        # print(ymin, ymax)
         axes.set_ylim([ymin,ymax])
         return fig
 
