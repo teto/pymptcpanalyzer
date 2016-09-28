@@ -1,7 +1,7 @@
 .. MptcpAnalyzer documentation master file, created by
    sphinx-quickstart on Thu Aug  4 18:33:12 2016.
    You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+   contain the root `toctree` 
 
 Welcome to MptcpAnalyzer's documentation!
 =========================================
@@ -16,7 +16,11 @@ This document is written in `reStructuredText <http://docutils.sourceforge.net/r
 
 
 You can reference mptcpanalyzer via the following Digital Object Identifier:
-[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
+
+.. image:: https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg
+   :alt: Digital Object Identifier
+   :target: https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer
+
 
 Contents:
 

@@ -2,16 +2,14 @@
 Introduction
 ========================================
 
-
-
 Features
 ----------------------------------------
 
- 
+|prog|_ accepts as input(s) capture file(s) (\*.pcap) and depending on from there can :
+
 * list the MPTCP connections in the pcap
-* display some statistics on a specific MPTCP connection (list of subflows etc...)
-It accepts as input a capture file (\*.pcap) and depending on from there can :
-* pcap to csv conversion 
+* display some statistics on a specific MPTCP connection (list of subflows etc...);
+* convert packet capture files (\*.pcap) to \*.csv files
 * plot data sequence numbers for all subflows
 * `XDG compliance <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_, i.e., 
   |prog| looks for files in certain directories. will try to load your configuration from `$XDG_CONFIG_HOME/mptcpanalyzer/config`
@@ -32,21 +30,26 @@ How to install ?
 ----------------------------------------
 
 First of all you will need a wireshark version that supports MPTCP dissection,
-i.e., wireshark > 2.1.0. If you are on ubuntu, there are dev builds on
+i.e., wireshark > 2.1.0. 
+If you are on ubuntu, there are development builds available on
 https://launchpad.net/~dreibh/+archive/ubuntu/ppa/.
 
 Once wireshark is installed you can install mptcpanalyzer via pip:
 
-command:`$ python3.5 -mpip install mptcpanalyzer --user`
+.. code-block:: console
+    
+    $ python3.5 -mpip install mptcpanalyzer 
+
+.. note: You can add the --user flag to install in ~/.local/bin.
 
 python3.5+ is mandatory since we rely on its type hinting features.
-Dependancies are (some will be made optional in the future):
+Dependancies are:
 
 - `stevedore <http://docs.openstack.org/developer/stevedore/>`_ to handle the
   plugins architecture
 - the data analysis library `pandas <http://pandas.pydata.org/>`_ >= 0.17.1
 - `matplotlib <http://matplotlib>`_ to plot graphs
-- (lnumexpr to run specific queries in pandas)
+- lnumexpr to run readable queries in pandas
 
 How does it work (internals) ?
 ----------------------------------------

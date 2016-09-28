@@ -1,11 +1,11 @@
-How to contribute to mptcpanalyzer ?
+Contribute to mptcpanalyzer ?
 ****************************************
 
 There are several things you can do:
 
-* submit bug reports in our `tracker <https://github.com/lip6-mptcp/mptcpanalyzer/issues>`_
-* :ref:`develop-new-plugins`, if you do, please warn us so that we can add you to the list of plugins
-* `Send patches <https://github.com/lip6-mptcp/mptcpanalyzer/pulls>`_ to either fix a bug, improve the documentation or flake8 compliance 
+* submit bug reports in our `tracker <https://github.com/teto/mptcpanalyzer/issues>`_
+* Develop either new plots or new commands, :ref:`develop-new-plot`, if you do, please tell us so that we can add you to the list of plugins.
+* `Send patches <https://github.com/teto/mptcpanalyzer/pulls>`_ to either fix a bug, improve the documentation or flake8 compliance.
 
 
 .. _develop-new-plugins:
@@ -40,6 +40,8 @@ In order to test while modifying mptcpanalyzer, you can install it like this:
 
 .. note :: Add --uninstall to remove the installation.
 
+.. _develop-new-plot:
+
 Develop a new plot
 ------------------------------------------------------------
 
@@ -62,6 +64,10 @@ If you want to change the parser, you can also override the `default_parser` mem
 .. .. automodule:: mptcpanalyzer.plot
 ..     :members:  
 
+
+
+.. _develop-new-command:
+
 Develop a command plugin
 ------------------------------------------------------------
 
@@ -73,7 +79,7 @@ Just follow the example in:
 .. automodule:: mptcpanalyzer.command_example
 
 
-How to upload it to pypy (for the forgetful maintainer)
+How to upload it to pypi (for the forgetful maintainer)
 --------------------------------------------------------------------------------
 
 .. code-block:: console
