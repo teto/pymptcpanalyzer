@@ -2,4 +2,9 @@ mptcpanalyzer is still in alpha
 
 Upcoming release:
 
+- addition of a dss plot
+- Added sphinx documentation
+
+mptcpanalyzer 0.2:
+
 - Boosting requirement for panda to 0.17.1 because of https://github.com/pydata/pandas/issues/11374

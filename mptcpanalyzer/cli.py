@@ -290,18 +290,29 @@ class MpTcpAnalyzer(cmd.Cmd):
         return l
 
 
-    def do_summary(self, mptcpstream):
+    @is_loaded
+    def do_summary(self, line):
         """
         Summarize contributions of each subflow
         For now it is naive, does not look at retransmissions ?
         """
-        try:
-            mptcpstream = int(mptcpstream)
-        except ValueError as e:
-            print("Expecting the mptcp.stream id as argument: %s" % e)
-            return
+        parser = argparse.ArgumentParser(
+                description="Prints a summary of the mptcp connection"
+        )
+        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+        parser.add_argument("--deep", action="store_true", help="Deep analysis, computes transferred bytes etc...")
+        parser.add_argument("--amount", action="store_true", type=int, help="mptcp.stream id")
+        # try:
+        #     mptcpstream = int(mptcpstream)
+        # except ValueError as e:
+        #     print("Expecting the mptcp.stream id as argument: %s" % e)
+        #     return
 
-        df = self.data[self.data.mptcpstream == mptcpstream]
+        args = parser.parse_args(line)
+        df = self.data[self.data.mptcpstream == args.mptcpstream]
+        if df.empty:
+            print("No packet with mptcp.stream == %d" % args.mptcpstream)
+
         # for instance
         dsn_min = df.dss_dsn.min()
         dsn_max = df.dss_dsn.max()
