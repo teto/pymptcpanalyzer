@@ -290,6 +290,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         return l
 
 
+    def do_map_connections(self, df1, df2):
+        """
+        """
+        parser.
+        map_subflows_between_2_datasets(ds1,ds2):
+
     @is_loaded
     def do_summary(self, line):
         """
