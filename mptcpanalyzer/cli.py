@@ -22,6 +22,7 @@ from mptcpanalyzer.tshark import TsharkExporter
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
+from mptcpanalyzer.data import *
 import mptcpanalyzer.connection as mc
 import mptcpanalyzer as mp
 import stevedore
@@ -290,11 +291,31 @@ class MpTcpAnalyzer(cmd.Cmd):
         return l
 
 
-    def do_map_connections(self, df1, df2):
+    def do_map_connections(self, line):
         """
+        Tries to map mptcp.streams from different pcaps.
+        Score based mechanism
         """
-        parser.
-        map_subflows_between_2_datasets(ds1,ds2):
+        parser = argparse.ArgumentParser(
+            description="This function tries to map a mptcp.stream from a dataframe (aka pcap) to mptcp.stream"
+                        "in another dataframe. ")
+
+        # if not self.pcap_loaded():
+        parser.add_argument("pcap1", action="store", help="pcap1 to load")
+        parser.add_argument("pcap2", action="store", help="")
+        parser.add_argument("mptcpstreams", action="store", nargs="*", help="to filter")
+
+        args = parser.parse_args(shlex.split(line))
+        df1 = self.load_into_pandas(args.pcap1)
+        df2 = self.load_into_pandas(args.pcap2)
+
+        print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
+        print("Please read the help.")
+        mappings = map_subflows_between_2_datasets(df1, df2, args.mptcpstreams)
+
+        print("%d mapping found" % len(mappings))
+        for con1, con2 in mappings:
+            print(con1, "<->", con2)
 
     @is_loaded
     def do_summary(self, line):
@@ -318,6 +339,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         df = self.data[self.data.mptcpstream == args.mptcpstream]
         if df.empty:
             print("No packet with mptcp.stream == %d" % args.mptcpstream)
+            return
 
         # for instance
         dsn_min = df.dss_dsn.min()
@@ -484,14 +506,13 @@ class MpTcpAnalyzer(cmd.Cmd):
                     raise Exception(stderr)
         return csv_filename
 
-    def load_into_pandas(self, input_file, regen: bool =False):
-        """
-        intput_file can be filename or fd
-        load csv mptpcp data into panda
-        :param regen Ignore the cache and regenerate any cached csv file from the input pcap
 
-        Returns:
-            a panda.DataFrame
+    def load_into_pandas(self, input_file: str, regen: bool =False) -> pd.DataFrame:
+        """
+        load csv mptpcp data into pandas
+
+        Args:
+            regen: Ignore the cache and regenerate any cached csv file from the input pcap
         """
         log.debug("Asked to load %s" % input_file)
 
@@ -516,6 +537,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
         return data
 
+    def pcap_loaded(self):
+        return isinstance(self.data, pd.DataFrame)
 
     def plot_mptcpstream(self, cli_args, ):
         """

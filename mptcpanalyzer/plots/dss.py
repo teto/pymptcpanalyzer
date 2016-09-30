@@ -109,8 +109,6 @@ class DSSOverTime(plot.Matplotlib):
         # TODO cycle manually through 
         cycler = mpl.rcParams['axes.prop_cycle']
         styles = cycle(cycler)
-        # print(cycler)
-        # print(styles)
         legends = []
         legend_artists = []
 

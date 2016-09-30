@@ -15,11 +15,16 @@ class Filetype(Enum):
 
 
 class MpTcpSubflow:
+    """
+
+    Note:
+        There exists in ipaddress module
+    """
     def __init__(self,
-   tcpstreamid,
-   clientip, serverip, cport, sport,
-   addrid
-            ):
+            tcpstreamid,
+            clientip, serverip, cport, sport,
+            addrid
+        ):
         self.client_ip = clientip
         self.server_ip = serverip
         self.server_port = sport
@@ -28,14 +33,14 @@ class MpTcpSubflow:
         """ Equivalent to wireshark tcp.stream"""
 
     @staticmethod
-    def create_subflow(tcpid, ipsrc, ipdst, sport, dport, addrid, swap: bool=False):
+    def create_subflow(tcpid, clientip, ipdst, cport, dport, addrid):
         """
         Args:
             swap: Swap src and destination
         """
-        if swap:
-            return  MpTcpSubflow(tcpid, ipdst, ipsrc, dport, sport, addrid )
-        return  MpTcpSubflow(tcpid, ipsrc, ipdst, sport, dport, addrid)
+        sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, addrid)
+        return sf
+
 
     def generate_direction_query(self, dest : Destination ):
         """
@@ -54,9 +59,14 @@ class MpTcpSubflow:
         q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
         return q
 
+    def reversed(self):
+        return self.create_subflow(
+                self.tcpstreamid, self.server_ip, self.client_ip, 
+                self.server_port, self.client_port, self.addrid)
+
     def __str__(self):
         line = ("tcp.stream {s.tcpstreamid} : {s.client_ip}:{s.client_port} "
-                " <-> {s.server_ip}:{s.server_port} ").format( s=self,)
+                " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
         return line
 
 
@@ -77,8 +87,16 @@ class MpTcpConnection:
         self.server_token = server_token
 
 
+    # def is_similar(self, other: MpTcpConnection):
+    #     """
+    #     """
+    def __contains__(self, key: MpTcpSubflow):
+        """
+        Mostly an approximation
+        """
+        return key in self.subflows or key.reversed() in self.subflows
 
-    def generate_direction_query(self, destination: Destination):
+    def generate_direction_query(self, destination: Destination) -> str:
         """
 
         Returns
@@ -102,7 +120,7 @@ class MpTcpConnection:
         return self._subflows
 
     @staticmethod
-    def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: int):
+    def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: int) -> 'MpTcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
         """
@@ -149,7 +167,9 @@ class MpTcpConnection:
             token = subflow_ds["recvtok"].iloc[ row ]
             subflow = MpTcpSubflow.create_subflow (tcpstreamid, subflow_ds['ipsrc'].iloc[ row ], subflow_ds['ipdst'].iloc[ row ],
                 subflow_ds['sport'].iloc[ row ], subflow_ds['dport'].iloc[ row ],
-                addrid=None, swap = (token == client_token) )
+                addrid=None)
+            if (token == client_token):
+                subflow = subflow.reversed()
             subflows.append(subflow)
 
         result =  MpTcpConnection(mptcpstreamid, client_key, client_token,
