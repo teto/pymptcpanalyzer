@@ -36,7 +36,6 @@ class MpTcpSubflow:
     def create_subflow(tcpid, clientip, ipdst, cport, dport, addrid):
         """
         Args:
-            swap: Swap src and destination
         """
         sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, addrid)
         return sf
@@ -153,7 +152,7 @@ class MpTcpConnection:
         master_sf = MpTcpSubflow.create_subflow (
                 master_id, ds['ipsrc'].iloc[ cid ], ds['ipdst'].iloc[ cid ],
                 ds['sport'].iloc[ cid ], ds['dport'].iloc[ cid ],
-                "master", swap=False)
+                "master", )
 
         subflows.append(master_sf)
         tcpstreams = ds.groupby('tcpstream')

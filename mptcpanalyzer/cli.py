@@ -295,6 +295,9 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         Tries to map mptcp.streams from different pcaps.
         Score based mechanism
+
+        Todo:
+            - Limit number of outputted matches
         """
         parser = argparse.ArgumentParser(
             description="This function tries to map a mptcp.stream from a dataframe (aka pcap) to mptcp.stream"
@@ -304,6 +307,13 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser.add_argument("pcap1", action="store", help="pcap1 to load")
         parser.add_argument("pcap2", action="store", help="")
         parser.add_argument("mptcpstreams", action="store", nargs="*", help="to filter")
+        parser.add_argument('-v', '--verbose', dest="verbose", default=False,
+                action="store_true",
+                help="how to display each connection")
+
+        # parser.add_argument("--limit", dest="limit", type=int, action="store", 
+        #         help="by default process of choosing good values is interactive, this"
+        #         "let the program automatically select the candidate with the best score")
 
         args = parser.parse_args(shlex.split(line))
         df1 = self.load_into_pandas(args.pcap1)
@@ -313,9 +323,20 @@ class MpTcpAnalyzer(cmd.Cmd):
         print("Please read the help.")
         mappings = map_subflows_between_2_datasets(df1, df2, args.mptcpstreams)
 
-        print("%d mapping found" % len(mappings))
-        for con1, con2 in mappings:
-            print(con1, "<->", con2)
+        print("%d mapping(s) found" % len(mappings))
+
+        for con1, scores  in mappings.items():
+            for con2, score in scores:
+
+                output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score}"
+                if args.verbose:
+                    output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score}"
+                formatted_output = output.format(
+                        c1=con1,
+                        c2=con2,
+                        score=score
+                        )
+                print(formatted_output)
 
     @is_loaded
     def do_summary(self, line):
