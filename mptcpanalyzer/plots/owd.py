@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import argparse
 
+
 log = logging.getLogger(__name__)
 
 
@@ -28,23 +29,24 @@ class OneWayDelay(plot.Matplotlib):
     .. warning:: This plugin is experimental.
     """
 
+    def __init__(self):
+        super().__init__(preprocess_dataframes=False)
+
+
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser( *args, mptcpstream=False, **kwargs)
+        parser = super().default_parser( *args, required_nb_of_dataframes=2, mptcpstream=True, **kwargs)
 
-        parser.add_argument("client_input", action="store",
-                help="Either a pcap or a csv file (in good format)."
-        )
-        parser.add_argument("mptcp_client_id", action="store", type=int)
+        # parser.add_argument("host1", action="store", help="pcap captured on first host")
+        # parser.add_argument("mptcpstreamid", action="store", type=int)
 
-        parser.add_argument("server_input", action="store",
-                help="Either a pcap or a csv file (in good format)."
-        )
-        parser.add_argument("mptcp_server_id", action="store", type=int)
+        # parser.add_argument("host2", action="store",
+        #         help="Either a pcap or a csv file (in good format)."
+        # )
 
         return parser
 
     #def do_plot_owd(self, args):
-    def plot(self, main, args):
+    def plot(self, rawdfs, mptcpstream=None, **kwargs):
         """
         Ideally it should be mapped automatically
         For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
@@ -54,22 +56,35 @@ class OneWayDelay(plot.Matplotlib):
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
         """
+        assert mptcpstream, "parser should provide automatically this"
 
+        rawdf1, rawdf2 = rawdfs
         # args = parser.parse_args(shlex.split(args))
-        ds1 = main.load_into_pandas(args.client_input)
-        ds2 = main.load_into_pandas(args.server_input)
+        # ds1 = main.load_into_pandas(args.client_input)
+        # ds2 = main.load_into_pandas(args.server_input)
         # print("=== DS1 0==\n", ds1.dtypes)
         
         # Restrict dataset to mptcp connections of interest
-        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
-        ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
+        # ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
+        # ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
 
-
+        df1 = self.preprocess(mptcpstream=mptcpstream, **kwargs)
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
         mappings = core.map_subflows_between_2_datasets(ds1, ds2)
-        print("Found %d valid mappings " % len(mappings))
-        print(mappings)
+        print("Found mappings %s" % mappings)
+        if mptcpstream not in mappings:
+            print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
+            return 
+        if len(mptcpstream) not in mappings:
+            print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
+            return 
+
+        mappings
+
+
+        # print("Found %d valid mappings " % len(mappings))
+        # print(mappings)
         
         # print("Host ips: ", args.host_ips)
 

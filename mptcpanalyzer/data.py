@@ -28,7 +28,8 @@ def compare_filtered_df(df1, main, df2, other) -> int :
 
     Returns:
         a score
-        -inf means it's not possible those 2 matched
+        - '-inf' means it's not possible those 2 matched
+        - '+inf' means 
     """
 
     score = 0
@@ -91,7 +92,7 @@ def map_subflows_between_2_datasets(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame,
 
     Args:
         ds1, ds2
-        streams : List of mptcpstream chosen from rawds1, for which we want the equivalent id in rawdf2
+        idx : List of mptcpstream chosen from rawds1, for which we want the equivalent id in rawdf2
 
     Returns:
         a dict of tuples (Connection1, Connection2)
