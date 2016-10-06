@@ -121,6 +121,7 @@ class DSSOverTime(plot.Matplotlib):
             style = next(styles)
 
             artist_recorded = False
+            # TODO itertuples should be faster
             for index, row in df_forward.iterrows():
                 artist = show_dss(index, row, style)
                 if not artist_recorded:

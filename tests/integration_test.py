@@ -91,7 +91,7 @@ class IntegrationTest(TestCase):
             # TODO assert files are created etc...
 
 
-    @unittest.skip("Not sure pcap are valid yet")
+    # @unittest.skip("Not sure pcap are valid yet")
     def test_mapping_connections(self):
         """
         Test to check if the program correctly mapped one connection to another
@@ -100,12 +100,14 @@ class IntegrationTest(TestCase):
         # load from csv
         ds1 = self.m.load_into_pandas("examples/node0.pcap")
         ds2 = self.m.load_into_pandas("examples/node1.pcap")
-        ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
 
-        ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
-        # core.map_subflows_between_2_datasets ()
+        # just looking to map mptcp.stream 0
+        results = core.map_subflows_between_2_datasets (ds1, ds2, [0])
+        # self.assertEqual( len(cmd), 0, "An error happened")
+        self.assertGreaterEqual(len(cmd), 1, "There must be at least one result")
 
-        self.m.do_plot("plot owd 0")
+    # def test_plot_owd(self):
+        # self.m.do_plot("plot owd 0")
 
     def test_load_pcap(self):
         """

@@ -5,7 +5,7 @@ import os
 import pandas as pd
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
-from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection
+from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from typing import List
 
 log = logging.getLogger(__name__)
@@ -19,6 +19,27 @@ def build_connections_from_dataset(df: pd.DataFrame, mptcpstreams: List[int]) ->
     for mptcpstream, df in df1:
         if mptcpstream not in idx:
             continue
+
+
+def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection):
+    """
+    Presuppose that stream ids are laready mapped 
+    algo:
+        Computes a score on a per packet basis
+    """
+    df1 = rawdf1[ rawdf1["tcpstream"] == con1.tcpstreamid]
+    df2 = rawdf2[ rawdf1["tcpstream"] == con2.tcpstreamid]
+    # DataFrame.add(other, axis='columns', level=None, fill_value=None)
+    # adds a new column that contains only nan
+    df1["mapped_packet"] = np.nan
+
+    #itertuples returns namedtuples
+    for row in df1.itertuples():
+        scores = []
+        print(row.tcpstream)
+        # for row2 in df2.itertuples():
+
+    
 
 
 # def compare_filtered_df(df1, mptcpstream1, df2, mptcpstream2) -> int :
@@ -77,6 +98,7 @@ def compare_filtered_df(df1, main, df2, other) -> int :
     # TODO compare start times supposing cloak are insync ?
     return score
 
+
 def map_subflows_between_2_datasets(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
     """
     .. warn: Do not trust the results yet WIP !
@@ -95,7 +117,7 @@ def map_subflows_between_2_datasets(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame,
         idx : List of mptcpstream chosen from rawds1, for which we want the equivalent id in rawdf2
 
     Returns:
-        a dict of tuples (Connection1, Connection2)
+        a dict {Connection1: [(Connection2, score)])
 
     """
     log.warn("mapping between datasets is not considered trustable yet")

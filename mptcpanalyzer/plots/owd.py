@@ -72,16 +72,19 @@ class OneWayDelay(plot.Matplotlib):
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
         mappings = core.map_subflows_between_2_datasets(ds1, ds2)
+
+        # returned a dict
         print("Found mappings %s" % mappings)
         if mptcpstream not in mappings:
             print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
             return 
-        if len(mptcpstream) not in mappings:
+        if len(mappings[mptcpstream]) not in mappings:
             print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
             return 
 
-        mappings
-
+        # mappings
+        # len(mappings[mptcpstream
+        results = map_tcp_packets(rawdf1, rawdf2, [mptcpstream])
 
         # print("Found %d valid mappings " % len(mappings))
         # print(mappings)

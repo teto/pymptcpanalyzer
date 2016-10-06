@@ -13,24 +13,24 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
-
-class MpTcpSubflow:
+class TcpConnection:
     """
 
     Note:
         There exists in ipaddress module
+
+    Attributes:
+        tcpstreamid: wireshark tcp.stream
     """
     def __init__(self,
             tcpstreamid,
             clientip, serverip, cport, sport,
-            addrid
         ):
         self.client_ip = clientip
         self.server_ip = serverip
         self.server_port = sport
         self.client_port = cport
         self.tcpstreamid = tcpstreamid
-        """ Equivalent to wireshark tcp.stream"""
 
     @staticmethod
     def create_subflow(tcpid, clientip, ipdst, cport, dport, addrid):
@@ -41,7 +41,7 @@ class MpTcpSubflow:
         return sf
 
 
-    def generate_direction_query(self, dest : Destination ):
+    def generate_direction_query(self, dest : Destination):
         """
         """
         q = "tcpstream==%d " % self.tcpstreamid
@@ -68,6 +68,11 @@ class MpTcpSubflow:
                 " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
         return line
 
+class MpTcpSubflow:
+    def __init__(self, *args, addrid ):
+        """ """
+        super().__init__(*args)
+        self.addrid = addrid
 
 class MpTcpConnection:
     """
