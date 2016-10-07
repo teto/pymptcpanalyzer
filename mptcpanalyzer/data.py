@@ -73,9 +73,7 @@ def compare_filtered_df(df1, main, df2, other) -> int :
         log.debug("FISHY: Datasets contain a different number of subflows (d vs d)" % ())
         score -= 5
 
-
     common_sf = []
-
 
     if main.server_key == other.server_key and main.client_key == other.client_key:
         log.debug("matching keys => same")
@@ -99,7 +97,23 @@ def compare_filtered_df(df1, main, df2, other) -> int :
     return score
 
 
-def map_subflows_between_2_datasets(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
+# TODO rename
+def mptcp_match_connections(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
+
+
+    mappings={}
+    for mptcpstream1 in rawdf1["mptcpstream"].unique():
+        if idx and mptcpstream1 not in idx:
+            continue
+
+        main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
+        results = mptcp_match_connection()
+        mappings.update({main: results})
+    return mappings
+
+
+# def mptcp_match_connection(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
+def mptcp_match_connection(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, main : MpTcpConnection):
     """
     .. warn: Do not trust the results yet WIP !
 
@@ -131,33 +145,22 @@ def map_subflows_between_2_datasets(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame,
     mappings={}
     # scores = 
     # df['id'],unique()
-    for mptcpstream1 in rawdf1["mptcpstream"].unique():
-        if idx and mptcpstream1 not in idx:
-            continue
 
+    # main = MpTcpConnection.build_from_dataframe(df, mptcpstream)
+    score = -1
+    results = []
 
-        main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
+    for mptcpstream2 in rawdf2["mptcpstream"].unique():
+        other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
+        score = compare_filtered_df( rawdf1, main, rawdf2, other )
+        if score > float('-inf'):
+            results.append((other, score))
+        
+    # sort based on the score
+    results.sort(key=lambda x: x[1])
+    # filter()
 
-        # main = MpTcpConnection.build_from_dataframe(df, mptcpstream)
-        score = -1
-        results = []
-
-        for mptcpstream2 in rawdf2["mptcpstream"].unique():
-            # other = MpTcpConnection.build_from_dataframe(df2, mptcpstream)
-            # other = 
-            other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
-            score = compare_filtered_df( rawdf1, main, rawdf2, other )
-            if score > float('-inf'):
-                results.append((other, score))
-            
-        # sort based on the score
-        results.sort(key=lambda x: x[1])
-        # filter()
-
-        # 
-        # if len(results):
-        mappings.update({main: results})
-
-    return mappings
-
+    return results
+    # 
+    # if len(results):
 

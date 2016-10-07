@@ -56,7 +56,7 @@ class OneWayDelay(plot.Matplotlib):
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
         """
-        assert mptcpstream, "parser should provide automatically this"
+        assert mptcpstream is not None, "parser should provide automatically this"
 
         rawdf1, rawdf2 = rawdfs
         # args = parser.parse_args(shlex.split(args))
@@ -68,19 +68,27 @@ class OneWayDelay(plot.Matplotlib):
         # ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
         # ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
 
-        df1 = self.preprocess(mptcpstream=mptcpstream, **kwargs)
+        df1 = self.preprocess(rawdf1, mptcpstream=mptcpstream, **kwargs)
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
-        mappings = core.map_subflows_between_2_datasets(ds1, ds2)
 
+        con = MpTcpConnection.build_from_dataframe(df1, mptcpstream1)
+
+        # du coup on a une liste
+        mappings = core.mptcp_match_connection(df1, rawdf2, con)
+
+        print(mappings)
         # returned a dict
-        print("Found mappings %s" % mappings)
         if mptcpstream not in mappings:
             print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
             return 
-        if len(mappings[mptcpstream]) not in mappings:
+        
+        print("Number of %d" % len(mappings[mptcpstream]))
+        if len(mappings[mptcpstream]):
             print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
             return 
+
+        print("Found mappings %s" % mappings)
 
         # mappings
         # len(mappings[mptcpstream

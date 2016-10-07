@@ -26,19 +26,11 @@ class TcpConnection:
             tcpstreamid,
             clientip, serverip, cport, sport,
         ):
+        self.tcpstreamid = tcpstreamid
         self.client_ip = clientip
         self.server_ip = serverip
         self.server_port = sport
         self.client_port = cport
-        self.tcpstreamid = tcpstreamid
-
-    @staticmethod
-    def create_subflow(tcpid, clientip, ipdst, cport, dport, addrid):
-        """
-        Args:
-        """
-        sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, addrid)
-        return sf
 
 
     def generate_direction_query(self, dest : Destination):
@@ -58,21 +50,42 @@ class TcpConnection:
         q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
         return q
 
+    @staticmethod
+    def create_subflow(tcpid, clientip, ipdst, cport, dport, **kwargs):
+        """
+        Args:
+        """
+        sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, **kwargs)
+        return sf
+
+
     def reversed(self):
         return self.create_subflow(
-                self.tcpstreamid, self.server_ip, self.client_ip, 
-                self.server_port, self.client_port, self.addrid)
+            self.tcpstreamid, self.server_ip, self.client_ip, 
+            self.server_port, self.client_port, 
+        )
 
     def __str__(self):
         line = ("tcp.stream {s.tcpstreamid} : {s.client_ip}:{s.client_port} "
                 " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
         return line
 
-class MpTcpSubflow:
-    def __init__(self, *args, addrid ):
+
+class MpTcpSubflow(TcpConnection):
+
+    def __init__(self, *args, addrid=None):
         """ """
+        print(*args)
         super().__init__(*args)
         self.addrid = addrid
+
+    def reversed(self):
+        res = self.create_subflow(
+            self.tcpstreamid, self.server_ip, self.client_ip, 
+            self.server_port, self.client_port, 
+        )
+        res.addrid = self.addrid
+        return res
 
 class MpTcpConnection:
     """
@@ -129,7 +142,6 @@ class MpTcpConnection:
         Instantiates a class that describes an MPTCP connection
         """
 
-
         def get_index_of_non_null_values(serie):
             # http://stackoverflow.com/questions/14016247/python-find-integer-index-of-rows-with-nan-in-pandas/14033137#14033137
             # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
@@ -141,23 +153,23 @@ class MpTcpConnection:
             raise MpTcpException("No packet with this stream id")
 
         # this returns the indexes where a sendkey is set :
-        res = get_index_of_non_null_values(ds["sendkey" ])
+        res = get_index_of_non_null_values(ds["sendkey"])
         if len(res) < 2:
             raise MpTcpException("Could not find the initial keys")
 
         cid = res[0]
-        client_key = ds["sendkey"].iloc[ cid ]
-        client_token = ds["expected_token"].iloc[ cid ]
+        client_key = ds["sendkey"].iloc[cid]
+        client_token = ds["expected_token"].iloc[cid]
         server_key = ds["sendkey"].iloc[ res[1] ]
         server_token = ds["expected_token"].iloc[ res[1] ]
         # print("client key", client_key, "/", client_token, "/", server_key, server_token)
         master_id = ds["tcpstream"].iloc[0]
 
         subflows = []
-        master_sf = MpTcpSubflow.create_subflow (
+        master_sf = MpTcpSubflow.create_subflow(
                 master_id, ds['ipsrc'].iloc[ cid ], ds['ipdst'].iloc[ cid ],
                 ds['sport'].iloc[ cid ], ds['dport'].iloc[ cid ],
-                "master", )
+                addrid="master", )
 
         subflows.append(master_sf)
         tcpstreams = ds.groupby('tcpstream')
@@ -208,10 +220,11 @@ class MpTcpConnection:
         # tcpstreams = self.ds.groupby('tcpstream')
         pass
 
-    def __repr__(self):
-        return self.__str__()
 
     def __str__(self):
+        return str(self.mptcpstreamid)
+
+    def __repr__(self):
         res = """
         Server key/token: {skey}/{stoken}
         Client key/token: {ckey}/{ctoken}

@@ -321,7 +321,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         print("Please read the help.")
-        mappings = map_subflows_between_2_datasets(df1, df2, args.mptcpstreams)
+        mappings = mptcp_match_connection(df1, df2, args.mptcpstreams)
 
         print("%d mapping(s) found" % len(mappings))
 

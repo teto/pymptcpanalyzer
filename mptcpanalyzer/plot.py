@@ -7,6 +7,7 @@ import tempfile
 import matplotlib
 import matplotlib.pyplot as plt
 import logging
+import tempfile
 import mptcpanalyzer as mp
 from enum import Enum, IntEnum
 from mptcpanalyzer.connection import MpTcpConnection
@@ -132,7 +133,7 @@ class Plot:
                     "not to take into account (because"
                     "it was filtered by iptables or else)"))
 
-        parser.add_argument('-o', '--out', action="store", default="output.png",
+        parser.add_argument('-o', '--out', action="store", default=None,
                 help='Name of the output plot')
         parser.add_argument('--display', action="store_true",
                 help='will display the generated plot (use xdg-open by default)'
@@ -245,7 +246,8 @@ class Plot:
         # if only one element, pass it directly instead of a list
         # if len(dataframes) == 1:
         #     dataframes = dataframes[0]
-        self.plot(dataframes[0] if len(dataframes) == 1 else dataframes)
+        dataframes = dataframes[0] if len(dataframes) == 1 else dataframes,
+        self.plot(dataframes, **kwargs)
 
 
 
@@ -305,11 +307,17 @@ class Matplotlib(Plot):
         if opt.get('title', self.title):
             v.suptitle(self.title, fontsize=12)
         
-        if out:
+        if out or display:
             self.savefig(v, out)
 
         if display:
-            self.display(out)
+            if out is None:
+                # TODO create a temporary file
+                with tempfile.NamedTemporaryFile():
+                    self.savefig(v, out)
+                    self.display(out)
+            else:
+                self.display(out)
 
         super().postprocess(v, **opt)
 

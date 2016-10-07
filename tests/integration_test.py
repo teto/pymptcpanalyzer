@@ -102,7 +102,7 @@ class IntegrationTest(TestCase):
         ds2 = self.m.load_into_pandas("examples/node1.pcap")
 
         # just looking to map mptcp.stream 0
-        results = core.map_subflows_between_2_datasets (ds1, ds2, [0])
+        results = core.mptcp_match_connection (ds1, ds2, [0])
         # self.assertEqual( len(cmd), 0, "An error happened")
         self.assertGreaterEqual(len(cmd), 1, "There must be at least one result")
 
