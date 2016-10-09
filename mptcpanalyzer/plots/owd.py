@@ -72,35 +72,58 @@ class OneWayDelay(plot.Matplotlib):
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
 
-        con = MpTcpConnection.build_from_dataframe(df1, mptcpstream1)
+        main_connection = core.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
 
         # du coup on a une liste
-        mappings = core.mptcp_match_connection(df1, rawdf2, con)
+        mappings = core.mptcp_match_connection(df1, rawdf2, main_connection)
 
-        print(mappings)
+        # print(mappings)
+        print("Found mappings %s" % mappings)
         # returned a dict
-        if mptcpstream not in mappings:
-            print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
-            return 
+        # if mptcpstream not in mappings:
+        #     print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
+        #     return 
         
-        print("Number of %d" % len(mappings[mptcpstream]))
-        if len(mappings[mptcpstream]):
+        # print("Number of %d" % len(mappings[mptcpstream]))
+        # print("#mappings=" len(mappings):
+        if len(mappings) <= 0:
             print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
             return 
 
-        print("Found mappings %s" % mappings)
 
         # mappings
-        # len(mappings[mptcpstream
-        results = map_tcp_packets(rawdf1, rawdf2, [mptcpstream])
+        mapped_connection, score = mappings[0]
 
+        # some subflows may have been blocked by routing/firewall
+        common_subflows = [] 
+        for sf in main_connection.subflows:
+            # if sf2 in 
+            for sf2 in mapped_connection.subflows:
+                if sf == sf2:
+                    common_subflows.append((sf, sf2))
+                    break
+
+            # try:
+            #     idx = mapped_connection.subflows.index(sf)
+            #     sf2 = mapped_connection.subflows[idx]
+            #     common_subflows.append((sf, sf2))
+
+            # except ValueError:
+            #     continue
+
+        # common_subflows = set(mapped_connection.subflows, main_connection.subflows)
+        print("common sf=%s", common_subflows)
+        assert len(common_subflows), "Should be one common sf"
+
+        sf1, sf2 = common_subflows[0]
+        # for now we just run the test on the most active subflow
+        results = core.map_tcp_packets(rawdf1, rawdf2, sf1, sf2)
+
+        print(results)
         # print("Found %d valid mappings " % len(mappings))
         # print(mappings)
-        
         # print("Host ips: ", args.host_ips)
-
         # dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
-        
         # ds1 = self.filter_ds(ds1, mptcpstream=args.mptcp_client_id, ipsrc=args.sender_ips)
 
         # TODO we should plot 2 graphs:
@@ -109,10 +132,16 @@ class OneWayDelay(plot.Matplotlib):
         # group = self.data[self.data.mptcpstream == mptcpstream]
         
         # prepare a plot
-
         fig = plt.figure()
-
         axes = fig.gca()
+
+
+
+        return fig
+
+        ########################################
+        ### this is never executed (legacy code)
+        ########################################
         # see interesting tutorial 
         # http://pandas.pydata.org/pandas-docs/stable/merging.html
         # how=inner renvoie 0, les choix sont outer/left/right
@@ -132,6 +161,7 @@ class OneWayDelay(plot.Matplotlib):
             print(tcpstream1.tcpseq.head(10))
                 # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
 
+            # TODO here we should merge on the 
             res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
             print("========================================")
             # print(res.dtypes)

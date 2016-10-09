@@ -50,6 +50,28 @@ class TcpConnection:
         q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
         return q
 
+
+    def score(self, other):
+        """
+        If every parameter is equal, returns +oo
+        """
+        if (self.server_ip == other.server_ip 
+            and self.client_ip == other.client_ip
+            and self.client_port == other.client_port
+            and self.server_port == other.server_port):
+                return float('inf')
+
+        # TODO more granulary score
+        return 0
+
+    def __eq__(self, other):
+        """
+        Ignores 
+        A NAT/PAT could have rewritten IPs in which case you probably 
+        should add another function like score
+        """
+        return self.score(other) == float('inf')
+
     @staticmethod
     def create_subflow(tcpid, clientip, ipdst, cport, dport, **kwargs):
         """
@@ -65,6 +87,8 @@ class TcpConnection:
             self.server_port, self.client_port, 
         )
 
+    # def __repr__(self):
+    #     return 
     def __str__(self):
         line = ("tcp.stream {s.tcpstreamid} : {s.client_ip}:{s.client_port} "
                 " <-> {s.server_ip}:{s.server_port} ").format(s=self,)

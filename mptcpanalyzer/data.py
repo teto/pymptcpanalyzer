@@ -3,6 +3,7 @@
 import logging
 import os
 import pandas as pd
+import numpy as np
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
@@ -21,24 +22,73 @@ def build_connections_from_dataset(df: pd.DataFrame, mptcpstreams: List[int]) ->
             continue
 
 
+def map_tcp_packet(df, packet):
+    """
+    Packets may disappear, get retransmitted
+
+
+    Args:
+        packet:
+    """
+
+    def cmp_packets(p1, p2):
+        """
+        returns a score
+        """
+        score = 0
+
+        # crude approach, packet with most common fields is declared the best
+        for field in df.columns:
+            if getattr(p1, field) == getattr(p2, field):
+                score += 10
+        # if p1.tcpflags != p2.tcpflags:
+        #     score -= 10
+
+        # if p1.dsn != p2.dsn:
+        #     score -= abs(p2.dsn - p1.dsn)
+
+        # if p1.dack != p2.dack:
+        #     score -= abs(p2.dack - p1.dack)
+
+        # when several packets have same dsn/ack number, we add the difference between 
+        # absolute times so that the first gets a better score to referee between those
+        score -= abs(p2.abstime - p1.abstime)
+        return score
+
+    scores = []
+    for m in df.itertuples():
+        scores.append((m, cmp_packets(packet, m)))
+
+    scores.sort()
+    return scores
+
+
 def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection):
     """
     Presuppose that stream ids are laready mapped 
     algo:
         Computes a score on a per packet basis
     """
-    df1 = rawdf1[ rawdf1["tcpstream"] == con1.tcpstreamid]
-    df2 = rawdf2[ rawdf1["tcpstream"] == con2.tcpstreamid]
+    df1 = rawdf1[rawdf1["tcpstream"] == con1.tcpstreamid]
+    df2 = rawdf2[rawdf1["tcpstream"] == con2.tcpstreamid]
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
     df1["mapped_packet"] = np.nan
 
+    # deep copy of the dataframe
+    df_final = df1.copy()
+
+    # Problem is to identify lost packets and retransmitted ones 
+    # so that they map to the same or none ?
     #itertuples returns namedtuples
     for row in df1.itertuples():
-        scores = []
-        print(row.tcpstream)
+        scores = map_tcp_packet(df2, row)
+        # print(row)
+        limit = 2
+        print("first %d packets scores=\n%s" % (limit, scores[:limit]))
         # for row2 in df2.itertuples():
 
+    return df_final
     
 
 
