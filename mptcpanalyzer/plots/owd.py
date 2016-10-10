@@ -152,9 +152,10 @@ class OneWayDelay(plot.Matplotlib):
         res['owd'] = res['abstime_y'] - res['abstime_x']
 
         # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
+        print(res.columns)
         res.to_csv(
-            filename, 
-            columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
+            "backup.csv", 
+            # columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
             index=False,
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],

@@ -32,7 +32,7 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, int]]: #  Tuple(row, score)
         packet:
     """
 
-    def cmp_packets(p1, p2):
+    def cmp_packets(p1, p2) -> float:
         """
         returns a score
         """
@@ -56,11 +56,11 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, int]]: #  Tuple(row, score)
         score -= abs(p2.abstime - p1.abstime)
         return score
 
-    scores = []
+    scores = [] # type: List[Any]
     for row in df.itertuples():
         scores.append((row.index, cmp_packets(packet, row)))
 
-    scores.sort()
+    scores.sort(key=lambda x: x[1])
     return scores
 
 
@@ -74,10 +74,14 @@ def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection) 
         a dataframe with 
     """
     df1 = rawdf1[rawdf1["tcpstream"] == con1.tcpstreamid]
-    df2 = rawdf2[rawdf1["tcpstream"] == con2.tcpstreamid]
+    df2 = rawdf2[rawdf2["tcpstream"] == con2.tcpstreamid]
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
-    df1["mapped_index"] = np.nan
+    print("toto")
+
+    # returns a new df with new columns
+    df1 = df1.assign(mapped_index=np.nan)
+    # print("toto2")
 
     # deep copy of the dataframe
     df_final = df1.copy()
@@ -87,19 +91,19 @@ def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection) 
     #itertuples returns namedtuples
     for row in df1.itertuples():
         scores = map_tcp_packet(df2, row)
-        # print(row)
+        print("row", row)
         limit = 2
-        print("first %d packets scores=\n%s" % (limit, scores[:limit]))
+        print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # for row2 in df2.itertuples():
 
         # takes best score index
-        df1.iloc[row.index, "mapped_index"] = scores[0][0]
+        print("scores[0][0]", scores[0][0])
+        df1.loc[row.index, 'mapped_index'] = scores[0][0]
     return df_final
-    
 
 
 # def compare_filtered_df(df1, mptcpstream1, df2, mptcpstream2) -> int :
-def compare_filtered_df(df1, main, df2, other) -> float :
+def compare_filtered_df(df1, main, df2, other) -> float:
     """
     ALREADY FILTERED dataframes
 
@@ -198,7 +202,7 @@ def mptcp_match_connection(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, main : M
     # ds2 = rawdf2.groupby("mptcpstream")
 
 
-    mappings={} # type: Dict[Tuple[Any, float]]
+    mappings={} # type: Dict[int,Tuple[Any, float]]
     # scores = 
     # df['id'],unique()
 
@@ -208,15 +212,12 @@ def mptcp_match_connection(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, main : M
 
     for mptcpstream2 in rawdf2["mptcpstream"].unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
-        score = compare_filtered_df( rawdf1, main, rawdf2, other )
+        score = compare_filtered_df(rawdf1, main, rawdf2, other)
         if score > float('-inf'):
             results.append((other, score))
         
     # sort based on the score
     results.sort(key=lambda x: x[1])
-    # filter()
 
     return results
-    # 
-    # if len(results):
 
