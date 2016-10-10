@@ -72,6 +72,11 @@ class OneWayDelay(plot.Matplotlib):
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
 
+        # limit number of packets while testing 
+        limit = 100
+        df1 = df1.head(limit)
+        rawdf2 = rawdf2.head(limit)
+
         main_connection = core.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
 
         # du coup on a une liste
@@ -117,9 +122,12 @@ class OneWayDelay(plot.Matplotlib):
 
         sf1, sf2 = common_subflows[0]
         # for now we just run the test on the most active subflow
-        results = core.map_tcp_packets(rawdf1, rawdf2, sf1, sf2)
+        # this will return rawdf1 with an aditionnal "mapped_index" column that
+        # correspond to 
+        mapped_df = core.map_tcp_packets(rawdf1, rawdf2, sf1, sf2)
+        mapped_df["mapped_index"]
 
-        print(results)
+        print(mapped_df)
         # print("Found %d valid mappings " % len(mappings))
         # print(mappings)
         # print("Host ips: ", args.host_ips)
@@ -130,11 +138,44 @@ class OneWayDelay(plot.Matplotlib):
         # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
         # DeltaOWD
         # group = self.data[self.data.mptcpstream == mptcpstream]
+
+
+
+        res = pd.merge(mapped_df, rawdf2, left_on="mapped_index", right_index=True, how="inner",
+            indicator=True # adds a "_merge" suffix
+        )
         
         # prepare a plot
         fig = plt.figure()
         axes = fig.gca()
 
+        res['owd'] = res['abstime_y'] - res['abstime_x']
+
+        # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
+        res.to_csv(
+            filename, 
+            columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
+            index=False,
+            header=True,
+            # sep=main.config["DEFAULT"]["delimiter"],
+        )
+
+        pplot = res.owd.plot.line(
+            # gca = get current axes (Axes), create one if necessary
+            ax=axes,
+            legend=True,
+            # style="-o",
+            grid=True,
+            # xticks=tcpstreams["reltime"],
+            # rotation for ticks
+            # rot=45, 
+            # lw=3
+        )
+
+
+        # TODO add units
+        axes.set_xlabel("Time")
+        axes.set_ylabel("One Way Delay")
 
 
         return fig

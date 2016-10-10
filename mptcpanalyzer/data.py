@@ -7,22 +7,23 @@ import numpy as np
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
-from typing import List
+from typing import List, Any, Tuple
 
 log = logging.getLogger(__name__)
 
 
 
-def build_connections_from_dataset(df: pd.DataFrame, mptcpstreams: List[int]) -> List[MpTcpConnection]:
-    """
-    """
-    connections
-    for mptcpstream, df in df1:
-        if mptcpstream not in idx:
-            continue
+# def build_connections_from_dataset(df: pd.DataFrame, mptcpstreams: List[int]) -> List[MpTcpConnection]:
+#     """
+#     """
+#     connections
+#     for mptcpstream, df in df1:
+#         if mptcpstream not in idx:
+#             continue
 
 
-def map_tcp_packet(df, packet):
+def map_tcp_packet(df, packet) -> List[Tuple[Any, int]]: #  Tuple(row, score)
+    # instead should be index ?
     """
     Packets may disappear, get retransmitted
 
@@ -56,24 +57,27 @@ def map_tcp_packet(df, packet):
         return score
 
     scores = []
-    for m in df.itertuples():
-        scores.append((m, cmp_packets(packet, m)))
+    for row in df.itertuples():
+        scores.append((row.index, cmp_packets(packet, row)))
 
     scores.sort()
     return scores
 
 
-def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection):
+def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection) -> pd.DataFrame:
     """
     Presuppose that stream ids are laready mapped 
     algo:
         Computes a score on a per packet basis
+
+    Returns:
+        a dataframe with 
     """
     df1 = rawdf1[rawdf1["tcpstream"] == con1.tcpstreamid]
     df2 = rawdf2[rawdf1["tcpstream"] == con2.tcpstreamid]
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
-    df1["mapped_packet"] = np.nan
+    df1["mapped_index"] = np.nan
 
     # deep copy of the dataframe
     df_final = df1.copy()
@@ -88,12 +92,14 @@ def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection):
         print("first %d packets scores=\n%s" % (limit, scores[:limit]))
         # for row2 in df2.itertuples():
 
+        # takes best score index
+        df1.iloc[row.index, "mapped_index"] = scores[0][0]
     return df_final
     
 
 
 # def compare_filtered_df(df1, mptcpstream1, df2, mptcpstream2) -> int :
-def compare_filtered_df(df1, main, df2, other) -> int :
+def compare_filtered_df(df1, main, df2, other) -> float :
     """
     ALREADY FILTERED dataframes
 
@@ -157,7 +163,7 @@ def mptcp_match_connections(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, idx: Li
             continue
 
         main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
-        results = mptcp_match_connection()
+        results = mptcp_match_connection(rawdf1, rawdf2, main)
         mappings.update({main: results})
     return mappings
 
@@ -185,19 +191,19 @@ def mptcp_match_connection(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, main : M
 
     """
     log.warn("mapping between datasets is not considered trustable yet")
-    results = [] # :type List[tuples]
+    results = [] # type: List[Tuple[Any, float]]
     # if idx
     #    filtereddf1. 
     # df1 = rawdf1.groupby("mptcpstream")
     # ds2 = rawdf2.groupby("mptcpstream")
 
 
-    mappings={}
+    mappings={} # type: Dict[Tuple[Any, float]]
     # scores = 
     # df['id'],unique()
 
     # main = MpTcpConnection.build_from_dataframe(df, mptcpstream)
-    score = -1
+    score = -1 # type: float
     results = []
 
     for mptcpstream2 in rawdf2["mptcpstream"].unique():
