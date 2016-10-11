@@ -73,9 +73,10 @@ class OneWayDelay(plot.Matplotlib):
         # now we take only the subset matching the conversation
 
         # limit number of packets while testing 
-        limit = 100
+        limit = 10
         df1 = df1.head(limit)
         rawdf2 = rawdf2.head(limit)
+        print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
 
         main_connection = core.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
 
@@ -125,9 +126,11 @@ class OneWayDelay(plot.Matplotlib):
         # this will return rawdf1 with an aditionnal "mapped_index" column that
         # correspond to 
         mapped_df = core.map_tcp_packets(rawdf1, rawdf2, sf1, sf2)
-        mapped_df["mapped_index"]
+        
+        # should print packetids
+        print(mapped_df["mapped_index"].head())
 
-        print(mapped_df)
+        # print(mapped_df)
         # print("Found %d valid mappings " % len(mappings))
         # print(mappings)
         # print("Host ips: ", args.host_ips)
@@ -140,8 +143,11 @@ class OneWayDelay(plot.Matplotlib):
         # group = self.data[self.data.mptcpstream == mptcpstream]
 
 
-
-        res = pd.merge(mapped_df, rawdf2, left_on="mapped_index", right_index=True, how="inner",
+# packetid
+        res = pd.merge(mapped_df, rawdf2, left_on="mapped_index", 
+            right_on="packetid",
+            # right_index=True, 
+            how="inner",
             indicator=True # adds a "_merge" suffix
         )
         
@@ -149,10 +155,11 @@ class OneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
 
+        print("columns", res.columns)
+
         res['owd'] = res['abstime_y'] - res['abstime_x']
 
         # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-        print(res.columns)
         res.to_csv(
             "backup.csv", 
             # columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 

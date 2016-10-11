@@ -22,45 +22,50 @@ log = logging.getLogger(__name__)
 #             continue
 
 
-def map_tcp_packet(df, packet) -> List[Tuple[Any, int]]: #  Tuple(row, score)
+
+def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: #  Tuple(row, score)
     # instead should be index ?
     """
     Packets may disappear, get retransmitted
 
-
     Args:
         packet:
+
+    Returns:
+        a list of tuples (packetid, score)
     """
 
-    def cmp_packets(p1, p2) -> float:
+    def _cmp_packets(p1, p2) -> float:
         """
         returns a score
         """
+        log.debug("comparing packets %s and %s" % (p1,p2))
         score = 0
-
         # crude approach, packet with most common fields is declared the best
+        log.debug("compareason based on columns %s " % df.columns)
         for field in df.columns:
             if getattr(p1, field) == getattr(p2, field):
                 score += 10
+            else:
+                score -= 5
+
+            log.debug("new score after column [%s] = %f" %(field, score))
         # if p1.tcpflags != p2.tcpflags:
         #     score -= 10
-
         # if p1.dsn != p2.dsn:
         #     score -= abs(p2.dsn - p1.dsn)
-
         # if p1.dack != p2.dack:
         #     score -= abs(p2.dack - p1.dack)
-
         # when several packets have same dsn/ack number, we add the difference between 
         # absolute times so that the first gets a better score to referee between those
-        score -= abs(p2.abstime - p1.abstime)
+        # score -= abs(p2.abstime - p1.abstime)
         return score
 
     scores = [] # type: List[Any]
     for row in df.itertuples():
-        scores.append((row.index, cmp_packets(packet, row)))
+        scores.append((row.packetid, _cmp_packets(packet, row)))
 
-    scores.sort(key=lambda x: x[1])
+    scores.sort(key=lambda x: x[1], reverse=True)
     return scores
 
 
@@ -80,25 +85,34 @@ def map_tcp_packets(rawdf1, rawdf2, con1 : TcpConnection, con2 : TcpConnection) 
     print("toto")
 
     # returns a new df with new columns
-    df1 = df1.assign(mapped_index=np.nan)
+    df_final = df1.assign(mapped_index=np.nan)
     # print("toto2")
 
     # deep copy of the dataframe
-    df_final = df1.copy()
+    # df_final = df1.copy()
 
-    # Problem is to identify lost packets and retransmitted ones 
-    # so that they map to the same or none ?
-    #itertuples returns namedtuples
-    for row in df1.itertuples():
+    # # Problem is to identify lost packets and retransmitted ones 
+    # # so that they map to the same or none ?
+    # #itertuples returns namedtuples
+    # print("head=\n", df_final.head())
+    for row in df_final.itertuples():
         scores = map_tcp_packet(df2, row)
-        print("row", row)
+        # print("row", row)
         limit = 2
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # for row2 in df2.itertuples():
-
         # takes best score index
-        print("scores[0][0]", scores[0][0])
-        df1.loc[row.index, 'mapped_index'] = scores[0][0]
+        # print("scores[0][0]", scores[0][0])
+        # df1.loc[row.index, 
+        # records matching 'packetid'
+        # print("row=", df_final.loc[row.index, "packetid"])
+        # df_final.loc[row.index , 'mapped_index'] = 2 # scores[0][0]
+        # print(type(row.Index), type(row.index))
+        df_final.set_value(row.Index, 'mapped_index', scores[0][0])
+        # c quasiment tjrs les mm packetid 1 et 2 ?!!
+        # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index ) 
+
+    print("head=\n", df_final.head())
     return df_final
 
 
