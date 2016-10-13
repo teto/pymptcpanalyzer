@@ -23,6 +23,10 @@ class Cache:
         """
         Args:
             depends: List of files to check
+
+        Returns:
+            A tuple of (True if cache exists, encoded cachename)
+
         """
         log.debug("Checking cache for %s" % filename)
         is_cache_valid = False

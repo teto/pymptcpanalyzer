@@ -32,7 +32,7 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         packet:
 
     Returns:
-        a list of tuples (packetid, score)
+        a list of tuples (index, score)
     """
 
     def _cmp_packets(p1, p2) -> float:
@@ -63,7 +63,7 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
 
     scores = [] # type: List[Any]
     for row in df.itertuples():
-        scores.append((row.packetid, _cmp_packets(packet, row)))
+        scores.append((row.Index, _cmp_packets(packet, row)))
 
     scores.sort(key=lambda x: x[1], reverse=True)
     return scores
@@ -108,6 +108,7 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
         # print(type(row.Index), type(row.index))
         idx, score = scores[0]
         df_final.set_value(row.Index, 'mapped_index', idx)
+        df_final.set_value(row.Index, 'score', score)
 
         # drop the chosen index so that it doesn't get used a second time
         # todo pb la c qu'on utilise les packet id comme des index :/
@@ -214,7 +215,7 @@ def mptcp_match_connection(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, main: MpT
         a dict {Connection1: [(Connection2, score)])
 
     """
-    log.warn("mapping between datasets is not considered trustable yet")
+    log.warning("mapping between datasets is not considered trustable yet")
     results = [] # type: List[Tuple[Any, float]]
     # if idx
     #    filtereddf1. 

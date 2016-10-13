@@ -35,11 +35,11 @@ class IntegrationTest(TestCase):
         config = MpTcpAnalyzerConfig()
         self.m = MpTcpAnalyzer(config)
 
-    def preload_pcap(self, regen: bool =False):
-        cmd = "examples/iperf-mptcp-0-0.pcap"
-        if regen:
-            cmd += " --regen"
-        self.m.do_load(cmd)
+    # def preload_pcap(self, regen: bool =False):
+    #     cmd = "examples/iperf-mptcp-0-0.pcap"
+    #     if regen:
+    #         cmd += " --regen"
+    #     self.m.do_load(cmd)
 
     def setup_plot_mgr(self):
         """
@@ -102,7 +102,7 @@ class IntegrationTest(TestCase):
         ds2 = self.m.load_into_pandas("examples/node1.pcap")
 
         # just looking to map mptcp.stream 0
-        results = core.mptcp_match_connection (ds1, ds2, [0])
+        results = core.mptcp_match_connection(ds1, ds2, [0])
         # self.assertEqual( len(cmd), 0, "An error happened")
         self.assertGreaterEqual(len(cmd), 1, "There must be at least one result")
 
@@ -120,6 +120,7 @@ class IntegrationTest(TestCase):
         self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
 
 
+    @unittest.skip
     def testlist_subflows(self):
         """
         Test that it can list subflows
@@ -129,7 +130,7 @@ class IntegrationTest(TestCase):
         with self.assertRaises(mp.MpTcpException):
             self.m.do_ls("0")
 
-        self.preload_pcap()
+        # self.preload_pcap()
         self.m.do_ls("0")
 
         # fails because there are no packets with this id

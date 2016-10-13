@@ -7,9 +7,9 @@ import tempfile
 import matplotlib
 import matplotlib.pyplot as plt
 import logging
-import tempfile
 import mptcpanalyzer as mp
 from enum import Enum, IntEnum
+from typing import List
 from mptcpanalyzer.connection import MpTcpConnection
 
 import abc
@@ -20,6 +20,10 @@ import six
 log = logging.getLogger(__name__)
 
 
+
+class PreprocessingActions(IntEnum):
+    Preload = 0
+    PreloadAndFilter = 1
 
 
 def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
@@ -61,19 +65,37 @@ class Plot:
         enabel_preprocessing (bool): Automatically filters dataframes beforehand
     """
 
-    def __init__(self, title: str = None, preprocess_dataframes: bool=False, *args, **kwargs):
+    def __init__(self, title: str = None, 
+            preload_dataframes: List[str]=None,
+            # cache=None,
+            # main=None,
+            *args, **kwargs):
         """
         Args:
             title (str): Plot title
+            main: 
         """
         self.title = title
-        self.enable_preprocessing = preprocess_dataframes
+        # self.enable_preprocessing = preprocess_dataframes
+        # self.main = main
+        self.preload_pcaps = preload_dataframes
 
-    def default_parser(self, available_dataframe : bool,
-            required_nb_of_dataframes : int = 1,
+        # assert self.main, "Need reference to MpTcpAnalyzer"
+
+        # self.cache = 
+        # self.loader = 
+    @property
+    def cache(self):
+        return self.main.cache
+
+    def default_parser(self,
+            # TODO remove two followings ?
+            parent_parsers=[],
+            # available_dataframe: bool,
+            required_inputs: List[str] = None,
             mptcpstream: bool = False,
-            direction: bool = False, filter_subflows: bool = True,
-            dst_host : bool=False):
+            direction: bool = False, skip_subflows: bool = True,
+            dst_host: bool=False):
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
@@ -83,20 +105,21 @@ class Plot:
             available_dataframe: True if a pcap was preloaded at start
             direction: Enable filtering the stream depending if the packets
             were sent towards the MPTCP client or the MPTCP server
-            filter_subflows: Allow to hide some subflows from the plot
+            skip_subflows: Allow to hide some subflows from the plot
 
         Return:
             An argparse.ArgumentParser
 
         """
         parser = argparse.ArgumentParser(
-            description=self.__doc__)
-        #'Generate MPTCP stats & plots'
+            parents=parent_parsers,
+        )
 
         # how many pcaps shall we load ?
-        count = required_nb_of_dataframes - (1 if available_dataframe else 0)
-        for i in range(0, count):
+        # count = required_nb_of_dataframes - (1 if available_dataframe else 0)
+        # for i in range(0, count):
 
+        if required_nb_of_dataframes:
             parser.add_argument("pcap",  action="append",
                     metavar="pcap%d" % i,
                     type=str,
@@ -104,8 +127,7 @@ class Plot:
 
         if mptcpstream:
             parser.add_argument('mptcpstream', action="store", type=int,
-                    help='mptcp.stream id, you may find using the "list_connections" command'
-            )
+                help='mptcp.stream id, you may find using the "list_connections" command')
 
             if direction:
                 # a bit hackish: we want the object to be of type class
@@ -119,14 +141,13 @@ class Plot:
                         type=lambda x: mp.Destination(x),
                         help='Filter flows according to their direction'
                             '(towards the client or the server)'
-                            'Depends on mptcpstream'
-                )
+                            'Depends on mptcpstream')
 
         if dst_host:
             parser.add_argument('ipdst_host', action="store",
                     help='Filter flows according to the destination hostnames')
 
-        if filter_subflows:
+        if skip_subflows:
             parser.add_argument('--skip', dest="skipped_subflows", type=int,
                     action="append", default=[],
                 help=("You can type here the tcp.stream of a subflow "
@@ -136,8 +157,7 @@ class Plot:
         parser.add_argument('-o', '--out', action="store", default=None,
                 help='Name of the output plot')
         parser.add_argument('--display', action="store_true",
-                help='will display the generated plot (use xdg-open by default)'
-        )
+                help='will display the generated plot (use xdg-open by default)')
         parser.add_argument('--title', action="store", type=str,
                 help='Overrides the default plot title')
         parser.add_argument('--primary', action="store_true",
@@ -157,7 +177,7 @@ class Plot:
         """
         pass
 
-    def preprocess(self, rawdf, mptcpstream=None, skipped_subflows=[], 
+    def filter_dataframe(self, rawdf, mptcpstream=None, skipped_subflows=[], 
             destination: mp.Destination=None,
             extra_query: str =None, **kwargs):
         """
@@ -189,7 +209,7 @@ class Plot:
 
         if mptcpstream is not None:
             log.debug("Filtering mptcpstream")
-            queries.append("mptcpstream==%d" % mptcpstream )
+            queries.append("mptcpstream==%d" % mptcpstream)
             if destination is not None:
                 log.debug("Filtering destination")
                 # Generate a filter for the connection
@@ -227,6 +247,16 @@ class Plot:
         """
         pass
 
+    def preprocess(self, main, **kwargs):
+        """
+        Must return the dataframes used by plot
+        """
+        assert main, "Need reference to MpTcpAnalyzer"
+        dataframes = [ main.load_into_pandas(kwargs.get(pcap_name)) for pcap_name in self.preload_pcaps]
+        # self.load_into_pandas(pcap)
+        # dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
+        return dataframes
+
     def run(self, rawdataframes, **kwargs):
         """
         This function automatically filters the dataset according to the
@@ -240,8 +270,10 @@ class Plot:
             None: has to be subclassed as the return value is used in :member:`.postprocess`
         """
         dataframes = rawdataframes
-        if self.enable_preprocessing:
-            dataframes = [self.preprocess(df, **kwargs) for df in dataframes]
+        # if self.enable_preprocessing:
+        # for pcap in self.preload_pcaps:
+# # self.load_into_pandas(pcap)
+        #     dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
 
         # if only one element, pass it directly instead of a list
         # if len(dataframes) == 1:
@@ -349,7 +381,7 @@ class Matplotlib(Plot):
         # matplotlib.pyplot.style.use(args.styles)
         # ('dark_background')
         with plt.style.context(styles):
-            fig = self.plot(dataframes, **kwargs)
+            fig = self.plot(dataframes, styles, **kwargs)
 
         return fig
 

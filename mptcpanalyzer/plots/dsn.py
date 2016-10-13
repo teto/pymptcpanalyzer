@@ -5,6 +5,7 @@ import mptcpanalyzer.plot as plot
 # from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
 import logging
+import argparse
 import matplotlib.pyplot as plt
 from mptcpanalyzer import fields_v2
 # import inspect
@@ -21,19 +22,23 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
     mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(preprocess_dataframes=True, *args, **kwargs)
+        super().__init__(preload_pcaps=["pcap"], *args, **kwargs)
 
 
     def default_parser(self, *args, **kwargs):
 
-        parser = super().default_parser(*args, mptcpstream=True, direction=True,
-                filter_subflows=True, **kwargs)
+        parent = argparse.ArgumentParser(
+            description="Helps plotting Data sequence numbers"
+        )
+        parent.add_argument("pcap", action="store", help="Input pcap")
+        parser = super().default_parser(*args, parent_parsers=[parent], mptcpstream=True,
+                direction=True, filter_subflows=True, **kwargs)
         parser.add_argument('field', choices=self.mptcp_attributes.keys(),
                 help="Choose an mptcp attribute to plot")
         return parser
 
 
-    def plot(self, dat,  mptcpstream, field=None, **kwargs):
+    def plot(self, dat, mptcpstream, field=None, **kwargs):
         """
         getcallargs
         """

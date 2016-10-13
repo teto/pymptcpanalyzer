@@ -77,12 +77,11 @@ class MpTcpAnalyzer(cmd.Cmd):
     def stevedore_error_handler(manager, entrypoint, exception):
         print("Error while loading entrypoint [%s]" % entrypoint)
 
-    def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin, **kwargs):
+    def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin, **kwargs) -> None:
         """
 
         Args:
             cfg (MpTcpAnalyzerConfig): A valid configuration
-
 
         Attributes:
             prompt (str): Prompt seen by the user, displays currently loaded pcpa
@@ -91,7 +90,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         self.prompt = "%s> " % "Ready"
         self.config = cfg["mptcpanalyzer"]
-        self.data = None
+        self.data = None # type: pd.DataFrame
         self.cache = Cache(self.config["cache"])
         if kwargs.get('no_cache'):
             self.cache.disabled = True
@@ -145,11 +144,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         self.plot_mgr = mgr
 
 
-    def load_plugins(self, mgr = None):
+    def load_plugins(self, mgr=None):
         """
         This function monkey patches the class to inject Command plugins
 
-        :param mgr: override the default plugin manager when set.
+        Attrs:
+            mgr: override the default plugin manager when set.
 
         Useful to run tests
         """
@@ -391,8 +391,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                 help="Either a pcap or a csv file (in good format)."
                 "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
                 "If it can't find one (or with the flag --regen), it will generate a "
-                "csv from the pcap with the external tshark program."
-                )
+                "csv from the pcap with the external tshark program.")
         parser.add_argument("--regen", "-r", action="store_true",
                 help="Force the regeneration of the cached CSV file from the pcap input")
 
@@ -441,7 +440,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         return self.plot_mgr.names()
 
 # TODO rename look intocache ?
-    def get_matching_csv_filename(self, filename, force_regen : bool):
+    def get_matching_csv_filename(self, filename,):
         """
         Name is bad, since the function can generate  the file if required
         Expects a realpath as filename
@@ -492,6 +491,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         filename = os.path.expanduser(input_file)
         filename = os.path.realpath(filename)
+        # todo addd csv extension if needed
 
         # csv_filename = self.get_matching_csv_filename(filename, regen)
         is_cache_valid, csv_filename = self.cache.is_cache_valid(filename, [filename])
@@ -551,20 +551,16 @@ class MpTcpAnalyzer(cmd.Cmd):
         # if self.data is None:
         #     parser.add_argument()
 
-        subparsers = parser.add_subparsers(
-            dest="plot_type", title="Subparsers", help='sub-command help', )
+        subparsers = parser.add_subparsers(dest="plot_type", title="Subparsers", help='sub-command help',)
         subparsers.required = True
 
         def register_plots(ext, subparsers):
             """Adds a parser per plot"""
             # check if dat is loaded
-            parser = ext.obj.default_parser(self.data is not None)
+            parser = ext.obj.default_parser()
             assert parser, "Forgot to return parser"
-            subparsers.add_parser(ext.name, parents=[
-                 parser   
-                ],
-                add_help=False
-            )
+            subparsers.add_parser(ext.name, parents=[parser],
+                add_help=False)
 
         self.plot_mgr.map(register_plots, subparsers)
 
@@ -576,23 +572,26 @@ class MpTcpAnalyzer(cmd.Cmd):
         # try:
         cli_args = shlex.split(cli_args)
         args, unknown_args = parser.parse_known_args(cli_args)
-        # TODO generic filter
-        plotter = self.plot_mgr[args.plot_type].obj
+        # Allocate plot object
+        plotter = self.plot_mgr[args.plot_type].obj(main=self)
 
-        dataframes = []
-        if self.data is not None:
-            dataframes.append(self.data)
+        # dataframes = []
+        # if self.data is not None:
+        #     dataframes.append(self.data)
 
-        for pcap in getattr(args, "pcap", []):
-            df = self.load_into_pandas(pcap)
-            dataframes.append(df)
+        # 
+        # for pcap in getattr(args, "pcap", []):
+        #     df = self.load_into_pandas(pcap)
+        #     dataframes.append(df)
 
 
         dargs = vars(args) # 'converts' the namespace to a dict
 
         # TODO
         # inspect.getfullargspec(fileinput.input))
-            # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes]
+        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes]
+        dataframes = plotter.preprocess(self, **dargs)
+        assert dataframes is not None, "Preprocess must return a list"
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
 
@@ -610,9 +609,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         # 
         print("Cleaning cache [%s]" % self.config.cache)
-        for cached_csv in os.scandir(self.config.cache):
-            log.info("Removing " + cached_csv.path)
-            os.unlink(cached_csv.path)
+        self.cache.clean()
+        # for cached_csv in os.scandir(self.config.cache):
+        #     log.info("Removing " + cached_csv.path)
+        #     os.unlink(cached_csv.path)
 
 
     # def help_clean_cache(self):
@@ -704,8 +704,8 @@ def main(arguments=None):
         default=False,
         help="mptcpanalyzer creates a cache of files in the folder "
         "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
-        "Force the regeneration of the cached CSV file from the pcap input"
-    )
+        "Force the regeneration of the cached CSV file from the pcap input")
+
     parser.add_argument("--batch", "-b", action="store", type=argparse.FileType('r'),
         default=None,
         help="Accepts a filename as argument from which commands will be loaded."

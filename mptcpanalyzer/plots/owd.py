@@ -29,15 +29,17 @@ class OneWayDelay(plot.Matplotlib):
     .. warning:: This plugin is experimental.
     """
 
-    def __init__(self):
-        super().__init__(preprocess_dataframes=False)
+    def __init__(self, *args, **kwargs):
+        super().__init__(preprocess_dataframes=False, *args, **kwargs)
 
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser( *args, required_nb_of_dataframes=2, mptcpstream=True, **kwargs)
-
-        # parser.add_argument("host1", action="store", help="pcap captured on first host")
-        # parser.add_argument("mptcpstreamid", action="store", type=int)
+        parser = argparse.ArgumentParser(
+            description="Helps plotting One Way Delays between tcp connections"
+        )
+        parser.add_argument("host1", action="store", help="pcap captured on first host")
+        parser.add_argument("host2", action="store", help="pcap captured on second host")
+        parser = super().default_parser( *args, parent_parsers=[parser], mptcpstream=True, **kwargs)
 
         # parser.add_argument("host2", action="store",
         #         help="Either a pcap or a csv file (in good format)."
@@ -70,8 +72,11 @@ class OneWayDelay(plot.Matplotlib):
         # Restrict dataset to mptcp connections of interest
         # ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
         # ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
+        rawdf1.set_index('packetid', inplace=True)
+        rawdf2.set_index('packetid', inplace=True)
 
         df1 = self.preprocess(rawdf1, mptcpstream=mptcpstream, **kwargs)
+        # use packetid as index
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
 
@@ -147,18 +152,14 @@ class OneWayDelay(plot.Matplotlib):
 
 
 # packetid
-        res = pd.merge(mapped_df, rawdf2, left_on="mapped_index", 
-            right_on="packetid",
-            # right_index=True, 
+        res = pd.merge(mapped_df, rawdf2, 
+            left_on="mapped_index", 
+            # right_on="packetid",
+            right_index=True, 
             how="inner",
             indicator=True # adds a "_merge" suffix
         )
         
-        # prepare a plot
-        fig = plt.figure()
-        axes = fig.gca()
-
-        print("columns", res.columns)
 
         res['owd'] = res['abstime_y'] - res['abstime_x']
 
@@ -170,6 +171,12 @@ class OneWayDelay(plot.Matplotlib):
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
         )
+
+        # prepare a plot
+        fig = plt.figure()
+        axes = fig.gca()
+
+        print("columns", res.columns)
 
         pplot = res.owd.plot.line(
             # gca = get current axes (Axes), create one if necessary
