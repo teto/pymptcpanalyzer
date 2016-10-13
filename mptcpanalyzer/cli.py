@@ -23,6 +23,7 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
 from mptcpanalyzer.data import *
+from mptcpanalyzer.cache import Cache
 import mptcpanalyzer.connection as mc
 import mptcpanalyzer as mp
 import stevedore
@@ -59,16 +60,6 @@ def is_loaded(f):
     return wrapped
 
 
-
-# class InputFile: 
-
-#     def __init__(self):
-#         self.cache = 
-#         self.filename
-#         self.loaded_from_cache = False
-#         self.dataframe
-
-
 class MpTcpAnalyzer(cmd.Cmd):
     """
     mptcpanalyzer can run into 3 modes:
@@ -76,9 +67,6 @@ class MpTcpAnalyzer(cmd.Cmd):
     #. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
     #. if a filename is passed as argument, it will load commands from this file
     #. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
-
-
-
     """
 
     intro = textwrap.dedent("""
@@ -89,7 +77,7 @@ class MpTcpAnalyzer(cmd.Cmd):
     def stevedore_error_handler(manager, entrypoint, exception):
         print("Error while loading entrypoint [%s]" % entrypoint)
 
-    def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin):
+    def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin, **kwargs):
         """
 
         Args:
@@ -102,10 +90,13 @@ class MpTcpAnalyzer(cmd.Cmd):
             data:  dataframe currently in use
         """
         self.prompt = "%s> " % "Ready"
-        self.config = cfg
+        self.config = cfg["mptcpanalyzer"]
         self.data = None
+        self.cache = Cache(self.config["cache"])
+        if kwargs.get('no_cache'):
+            self.cache.disabled = True
 
-        ### LOAD PLOTS
+        # LOAD PLOTS
         ######################
         # you can  list available plots under the namespace
         # https://pypi.python.org/pypi/entry_point_inspector
@@ -463,68 +454,29 @@ class MpTcpAnalyzer(cmd.Cmd):
         # csv_filename = filename
 
         if ext == ".csv":
-            log.debug("Filename already has a .csv extension")
+            log.debug("Filename already has .csv extension")
             csv_filename = realpath
         else:
             print("%s format is not supported as is. Needs to be converted first" %
                 (filename))
+            csv_filename 
 
-            def matching_cache_filename(filename):
-                """
-                Expects a realpath else
-                """
-                # create a list of path elements (separated by system separator '/' or '\'
-                # from the absolute filename
-                l = os.path.realpath(filename).split(os.path.sep)
-                res = os.path.join(self.config["DEFAULT"]["cache"], '%'.join(l))
-                _, ext = os.path.splitext(filename)
-                if ext != ".csv":
-                    res += ".csv"
-                return res
+            # def matching_cache_filename(filename):
+            #     """
+            #     Expects a realpath else
+            #     """
+            #     # create a list of path elements (separated by system separator '/' or '\'
+            #     # from the absolute filename
+            #     l = os.path.realpath(filename).split(os.path.sep)
+            #     _, ext = os.path.splitext(filename)
+            #     if ext != ".csv":
+            #         res += ".csv"
+            #     return res
 
-            # csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
-            csv_filename = matching_cache_filename(realpath)
-            cache_is_invalid = True
+            # # csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
+            # csv_filename = matching_cache_filename(realpath)
+            # cache_is_invalid = True
 
-            log.debug("Checking for %s" % csv_filename)
-            if os.path.isfile(csv_filename):
-                log.info("A cache %s was found" % csv_filename)
-                ctime_cached = os.path.getctime(csv_filename)
-                ctime_pcap = os.path.getctime(filename)
-                # print(ctime_cached , " vs ", ctime_pcap)
-
-                if ctime_cached > ctime_pcap:
-                    log.debug("Cache seems valid")
-                    cache_is_invalid = False
-                else:
-                    log.debug("Cache seems outdated")
-
-
-            # if matching csv does not exist yet or if generation forced
-            if force_regen or cache_is_invalid:
-
-                # recursively create the directories
-                log.debug("Creating cache directory [%s]" % self.config["DEFAULT"]["cache"])
-                os.makedirs(self.config["DEFAULT"]["cache"], exist_ok=True)
-
-                log.info("Preparing to convert %s into %s" %
-                        (filename, csv_filename))
-
-                exporter = TsharkExporter(
-                        self.config["DEFAULT"]["tshark_binary"],
-                        self.config["DEFAULT"]["delimiter"],
-                        self.config["DEFAULT"]["wireshark_profile"],
-                )
-
-                retcode, stderr = exporter.export_to_csv(
-                        filename,
-                        csv_filename,
-                        mp.get_fields("fullname", "name"),
-                        tshark_filter="mptcp and not icmp"
-                )
-                log.info("exporter exited with code=", retcode)
-                if retcode:
-                    raise Exception(stderr)
         return csv_filename
 
 
@@ -533,19 +485,43 @@ class MpTcpAnalyzer(cmd.Cmd):
         load csv mptpcp data into pandas
 
         Args:
-            regen: Ignore the cache and regenerate any cached csv file from the input pcap
+            regen: Ignore the cache and regenerate any cached csv file from
+            the input pcap
         """
         log.debug("Asked to load %s" % input_file)
 
         filename = os.path.expanduser(input_file)
         filename = os.path.realpath(filename)
-        csv_filename = self.get_matching_csv_filename(filename, regen)
+
+        # csv_filename = self.get_matching_csv_filename(filename, regen)
+        is_cache_valid, csv_filename = self.cache.is_cache_valid(filename, [filename])
+        log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
+        if regen or not is_cache_valid:
+            log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
+
+            exporter = TsharkExporter(
+                self.config["tshark_binary"],
+                self.config["delimiter"],
+                self.config["wireshark_profile"],
+            )
+
+            retcode, stderr = exporter.export_to_csv(
+                filename,
+                csv_filename,
+                mp.get_fields("fullname", "name"),
+                tshark_filter="mptcp and not icmp"
+            )
+            log.info("exporter exited with code=", retcode)
+            if retcode:
+                # log.exception
+                raise Exception(stderr)
+
 
         temp = mp.get_fields("fullname", "type")
         dtypes = {k: v for k, v in temp.items() if v is not None}
         log.debug("Loading a csv file %s" % csv_filename)
 
-        data = pd.read_csv(csv_filename, sep=self.config["DEFAULT"]["delimiter"],
+        data = pd.read_csv(csv_filename, sep=self.config["delimiter"],
             dtype=dtypes,
             converters={
                 "tcp.flags": lambda x: int(x, 16),
@@ -705,16 +681,16 @@ def main(arguments=None):
 
     #  todo make it optional
     parser.add_argument(
-            "--load","-l", dest="input_file",
-            # type=argparse
-            # "input_file",  nargs="?",
-            # action="store", default=None,
-            help="Either a pcap or a csv file (in good format)."
-            "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
-            "If it can't find one (or with the flag --regen), it will generate a "
-            "csv from the pcap with the external tshark program."
-            )
-    parser.add_argument('--version', action='version', version="%s" % (__version__))
+        "--load","-l", dest="input_file",
+        # type=argparse
+        # "input_file",  nargs="?",
+        # action="store", default=None,
+        help="Either a pcap or a csv file (in good format)."
+        "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+        "If it can't find one (or with the flag --regen), it will generate a "
+        "csv from the pcap with the external tshark program."
+    )
+    parser.add_argument( '--version', action='version', version="%s" % (__version__))
     parser.add_argument("--config", "-c", action="store",
             help="Path towards the config file. If not set, mptcpanalyzer will try"
                 " to load first $XDG_CONFIG_HOME/mptcpanalyzer/config and then "
@@ -724,16 +700,17 @@ def main(arguments=None):
             help="More verbose output, can be repeated to be even more "
                 " verbose such as '-dddd'"
     )
-    parser.add_argument("--regen", "-r", action="store_true",
-            help="mptcpanalyzer creates a cache of files in the folder "
-                "$XDG_CACHE_HOME/mptcpanalyzer or $HOME/.config/mptcpanalyzer"
-            "Force the regeneration of the cached CSV file from the pcap input"
+    parser.add_argument("--no-cache", "-r", action="store_true",
+        default=False,
+        help="mptcpanalyzer creates a cache of files in the folder "
+        "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
+        "Force the regeneration of the cached CSV file from the pcap input"
     )
     parser.add_argument("--batch", "-b", action="store", type=argparse.FileType('r'),
-            default=None,
-            help="Accepts a filename as argument from which commands will be loaded."
-            "Commands follow the same syntax as in the interpreter"
-            "can also be used as "
+        default=None,
+        help="Accepts a filename as argument from which commands will be loaded."
+        "Commands follow the same syntax as in the interpreter"
+        "can also be used as "
     )
 
 
@@ -748,15 +725,15 @@ def main(arguments=None):
 
     try:
 
-        analyzer = MpTcpAnalyzer(cfg, )
+        analyzer = MpTcpAnalyzer(cfg, **vars(args))
 
         if args.input_file:
             log.info("Input file")
             cmd = args.input_file
-            cmd += " -r" if args.regen else ""
-            analyzer.do_load ( cmd )
+            # cmd += " -r" if args.regen else ""
+            analyzer.do_load(cmd)
             # analyzer.onecmd(cmd)
-        
+
         if args.batch:
             log.info("Batched commands")
             # with open(args.batch) as fd:

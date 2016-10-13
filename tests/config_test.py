@@ -21,7 +21,10 @@ class ConfigTest(TestCase):
             # os.copy
             # TODO check it can work even if XDG_CONFIG_HOME is empty
             cfg = MpTcpAnalyzerConfig()
-            shutil.copyfile(config_file, os.path.join(dirname, os.path.basename(config_file)))
+            shutil.copyfile(
+                config_file,
+                os.path.join(dirname, os.path.basename(config_file))
+            )
 
             cfg = MpTcpAnalyzerConfig()
 
@@ -33,5 +36,5 @@ class ConfigTest(TestCase):
         # config = MpTcpAnalyzerConfig()
         cfg = MpTcpAnalyzerConfig(config_file)
         # self.assert
-        self.assertEqual(cfg["DEFAULT"]["tshark_binary"], "fake_tshark")
-        self.assertEqual(cfg["DEFAULT"]["delimiter"], "|")
+        self.assertEqual(cfg["tshark_binary"], "fake_tshark")
+        self.assertEqual(cfg["delimiter"], "|")

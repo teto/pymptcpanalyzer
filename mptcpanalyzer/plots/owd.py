@@ -50,11 +50,14 @@ class OneWayDelay(plot.Matplotlib):
         """
         Ideally it should be mapped automatically
         For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
-        TODO should be moved as a plot
-        This doesn't use "data"
         Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
+
+
+        Todo:
+            it should be possible to cache intermediary results (computed owds)
+
         """
         assert mptcpstream is not None, "parser should provide automatically this"
 
@@ -228,7 +231,7 @@ class OneWayDelay(plot.Matplotlib):
                     columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
                     index=False,
                     header=True,
-                    sep=main.config["DEFAULT"]["delimiter"],
+                    sep=main.config["delimiter"],
             )
 
             pplot = res.owd.plot.line(

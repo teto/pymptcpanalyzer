@@ -22,7 +22,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
     def __init__(self, filename: str = None):
         """
         If filename is set, forcefully uses that file, other than that try
-        to read from $XDG_DEFAULT_HOME/mptcpanalyzer/config
+        to read from $XDG_CONFIG_HOME/mptcpanalyzer/config
         Respect XDG specifications
         """
         super().__init__(allow_no_value=False)
@@ -37,7 +37,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
 
         # ensure defaults for mandatory parameters
         self.read_dict({
-            "DEFAULT": {
+            "mptcpanalyzer": {
                 "tshark_binary": "tshark",
                 "delimiter": "|",
                 "cache": cache_filename,
@@ -67,6 +67,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         #     log.debug("Could not find config file %s" % filename)
 
 
-    @property
-    def cache(self):
-        return self["DEFAULT"]["cache"]
+    # @property
+    # def cache(self):
+    #     # 
+    #     return self["mptcpanalyzer"]["cache"]
