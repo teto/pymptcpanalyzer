@@ -10,7 +10,13 @@ from collections import namedtuple
 logger = logging.getLogger(__name__)
 
 
-Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ]) # 'converter'
+"""
+fullname: wireshark name
+name: shortname used in mptcpanalyzer
+type: python type pandas should convert this field to
+label: used when plotting
+"""
+Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', 'invariant']) # 'converter'
 Field.__new__.__defaults__ = (None, None)
 
 
@@ -68,6 +74,8 @@ class MpTcpMissingPcap(MpTcpException):
     pass
 
 
+
+
 def fields_v2():
     """
     It's kinda scary to use float everywhere but when using integers, pandas
@@ -89,14 +97,14 @@ def fields_v2():
 
     """
     l = [
-        Field("frame.number", "packetid", np.int64, False),
+        Field("frame.number", "packetid", np.int64, False, ),
         # TODO set tot datetime ?
-        Field("frame.time_relative", "reltime", None, False,),
+        Field("frame.time_relative", "reltime", None, False, ),
         # set to deltatime
-        Field("frame.time_delta", "time_delta", None, False),
-        Field("frame.time_epoch", "abstime", None, False),
-        Field("_ws.col.ipsrc", "ipsrc", str, False),
-        Field("_ws.col.ipdst", "ipdst", str, False),
+        Field("frame.time_delta", "time_delta", None, False, ),
+        Field("frame.time_epoch", "abstime", None, False, ),
+        Field("_ws.col.ipsrc", "ipsrc", str, False, True),
+        Field("_ws.col.ipdst", "ipdst", str, False, True),
         Field("ip.src_host", "ipsrc_host", str, False),
         Field("ip.dst_host", "ipdst_host", str, False),
         Field("mptcp.expected_token", "expected_token", str, False),

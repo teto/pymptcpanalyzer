@@ -8,6 +8,7 @@ import logging
 import matplotlib.pyplot as plt
 import os
 import argparse
+import math
 
 
 log = logging.getLogger(__name__)
@@ -169,6 +170,9 @@ class OneWayDelay(plot.Matplotlib):
         # this will return rawdf1 with an aditionnal "mapped_index" column that
         # correspond to 
         mapped_df = core.map_tcp_packets(rawdf1, rawdf2, sf1, sf2)
+
+        # TODO print statistics about how many packets have been mapped
+        print(" len(mapped_df)")
         
         # should print packetids
         print(mapped_df["mapped_index"].head())

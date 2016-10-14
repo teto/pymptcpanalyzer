@@ -8,10 +8,43 @@ from mptcpanalyzer.tshark import TsharkExporter, Filetype
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from typing import List, Any, Tuple
+import math
 
 log = logging.getLogger(__name__)
 
+def ignore(f1, f2):
+    return 0
 
+def exact(f1, f2):
+    return float('-inf') if f1 != f2 else 10
+
+"""
+invariant: True if not modified by the network
+Of the form Field.shortname
+
+Have a look at the graphic slide 28:
+https://www-phare.lip6.fr/cloudnet12/Multipath-TCP-tutorial-cloudnet.pptx
+"""
+scoring_rules = {
+        "packetid": ignore,
+        "abstime": ignore,
+        "default_time": ignore,
+        "expected_token": exact,
+        "sport": exact,
+        "dport": exact,
+        "rwnd": exact,
+        "sendkey": exact,
+        "rcvkey": exact,
+        "rcvtoken": exact,
+        "tcpflags": exact,
+        "dss_dsn": exact,
+        "dss_rawack": exact,
+        "dss_ssn": exact,
+        "tcpseq": exact,
+        "tcplen": exact,
+        # "dsnraw64": exact,
+
+}
 
 # def build_connections_from_dataset(df: pd.DataFrame, mptcpstreams: List[int]) -> List[MpTcpConnection]:
 #     """
@@ -44,12 +77,16 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         # crude approach, packet with most common fields is declared the best
         log.debug("compareason based on columns %s " % df.columns)
         for field in df.columns:
-            if getattr(p1, field) == getattr(p2, field):
-                score += 10
-            else:
-                score -= 5
+            try:
+                f1 = getattr(p1, field)
+                f2 = getattr(p2, field)
+                score += scoring_rules[field](f1, f2)
+                log.debug("new score after column [%s] = %f" % (field, score))
+                if math.isinf(score):
+                    break
+            except Exception as e:
+                log.debug(e)
 
-            log.debug("new score after column [%s] = %f" % (field, score))
         # if p1.tcpflags != p2.tcpflags:
         #     score -= 10
         # if p1.dsn != p2.dsn:
@@ -64,7 +101,11 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
     scores = [] # type: List[Any]
 
     for row in df.itertuples():
-        scores.append((row.Index, _cmp_packets(packet, row)))
+        score = _cmp_packets(packet, row)
+
+        # we don't append inf results for performance reasons
+        if not math.isinf(score):
+            scores.append((row.Index, score))
 
     # sort by score
     scores.sort(key=lambda x: x[1], reverse=True)
@@ -73,9 +114,11 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
 
 def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) -> pd.DataFrame:
     """
-    Presuppose that stream ids are laready mapped 
+    Stream ids must already mapped 
+
     algo:
         Computes a score on a per packet basis
+        Based 
 
     Returns:
         a dataframe with 
@@ -95,21 +138,26 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
     # # so that they map to the same or none ?
     limit = 5
     for row in df_final.itertuples():
+        print(len(df2))
         scores = map_tcp_packet(df2, row)
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
         # print("row=", df_final.loc[row.index, "packetid"])
         # df_final.loc[row.index , 'mapped_index'] = 2 # scores[0][0]
         # print(type(row.Index), type(row.index))
-        idx, score = scores[0]
-        df_final.set_value(row.Index, 'mapped_index', idx)
-        df_final.set_value(row.Index, 'score', score)
+        if len(scores) >= 1:
+            idx, score = scores[0]
+            df_final.set_value(row.Index, 'mapped_index', idx)
+            df_final.set_value(row.Index, 'score', score)
 
         # drop the chosen index so that it doesn't get used a second time
         # todo pb la c qu'on utilise les packet id comme des index :/
-        print("Score %f assigned to index %s" % (score, idx))
-        print(df2)
-        df2.drop(df2.index[[idx]], inplace=True)
+            print("Score %f assigned to index %s" % (score, idx))
+            # print(df2)
+            # df2.drop(df2.index[[idx]], inplace=True)
+            df2.drop(idx, inplace=True)
+        else:
+            log.debug("No map found for this packet")
 
         # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index ) 
 

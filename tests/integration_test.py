@@ -91,7 +91,7 @@ class IntegrationTest(TestCase):
             # TODO assert files are created etc...
 
 
-    @unittest.skip("inccorect api use + Not sure pcap are valid yet")
+    @unittest.skip("incorrect api use + Not sure pcap are valid yet")
     def test_mapping_connections(self):
         """
         Test to check if the program correctly mapped one connection to another
