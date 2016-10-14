@@ -75,7 +75,8 @@ class PlotTraceSources(plot.Matplotlib):
         """
         This plugin does not need any dataframe
         """
-        parser = super().default_parser(required_nb_of_dataframes=0, *args, mptcpstream=False)
+        parser = argparse.ArgumentParser(
+            description="unofficial ns3 mptcp plotting tool for TcpTraceHelper generated files")
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("node", help="Choose node to filter from")
         parser.add_argument("attributes", choices=ns3_attributes, 
@@ -102,13 +103,13 @@ class PlotTraceSources(plot.Matplotlib):
         configs = []
 
         if with_meta:
-            log.debug ("With meta")
+            log.debug("With meta")
             # pattern type
-            configs.append ( (str(node) + "*meta*.csv", "meta") )
+            configs.append((str(node) + "*meta*.csv", "meta"))
 
         if with_subflows:
-            log.debug ("With subflows")
-            configs.append ( (str(node) + "*subflow*.csv", "Subflow") )
+            log.debug("With subflows")
+            configs.append((str(node) + "*subflow*.csv", "Subflow"))
 
         folder = args.folder
 

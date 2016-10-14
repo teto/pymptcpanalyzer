@@ -22,7 +22,8 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
     mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(preload_pcaps=["pcap"], *args, **kwargs)
+        pcaps = {"pcap": plot.PreprocessingActions.PreloadAndFilter}
+        super().__init__(preload_pcaps=pcaps, *args, **kwargs)
 
 
     def default_parser(self, *args, **kwargs):
@@ -30,9 +31,11 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         parent = argparse.ArgumentParser(
             description="Helps plotting Data sequence numbers"
         )
-        parent.add_argument("pcap", action="store", help="Input pcap")
-        parser = super().default_parser(*args, parent_parsers=[parent], mptcpstream=True,
-                direction=True, filter_subflows=True, **kwargs)
+        # parent.add_argument("pcap", action="store", help="Input pcap")
+        parser = super().default_parser(*args, parent_parsers=[parent], 
+
+                mptcpstream=True,
+                direction=True, skip_subflows=True, **kwargs)
         parser.add_argument('field', choices=self.mptcp_attributes.keys(),
                 help="Choose an mptcp attribute to plot")
         return parser

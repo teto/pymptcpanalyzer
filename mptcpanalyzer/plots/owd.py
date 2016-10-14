@@ -13,6 +13,12 @@ import argparse
 log = logging.getLogger(__name__)
 
 
+# This is a complex plot hence we added some
+# debug variables
+mock_cachename = "backup.csv"
+limit = 10
+
+
 class OneWayDelay(plot.Matplotlib):
     """
     The purpose of this plot is to display the one-way delay between the client 
@@ -30,16 +36,21 @@ class OneWayDelay(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(preprocess_dataframes=False, *args, **kwargs)
+
+        expected_pcaps = {
+                "host1": plot.PreprocessingActions.Preload,
+                "host2": plot.PreprocessingActions.Preload,
+        }
+        super().__init__(preload_pcaps=expected_pcaps, *args, **kwargs)
 
 
     def default_parser(self, *args, **kwargs):
         parser = argparse.ArgumentParser(
             description="Helps plotting One Way Delays between tcp connections"
         )
-        parser.add_argument("host1", action="store", help="pcap captured on first host")
-        parser.add_argument("host2", action="store", help="pcap captured on second host")
-        parser = super().default_parser( *args, parent_parsers=[parser], mptcpstream=True, **kwargs)
+        # parser.add_argument("host1", action="store", help="pcap captured on first host")
+        # parser.add_argument("host2", action="store", help="pcap captured on second host")
+        parser = super().default_parser(*args, parent_parsers=[parser], mptcpstream=True, **kwargs)
 
         # parser.add_argument("host2", action="store",
         #         help="Either a pcap or a csv file (in good format)."
@@ -47,43 +58,67 @@ class OneWayDelay(plot.Matplotlib):
 
         return parser
 
-    #def do_plot_owd(self, args):
-    def plot(self, rawdfs, mptcpstream=None, **kwargs):
+
+    def get_cachename(self, pcap1, pcap2):
+        """fake cachename via concatenating 
         """
-        Ideally it should be mapped automatically
-        For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
-        Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
-        it relies on the pcap absolute time field.
-        While this is true in discrete time simulators such as ns3
+        # TODO HACK mock
+        return mock_cachename
+        return os.path.join(pcap1, os.path.sep, pcap2)
 
-
-        Todo:
-            it should be possible to cache intermediary results (computed owds)
-
+    def preprocess(self, main, **kwargs):
         """
-        assert mptcpstream is not None, "parser should provide automatically this"
+        This is trickier than in other modules: this plot generates intermediary results
+        to compute OWDs. There results can be cached in which  case it's not necessary
+        to load the original pcaps
+        
+        First we get the cachename associated with the two pcaps. If it's cached we load 
+        directly this cache else we proceed as usual
+        """
+        cachename = self.get_cachename(kwargs.get("host1"), kwargs.get("host2"))
+        # if we can't load that file from cache
+        try:
+            df = main.load_into_pandas(cachename)
+            return df
+        except Exception:
+            log.debug("Could not load intermediate results from cache")
+        # if main.cache.is_cache_valid():
+        #     pd.read_csv
 
+        dataframes = super().preprocess(main, **kwargs)
+        return self.generate_owd_df(dataframes, cachename, **kwargs)
+
+
+
+    # TODO faire une fonction pour TCP simple
+    def generate_owd_df(self, rawdfs, output, mptcpstream, **kwargs):
+        """
+        Attr:
+            output: where to write intermediary results
+        """
+
+        log.info("Generating intermediary results")
         rawdf1, rawdf2 = rawdfs
         # args = parser.parse_args(shlex.split(args))
         # ds1 = main.load_into_pandas(args.client_input)
         # ds2 = main.load_into_pandas(args.server_input)
         # print("=== DS1 0==\n", ds1.dtypes)
-        
+ 
         # Restrict dataset to mptcp connections of interest
         # ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
         # ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
-        rawdf1.set_index('packetid', inplace=True)
-        rawdf2.set_index('packetid', inplace=True)
+        # rawdf1.set_index('packetid', inplace=True)
+        # rawdf2.set_index('packetid', inplace=True)
 
-        df1 = self.preprocess(rawdf1, mptcpstream=mptcpstream, **kwargs)
+        df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
         # use packetid as index
         # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
 
         # limit number of packets while testing 
-        limit = 10
         df1 = df1.head(limit)
         rawdf2 = rawdf2.head(limit)
+
         print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
 
         main_connection = core.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
@@ -159,18 +194,34 @@ class OneWayDelay(plot.Matplotlib):
             how="inner",
             indicator=True # adds a "_merge" suffix
         )
-        
 
         res['owd'] = res['abstime_y'] - res['abstime_x']
 
         # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
         res.to_csv(
-            "backup.csv", 
+            output,
             # columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
             index=False,
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
         )
+        return res
+
+    #def do_plot_owd(self, args):
+    def plot(self, df_results, mptcpstream=None, **kwargs):
+        """
+        Ideally it should be mapped automatically
+        For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
+        Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
+        it relies on the pcap absolute time field.
+        While this is true in discrete time simulators such as ns3
+
+
+        Todo:
+            it should be possible to cache intermediary results (computed owds)
+
+        """
+        assert mptcpstream is not None, "parser should provide automatically this"
 
         # prepare a plot
         fig = plt.figure()

@@ -194,7 +194,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # Exception raised by sys.exit(), which is called by argparse
         # we don't want the program to finish just when there is an input error
         except SystemExit as e:
-        #     # e is the error code to call sys.exit() with
+            # e is the error code to call sys.exit() with
             # log.debug("Input error: " % e)
             # print("Error: %s"% e)
             self.cmdloop()
@@ -221,7 +221,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         log.debug("postcmd result for line [%s] => %r", line, stop)
 
-        return True if stop == True else False
+        return True if stop is True else False
 
 
     def require_fields(mandatory_fields: list):  # -> Callable[...]:
@@ -288,7 +288,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         Score based mechanism
 
         Todo:
-            - Limit number of outputted matches
+            - Limit number of displayed matches
         """
         parser = argparse.ArgumentParser(
             description="This function tries to map a mptcp.stream from a dataframe (aka pcap) to mptcp.stream"
@@ -312,21 +312,23 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         print("Please read the help.")
-        mappings = mptcp_match_connection(df1, df2, args.mptcpstreams)
+
+        # TODO wrong api
+        mappings = data.mptcp_match_connection(df1, df2, args.mptcpstreams)
 
         print("%d mapping(s) found" % len(mappings))
 
-        for con1, scores  in mappings.items():
+        for con1, scores in mappings.items():
             for con2, score in scores:
 
                 output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score}"
                 if args.verbose:
                     output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score}"
                 formatted_output = output.format(
-                        c1=con1,
-                        c2=con2,
-                        score=score
-                        )
+                    c1=con1,
+                    c2=con2,
+                    score=score
+                )
                 print(formatted_output)
 
     @is_loaded
@@ -336,7 +338,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
         parser = argparse.ArgumentParser(
-                description="Prints a summary of the mptcp connection"
+            description="Prints a summary of the mptcp connection"
         )
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
         parser.add_argument("--deep", action="store_true", help="Deep analysis, computes transferred bytes etc...")
@@ -359,7 +361,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         total_transferred = dsn_max - dsn_min
         d = df.groupby('tcpstream')
         # drop_duplicates(subset='rownum', take_last=True)
-        print("mptcpstream %d transferred %d" % (mptcpstream, total_transferred))
+        print("mptcpstream %d transferred %d" % (args.mptcpstream, total_transferred))
         for tcpstream, group in d:
             subflow_load = group.drop_duplicates(
                 subset="dss_dsn").dss_length.sum()
@@ -511,7 +513,7 @@ class MpTcpAnalyzer(cmd.Cmd):
                 mp.get_fields("fullname", "name"),
                 tshark_filter="mptcp and not icmp"
             )
-            log.info("exporter exited with code=", retcode)
+            log.info("exporter exited with code=%d", retcode)
             if retcode:
                 # log.exception
                 raise Exception(stderr)
@@ -525,9 +527,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             dtype=dtypes,
             converters={
                 "tcp.flags": lambda x: int(x, 16),
-            }
-        )
-
+            }) 
         data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
 
         # pp = pprint.PrettyPrinter(indent=4)
@@ -573,7 +573,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         cli_args = shlex.split(cli_args)
         args, unknown_args = parser.parse_known_args(cli_args)
         # Allocate plot object
-        plotter = self.plot_mgr[args.plot_type].obj(main=self)
+        plotter = self.plot_mgr[args.plot_type].obj
 
         # dataframes = []
         # if self.data is not None:
@@ -590,8 +590,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         # TODO
         # inspect.getfullargspec(fileinput.input))
         # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes]
+        print("TOTO")
         dataframes = plotter.preprocess(self, **dargs)
         assert dataframes is not None, "Preprocess must return a list"
+        print("dataframes", dataframes, " comapred to ", dargs)
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
 

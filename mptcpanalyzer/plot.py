@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import logging
 import mptcpanalyzer as mp
 from enum import Enum, IntEnum
-from typing import List
+from typing import List, Dict
 from mptcpanalyzer.connection import MpTcpConnection
 
 import abc
@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 
 class PreprocessingActions(IntEnum):
+    DoNothing = 0
     Preload = 0
     PreloadAndFilter = 1
 
@@ -66,19 +67,18 @@ class Plot:
     """
 
     def __init__(self, title: str = None, 
-            preload_dataframes: List[str]=None,
+            preload_pcaps: Dict[str, PreprocessingActions]={"pcap": PreprocessingActions.Preload},
             # cache=None,
             # main=None,
             *args, **kwargs):
         """
         Args:
             title (str): Plot title
-            main: 
         """
         self.title = title
         # self.enable_preprocessing = preprocess_dataframes
         # self.main = main
-        self.preload_pcaps = preload_dataframes
+        self.preload_pcaps = preload_pcaps
 
         # assert self.main, "Need reference to MpTcpAnalyzer"
 
@@ -92,7 +92,7 @@ class Plot:
             # TODO remove two followings ?
             parent_parsers=[],
             # available_dataframe: bool,
-            required_inputs: List[str] = None,
+            # required_inputs: List[str] = ["pcap"],
             mptcpstream: bool = False,
             direction: bool = False, skip_subflows: bool = True,
             dst_host: bool=False):
@@ -113,17 +113,22 @@ class Plot:
         """
         parser = argparse.ArgumentParser(
             parents=parent_parsers,
+            add_help=False if len(parent_parsers) else True,
         )
 
         # how many pcaps shall we load ?
         # count = required_nb_of_dataframes - (1 if available_dataframe else 0)
         # for i in range(0, count):
 
-        if required_nb_of_dataframes:
-            parser.add_argument("pcap",  action="append",
-                    metavar="pcap%d" % i,
-                    type=str,
-                    help='Pcap file (or its associated csv)')
+        # for name in required_inputs:
+        print("preload = ", type(self.preload_pcaps), self.preload_pcaps)
+        for name in self.preload_pcaps.keys():
+            parser.add_argument(name, 
+            # action="append",
+            action="store",
+            # metavar="pcap%d" % i,
+            type=str,
+            help='Pcap file (or its associated csv)')
 
         if mptcpstream:
             parser.add_argument('mptcpstream', action="store", type=int,
@@ -252,10 +257,17 @@ class Plot:
         Must return the dataframes used by plot
         """
         assert main, "Need reference to MpTcpAnalyzer"
-        dataframes = [ main.load_into_pandas(kwargs.get(pcap_name)) for pcap_name in self.preload_pcaps]
+        dataframes = []
+        for pcap_name, action in self.preload_pcaps.items():
+            print("pcap_name=", pcap_name, kwargs.get(pcap_name))
+            if action >= PreprocessingActions.Preload:
+                df = main.load_into_pandas(kwargs.get(pcap_name))
+                dataframes.append(df)
+
         # self.load_into_pandas(pcap)
         # dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
         return dataframes
+
 
     def run(self, rawdataframes, **kwargs):
         """
@@ -366,11 +378,6 @@ class Matplotlib(Plot):
             A matplotlib figure
         """
         # autofilter dataset if needed
-        # for name, val in args.__dict__.items():
-        #     if name in get_default_fields():
-                #exporter
-                # filter_ds()
-        # check filetered dataset is not empty
         # with plt.style.context(args.styles):
         # setup styles if any
         log.debug("Using matplotlib styles: %s" % styles)
@@ -381,7 +388,8 @@ class Matplotlib(Plot):
         # matplotlib.pyplot.style.use(args.styles)
         # ('dark_background')
         with plt.style.context(styles):
-            fig = self.plot(dataframes, styles, **kwargs)
+            print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
+            fig = self.plot(dataframes, styles=styles, **kwargs)
 
         return fig
 

@@ -35,11 +35,11 @@ class IntegrationTest(TestCase):
         config = MpTcpAnalyzerConfig()
         self.m = MpTcpAnalyzer(config)
 
-    # def preload_pcap(self, regen: bool =False):
-    #     cmd = "examples/iperf-mptcp-0-0.pcap"
-    #     if regen:
-    #         cmd += " --regen"
-    #     self.m.do_load(cmd)
+    def preload_pcap(self, regen: bool =False):
+        cmd = "examples/iperf-mptcp-0-0.pcap"
+        if regen:
+            cmd += " --regen"
+        self.m.do_load(cmd)
 
     def setup_plot_mgr(self):
         """
@@ -91,7 +91,7 @@ class IntegrationTest(TestCase):
             # TODO assert files are created etc...
 
 
-    # @unittest.skip("Not sure pcap are valid yet")
+    @unittest.skip("inccorect api use + Not sure pcap are valid yet")
     def test_mapping_connections(self):
         """
         Test to check if the program correctly mapped one connection to another
@@ -104,7 +104,7 @@ class IntegrationTest(TestCase):
         # just looking to map mptcp.stream 0
         results = core.mptcp_match_connection(ds1, ds2, [0])
         # self.assertEqual( len(cmd), 0, "An error happened")
-        self.assertGreaterEqual(len(cmd), 1, "There must be at least one result")
+        self.assertGreaterEqual(len(results), 1, "There must be at least one result")
 
     # def test_plot_owd(self):
         # self.m.do_plot("plot owd 0")
@@ -120,7 +120,12 @@ class IntegrationTest(TestCase):
         self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
 
 
-    @unittest.skip
+
+    # TODO
+    def test_clean_cache(self):
+        pass
+
+    # @unittest.skip("")
     def testlist_subflows(self):
         """
         Test that it can list subflows
@@ -130,7 +135,7 @@ class IntegrationTest(TestCase):
         with self.assertRaises(mp.MpTcpException):
             self.m.do_ls("0")
 
-        # self.preload_pcap()
+        self.preload_pcap()
         self.m.do_ls("0")
 
         # fails because there are no packets with this id
@@ -162,19 +167,11 @@ class IntegrationTest(TestCase):
         #     with self.subTest(i=i):
         #         self.assertIn()
 
-    def test_plot_attr_preloaded(self):
-        """
-        Loads the dataset first
-        """
-        self.setup_plot_mgr()
-        self.m.do_load("examples/iperf-mptcp-0-0.pcap")
-        self.m.do_plot("attr 0 Client dsn")
-
     def test_plot_attr_postloaded(self):
         self.setup_plot_mgr()
-        self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 Client dsn")
+        self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 client dsn")
         # TODO test --title
-        # self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 Client dsn")
+        # self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 client dsn")
 
 
     def test_list_plots_2(self):
@@ -182,16 +179,6 @@ class IntegrationTest(TestCase):
         print("plot names=", plot_names)
         # self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
-
-    def testplots(self):
-        """
-        """
-        self.preload_pcap()
-        # TODO precise file
-        # self.m.do_plot("attr 0")
-        # self.m.do_plot("interarrival 0")
-
-        # TODO
 
 
     @unittest.skip("not upstreamed yet")
@@ -201,4 +188,3 @@ class IntegrationTest(TestCase):
         """
 
         # self.m.do_plot("ns3 --meta examples/ cwnd 0")
-

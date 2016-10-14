@@ -62,9 +62,11 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         return score
 
     scores = [] # type: List[Any]
+
     for row in df.itertuples():
         scores.append((row.Index, _cmp_packets(packet, row)))
 
+    # sort by score
     scores.sort(key=lambda x: x[1], reverse=True)
     return scores
 
@@ -82,27 +84,20 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
     df2 = rawdf2[rawdf2["tcpstream"] == con2.tcpstreamid]
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
-    print("toto")
+    log.debug("Mapping TCP packets between TODO")
+    df1.set_index('packetid', inplace=True)
+    df2.set_index('packetid', inplace=True)
 
     # returns a new df with new columns
     df_final = df1.assign(mapped_index=np.nan, score=np.nan)
-    # print("toto2")
-
-    # deep copy of the dataframe
-    # df_final = df1.copy()
 
     # # Problem is to identify lost packets and retransmitted ones 
     # # so that they map to the same or none ?
-    # #itertuples returns namedtuples
-    # print("head=\n", df_final.head())
+    limit = 5
     for row in df_final.itertuples():
         scores = map_tcp_packet(df2, row)
-        # print("row", row)
-        limit = 2
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
-        # df1.loc[row.index, 
-        # records matching 'packetid'
         # print("row=", df_final.loc[row.index, "packetid"])
         # df_final.loc[row.index , 'mapped_index'] = 2 # scores[0][0]
         # print(type(row.Index), type(row.index))
@@ -112,11 +107,10 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
 
         # drop the chosen index so that it doesn't get used a second time
         # todo pb la c qu'on utilise les packet id comme des index :/
+        print("Score %f assigned to index %s" % (score, idx))
+        print(df2)
         df2.drop(df2.index[[idx]], inplace=True)
 
-        # TODO here we should drop selected 
-
-        # c quasiment tjrs les mm packetid 1 et 2 ?!!
         # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index ) 
 
     print("head=\n", df_final.head())
@@ -124,7 +118,7 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
 
 
 # def compare_filtered_df(df1, mptcpstream1, df2, mptcpstream2) -> int :
-def compare_filtered_df(df1, main, df2, other) -> float:
+def compare_filtered_df(df1, main: MpTcpConnection, df2, other: MpTcpConnection) -> float:
     """
     ALREADY FILTERED dataframes
 

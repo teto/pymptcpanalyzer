@@ -36,5 +36,6 @@ class ConfigTest(TestCase):
         # config = MpTcpAnalyzerConfig()
         cfg = MpTcpAnalyzerConfig(config_file)
         # self.assert
+        cfg = cfg["mptcpanalyzer"]
         self.assertEqual(cfg["tshark_binary"], "fake_tshark")
         self.assertEqual(cfg["delimiter"], "|")

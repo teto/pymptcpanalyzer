@@ -57,8 +57,8 @@ class DSSOverTime(plot.Matplotlib):
         - ability to display relative #seq
     """
 
-    def __init__(self):
-        super().__init__(self, "dsn", False)
+    def __init__(self, **kwargs):
+        super().__init__(title="dsn", **kwargs)
 
     def default_parser(self, *args, **kwargs):
         parser = super().default_parser(*args, mptcpstream=True, 
@@ -78,11 +78,11 @@ class DSSOverTime(plot.Matplotlib):
         """
         dack_str = "dss_rawack"
         dsn_str = "dss_dsn"
- 
+
         ymin, ymax = float('inf'), 0
 
         rawdf.set_index("reltime", inplace=True)
-        
+       
         df_forward = self.preprocess(rawdf, destination=destination, extra_query="dss_dsn > 0", **args)
 
         # compute limits of the plot
