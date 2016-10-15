@@ -42,7 +42,7 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         log.debug("comparing packets %s and %s" % (p1, p2))
         score = 0
         # crude approach, packet with most common fields is declared the best
-        log.debug("compareason based on columns %s " % df.columns)
+        log.debug("comparison based on columns %s " % df.columns)
         for field in df.columns:
             if getattr(p1, field) == getattr(p2, field):
                 score += 10
@@ -107,9 +107,11 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
 
         # drop the chosen index so that it doesn't get used a second time
         # todo pb la c qu'on utilise les packet id comme des index :/
-        print("Score %f assigned to index %s" % (score, idx))
+        print("Score %f assigned to index %r" % (score, idx))
         print(df2)
+        print(df2.index)
         df2.drop(df2.index[[idx]], inplace=True)
+
 
         # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index ) 
 
