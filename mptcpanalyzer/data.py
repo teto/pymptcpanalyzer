@@ -12,8 +12,10 @@ import math
 
 log = logging.getLogger(__name__)
 
+
 def ignore(f1, f2):
     return 0
+
 
 def exact(f1, f2):
     return float('-inf') if f1 != f2 else 10

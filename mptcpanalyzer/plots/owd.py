@@ -231,6 +231,7 @@ class OneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
 
+        res = df_results
         print("columns", res.columns)
 
         pplot = res.owd.plot.line(

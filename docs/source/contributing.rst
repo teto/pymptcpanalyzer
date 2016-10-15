@@ -8,6 +8,8 @@ There are several things you can do:
 * `Send patches <https://github.com/teto/mptcpanalyzer/pulls>`_ to either fix a bug, improve the documentation or flake8 compliance.
 
 
+You should be prepared to run mypy and pycodestyle (successor of pep8) on your code to check for style conformance.
+
 .. _develop-new-plugins:
 
 Develop an mptcpanalyzer plugin 
