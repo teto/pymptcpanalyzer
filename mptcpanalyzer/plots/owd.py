@@ -72,7 +72,7 @@ class OneWayDelay(plot.Matplotlib):
         This is trickier than in other modules: this plot generates intermediary results
         to compute OWDs. There results can be cached in which  case it's not necessary
         to load the original pcaps
-        
+ 
         First we get the cachename associated with the two pcaps. If it's cached we load 
         directly this cache else we proceed as usual
         """
@@ -174,8 +174,8 @@ class OneWayDelay(plot.Matplotlib):
         mapped_df = core.map_tcp_packets(df1, rawdf2, sf1, sf2)
 
         # TODO print statistics about how many packets have been mapped
-        print(" len(mapped_df)")
-        
+        # print(" len(mapped_df)")
+ 
         # should print packetids
         print(mapped_df["mapped_index"].head())
 
@@ -200,6 +200,7 @@ class OneWayDelay(plot.Matplotlib):
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
         )
+        print(res["packetid","mapped_index", "owd"])
         return res
 
     #def do_plot_owd(self, args):
@@ -237,20 +238,18 @@ class OneWayDelay(plot.Matplotlib):
             # lw=3
         )
 
-
         # TODO add units
         axes.set_xlabel("Time")
         axes.set_ylabel("One Way Delay")
         return fig
 
         ########################################
-        ### this is never executed (legacy code)
+        # this is never executed (legacy code)
         ########################################
         # see interesting tutorial 
         # http://pandas.pydata.org/pandas-docs/stable/merging.html
         # how=inner renvoie 0, les choix sont outer/left/right
         # ok ca marche mais faut faire gaffe aux datatypes
-        
         """
             # TODO here we should merge on the 
             res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
