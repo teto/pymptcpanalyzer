@@ -13,8 +13,10 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
+
 class TcpConnection:
     """
+    Everything capable of identifying a connection
 
     Note:
         There exists in ipaddress module
@@ -22,18 +24,21 @@ class TcpConnection:
     Attributes:
         tcpstreamid: wireshark tcp.stream
     """
-    def __init__(self,
-            tcpstreamid,
-            clientip, serverip, cport, sport,
-        ):
-        self.tcpstreamid = tcpstreamid
+    def __init__(
+        self,
+        tcpstreamid,
+        clientip, serverip, cport, sport,
+        **kwargs
+    ):
+        self.tcpstreamid = tcpstreamid # type: int
         self.client_ip = clientip
         self.server_ip = serverip
-        self.server_port = sport
-        self.client_port = cport
+        self.server_port = sport # type: int
+        self.client_port = cport # type: int
+        self.isn = kwargs.get('isn')
 
 
-    def generate_direction_query(self, dest : Destination):
+    def generate_direction_query(self, dest: Destination):
         """
         """
         q = "tcpstream==%d " % self.tcpstreamid
@@ -55,12 +60,13 @@ class TcpConnection:
         """
         If every parameter is equal, returns +oo
         """
-        if (self.server_ip == other.server_ip 
-            and self.client_ip == other.client_ip
-            and self.client_port == other.client_port
-            and self.server_port == other.server_port):
+        if (self.server_ip == other.server_ip and 
+                self.client_ip == other.client_ip and
+                self.client_port == other.client_port and
+                self.server_port == other.server_port):
                 return float('inf')
 
+        # TODO also match on isn
         # TODO more granulary score
         return 0
 
@@ -79,6 +85,38 @@ class TcpConnection:
         """
         sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, **kwargs)
         return sf
+
+    @staticmethod
+    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: int) -> 'TcpConnection':
+        """
+        Instantiates a class that describes an MPTCP connection
+        """
+
+        def get_index_of_non_null_values(serie):
+            # http://stackoverflow.com/questions/14016247/python-find-integer-index-of-rows-with-nan-in-pandas/14033137#14033137
+            # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
+            return serie.notnull().nonzero()[0]
+
+
+        df = rawdf[rawdf.tcpstream == tcpstreamid]
+        if len(df.index) == 0:
+            raise MpTcpException("No packet with this stream id")
+
+        # print(df["tcpflags"].head())
+
+        # + mp.TcpFlags TODO record ISN !!
+        # syns = df[df.tcpflags == mp.TcpFlags.SYN]
+        # if len(syns) == 0
+        #     raise MpTcpException("No packet with this stream id")
+
+        row = df.iloc[0,]
+        result = TcpConnection(tcpstreamid,
+            row['ipsrc'], row['ipdst'],
+            row['sport'], row['dport']
+        )
+        log.debug("Created connection %s", result)
+        return result
+
 
 
     def reversed(self):
@@ -110,6 +148,7 @@ class MpTcpSubflow(TcpConnection):
         )
         res.addrid = self.addrid
         return res
+
 
 class MpTcpConnection:
     """
@@ -184,16 +223,16 @@ class MpTcpConnection:
         cid = res[0]
         client_key = ds["sendkey"].iloc[cid]
         client_token = ds["expected_token"].iloc[cid]
-        server_key = ds["sendkey"].iloc[ res[1] ]
-        server_token = ds["expected_token"].iloc[ res[1] ]
+        server_key = ds["sendkey"].iloc[res[1]]
+        server_token = ds["expected_token"].iloc[res[1]]
         # print("client key", client_key, "/", client_token, "/", server_key, server_token)
         master_id = ds["tcpstream"].iloc[0]
 
         subflows = []
         master_sf = MpTcpSubflow.create_subflow(
-                master_id, ds['ipsrc'].iloc[ cid ], ds['ipdst'].iloc[ cid ],
-                ds['sport'].iloc[ cid ], ds['dport'].iloc[ cid ],
-                addrid="master", )
+            master_id, ds['ipsrc'].iloc[cid], ds['ipdst'].iloc[cid],
+            ds['sport'].iloc[cid], ds['dport'].iloc[cid],
+            addrid="master", )
 
         subflows.append(master_sf)
         tcpstreams = ds.groupby('tcpstream')
@@ -204,17 +243,19 @@ class MpTcpConnection:
             if len(res) < 1:
                 raise MpTcpException("Missing MP_JOIN")
             row = res[0]
-            token = subflow_ds["recvtok"].iloc[ row ]
-            subflow = MpTcpSubflow.create_subflow (tcpstreamid, subflow_ds['ipsrc'].iloc[ row ], subflow_ds['ipdst'].iloc[ row ],
-                subflow_ds['sport'].iloc[ row ], subflow_ds['dport'].iloc[ row ],
+            token = subflow_ds["recvtok"].iloc[row]
+            subflow = MpTcpSubflow.create_subflow(tcpstreamid,
+                subflow_ds['ipsrc'].iloc[row], subflow_ds['ipdst'].iloc[row],
+                subflow_ds['sport'].iloc[row], subflow_ds['dport'].iloc[row],
                 addrid=None)
+
             if (token == client_token):
                 subflow = subflow.reversed()
             subflows.append(subflow)
 
-        result =  MpTcpConnection(mptcpstreamid, client_key, client_token,
-                server_key, server_token,
-                subflows)
+        result = MpTcpConnection(mptcpstreamid, client_key, client_token,
+            server_key, server_token,
+            subflows)
         log.debug("Creating connection %s", result)
         return result
 
@@ -244,6 +285,53 @@ class MpTcpConnection:
         # tcpstreams = self.ds.groupby('tcpstream')
         pass
 
+    def __eq__(self, other):
+        """
+        Ignores 
+        A NAT/PAT could have rewritten IPs in which case you probably 
+        should add another function like score
+        """
+        return self.score(other) == float('inf')
+
+    # def score(self, other):
+    def score(self, other: 'MpTcpConnection') -> float:
+        """
+        ALREADY FILTERED dataframes
+
+        Returns:
+            a score
+            - '-inf' means it's not possible those 2 matched
+            - '+inf' means 
+        """
+
+        score = 0
+        if len(self.subflows) != len(other.subflows):
+            log.debug("FISHY: Datasets contain a different number of subflows (d vs d)" % ())
+            score -= 5
+
+        common_sf = []
+
+        if self.server_key == other.server_key and main.client_key == other.client_key:
+            log.debug("matching keys => same")
+            return float('inf')
+
+
+        # TODO check there is at least the master
+        # with nat, ips don't mean a thing ?
+        for sf in self.subflows:
+            # TODO compute a score
+            if sf in other.subflows or sf.reversed in other.subflows:
+                log.debug("Subflow %s in common" % sf)
+                score += 10
+                common_sf.append(sf)
+            else:
+                log.debug("subflows don't match")
+            # elif sf.master:
+            #     return float('-inf')
+
+        # TODO compare start times supposing cloak are insync ?
+        return score
+
 
     def __str__(self):
         return str(self.mptcpstreamid)
@@ -253,26 +341,26 @@ class MpTcpConnection:
         Server key/token: {skey}/{stoken}
         Client key/token: {ckey}/{ctoken}
         """.format(
-                skey=self.server_key,
-                stoken=self.server_token,
-                ckey=self.client_key,
-                ctoken=self.client_token,
-                )
-                # extra = ""
-                # addrid = []
-                # if len(gr2[gr2.master == 1]) > 0:
-                #     addrid = ["master", "master"]
-                # else:
-                #     # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
-                #     # la ca foire
-                #     for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
-                #         gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
-                #         # print("nb of results:", len(gro))
-                #         if len(gro):
-                #             # print("i=",i)
-                #             value = int(gro["addrid"].iloc[0])
-                #         else:
-                #             value = "Unknown"
-                #         addrid.insert(i, value)
+            skey=self.server_key,
+            stoken=self.server_token,
+            ckey=self.client_key,
+            ctoken=self.client_token,
+        )
+        # extra = ""
+        # addrid = []
+        # if len(gr2[gr2.master == 1]) > 0:
+        #     addrid = ["master", "master"]
+        # else:
+        #     # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
+        #     # la ca foire
+        #     for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
+        #         gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
+        #         # print("nb of results:", len(gro))
+        #         if len(gro):
+        #             # print("i=",i)
+        #             value = int(gro["addrid"].iloc[0])
+        #         else:
+        #             value = "Unknown"
+        #         addrid.insert(i, value)
 
         return res

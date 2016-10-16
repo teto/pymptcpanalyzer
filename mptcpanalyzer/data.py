@@ -119,7 +119,10 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
     return scores
 
 
-def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) -> pd.DataFrame:
+def map_tcp_packets(    
+    rawdf1, rawdf2, 
+        # con1: TcpConnection, con2: TcpConnection
+) -> pd.DataFrame:
     """
     Stream ids must already mapped 
 
@@ -128,15 +131,16 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
         Based 
 
     Returns:
-        a dataframe with 
+        a dataframe with as Index the packetid
     """
-    df1 = rawdf1[rawdf1["tcpstream"] == con1.tcpstreamid]
-    df2 = rawdf2[rawdf2["tcpstream"] == con2.tcpstreamid]
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
     log.debug("Mapping TCP packets between TODO")
-    df1.set_index('packetid', inplace=True)
-    df2.set_index('packetid', inplace=True)
+    df1 = rawdf1.set_index('packetid', )
+    df2 = rawdf2.set_index('packetid',) # [rawdf2["tcpstream"] == con2.tcpstreamid]
+    # df1 = rawdf1
+    # df2 = rawdf2
+    # df2.set_index('packetid', inplace=True)
 
     # returns a new df with new columns
     df_final = df1.assign(mapped_index=np.nan, score=np.nan)
@@ -145,7 +149,7 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
     # # so that they map to the same or none ?
     limit = 5
     for row in df_final.itertuples():
-        print("len(df2)=", len(df2))
+        # print("len(df2)=", len(df2))
         scores = map_tcp_packet(df2, row)
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
@@ -172,62 +176,8 @@ def map_tcp_packets(rawdf1, rawdf2, con1: TcpConnection, con2: TcpConnection) ->
     return df_final
 
 
-# def compare_filtered_df(df1, mptcpstream1, df2, mptcpstream2) -> int :
-def compare_filtered_df(df1, main: MpTcpConnection, df2, other: MpTcpConnection) -> float:
-    """
-    ALREADY FILTERED dataframes
-
-    Returns:
-        a score
-        - '-inf' means it's not possible those 2 matched
-        - '+inf' means 
-    """
-
-    score = 0
-    # mptcpstream = df1[df1.mptcpstream]
-    # print("df1=%r"% df1)
-    # print("stream=", df1.indices) #, 'mptcpstream']
-    # # df1.as_index
-    # print("rows", df1.nth(0).index )
-    # print("keys", df1.keys )
-    # print("keys", df1.group_keys)
-    # print(dir(df1))
-    # main = MpTcpConnection.build_from_dataframe(df1, mptcpstream1)
-    # other = MpTcpConnection.build_from_dataframe(df2, mptcpstream2)
-
-    # tcpstreams1 = ds1.groupby('tcpstream')
-    # tcpstreams2 = ds2.groupby('tcpstream')
-    # log.debug ("ds1 has %d subflow(s)." % (len(tcpstreams1)))
-    # log.debug ("ds2 has %d subflow(s)." % (len(tcpstreams2)))
-    if len(main.subflows) != len(other.subflows):
-        log.debug("FISHY: Datasets contain a different number of subflows (d vs d)" % ())
-        score -= 5
-
-    common_sf = []
-
-    if main.server_key == other.server_key and main.client_key == other.client_key:
-        log.debug("matching keys => same")
-        return float('inf')
 
 
-    # TODO check there is at least the master
-    # with nat, ips don't mean a thing ?
-    for sf in main.subflows:
-        # TODO compute a score
-        if sf in other.subflows or sf.reversed in other.subflows:
-            log.debug("Subflow %s in common" % sf)
-            score += 10
-            common_sf.append(sf)
-        else:
-            log.debug("subflows don't match")
-        # elif sf.master:
-        #     return float('-inf')
-
-    # TODO compare start times supposing cloak are insync ?
-    return score
-
-
-# TODO rename
 def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
 
 
@@ -237,15 +187,31 @@ def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: Lis
             continue
 
         main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
-        results = mptcp_match_connection(rawdf1, rawdf2, main)
+        results = mptcp_match_connection(rawdf2, main)
         mappings.update({main: results})
     return mappings
 
 
-# def mptcp_match_connection(rawdf1 : pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
+def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection):
+    """
+    """
+
+    results = []
+    for tcpstream in rawdf["tcpstream"].unique():
+        other = TcpConnection.build_from_dataframe(rawdf, tcpstream)
+        score = main.score(other)
+        if score > float('-inf'):
+            results.append((other, score))
+
+    # sort based on the score
+    results.sort(key=lambda x: x[1], reverse=True)
+
+    return results
+
+
 def mptcp_match_connection(
-    rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, main: MpTcpConnection
-    ) -> List[Tuple[MpTcpConnection,int]]:
+    rawdf2: pd.DataFrame, main: MpTcpConnection
+) -> List[Tuple[MpTcpConnection, float]]:
     """
     .. warn: Do not trust the results yet WIP !
 
@@ -254,29 +220,14 @@ def mptcp_match_connection(
 
     It goes over 
 
-    Todo:
-        - Every stream should be mapped to only one other (add a check for that ?)
-
-
     Args:
         ds1, ds2
-        idx : List of mptcpstream chosen from rawds1, for which we want the equivalent id in rawdf2
-
-    Returns:
-        a dict {Connection1: [(Connection2, score)])
 
     """
     log.warning("mapping between datasets is not considered trustable yet")
     results = [] # type: List[Tuple[Any, float]]
-    # if idx
-    #    filtereddf1. 
-    # df1 = rawdf1.groupby("mptcpstream")
-    # ds2 = rawdf2.groupby("mptcpstream")
-
 
     mappings = {} # type: Dict[int,Tuple[Any, float]]
-    # scores = 
-    # df['id'],unique()
 
     # main = MpTcpConnection.build_from_dataframe(df, mptcpstream)
     score = -1 # type: float
@@ -284,11 +235,11 @@ def mptcp_match_connection(
 
     for mptcpstream2 in rawdf2["mptcpstream"].unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
-        score = compare_filtered_df(rawdf1, main, rawdf2, other)
+        score = main.score(other)
         if score > float('-inf'):
             results.append((other, score))
 
     # sort based on the score
-    results.sort(key=lambda x: x[1])
+    results.sort(key=lambda x: x[1], reverse=True)
 
     return results

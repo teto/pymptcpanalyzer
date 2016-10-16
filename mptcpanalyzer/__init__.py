@@ -16,11 +16,23 @@ name: shortname used in mptcpanalyzer
 type: python type pandas should convert this field to
 label: used when plotting
 """
-Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', 'invariant']) # 'converter'
-Field.__new__.__defaults__ = (None, None)
+Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ]) # 'converter'
+# Field.__new__.__defaults__ = (None, None)
 
 
-def get_fields (field, field2=None):
+class TcpFlags(Enum):
+    NONE = 0   
+    FIN = 1   
+    SYN = 2   
+    RST = 4   
+    PSH = 8   
+    ACK = 16  
+    URG = 32  
+    ECE = 64  
+    CWR = 128  
+
+
+def get_fields(field, field2=None):
     """
     Args:
         field: should be a string in Field
@@ -103,8 +115,8 @@ def fields_v2():
         # set to deltatime
         Field("frame.time_delta", "time_delta", None, False, ),
         Field("frame.time_epoch", "abstime", None, False, ),
-        Field("_ws.col.ipsrc", "ipsrc", str, False, True),
-        Field("_ws.col.ipdst", "ipdst", str, False, True),
+        Field("_ws.col.ipsrc", "ipsrc", str, False, ),
+        Field("_ws.col.ipdst", "ipdst", str, False, ),
         Field("ip.src_host", "ipsrc_host", str, False),
         Field("ip.dst_host", "ipdst_host", str, False),
         Field("mptcp.expected_token", "expected_token", str, False),

@@ -56,9 +56,15 @@ class CacheTest(TestCase):
             with tempfile.TemporaryDirectory() as cachedir:
                 cache = Cache(cachedir)
                 self.assertFalse(cache.is_cache_valid(f.filename), "file does not exist yet")
-                uid = cache.cacheuid(f)
-                shutil.copy(f.filename, uid)
+                f_uid = cache.cacheuid(f.filename)
+                shutil.copy(f.filename, f_uid)
                 self.assertTrue(cache.is_cache_valid(f.filename), "")
+                self.assertFalse(cache.is_cache_valid(f.filename, [f.filename, g.filename]), 
+                        "dependancy on g not satisfied")
+                g_uid = cache.cacheuid(g.filename)
+                shutil.copy(g.filename, g_uid)
+                self.assertTrue(cache.is_cache_valid(f.filename, [f.filename, g.filename]), 
+                        "dependancy on g not satisfied")
                 f.unlink()
                 f = Path(tmpdir, "toto.txt").touch()
                 self.assertFalse(cache.is_cache_valid(f.filename), "Cache is older than file")

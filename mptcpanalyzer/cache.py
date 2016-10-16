@@ -81,7 +81,7 @@ class Cache:
         return os.path.join(self.folder, '%'.join(chunks))
 
     def clean(self):
-        print("Cleaning cache [%s]" % self.folder)
+        log.info("Cleaning cache [%s]" % self.folder)
         for cached_csv in os.scandir(self.folder):
             log.info("Removing " + cached_csv.path)
             os.unlink(cached_csv.path)

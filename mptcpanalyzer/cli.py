@@ -610,7 +610,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
         # 
-        print("Cleaning cache [%s]" % self.config.cache)
+        print("Cleaning cache [%s]" % self.cache.folder)
         self.cache.clean()
         # for cached_csv in os.scandir(self.config.cache):
         #     log.info("Removing " + cached_csv.path)

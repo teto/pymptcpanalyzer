@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+import mptcpanalyzer as mp
 import mptcpanalyzer.plot as plot
-import mptcpanalyzer.data as core
+import mptcpanalyzer.data as data
+from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
@@ -20,7 +23,8 @@ mock_cachename = "backup.csv"
 limit = 10
 
 
-class OneWayDelay(plot.Matplotlib):
+
+class TcpOneWayDelay(plot.Matplotlib):
     """
     The purpose of this plot is to display the one-way delay between the client 
     and the server.
@@ -39,10 +43,20 @@ class OneWayDelay(plot.Matplotlib):
     def __init__(self, *args, **kwargs):
 
         expected_pcaps = {
-                "host1": plot.PreprocessingActions.Preload,
-                "host2": plot.PreprocessingActions.Preload,
+            "client_pcap": plot.PreprocessingActions.Preload,
+            "server_pcap": plot.PreprocessingActions.Preload,
         }
         super().__init__(preload_pcaps=expected_pcaps, *args, **kwargs)
+        # self.suffixes = ("_snd", "_rcv")
+        self.suffixes = ("", "_rcv")
+        self.columns = [
+            "owd", 
+            "abstime" + self.suffixes[0], 
+            "abstime" + self.suffixes[1], 
+            "packetid" + self.suffixes[0], 
+            "packetid" + self.suffixes[1], 
+            "tcpseq"
+        ] 
 
 
     def default_parser(self, *args, **kwargs):
@@ -67,12 +81,12 @@ class OneWayDelay(plot.Matplotlib):
         return mock_cachename
         return os.path.join(pcap1, os.path.sep, pcap2)
 
-    def preprocess(self, main, **kwargs):
+    def preprocess(self, main, mptcpstream=None, **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
         to compute OWDs. There results can be cached in which  case it's not necessary
         to load the original pcaps
- 
+
         First we get the cachename associated with the two pcaps. If it's cached we load 
         directly this cache else we proceed as usual
         """
@@ -82,51 +96,230 @@ class OneWayDelay(plot.Matplotlib):
             df = main.load_into_pandas(cachename)
             return df
         except Exception:
-            log.debug("Could not load intermediate results from cache")
-        # if main.cache.is_cache_valid():
-        #     pd.read_csv
+            log.debug("Could not load cached results %s" % cachename)
 
-        dataframes = super().preprocess(main, **kwargs)
-        return self.generate_owd_df(dataframes, cachename, **kwargs)
+        dataframes = super().preprocess(main, mptcpstream=mptcpstream, **kwargs)
+
+        # we want to save results as a single file (easier to loader etc...)
+        # so we concat ?
+        # self.generate_owd_df(dataframes, cachename, **kwargs)
+        client_df, server_df = dataframes
+        main_connection = TcpConnection.build_from_dataframe(client_df, mptcpstream)
+
+        # # du coup on a une liste
+        mappings = data.map_tcp_stream(server_df, main_connection)
+
+        print("Found mappings %s" % mappings)
+        if len(mappings) <= 0:
+            print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
+            return 
+
+
+        # limit number of packets while testing 
+        # HACK to process faster
+        client_df = client_df.head(limit)
+        server_df = server_df.head(limit)
+
+        print("len(df1)=", len(client_df), " len(rawdf2)=", len(server_df))
+        mapped_connection, score = mappings[0]
+        print("Found mappings %s" % mappings)
+        for con, score in mappings:
+            print("Con: %s" % (con))
+
+        print("Mapped connection %s to %s" % (mapped_connection, main_connection))
+
+        #  mapped_connection should be of type TcpConnection
+
+        # TODO we clean accordingly
+        # TODO for both directions
+        # total_results
+        total = None # pd.DataFrame()
+        for dest in mp.Destination:
+            q = main_connection.generate_direction_query(dest)
+            local_sender_df = client_df.query(q)
+            q = mapped_connection.generate_direction_query(dest)
+            local_receiver_df = server_df.query(q)
+
+            if dest == mp.Destination.Client:
+                local_sender_df, local_receiver_df = local_receiver_df, local_sender_df
+            res = self.generate_owd_df(local_sender_df, local_receiver_df)
+            res['dest'] = dest
+            total = pd.concat([res, total])
+
+            filename = "merge_%d_%s.csv" % (mptcpstream, dest)
+            res.to_csv(
+                filename, # output
+                columns=self.columns, 
+                index=True,
+                header=True,
+                # sep=main.config["DEFAULT"]["delimiter"],
+            )
+
+        # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
+        res.to_csv(
+            cachename, # output
+            columns=self.columns, 
+            index=True,
+            header=True,
+            # sep=main.config["DEFAULT"]["delimiter"],
+        )
+        return total
 
 
 
     # TODO faire une fonction pour TCP simple
-    def generate_owd_df(self, rawdfs, output, mptcpstream, **kwargs):
+    def generate_owd_df(self, sender_df, receiver_df, **kwargs):
         """
+        Generate owd in one sense
+        sender_df and receiver_df must be perfectly cleaned beforehand
         Attr:
-            output: where to write intermediary results
+
+        Returns 
         """
 
         log.info("Generating intermediary results")
-        rawdf1, rawdf2 = rawdfs
- 
-        # Restrict dataset to mptcp connections of interest
-        # rawdf1.set_index('packetid', inplace=True)
+
+        # sender_df.set_index('packetid', inplace=True)
         # rawdf2.set_index('packetid', inplace=True)
 
-        df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
+        # df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
         # now we take only the subset matching the conversation
 
         # limit number of packets while testing 
         # HACK to process faster
-        df1 = df1.head(limit)
-        rawdf2 = rawdf2.head(limit)
+        df1 = sender_df.head(limit)
+        rawdf2 = receiver_df.head(limit)
         print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
+        print("df1=\n", (df1))
+        #" len(rawdf2)=", len(rawdf2))
 
 
-        main_connection = core.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
+        # this will return rawdf1 with an aditionnal "mapped_index" column that
+        # correspond to 
+        mapped_df = data.map_tcp_packets(df1, rawdf2)
 
-        # du coup on a une liste
-        mappings = core.mptcp_match_connection(df1, rawdf2, main_connection)
+        # TODO print statistics about how many packets have been mapped
+        # print(" len(mapped_df)")
+        # should print packetids
 
-        # print(mappings)
+        print("== DEBUG START ===")
+        print("Mapped index:")
+        print(mapped_df["mapped_index"].head())
+        print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
+
+        print("== DEBUG END ===")
+# packetid
+# know who is the client
+# generate_direction_query
+# we don't want to
+        res = pd.merge(
+            mapped_df, rawdf2, 
+            left_on="mapped_index", 
+            right_on="packetid",
+            # right_index=True, 
+            suffixes=self.suffixes, # how to suffix columns (sender/receiver)
+            how="inner",
+            indicator=True # adds a "_merge" suffix
+        )
+
+        # need to compute the owd depending on the direction right
+        res['owd'] = res['abstime' + self.suffixes[1]] - res['abstime' + self.suffixes[0]]
+
+        # print(res[["packetid", "mapped_index", "owd", "sendkey_snd", "sendkey_rcv"]])
+        return res
+
+    #def do_plot_owd(self, args):
+    def plot(self, df_results, mptcpstream=None, **kwargs):
+        """
+        Ideally it should be mapped automatically
+        For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
+        Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
+        it relies on the pcap absolute time field.
+        While this is true in discrete time simulators such as ns3
+
+
+        Todo:
+            it should be possible to cache intermediary results (computed owds)
+
+        """
+        # assert mptcpstream is not None, "parser should provide automatically this"
+
+        # prepare a plot
+        fig = plt.figure()
+        axes = fig.gca()
+
+        res = df_results
+        print("columns", res.columns)
+
+        print(res[["packetid", "mapped_index", 
+            "sendkey" + self.suffixes[0], "sendkey" + self.suffixes[1],]])
+
+        # need to compute the owd depending on the direction right
+        # res['owd'] = res['abstime_y'] - res['abstime_x']
+        # TODO groupby ('tcpstream', 'dest')
+
+        pplot = res.owd.plot.line(
+            # gca = get current axes (Axes), create one if necessary
+            ax=axes,
+            legend=True,
+            # style="-o",
+            grid=True,
+            # xticks=tcpstreams["reltime"],
+            # rotation for ticks
+            # rot=45, 
+            # lw=3
+        )
+
+        # TODO add units
+        axes.set_xlabel("Time (s)")
+        axes.set_ylabel("One Way Delay (s)")
+        return fig
+
+
+
+class MpTcpOneWayDelay(TcpOneWayDelay):
+    """
+    Same as TcpOneWayDelay but for several
+
+    Todo:
+        support skipping streams
+    """
+
+    def preprocess(self, main, mptcpstream=None, **kwargs):
+        """
+        This is trickier than in other modules: this plot generates intermediary results
+        to compute OWDs. There results can be cached in which  case it's not necessary
+        to load the original pcaps
+ 
+        First we get the cachename associated with the two pcaps. If it's cached we load 
+        directly this cache else we proceed as usual
+        """
+        cachename = self.get_cachename(kwargs.get("client_pcap"), kwargs.get("server_pcap"))
+        # if we can't load that file from cache
+        try:
+            df = main.load_into_pandas(cachename)
+            return df
+        except Exception:
+            log.debug("Could not load cahed results %s" % cachename)
+        # if main.cache.is_cache_valid():
+        #     pd.read_csv
+
+        dataframes = super().preprocess(main, mptcpstream=mptcpstream, **kwargs)
+        
+        # we want to save results as a single file (easier to loader etc...)
+        # so we concat ?
+        # self.generate_owd_df(dataframes, cachename, **kwargs)
+        df1, df2 = dataframes
+        main_connection = data.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
+
+        # # du coup on a une liste
+        mappings = data.mptcp_match_connection(rawdf2, main_connection)
+
         print("Found mappings %s" % mappings)
         # returned a dict
         # if mptcpstream not in mappings:
         #     print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
         #     return 
-        
         # print("Number of %d" % len(mappings[mptcpstream]))
         # print("#mappings=" len(mappings):
         if len(mappings) <= 0:
@@ -163,140 +356,6 @@ class OneWayDelay(plot.Matplotlib):
         # common_subflows = set(mapped_connection.subflows, main_connection.subflows)
         print("common sf=%s", common_subflows)
         assert len(common_subflows) > 0, "Should be at least one common sf"
-
-        # hack for test
-        sf1, sf2 = common_subflows[0]
-        # exit(1)
-        # for now we just run the test on the most active subflow
-        # this will return rawdf1 with an aditionnal "mapped_index" column that
-        # correspond to 
-
-        mapped_df = core.map_tcp_packets(df1, rawdf2, sf1, sf2)
-
-        # TODO print statistics about how many packets have been mapped
-        # print(" len(mapped_df)")
- 
-        # should print packetids
-        print(mapped_df["mapped_index"].head())
-
-
-
-# packetid
-        res = pd.merge(mapped_df, rawdf2, 
-            left_on="mapped_index", 
-            # right_on="packetid",
-            right_index=True, 
-            how="inner",
-            indicator=True # adds a "_merge" suffix
-        )
-
-        res['owd'] = res['abstime_y'] - res['abstime_x']
-
-        # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-        res.to_csv(
-            output,
-            # columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
-            index=False,
-            header=True,
-            # sep=main.config["DEFAULT"]["delimiter"],
-        )
-        print(res["packetid","mapped_index", "owd"])
-        return res
-
-    #def do_plot_owd(self, args):
-    def plot(self, df_results, mptcpstream=None, **kwargs):
-        """
-        Ideally it should be mapped automatically
-        For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
-        Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
-        it relies on the pcap absolute time field.
-        While this is true in discrete time simulators such as ns3
-
-
-        Todo:
-            it should be possible to cache intermediary results (computed owds)
-
-        """
-        assert mptcpstream is not None, "parser should provide automatically this"
-
-        # prepare a plot
-        fig = plt.figure()
-        axes = fig.gca()
-
-        res = df_results
-        print("columns", res.columns)
-
-        pplot = res.owd.plot.line(
-            # gca = get current axes (Axes), create one if necessary
-            ax=axes,
-            legend=True,
-            # style="-o",
-            grid=True,
-            # xticks=tcpstreams["reltime"],
-            # rotation for ticks
-            # rot=45, 
-            # lw=3
-        )
-
-        # TODO add units
-        axes.set_xlabel("Time")
-        axes.set_ylabel("One Way Delay")
-        return fig
-
-        ########################################
-        # this is never executed (legacy code)
-        ########################################
-        # see interesting tutorial 
-        # http://pandas.pydata.org/pandas-docs/stable/merging.html
-        # how=inner renvoie 0, les choix sont outer/left/right
-        # ok ca marche mais faut faire gaffe aux datatypes
-        """
-            # TODO here we should merge on the 
-            res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
-            print("========================================")
-            # print(res.dtypes)
-            print("nb of rtesults", len(res))
-            # ensuite je dois soustraire les paquets
-            # stop after first run
-
-
-            # TODO creer un nouveau champ
-            res['owd'] = res['abstime_y'] - res['abstime_x']
-
-            filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-            res.to_csv(
-                    filename, 
-                    columns=["owd", "abstime_x", "abstime_y", "packetid_x", "packetid_y", "tcpseq" ], 
-                    index=False,
-                    header=True,
-                    sep=main.config["delimiter"],
-            )
-
-            pplot = res.owd.plot.line(
-                # gca = get current axes (Axes), create one if necessary
-                ax=axes,
-                legend=True,
-                # style="-o",
-                grid=True,
-                # xticks=tcpstreams["reltime"],
-                # rotation for ticks
-                # rot=45, 
-                # lw=3
-            )
-
-
-        # TODO add units
-        axes.set_xlabel("Time")
-        axes.set_ylabel("One Way Delay")
-        # print("toto", type(pplot))
-
-        ###  Correct legend for the linux 4 subflow case
-        #############################################################
-        h, l = axes.get_legend_handles_labels()
-
-        # axes.legend([h[0], h[2]], ["Subflow 1", "Subflow 2"])
-        # axes.legend([h[0], h[1]], ["Subflow 1", "Subflow 2"])
-        print(h, l)
-
-        return fig
-        """
+        # print(mappings)
+        print("Found mappings %s" % mappings)
+        return 
