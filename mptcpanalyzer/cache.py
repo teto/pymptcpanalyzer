@@ -34,9 +34,7 @@ class Cache:
         # todo rename to encode rather
         # cachename = self.matching_cache_filename(filename)
 
-        # encode path to cache
-        chunks = os.path.realpath(filename).split(os.path.sep)
-        cachename = os.path.join(self.folder, '%'.join(chunks))
+        cachename = self.cacheuid(filename)
 
         if self.disabled:
             log.debug("Cache disabled, hence requested cache deemed invalid")
@@ -72,6 +70,15 @@ class Cache:
     #     #     res += ".csv"
     #     return res
 
+
+    def cacheuid(self, filename):
+        """
+        generate from filename a unique uuid
+        """
+
+        # encode path to cache
+        chunks = os.path.realpath(filename).split(os.path.sep)
+        return os.path.join(self.folder, '%'.join(chunks))
 
     def clean(self):
         print("Cleaning cache [%s]" % self.folder)

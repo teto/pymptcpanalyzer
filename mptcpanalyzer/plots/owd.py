@@ -8,6 +8,7 @@ import logging
 import matplotlib.pyplot as plt
 import os
 import argparse
+import math
 
 
 log = logging.getLogger(__name__)
@@ -99,27 +100,20 @@ class OneWayDelay(plot.Matplotlib):
 
         log.info("Generating intermediary results")
         rawdf1, rawdf2 = rawdfs
-        # args = parser.parse_args(shlex.split(args))
-        # ds1 = main.load_into_pandas(args.client_input)
-        # ds2 = main.load_into_pandas(args.server_input)
-        # print("=== DS1 0==\n", ds1.dtypes)
  
         # Restrict dataset to mptcp connections of interest
-        # ds1 = ds1[(ds1.mptcpstream == args.mptcp_client_id)]
-        # ds2 = ds2[ds2.mptcpstream == args.mptcp_server_id]
         # rawdf1.set_index('packetid', inplace=True)
         # rawdf2.set_index('packetid', inplace=True)
 
         df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
-        # use packetid as index
-        # print("=== DS1 ==\n", ds1.dtypes)
         # now we take only the subset matching the conversation
 
         # limit number of packets while testing 
+        # HACK to process faster
         df1 = df1.head(limit)
         rawdf2 = rawdf2.head(limit)
-
         print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
+
 
         main_connection = core.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
 
@@ -140,6 +134,12 @@ class OneWayDelay(plot.Matplotlib):
             return 
 
 
+        # limit number of packets while testing 
+        # HACK to process faster
+        df1 = df1.head(limit)
+        rawdf2 = rawdf2.head(limit)
+
+        print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
         # mappings
         mapped_connection, score = mappings[0]
 
@@ -162,28 +162,23 @@ class OneWayDelay(plot.Matplotlib):
 
         # common_subflows = set(mapped_connection.subflows, main_connection.subflows)
         print("common sf=%s", common_subflows)
-        assert len(common_subflows), "Should be one common sf"
+        assert len(common_subflows) > 0, "Should be at least one common sf"
 
+        # hack for test
         sf1, sf2 = common_subflows[0]
+        # exit(1)
         # for now we just run the test on the most active subflow
         # this will return rawdf1 with an aditionnal "mapped_index" column that
         # correspond to 
-        mapped_df = core.map_tcp_packets(rawdf1, rawdf2, sf1, sf2)
+
+        mapped_df = core.map_tcp_packets(df1, rawdf2, sf1, sf2)
+
+        # TODO print statistics about how many packets have been mapped
+        print(" len(mapped_df)")
         
         # should print packetids
         print(mapped_df["mapped_index"].head())
 
-        # print(mapped_df)
-        # print("Found %d valid mappings " % len(mappings))
-        # print(mappings)
-        # print("Host ips: ", args.host_ips)
-        # dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
-        # ds1 = self.filter_ds(ds1, mptcpstream=args.mptcp_client_id, ipsrc=args.sender_ips)
-
-        # TODO we should plot 2 graphs:
-        # OWD with RTT (need to get ack as well based on tcp.nextseq ?) 
-        # DeltaOWD
-        # group = self.data[self.data.mptcpstream == mptcpstream]
 
 
 # packetid
@@ -227,6 +222,7 @@ class OneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
 
+        res = df_results
         print("columns", res.columns)
 
         pplot = res.owd.plot.line(
@@ -245,8 +241,6 @@ class OneWayDelay(plot.Matplotlib):
         # TODO add units
         axes.set_xlabel("Time")
         axes.set_ylabel("One Way Delay")
-
-
         return fig
 
         ########################################
@@ -256,21 +250,8 @@ class OneWayDelay(plot.Matplotlib):
         # http://pandas.pydata.org/pandas-docs/stable/merging.html
         # how=inner renvoie 0, les choix sont outer/left/right
         # ok ca marche mais faut faire gaffe aux datatypes
-        for tcpstreamid_host0, tcpstreamid_host1, sf in mappings:
         
-            # todo split dataset depending on soruce or destination
-            print('sf',sf)
-            # TODO add port/src/dst in case there are several subflows from a same interface
-            tcpstream0 = ds1.query("tcpstream == @tcpstreamid_host0 and ipsrc == '%s'" % sf.ipsrc)
-            print("toto")
-            tcpstream1 = ds2.query("tcpstream == @tcpstreamid_host1 and ipsrc == '%s'" % sf.ipsrc)
-            # # "indicator" shows from where originates 
-            print("=== tcpseq ")
-            print(tcpstream0.tcpseq.head(10))
-            print("=== tcpseq ")
-            print(tcpstream1.tcpseq.head(10))
-                # tcpstream0 = ds1[ds1.tcpstream == tcpstreamid_host0]
-
+        """
             # TODO here we should merge on the 
             res = pd.merge(tcpstream0, tcpstream1, on="tcpseq", how="inner", indicator=True)
             print("========================================")
@@ -319,3 +300,4 @@ class OneWayDelay(plot.Matplotlib):
         print(h, l)
 
         return fig
+        """

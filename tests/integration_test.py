@@ -10,6 +10,7 @@ import pandas as pd
 from stevedore.extension import Extension
 import tempfile
 import shlex
+import os
 
 mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
 
@@ -76,22 +77,7 @@ class IntegrationTest(TestCase):
     #     # with fopen("examples/node0.csv", "r+"):
     #     self.assertEqual()
 
-    def test_batch(self):
-        """
-        Run several commands written in a file and make sure
-        some files are created
-        """
-        with tempfile.TemporaryDirectory() as dirname:
-            cmd = " --load {f} --batch {cmd_file}".format(
-                f=mptcp_pcap,
-                cmd_file="tests/batch_commands.txt",
-            )
-            self.assertEqual(test_main(cmd), 0, "An error happened")
-            # self.batch
-            # TODO assert files are created etc...
-
-
-    @unittest.skip("inccorect api use + Not sure pcap are valid yet")
+    # @unittest.skip("incorrect api use + Not sure pcap are valid yet")
     def test_mapping_connections(self):
         """
         Test to check if the program correctly mapped one connection to another
@@ -102,28 +88,64 @@ class IntegrationTest(TestCase):
         ds2 = self.m.load_into_pandas("examples/node1.pcap")
 
         # just looking to map mptcp.stream 0
-        results = core.mptcp_match_connection(ds1, ds2, [0])
+        main = MpTcpConnection.build_from_dataframe(0)
+
+        self.assertEqual(main.client_key, 7214480005779690518 )
+        results = core.mptcp_match_connection(ds1, ds2, main)
         # self.assertEqual( len(cmd), 0, "An error happened")
         self.assertGreaterEqual(len(results), 1, "There must be at least one result")
+        con = results[0][0]
+        # assertTupleEqual
+        # clientkey == 
+        self.assertEqual(con.client_key, main.client_key)
+        # if we try to map packets, 9 should be mapped to 9 first
+
+        
+        # need 2 TcpConnections, we can use a subflow common to 
+        # 'main' and 'con' previously computed
+
+
+        # some subflows may have been blocked by routing/firewall
+        common_subflows = [] 
+        for sf in main_connection.subflows:
+            # if sf2 in 
+            for sf2 in mapped_connection.subflows:
+                if sf == sf2:
+                    common_subflows.append((sf, sf2))
+                    break
+
+            # try:
+            #     idx = mapped_connection.subflows.index(sf)
+            #     sf2 = mapped_connection.subflows[idx]
+            #     common_subflows.append((sf, sf2))
+
+            # except ValueError:
+            #     continue
+
+        # common_subflows = set(mapped_connection.subflows, main_connection.subflows)
+        print("common sf=%s", common_subflows)
+        self.assertGreater( len(common_subflows), 0, "Should be at least one common sf")
+
+        sf1, sf2 = common_subflows[0]
+        results = data.map_tcp_packets(ds1, ds2, sf1, sf2)
+        # TODO test index is ok
+
+        # TODO test mapping sockets
 
     # def test_plot_owd(self):
-        # self.m.do_plot("plot owd 0")
+    #     self.m.do_plot("plot owd 0")
 
-    def test_load_pcap(self):
-        """
-        Check that it can load a basic mptcp pcap, w/o regen
-        check it takes into account the cache
-        check it fails when file does not exist or is corrupted
-        """
-        # to test for errors
-        # with self.assertRaises(ValueError):
-        self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
+    # def test_load_pcap(self):
+    #     """
+    #     Check that it can load a basic mptcp pcap, w/o regen
+    #     check it takes into account the cache
+    #     check it fails when file does not exist or is corrupted
+    #     """
+    #     # to test for errors
+    #     # with self.assertRaises(ValueError):
+    #     self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
 
 
-
-    # TODO
-    def test_clean_cache(self):
-        pass
 
     # @unittest.skip("")
     def testlist_subflows(self):
@@ -167,12 +189,39 @@ class IntegrationTest(TestCase):
         #     with self.subTest(i=i):
         #         self.assertIn()
 
+    def test_plot_interarrival(self):
+        self.batch(filename)
+
+    def batch(self, filename):
+        """
+        Run several commands written in a file and make sure
+        some files are created
+
+        filename MUST be fullpath !
+        """
+        # f = Path(tmpdir, "toto.txt").touch()
+        with tempfile.TemporaryDirectory() as dirname:
+            os.chdir(dirname)
+            cmd = " --load {f} --batch {cmd_file}".format(
+                f=mptcp_pcap,
+                cmd_file=filename,
+            )
+            self.assertEqual(test_main(cmd), 0, "An error happened")
+            # self.batch
+            # TODO assert files are created etc...
+
+
     def test_plot_attr_postloaded(self):
         self.setup_plot_mgr()
-        self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 client dsn")
+        with tempfile.TemporaryDirectory() as tempdir:
+            out = os.path.join(tempdir, "out.png")
+            test_main("plot attr examples/iperf-mptcp-0-0.pcap 0 client dsn --out %s" % (out))
+            # TODO test that it exists
+            self.assertTrue(os.path.exists(out), "previous command should have created a plot")
+
         # TODO test --title
         # self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 client dsn")
-
+        self.batch("tests/batch_commands.txt")
 
     def test_list_plots_2(self):
         plot_names = self.m.list_available_plots()
