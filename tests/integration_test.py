@@ -5,16 +5,22 @@ import mptcpanalyzer as mp
 from mptcpanalyzer.cli import MpTcpAnalyzer, main
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.connection import MpTcpConnection
-import mptcpanalyzer.data as core
+import mptcpanalyzer.data as data
 import mptcpanalyzer.plots as plots
 import pandas as pd
 from stevedore.extension import Extension
 import tempfile
 import shlex
+import shutil
 import logging
 import os
+import pathlib
 
 mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
+mptcp_pcap = os.path.abspath("examples/iperf-mptcp-0-0.pcap")
+
+config_file = os.path.abspath("tests/test_config.ini")
+
 loglevel = logging.DEBUG
 
 
@@ -32,20 +38,65 @@ class IntegrationTest(TestCase):
         :w @unittest.expectedFailure
     List of builtin exceptions
     https://docs.python.org/3/library/exceptions.html
-    """
-    def setUp(self):
 
-        logging.basicConfig(level=loglevel)
-        config = MpTcpAnalyzerConfig()
+    one can use test_main or 
+    z.onecmd()
+
+    Attr:
+        cache_folder:
+        config:
+    """
+
+    # def test_main(self, arguments_to_parse: str):
+    #     """
+    #     Used in the testsuite
+    #     """
+    #     # cmd = " --cachedir= --config="
+    #     cmd = ""
+    #     cmd += arguments_to_parse
+    #     return main(shlex.split(cmd))
+
+
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Just called for the class
+        """
+        logger = logging.getLogger("mptcpanalyzer")
+        logger.setLevel(level=loglevel)
+        # logging.basicConfig(level=loglevel)
+        cls.cache_folder = tempfile.mkdtemp()
+        # we are responsible for destroying it 
+        # print("cls.cache_folder=", cls.cache_folder)
+
+
+    @classmethod
+    def tearDownClass(cls):
+        # TODO unlink cls.cache_folder 
+        # shutil.rmtree(cls.cache_folder)
+        print("cache=%s" % cls.cache_folder)
+
+    def setUp(self):
+        """ Run before each test"""
         # todo use a tempdir as cache
         # config["cache"] = 
-        self.m = MpTcpAnalyzer(config)
+        # config = MpTcpAnalyzerConfig("")
+        # config["mptcpanalyzer"]["cache"] = self.__class__.cache_folder
+        # self.m = MpTcpAnalyzer(config)
+        # self.assertEqual(self.m.cache.folder, self.cache_folder)
+        # print("folder cache %s" % self.m.cache.folder)
+        pass
 
-    def preload_pcap(self, regen: bool =False):
-        cmd = "examples/iperf-mptcp-0-0.pcap"
-        if regen:
-            cmd += " --regen"
-        self.m.do_load(cmd)
+    def create_z(self, config=None):
+
+        config = MpTcpAnalyzerConfig("") if config is None else config
+        config["mptcpanalyzer"]["cache"] = self.__class__.cache_folder
+        z = MpTcpAnalyzer(config)
+        self.assertEqual(z.cache.folder, self.cache_folder)
+        print("folder cache %s" % z.cache.folder)
+        return z
+
 
     def setup_plot_mgr(self):
         """
@@ -54,13 +105,14 @@ class IntegrationTest(TestCase):
         .. see: https://github.com/openstack/stevedore/blob/master/stevedore/tests/test_test_manager.py
         """
 
+        z = self.create_z()
         #name , entry point, plugin, obj
         plots = [
             Extension("attr", 'mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
-                None, mp.plots.dsn.PerSubflowTimeVsAttribute())
+            None, mp.plots.dsn.PerSubflowTimeVsAttribute())
         ]
-        mgr = self.m.plot_manager.make_test_instance(plots)
-        self.m.plot_manager = mgr
+        mgr = z.plot_manager.make_test_instance(plots)
+        z.plot_manager = mgr
         # TODO now we need to use that !
 
 
@@ -68,6 +120,7 @@ class IntegrationTest(TestCase):
         # TODO test when launched via subprocess
         # - with a list of commands passed via stdin
         cmd = " help"
+        z = self.create_z()
         test_main(cmd)
         # self.assertEqual(ret, 0)
 
@@ -86,16 +139,17 @@ class IntegrationTest(TestCase):
         """
         Test to check if the program correctly mapped one connection to another
         """
+        z = self.create_z()
         # expects 2 datasets
         # load from csv
-        ds1 = self.m.load_into_pandas("examples/node0.pcap")
-        ds2 = self.m.load_into_pandas("examples/node1.pcap")
+        ds1 = z.load_into_pandas("examples/node0.pcap")
+        ds2 = z.load_into_pandas("examples/node1.pcap")
 
         # just looking to map mptcp.stream 0
         main_connection = MpTcpConnection.build_from_dataframe(ds1, 0)
 
         self.assertEqual(main_connection.client_key, 7214480005779690518)
-        results = core.mptcp_match_connection(ds1, ds2, main_connection)
+        results = data.mptcp_match_connection(ds1, ds2, main_connection)
         # self.assertEqual( len(cmd), 0, "An error happened")
         self.assertGreaterEqual(len(results), 1, "There must be at least one result")
         mapped_connection = results[0][0]
@@ -155,26 +209,29 @@ class IntegrationTest(TestCase):
         """
         Test that it can list subflows
         """
+        z = self.create_z()
         # self.m.do_ls("0")
         # fails because the file is not loaded yet
         with self.assertRaises(mp.MpTcpException):
-            self.m.do_ls("0")
+            z.onecmd("ls 0")
 
-        self.preload_pcap()
-        self.m.do_ls("0")
+        z.onecmd("load " + mptcp_pcap)
+        z.onecmd("ls 0")
 
         # fails because there are no packets with this id
         with self.assertRaises(mp.MpTcpException):
-            self.m.do_ls("4")
+            z.onecmd("ls 4")
 
     def test_list_connections(self):
         """
         TODO should return different number
         """
         # fails because file not loaded
-        self.assertRaises(mp.MpTcpException, self.m.do_lc, "")
-        self.preload_pcap()
-        self.m.do_lc("")
+        z = self.create_z()
+        self.assertRaises(mp.MpTcpException, z.do_lc, "")
+        z.onecmd("load " + mptcp_pcap)
+        z.onecmd("lc")
+        # test_main("lc")
 
     def test_list_plots_attr(self):
         """
@@ -183,8 +240,9 @@ class IntegrationTest(TestCase):
         #http://docs.openstack.org/developer/stevedore/managers.html#stevedore.extension.Extension
         # plugin, obj
         # setup_plot_mgr
+        z = self.create_z()
         self.setup_plot_mgr()
-        plot_names = self.m.list_available_plots()
+        plot_names = z.list_available_plots()
         print("plot names=", plot_names)
         self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)
@@ -195,6 +253,8 @@ class IntegrationTest(TestCase):
     def test_plot_interarrival(self):
         self.batch("tests/batch_interarrival.txt")
 
+
+    # test_oneshot and check there is no SystemExit
     def batch(self, filename):
         """
         Run several commands written in a file and make sure
@@ -203,23 +263,48 @@ class IntegrationTest(TestCase):
         filename MUST be fullpath !
         """
         # f = Path(tmpdir, "toto.txt").touch()
-        with tempfile.TemporaryDirectory() as dirname:
-            os.chdir(dirname)
+        with tempfile.TemporaryDirectory() as tempdir:
+            newfile = pathlib.Path(tempdir, filename)
+            # newfile = os.path.join(tempdir, filename)
+            print("Copy of %s to %s" % (filename, newfile))
+            print("makedirs to %s" % newfile.parent)
+            os.makedirs(newfile.parent.as_posix(), exist_ok=True)
+            shutil.copy(filename, newfile.as_posix())
+            os.chdir(tempdir)
             cmd = " --load {f} --batch {cmd_file}".format(
                 f=mptcp_pcap,
                 cmd_file=filename,
             )
             self.assertEqual(test_main(cmd), 0, "An error happened")
-            # self.batch
-            # TODO assert files are created etc...
+            self.assertTrue("")
+            # TODO check some files are created etc...
 
+    def test_flag_cachedir(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            self.assertEqual(len(os.listdir(tempdir)), 0, "new folder should be empty")
+            test_main(" --cachedir={cache} --load={pcap} exit".format(cache=tempdir, pcap=mptcp_pcap))
+            self.assertGreaterEqual(len(os.listdir(tempdir)), 1, "new folder should have one file at least")
+            # tempdir.cleanup()
+
+
+    @unittest.skip("unfinished")
+    def test_flag_config(self):
+        """ 
+        check that config is loaded properly
+        """
+        with tempfile.TemporaryDirectory() as tempdir:
+
+            conf = os.path.join(tempdir, "config") 
+            shutil.copyfile(config_file, conf)
+            # Todo check a config value
 
     def test_plot_attr_postloaded(self):
-        self.setup_plot_mgr()
+        # self.setup_plot_mgr()
+        z = self.create_z()
         with tempfile.TemporaryDirectory() as tempdir:
             out = os.path.join(tempdir, "out.png")
             print("out=", out)
-            test_main("plot attr examples/iperf-mptcp-0-0.pcap 0 client dsn --out %s" % (out))
+            z.onecmd("plot attr examples/iperf-mptcp-0-0.pcap 0 client dsn --out %s" % (out))
             # TODO test that it exists
             self.assertTrue(os.path.exists(out), "previous command should have created a plot")
 
@@ -228,7 +313,8 @@ class IntegrationTest(TestCase):
         self.batch("tests/batch_commands.txt")
 
     def test_list_plots_2(self):
-        plot_names = self.m.list_available_plots()
+        z = self.create_z()
+        plot_names = z.list_available_plots()
         print("plot names=", plot_names)
         # self.assertIn("attr", plot_names)
         # self.assertIn("", plot_names)

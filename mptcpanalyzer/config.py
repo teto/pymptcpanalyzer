@@ -6,6 +6,7 @@ import logging
 
 log = logging.getLogger("mptcpanalyzer")
 
+
 class MpTcpAnalyzerConfig(configparser.ConfigParser):
     """
     Thin wrapper around configparser to set up default values
@@ -19,7 +20,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
 
     """
 
-    def __init__(self, filename: str = None):
+    def __init__(self, filename: str = None) -> None:
         """
         If filename is set, forcefully uses that file, other than that try
         to read from $XDG_CONFIG_HOME/mptcpanalyzer/config
@@ -53,8 +54,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             xdg_config = os.getenv("XDG_CONFIG_HOME", "~/.config")
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")
             filenames.append(xdg_config)
-
-        if filename:
+        elif filename:
             log.info("Config file set to %s" % filename)
             filenames = [filename]
 

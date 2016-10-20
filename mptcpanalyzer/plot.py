@@ -259,7 +259,7 @@ class Plot:
         assert main, "Need reference to MpTcpAnalyzer"
         dataframes = []
         for pcap_name, action in self.preload_pcaps.items():
-            print("pcap_name=", pcap_name, kwargs.get(pcap_name))
+            print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
                 df = main.load_into_pandas(kwargs.get(pcap_name))
                 dataframes.append(df)

@@ -42,7 +42,13 @@ plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
 
 log = logging.getLogger("mptcpanalyzer")
-log.addHandler(logging.StreamHandler())
+ch = logging.StreamHandler()
+
+# %(asctime)s - %
+formatter = logging.Formatter('%(name)s:%(levelname)s: %(message)s')
+ch.setFormatter(formatter)
+
+log.addHandler(ch)
 log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
@@ -251,22 +257,23 @@ class MpTcpAnalyzer(cmd.Cmd):
             description="List subflows of an MPTCP connection"
         )
 
-        parser.add_argument("mptcpstream", action="store", type=int,
+        parser.add_argument(
+            "mptcpstream", action="store", type=int,
             help="Equivalent to wireshark mptcp.stream id"
         )
 
-        args = parser.parse_args (shlex.split(args))
+        args = parser.parse_args(shlex.split(args))
         self.list_subflows(args.mptcpstream)
 
     @is_loaded
-    def list_subflows(self, mptcpstreamid : int):
+    def list_subflows(self, mptcpstreamid: int):
         con = mc.MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
         print("Description of mptcp.stream %d " % mptcpstreamid)
         print(con)
 
         print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
         for sf in con.subflows:
-            print ("\t%s" % sf)
+            print("\t%s" % sf)
 
     def help_ls(self):
 
@@ -382,6 +389,20 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.list_subflows(mptcpstream)
 
 
+    def do_batch(self, line):
+        print("Running batched commands")
+        # with open(args.batch) as fd:
+
+    def batch(self, fd):
+        log.info("Batched commands")
+        for command in fd:
+            log.info(">>> %s" % command)
+            analyzer.onecmd(command)
+
+    def load(self, filename, regen: bool=False):
+        self.data = self.load_into_pandas(filename, regen)
+        self.prompt = "%s> " % os.path.basename(filename)
+
     def do_load(self, args):
         """
         Load the file as the current one
@@ -398,9 +419,8 @@ class MpTcpAnalyzer(cmd.Cmd):
                 help="Force the regeneration of the cached CSV file from the pcap input")
 
         args = parser.parse_args(shlex.split(args))
+        self.load(args.input_file, args.regen)
 
-        self.data = self.load_into_pandas(args.input_file, args.regen)
-        self.prompt = "%s> " % os.path.basename(args.input_file,)
 
     def do_plot(self, args, mgr=None):
         """
@@ -515,8 +535,9 @@ class MpTcpAnalyzer(cmd.Cmd):
                 tshark_filter="mptcp and not icmp"
             )
             log.info("exporter exited with code=%d", retcode)
-            if retcode:
-                # log.exception
+            if retcode != 0:
+                # remove invalid cache log.exception
+                os.remove(csv_filename)
                 raise Exception(stderr)
 
 
@@ -686,7 +707,7 @@ def main(arguments=None):
 
     #  todo make it optional
     parser.add_argument(
-        "--load","-l", dest="input_file",
+        "--load", "-l", dest="input_file",
         # type=argparse
         # "input_file",  nargs="?",
         # action="store", default=None,
@@ -695,23 +716,38 @@ def main(arguments=None):
         "If it can't find one (or with the flag --regen), it will generate a "
         "csv from the pcap with the external tshark program."
     )
-    parser.add_argument( '--version', action='version', version="%s" % (__version__))
-    parser.add_argument("--config", "-c", action="store",
-            help="Path towards the config file. If not set, mptcpanalyzer will try"
-                " to load first $XDG_CONFIG_HOME/mptcpanalyzer/config and then "
-                " $HOME/.config/mptcpanalyzer/config"
+    parser.add_argument('--version', action='version', version="%s" % (__version__))
+    parser.add_argument(
+        "--config", "-c", action="store",
+        help="Path towards the config file. If not set, mptcpanalyzer will try"
+        " to load first $XDG_CONFIG_HOME/mptcpanalyzer/config and then "
+        " $HOME/.config/mptcpanalyzer/config"
     )
-    parser.add_argument("--debug", "-d", action="count", default=0,
-            help="More verbose output, can be repeated to be even more "
-                " verbose such as '-dddd'"
+    parser.add_argument(
+        "--debug", "-d", action="count", default=0,
+        help="More verbose output, can be repeated to be even more "
+        " verbose such as '-dddd'"
     )
-    parser.add_argument("--no-cache", "-r", action="store_true",
+    parser.add_argument(
+        "--no-cache", "-r", action="store_true",
         default=False,
         help="mptcpanalyzer creates a cache of files in the folder "
         "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
-        "Force the regeneration of the cached CSV file from the pcap input")
+        "Force the regeneration of the cached CSV file from the pcap input"
+    )
+    parser.add_argument(
+        "--cachedir", action="store",
+        # default="$XDG_CACHE_HOME/mptcpanalyzer",
+        type=str,
+        # type=lambda x: os.path.isdir(x),
+        help="mptcpanalyzer creates a cache of files in the folder "
+        "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
+        "Force the regeneration of the cached CSV file from the pcap input"
+    )
 
-    parser.add_argument("--batch", "-b", action="store", type=argparse.FileType('r'),
+
+    parser.add_argument(
+        "--batch", "-b", action="store", type=argparse.FileType('r'),
         default=None,
         help="Accepts a filename as argument from which commands will be loaded."
         "Commands follow the same syntax as in the interpreter"
@@ -721,12 +757,17 @@ def main(arguments=None):
 
     args, unknown_args = parser.parse_known_args(arguments)
     cfg = MpTcpAnalyzerConfig(args.config)
+    if args.cachedir:
+        cfg["mptcpanalyzer"]["cache"] = args.cachedir
 
     # logging.CRITICAL = 50
-    level = logging.CRITICAL - min(args.debug, 4) * 10
-    log.setLevel(level)
-    print("Log level set to %s " % logging.getLevelName(level))
+    if __name__ == '__main__':
+        level = logging.CRITICAL - min(args.debug, 4) * 10
+    # log.setLevel(level)
+        print("Log level set to %s " % logging.getLevelName(level))
 
+
+    log.info("Starting in folder %s" % os.getcwd())
 
     try:
 
@@ -741,10 +782,11 @@ def main(arguments=None):
 
         if args.batch:
             log.info("Batched commands")
-            # with open(args.batch) as fd:
-            for command in args.batch:
-                log.info(">>> %s" % command)
-                analyzer.onecmd(command)
+            analyzer.batch(args.batch)
+            # # with open(args.batch) as fd:
+            # for command in args.batch:
+            #     log.info(">>> %s" % command)
+            #     analyzer.onecmd(command)
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
