@@ -4,16 +4,18 @@ import unittest
 import mptcpanalyzer as mp
 from mptcpanalyzer.cli import MpTcpAnalyzer, main
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
+from mptcpanalyzer.connection import MpTcpConnection
 import mptcpanalyzer.data as core
 import mptcpanalyzer.plots as plots
 import pandas as pd
 from stevedore.extension import Extension
 import tempfile
 import shlex
+import logging
 import os
 
 mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
-
+loglevel = logging.DEBUG
 
 
 
@@ -23,7 +25,7 @@ def test_main(arguments_to_parse: str):
     """
     return main(shlex.split(arguments_to_parse))
 
-# 
+
 class IntegrationTest(TestCase):
     """
     Few reminders :
@@ -33,7 +35,10 @@ class IntegrationTest(TestCase):
     """
     def setUp(self):
 
+        logging.basicConfig(level=loglevel)
         config = MpTcpAnalyzerConfig()
+        # todo use a tempdir as cache
+        # config["cache"] = 
         self.m = MpTcpAnalyzer(config)
 
     def preload_pcap(self, regen: bool =False):
@@ -65,7 +70,6 @@ class IntegrationTest(TestCase):
         cmd = " help"
         test_main(cmd)
         # self.assertEqual(ret, 0)
-        
 
     # def test_regen(self):
     #     """
@@ -77,7 +81,7 @@ class IntegrationTest(TestCase):
     #     # with fopen("examples/node0.csv", "r+"):
     #     self.assertEqual()
 
-    # @unittest.skip("incorrect api use + Not sure pcap are valid yet")
+    @unittest.skip("todo + Not sure pcap are valid yet")
     def test_mapping_connections(self):
         """
         Test to check if the program correctly mapped one connection to another
@@ -88,19 +92,18 @@ class IntegrationTest(TestCase):
         ds2 = self.m.load_into_pandas("examples/node1.pcap")
 
         # just looking to map mptcp.stream 0
-        main = MpTcpConnection.build_from_dataframe(0)
+        main_connection = MpTcpConnection.build_from_dataframe(ds1, 0)
 
-        self.assertEqual(main.client_key, 7214480005779690518 )
-        results = core.mptcp_match_connection(ds1, ds2, main)
+        self.assertEqual(main_connection.client_key, 7214480005779690518)
+        results = core.mptcp_match_connection(ds1, ds2, main_connection)
         # self.assertEqual( len(cmd), 0, "An error happened")
         self.assertGreaterEqual(len(results), 1, "There must be at least one result")
-        con = results[0][0]
+        mapped_connection = results[0][0]
         # assertTupleEqual
         # clientkey == 
-        self.assertEqual(con.client_key, main.client_key)
+        self.assertEqual(mapped_connection.client_key, main_connection.client_key)
         # if we try to map packets, 9 should be mapped to 9 first
 
-        
         # need 2 TcpConnections, we can use a subflow common to 
         # 'main' and 'con' previously computed
 
@@ -190,7 +193,7 @@ class IntegrationTest(TestCase):
         #         self.assertIn()
 
     def test_plot_interarrival(self):
-        self.batch(filename)
+        self.batch("tests/batch_interarrival.txt")
 
     def batch(self, filename):
         """
@@ -215,6 +218,7 @@ class IntegrationTest(TestCase):
         self.setup_plot_mgr()
         with tempfile.TemporaryDirectory() as tempdir:
             out = os.path.join(tempdir, "out.png")
+            print("out=", out)
             test_main("plot attr examples/iperf-mptcp-0-0.pcap 0 client dsn --out %s" % (out))
             # TODO test that it exists
             self.assertTrue(os.path.exists(out), "previous command should have created a plot")

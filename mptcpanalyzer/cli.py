@@ -496,7 +496,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         # todo addd csv extension if needed
 
         # csv_filename = self.get_matching_csv_filename(filename, regen)
-        is_cache_valid, csv_filename = self.cache.is_cache_valid(filename, [filename])
+        is_cache_valid = self.cache.is_cache_valid(filename)
+        csv_filename = self.cache.cacheuid(filename)
         log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
         if regen or not is_cache_valid:
             log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
@@ -527,7 +528,9 @@ class MpTcpAnalyzer(cmd.Cmd):
             dtype=dtypes,
             converters={
                 "tcp.flags": lambda x: int(x, 16),
-            }) 
+        }) 
+        # TODO: 
+        # No columns to parse from file
         data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
 
         # pp = pprint.PrettyPrinter(indent=4)

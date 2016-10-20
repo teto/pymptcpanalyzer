@@ -19,7 +19,7 @@ class Cache:
     # self.csv_cachename)
     # , translator=str)
     # translator: converts filename to a specific
-    def is_cache_valid(self, filename, depends: List[str]) -> Tuple[bool, str]:
+    def is_cache_valid(self, filename, depends: List[str]=None) -> Tuple[bool, str]:
         """
         Args:
             depends: List of files to check
@@ -33,6 +33,8 @@ class Cache:
 
         # todo rename to encode rather
         # cachename = self.matching_cache_filename(filename)
+        if depends is None:
+            depends = [filename]
 
         cachename = self.cacheuid(filename)
 
@@ -47,15 +49,17 @@ class Cache:
             for dependancy in depends:
                 ctime_dep = os.path.getctime(dependancy)
 
-                if ctime_cached > ctime_dep:
-                    log.debug("Cache seems valid")
+                if ctime_cached >= ctime_dep:
+                    log.debug("Cache dependancy %s ctime (%s) is valid (>= %s)" 
+                            % (dependancy, ctime_dep, ctime_cached))
                 else:
                     log.debug("Cache outdated by dependancy %s" % dependancy)
                     is_cache_valid = False
                     break
         else:
             log.debug("No cache %s found" % cachename)
-        return is_cache_valid, cachename
+        # return is_cache_valid, cachename
+        return is_cache_valid
 
     # def csv_cachename(self, filename):
     #     """

@@ -8,6 +8,8 @@ rst:
 
 
 test:
+	# Add -b to print standard output
+	python3 -munittest tests/cache_test.py -b 
 	python3.5 setup.py test
 
 install:
@@ -18,6 +20,7 @@ uninstall:
 
 man:
 	# wrong name for the program but can't override :/
+	# see also rst2man in docutils*.deb
 	help2man -n "mptcpanalyzer - a multipath tcp pcap analysis tool" -o docs/mptcpanalyzer.man mptcpanalyzer
 
 
