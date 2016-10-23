@@ -211,6 +211,10 @@ class IntegrationTest(TestCase):
             out_fullname = os.path.join(tempdir, out_basename)
             self.check_plot_output(cmd, out_fullname)
 
+            # TODO check that packet 9 is mapped to 9, 10 to 10 for instance
+            # hum in fact, tshark seems to filter the shitty traffic so it's more 1 <-> 1
+
+
     # def test_load_pcap(self):
     #     """
     #     Check that it can load a basic mptcp pcap, w/o regen

@@ -18,8 +18,8 @@ def ignore(f1, f2):
 
 
 def exact(f1, f2):
-    print("comparing ", f1 , " and " , f2)
-    return float('-inf') if f1 != f2 else 10
+    print("comparing values ", f1 , " and " , f2)
+    return 10 if (math.isnan(f1) and math.isnan(f2)) or f1 == f2 else float('-inf')
 
 
 def diff(f1, f2):
@@ -74,6 +74,10 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         a list of tuples (index, score)
     """
 
+    def _get_pktid(row) -> int:
+        return row.packetid
+    # used to be row.Index when df.set_index("packetid") was in use
+
     def _cmp_packets(p1, p2) -> float:
         """
         returns a score
@@ -84,7 +88,7 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         # log.debug("comparison based on columns %s " % df.columns)
         for field in df.columns:
             try:
-                log.debug("comparing %d to %d for field " % (packet.Index, row.Index, field ))
+                log.debug("comparing pktids %d with %d for field %s" % (_get_pktid(packet), _get_pktid(row), field))
                 f1 = getattr(p1, field)
                 f2 = getattr(p2, field)
                 score += scoring_rules[field](f1, f2)
@@ -109,10 +113,10 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
 
         # we don't append inf results for performance reasons
         if not math.isinf(score):
-            log.debug("packet %d mapped to %d with a score of %d" % (packet.Index, row.Index, score))
-            scores.append((row.Index, score))
+            log.debug("packet %d mapped to %d with a score of %d" % (_get_pktid(packet), _get_pktid(row), score))
+            scores.append((_get_pktid(row), score))
         else:
-            log.debug("Found no match for %d, skipping.." % (packet.Index))
+            log.debug("Found no match for %d, skipping.." % _get_pktid(packet))
 
     # sort by score
     scores.sort(key=lambda x: x[1], reverse=True)
@@ -125,7 +129,6 @@ def map_tcp_packets(
 ) -> pd.DataFrame:
     """
     Stream ids must already mapped 
-    
     Todo:
         check N = len(sender_df) - len(receiver_df) to know how many packets should be missing,
         then cut off lowest N.
@@ -144,7 +147,7 @@ def map_tcp_packets(
     # df1 = sender_df.set_index('packetid', )
     # df2 = receiver_df.set_index('packetid',) # [rawdf2["tcpstream"] == con2.tcpstreamid]
     # df1 = sender_df
-    # df2 = rawdf2
+    df2 = receiver_df
     # df2.set_index('packetid', inplace=True)
 
     # returns a new df with new columns
@@ -174,13 +177,13 @@ def map_tcp_packets(
             print("Score %f assigned to index %s" % (score, idx))
             # print(df2)
             # df2.drop(df2.index[[idx]], inplace=True)
-            df2.drop(idx, inplace=True)
+            # df2.drop(idx, inplace=True)
         else:
             log.debug("No map found for this packet")
 
         # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index ) 
 
-    print("head=\n", df_final.head())
+    # print("head=\n", df_final.head())
     return df_final
 
 

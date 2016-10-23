@@ -134,7 +134,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         main_connection = TcpConnection.build_from_dataframe(h1_df, mptcpstream)
 
         # du coup on a une liste
-        mappings = data.map_tcp_stream(server_df, main_connection)
+        mappings = data.map_tcp_stream(h2_df, main_connection)
 
         print("Found mappings %s" % mappings)
         if len(mappings) <= 0:
@@ -153,17 +153,20 @@ class TcpOneWayDelay(plot.Matplotlib):
         for con, score in mappings:
             print("Con: %s" % (con))
 
-        min_h1 = min(h1_df['abstime'])
-        min_h2 = min(h2_df['abstime'])
-        # min
-        if min_h1 < min_h2:
-            print("Looks like h1 is the client")
-            client_df = h1_df
-            receiver_df = h2_df
-        else:
-            print("Looks like h2 is the client")
-            client_df = h2_df
-            receiver_df = h1_df
+        # print(h1_df["abstime"].head())
+        # print(h1_df.head())
+        # # should be sorted, to be sure we could use min() but more costly
+        # min_h1 = h1_df.loc[0,'abstime']
+        # min_h2 = h2_df.loc[0,'abstime']
+        # # min
+        # if min_h1 < min_h2:
+        #     print("Looks like h1 is the sender")
+        #     client_df = h1_df
+        #     receiver_df = h2_df
+        # else:
+        #     print("Looks like h2 is the sender")
+        #     client_df = h2_df
+        #     receiver_df = h1_df
 
         print("Mapped connection %s to %s" % (mapped_connection, main_connection))
 
@@ -175,9 +178,9 @@ class TcpOneWayDelay(plot.Matplotlib):
         total = None # pd.DataFrame()
         for dest in mp.Destination:
             q = main_connection.generate_direction_query(dest)
-            h1_unidirectional_df = client_df.query(q)
+            h1_unidirectional_df = h1_df.query(q)
             q = mapped_connection.generate_direction_query(dest)
-            h2_unidirectional_df = receiver_df.query(q)
+            h2_unidirectional_df = h2_df.query(q)
 
 
             # if dest == mp.Destination.Client:
@@ -197,10 +200,11 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
         # TODO reorder columns to have packet ids first !
+        total = total.reindex(columns=['packetid_h1', 'packetid_h2', 'owd'] + total.columns.tolist())
         total.to_csv(
             cachename, # output
-            columns=self.columns, 
-            index=True,
+            # columns=self.columns, 
+            index=False,
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
         )
@@ -243,17 +247,19 @@ class TcpOneWayDelay(plot.Matplotlib):
         """
         log.info("Generating intermediary results")
 
-        min_h1 = min(h1_df['abstime'])
-        min_h2 = min(h2_df['abstime'])
+        min_h1 = h1_df['abstime'].min()
+        min_h2 = h2_df['abstime'].min()
         # min
         if min_h1 < min_h2:
-            print("Looks like h1 is the client")
+            print("Looks like h1 is the sender")
             sender_df = h1_df
             receiver_df = h2_df
+            suffixes = ('_h1', '_h2')
         else:
-            print("Looks like h2 is the client")
+            print("Looks like h2 is the sender")
             sender_df = h2_df
             receiver_df = h1_df
+            suffixes = ('_h2', '_h1')
         # sender_df.set_index('packetid', inplace=True)
         # rawdf2.set_index('packetid', inplace=True)
 
@@ -268,8 +274,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         #     sender_df, receiver_df = server_df, client_df
         #     left_on, right_on = "packetid", "mapped_index"
 
-        sender_df1 = sender_df.head(limit)
-        rawdf2 = receiver_df.head(limit)
+        sender_df = sender_df.head(limit)
+        receiver_df = receiver_df.head(limit)
         # print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
         # print("df1=\n", (df1))
         #" len(rawdf2)=", len(rawdf2))
@@ -285,19 +291,13 @@ class TcpOneWayDelay(plot.Matplotlib):
         # print(" len(mapped_df)")
         # should print packetids
 
-        # print("== DEBUG START ===")
-        # print("Mapped index:")
-        # print(mapped_df["mapped_index"].head())
-        # print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
-        # print("== DEBUG END ===")
+        print("== DEBUG START ===")
+        print("Mapped index:")
+        print(mapped_df[["rcv_pktid", "packetid"]].head())
+        print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
+        print("== DEBUG END ===")
+        # client_df[ mapped_df[chosen_key]
 
-        
-        client_df[ mapped_df[chosen_key]
-
-        if sender_df == h1_df:
-            suffixes = ('_h1', '_h2')
-        else:
-            suffixes = ('_h2', '_h1')
 
         # we don't want to
         # on veut tjrs avoir le mapping
@@ -316,18 +316,19 @@ class TcpOneWayDelay(plot.Matplotlib):
         newcols = { 
             'score' + suffixes[0]: 'score',
         }
-        res.rename(newcols, inplace=True)
+        res.rename(columns=newcols, inplace=True)
 
         # need to compute the owd depending on the direction right
         # if dest == Destination.Server:
-        # res['owd'] = res['abstime' + self.suffixes[1]] - res['abstime' + self.suffixes[0]]
-        res['owd'] = sender_df[ mapped_df["receiver_pktid"],'abstime'] - receiver_df[mapped_df['sender_pktid'], 'abstime']
+        res['owd'] = res['abstime' + suffixes[1]] - res['abstime' + suffixes[0]]
+        # res['owd'] = sender_df[ mapped_df["receiver_pktid"],'abstime'] - receiver_df[mapped_df['sender_pktid'], 'abstime']
 
         """
         on renomme les colonnes
         """
         # pd.merge(res, )
 
+        print("unidriectional results\n", res.head())
         # print(res[["packetid", "mapped_index", "owd", "sendkey_snd", "sendkey_rcv"]])
         return res
 
@@ -364,7 +365,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # group by title/direction
         # todo utiliser groupby
-        cols = ["tcpstream", "ipcsrc"]
+        cols = ["tcpstream_h1", "tcpstream_h2", "dest"]
         res.groupby(cols)
         pplot = res.owd.plot.line(
             # gca = get current axes (Axes), create one if necessary
