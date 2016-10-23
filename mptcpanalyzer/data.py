@@ -120,37 +120,44 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
 
 
 def map_tcp_packets(    
-    rawdf1, rawdf2, 
+    sender_df, receiver_df, 
         # con1: TcpConnection, con2: TcpConnection
 ) -> pd.DataFrame:
     """
     Stream ids must already mapped 
+    
+    Todo:
+        check N = len(sender_df) - len(receiver_df) to know how many packets should be missing,
+        then cut off lowest N.
 
     algo:
         Computes a score on a per packet basis
         Based 
 
     Returns:
-        a dataframe with as Index the packetid
+        a copy of rawdf1 with as Index the packetid + a new column called 
+        "mapped_index" matching the Index of rawdf2
     """
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
     log.debug("Mapping TCP packets between TODO")
-    df1 = rawdf1.set_index('packetid', )
-    df2 = rawdf2.set_index('packetid',) # [rawdf2["tcpstream"] == con2.tcpstreamid]
-    # df1 = rawdf1
+    # df1 = sender_df.set_index('packetid', )
+    # df2 = receiver_df.set_index('packetid',) # [rawdf2["tcpstream"] == con2.tcpstreamid]
+    # df1 = sender_df
     # df2 = rawdf2
     # df2.set_index('packetid', inplace=True)
 
     # returns a new df with new columns
-    df_final = df1.assign(mapped_index=np.nan, score=np.nan)
+    df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan, ) # =np.nan)
 
     # # Problem is to identify lost packets and retransmitted ones 
     # # so that they map to the same or none ?
     limit = 5
-    for row in df_final.itertuples():
+
+    # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
+    for row in sender_df.itertuples():
         # print("len(df2)=", len(df2))
-        scores = map_tcp_packet(df2, row)
+        scores = map_tcp_packet(receiver_df, row)
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
         # print("row=", df_final.loc[row.index, "packetid"])
@@ -158,7 +165,8 @@ def map_tcp_packets(
         # print(type(row.Index), type(row.index))
         if len(scores) >= 1:
             idx, score = scores[0]
-            df_final.set_value(row.Index, 'mapped_index', idx)
+
+            df_final.set_value(row.Index, 'rcv_pktid', idx)
             df_final.set_value(row.Index, 'score', score)
 
         # drop the chosen index so that it doesn't get used a second time

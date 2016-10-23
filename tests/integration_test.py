@@ -18,6 +18,8 @@ import pathlib
 
 mptcp_pcap = "examples/iperf-mptcp-0-0.pcap"
 mptcp_pcap = os.path.abspath("examples/iperf-mptcp-0-0.pcap")
+# should be the same as in 
+# plot_output = ""
 
 config_file = os.path.abspath("tests/test_config.ini")
 
@@ -25,7 +27,7 @@ loglevel = logging.DEBUG
 
 
 
-def test_main(arguments_to_parse: str):
+def oneshot(arguments_to_parse: str):
     """
     Used in the testsuite
     """
@@ -39,7 +41,7 @@ class IntegrationTest(TestCase):
     List of builtin exceptions
     https://docs.python.org/3/library/exceptions.html
 
-    one can use test_main or 
+    one can use oneshot or 
     z.onecmd()
 
     Attr:
@@ -47,7 +49,7 @@ class IntegrationTest(TestCase):
         config:
     """
 
-    # def test_main(self, arguments_to_parse: str):
+    # def oneshot(self, arguments_to_parse: str):
     #     """
     #     Used in the testsuite
     #     """
@@ -120,8 +122,8 @@ class IntegrationTest(TestCase):
         # TODO test when launched via subprocess
         # - with a list of commands passed via stdin
         cmd = " help"
-        z = self.create_z()
-        test_main(cmd)
+        # z = self.create_z()
+        oneshot(cmd)
         # self.assertEqual(ret, 0)
 
     # def test_regen(self):
@@ -189,8 +191,25 @@ class IntegrationTest(TestCase):
 
         # TODO test mapping sockets
 
-    # def test_plot_owd(self):
-    #     self.m.do_plot("plot owd 0")
+    def test_plot_owd(self):
+        # self.m.do_plot("plot owd 0")
+        out_basename = "interarrival.png"
+        # out_basename = "interarrival_with_title.png"
+        tpl = "plot owd {client_pcap} {server_pcap} 0"
+        cmd = tpl.format(
+            client_pcap="examples/node0.pcap",
+            server_pcap="examples/node1.pcap"
+        )
+        with tempfile.TemporaryDirectory() as tempdir:
+            # with 
+            # io.StringIO(content)
+            # tpl.format(
+            #     pcap=mptcp_pcap,
+            #     os.path.exists(os.path.join(tempdir, "test1.png")))
+            # )
+            # tempdir = self.batch("tests/batch_interarrival.txt")
+            out_fullname = os.path.join(tempdir, out_basename)
+            self.check_plot_output(cmd, out_fullname)
 
     # def test_load_pcap(self):
     #     """
@@ -231,7 +250,7 @@ class IntegrationTest(TestCase):
         self.assertRaises(mp.MpTcpException, z.do_lc, "")
         z.onecmd("load " + mptcp_pcap)
         z.onecmd("lc")
-        # test_main("lc")
+        # oneshot("lc")
 
     def test_list_plots_attr(self):
         """
@@ -251,38 +270,82 @@ class IntegrationTest(TestCase):
         #         self.assertIn()
 
     def test_plot_interarrival(self):
-        self.batch("tests/batch_interarrival.txt")
+
+        # tpl = """ plot interarrival {pcap} dsn --out={out}"""
+        # z = self.create_z() 
+        out_basename = "interarrival.png"
+        # out_basename = "interarrival_with_title.png"
+        tpl = "plot interarrival {pcap} dsn"
+        cmd = tpl.format(pcap=mptcp_pcap)
+        with tempfile.TemporaryDirectory() as tempdir:
+            # with 
+            # io.StringIO(content)
+            # tpl.format(
+            #     pcap=mptcp_pcap,
+            #     os.path.exists(os.path.join(tempdir, "test1.png")))
+            # )
+            # tempdir = self.batch("tests/batch_interarrival.txt")
+            out_fullname = os.path.join(tempdir, out_basename)
+            self.check_plot_output(cmd, out_fullname)
+
+
+    def check_plot_output(self, cmd, out, ):
+        # if out:
+        #     cmd += " --out=%s" % out
+
+        # if title:
+        #     cmd += " --title='%s'" % title
+
+        self.assertFalse(os.path.exists(out), "command not run yet")
+        oneshot(cmd)
+        self.assertTrue(os.path.exists(out), "plot should have created it")
+        os.unlink(out)
+        oneshot(cmd + " --title='Successfully overriden title'")
+        # z.onecmd(tpl.format(
+        #     pcap=mptcp_pcap,
+        #     out=out_fullname,
+        #     title="--title='testing title overriding'"
+        # ))
 
 
     # test_oneshot and check there is no SystemExit
-    def batch(self, filename):
+    def test_flag_batch(self):
+    # def batch(self, filename):
         """
+        TODO add share_cachedir ??
         Run several commands written in a file and make sure
         some files are created
 
         filename MUST be fullpath !
+        you have to clean it yourself
         """
         # f = Path(tmpdir, "toto.txt").touch()
+        filename = "tests/batch_commands.txt"
+        parent_dir = pathlib.Path(os.path.realpath(__file__)).parent
         with tempfile.TemporaryDirectory() as tempdir:
-            newfile = pathlib.Path(tempdir, filename)
-            # newfile = os.path.join(tempdir, filename)
-            print("Copy of %s to %s" % (filename, newfile))
-            print("makedirs to %s" % newfile.parent)
-            os.makedirs(newfile.parent.as_posix(), exist_ok=True)
-            shutil.copy(filename, newfile.as_posix())
+            # newfile = pathlib.Path(tempdir, filename)
+            # # newfile = os.path.join(tempdir, filename)
+            # print("Copy of %s to %s" % (filename, newfile))
+            # print("makedirs to %s" % newfile.parent)
+            # os.makedirs(newfile.parent.as_posix(), exist_ok=True)
+            # or do a symlink
+            # shutil.copytree("examples", tempdir)
+            os.symlink(os.path.join(parent_dir + "examples"), os.path.join(tempdir, "examples"))
             os.chdir(tempdir)
-            cmd = " --load {f} --batch {cmd_file}".format(
-                f=mptcp_pcap,
-                cmd_file=filename,
+            # --load {f} 
+            # oneshot(" --batch ")
+            cmd = " --batch {cmd_file}".format(
+                # use sys.path
+                cmd_file=os.path.join(parent_dir, filename),
             )
-            self.assertEqual(test_main(cmd), 0, "An error happened")
-            self.assertTrue("")
+            self.assertEqual(oneshot(cmd), 0, "An error happened")
             # TODO check some files are created etc...
+            return tempdir
 
     def test_flag_cachedir(self):
         with tempfile.TemporaryDirectory() as tempdir:
             self.assertEqual(len(os.listdir(tempdir)), 0, "new folder should be empty")
-            test_main(" --cachedir={cache} --load={pcap} exit".format(cache=tempdir, pcap=mptcp_pcap))
+            oneshot(" --cachedir={cache} --load={pcap} exit".format(cache=tempdir, pcap=mptcp_pcap))
             self.assertGreaterEqual(len(os.listdir(tempdir)), 1, "new folder should have one file at least")
             # tempdir.cleanup()
 
@@ -304,13 +367,16 @@ class IntegrationTest(TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             out = os.path.join(tempdir, "out.png")
             print("out=", out)
-            z.onecmd("plot attr examples/iperf-mptcp-0-0.pcap 0 client dsn --out %s" % (out))
+            oneshot("plot attr examples/iperf-mptcp-0-0.pcap 0 client dsn --out %s" % (out))
             # TODO test that it exists
             self.assertTrue(os.path.exists(out), "previous command should have created a plot")
+            # plot attr 0 Client dsn 
+            # plot attr 0 Client dsn  --title "custom title" --out test_with_title.png
+            # plot attr 0 Client dsn  --skip 1 --skip 3 --style examples/red_o.mplstyle --title "Test with matplotlib colors" --out test_title_style.png
 
         # TODO test --title
         # self.m.do_plot("attr examples/iperf-mptcp-0-0.pcap 0 client dsn")
-        self.batch("tests/batch_commands.txt")
+        # self.batch("tests/batch_commands.txt")
 
     def test_list_plots_2(self):
         z = self.create_z()

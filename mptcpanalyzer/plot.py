@@ -67,10 +67,12 @@ class Plot:
     """
 
     def __init__(self, title: str = None, 
-            preload_pcaps: Dict[str, PreprocessingActions]={"pcap": PreprocessingActions.Preload},
+            preload_pcaps: Dict[str, PreprocessingActions]={
+                "pcap": PreprocessingActions.Preload
+            },
             # cache=None,
             # main=None,
-            *args, **kwargs):
+            *args, **kwargs) -> None:
         """
         Args:
             title (str): Plot title
@@ -82,8 +84,6 @@ class Plot:
 
         # assert self.main, "Need reference to MpTcpAnalyzer"
 
-        # self.cache = 
-        # self.loader = 
     @property
     def cache(self):
         return self.main.cache
@@ -240,7 +240,6 @@ class Plot:
         # TODO remove should be left to plot df.empty
         # if not len(dataframe.index):
         #     raise Exception("Empty dataframe after running query [%s]" % query)
-
         return dataframe
 
 
@@ -248,7 +247,6 @@ class Plot:
         """
         Args:
             v: the value returned by :class:`.run`
-
         """
         pass
 

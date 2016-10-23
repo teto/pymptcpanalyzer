@@ -23,6 +23,7 @@ from setuptools import setup, find_packages
 from distutils.cmd import Command
 from distutils.core import setup
 from distutils.util import convert_path
+import sys
 
 class TestCommand(Command):
     user_options = []
@@ -40,7 +41,7 @@ class TestCommand(Command):
                 subprocess.call([sys.executable,
                     '-m',
                     'pisces.test']))
-                # How to package ?
+# How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
 # http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
 #
@@ -51,6 +52,16 @@ main_ns={}
 ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
+
+if sys.argv[-1] == 'publish':
+    os.system("python setup.py sdist upload")
+    os.system("python setup.py bdist_wheel upload")
+    print("You probably want to also tag the version now:")
+    print("  git tag -a %s -m 'version %s'" % (version, version))
+    print("  git push --tags")
+    sys.exit()
+
+
 
 setup(name="mptcpanalyzer",
         version=main_ns['__version__'],
@@ -90,8 +101,8 @@ setup(name="mptcpanalyzer",
             # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
             'mptcpanalyzer.plots': [
                 'attr = mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
-                'interarrival = mptcpanalyzer.plots.dsn:InterArrivalTimes',
-                'xinterarrival = mptcpanalyzer.plots.dsn:CrossSubflowInterArrival',
+                'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
+                'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
                 # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
                 'dss = mptcpanalyzer.plots.dss:DSSOverTime',
                 'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
@@ -102,10 +113,10 @@ setup(name="mptcpanalyzer",
             # namespace for plugins that monkey patch the main Cmd class
             'mptcpanalyzer.cmds': [
                 'stats = mptcpanalyzer.command_example:CommandExample',
-              ]
-            },
+            ]
+        },
         # pandas should include matplotlib dependancy right ?
-      install_requires=[
+        install_requires=[
               'stevedore',  # to implement a plugin mechanism
               'matplotlib', # for plotting
               'pandas>=0.17.1', # to load and process csv files

@@ -397,7 +397,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         log.info("Batched commands")
         for command in fd:
             log.info(">>> %s" % command)
-            analyzer.onecmd(command)
+            self.onecmd(command)
 
     def load(self, filename, regen: bool=False):
         self.data = self.load_into_pandas(filename, regen)
