@@ -305,6 +305,10 @@ class IntegrationTest(TestCase):
         self.assertTrue(os.path.exists(out), "plot should have created it")
         os.unlink(out)
         oneshot(cmd + " --title='Successfully overriden title'")
+        self.assertTrue(os.path.exists(out), "plot should have created it")
+        os.unlink(out)
+        # TODO check_display flag here or ??
+        # oneshot(cmd + " --title='Successfully overriden title --display'")
         # z.onecmd(tpl.format(
         #     pcap=mptcp_pcap,
         #     out=out_fullname,

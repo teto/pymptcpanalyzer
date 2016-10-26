@@ -3,7 +3,7 @@
 
 import logging
 import numpy as np
-from enum import Enum
+from enum import Enum, IntEnum
 
 from collections import namedtuple
 
@@ -50,14 +50,17 @@ def get_fields(field, field2=None):
     return dict(zip(keys, map( lambda x: getattr(x, field2), l)))
 
 
-class Destination(Enum):
+class Destination(IntEnum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
     Parser should accept --destination Client --destination Server if you want both.
+
+    TODO: convert back to enum, that was done for bad reasons
     """
-    Client = "client"
-    Server = "server"
-    # Both = "Both" # TODO remove ?
+    # Client = "client"
+    # Server = "server"
+    Client = 0
+    Server = 1
 
 
 def reverse_destination(dest: Destination):

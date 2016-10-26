@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import os
 import argparse
 import math
+import collections
 
 
 # global log and specific log
@@ -22,7 +23,7 @@ slog = logging.getLogger("owd")
 # This is a complex plot hence we added some
 # debug variables
 mock_cachename = "backup.csv"
-limit = 10
+limit = 20
 
 
 
@@ -46,7 +47,6 @@ class TcpOneWayDelay(plot.Matplotlib):
         It creates an intermediate cache file of the form
         host1pktId, host2pktId, score, owd, ipsrc_h1, ipsrc_h2, etc...
 
-        
 
     .. warning:: This plugin is experimental.
     """
@@ -54,11 +54,11 @@ class TcpOneWayDelay(plot.Matplotlib):
     def __init__(self, *args, **kwargs):
 
         # peu importe l'ordre plutot
-        expected_pcaps = {
+        expected_pcaps = collections.OrderedDict({
             "host1_pcap": plot.PreprocessingActions.Preload,
             "host2_pcap": plot.PreprocessingActions.Preload,
-        }
-        super().__init__(preload_pcaps=expected_pcaps, *args, **kwargs)
+        })
+        super().__init__(input_pcaps=expected_pcaps, *args, **kwargs)
         # self.suffixes = ("_snd", "_rcv")
         self.suffixes = ("", "_rcv")
         self.columns = [
@@ -366,18 +366,33 @@ class TcpOneWayDelay(plot.Matplotlib):
         # group by title/direction
         # todo utiliser groupby
         cols = ["tcpstream_h1", "tcpstream_h2", "dest"]
-        res.groupby(cols)
-        pplot = res.owd.plot.line(
+        print(res.dtypes)
+        grouped_by = res.groupby(cols,) # sort=False)
+        print(grouped_by.head())
+        print(len(grouped_by)) # len of 2 which is good, but why 
+        
+        for idx, df in grouped_by:
+            print("ID=" , idx)
+            print("df = ", df)
+
+        # set min(abstime_h1, abstime_2) as index
+        # passe un label a chaque plot alors ?
+        pplot = grouped_by.plot.line(
             # gca = get current axes (Axes), create one if necessary
             ax=axes,
-            legend=True,
+            legend=False,
+            x="abstime_h1",
+            y="owd",
             # style="-o",
-            grid=True,
+            # grid=True,
             # xticks=tcpstreams["reltime"],
             # rotation for ticks
             # rot=45, 
             # lw=3
         )
+        axes.legend()
+        handles, labels = axes.get_legend_handles_labels()
+        print("labels=", labels)
 
         # TODO add units
         axes.set_xlabel("Time (s)")

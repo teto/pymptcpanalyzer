@@ -7,6 +7,7 @@ import tempfile
 import matplotlib
 import matplotlib.pyplot as plt
 import logging
+import collections
 import mptcpanalyzer as mp
 from enum import Enum, IntEnum
 from typing import List, Dict
@@ -22,9 +23,14 @@ log = logging.getLogger(__name__)
 
 
 class PreprocessingActions(IntEnum):
+    """
+    Used to set bitfields
+
+    TODO: skipSubflows ? filterDirection ?
+    """
     DoNothing = 0
-    Preload = 0
-    PreloadAndFilter = 1
+    Preload = 1
+    FilterMpTcpStream = 2
 
 
 def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
@@ -66,10 +72,13 @@ class Plot:
         enabel_preprocessing (bool): Automatically filters dataframes beforehand
     """
 
-    def __init__(self, title: str = None, 
-            preload_pcaps: Dict[str, PreprocessingActions]={
-                "pcap": PreprocessingActions.Preload
-            },
+    def __init__(
+            self, 
+            input_pcaps: collections.OrderedDict[str, PreprocessingActions],
+            #={
+                # "pcap": PreprocessingActions.Preload
+            # },
+            title: str = None, 
             # cache=None,
             # main=None,
             *args, **kwargs) -> None:
@@ -80,7 +89,7 @@ class Plot:
         self.title = title
         # self.enable_preprocessing = preprocess_dataframes
         # self.main = main
-        self.preload_pcaps = preload_pcaps
+        self.input_pcaps = input_pcaps
 
         # assert self.main, "Need reference to MpTcpAnalyzer"
 
@@ -88,14 +97,16 @@ class Plot:
     def cache(self):
         return self.main.cache
 
-    def default_parser(self,
+    def default_parser(
+            self,
             # TODO remove two followings ?
             parent_parsers=[],
             # available_dataframe: bool,
             # required_inputs: List[str] = ["pcap"],
-            mptcpstream: bool = False,
+            # mptcpstream: bool = False,
             direction: bool = False, skip_subflows: bool = True,
-            dst_host: bool=False):
+            dst_host: bool=False
+        ):
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
@@ -121,14 +132,21 @@ class Plot:
         # for i in range(0, count):
 
         # for name in required_inputs:
-        print("preload = ", type(self.preload_pcaps), self.preload_pcaps)
-        for name in self.preload_pcaps.keys():
+        print("preload = ", type(self.input_pcaps), self.input_pcaps)
+        for name, bitfield in self.input_pcaps.items():
             parser.add_argument(name, 
             # action="append",
             action="store",
             # metavar="pcap%d" % i,
             type=str,
             help='Pcap file (or its associated csv)')
+
+            # if bitfield & PreprocessingActions.FilterMpTcpStream:
+            #     parser.add_argument(
+            #         'mptcpstream', action="store", type=int,
+            #         help='mptcp.stream id, you may find using the "list_connections" command'
+            #     )
+
 
         if mptcpstream:
             parser.add_argument('mptcpstream', action="store", type=int,
@@ -256,7 +274,7 @@ class Plot:
         """
         assert main, "Need reference to MpTcpAnalyzer"
         dataframes = []
-        for pcap_name, action in self.preload_pcaps.items():
+        for pcap_name, action in self.input_pcaps.items():
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
                 df = main.load_into_pandas(kwargs.get(pcap_name))
@@ -281,7 +299,7 @@ class Plot:
         """
         dataframes = rawdataframes
         # if self.enable_preprocessing:
-        # for pcap in self.preload_pcaps:
+        # for pcap in self.input_pcaps:
 # # self.load_into_pandas(pcap)
         #     dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
 

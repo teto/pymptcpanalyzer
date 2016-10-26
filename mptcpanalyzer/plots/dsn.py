@@ -8,7 +8,7 @@ import logging
 import argparse
 import matplotlib.pyplot as plt
 from mptcpanalyzer import fields_v2
-# import inspect
+import collections
 
 log = logging.getLogger(__name__)
 
@@ -22,8 +22,11 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
     mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
-        pcaps = {"pcap": plot.PreprocessingActions.PreloadAndFilter}
-        super().__init__(preload_pcaps=pcaps, *args, **kwargs)
+        pcaps = collections.OrderedDict({
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream
+            # | plot.PreprocessingActions.SkipSubflow
+        })
+        super().__init__(input_pcaps=pcaps, *args, **kwargs)
 
 
     def default_parser(self, *args, **kwargs):
@@ -33,9 +36,10 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         )
         # parent.add_argument("pcap", action="store", help="Input pcap")
         parser = super().default_parser(*args, parent_parsers=[parent], 
-
                 mptcpstream=True,
-                direction=True, skip_subflows=True, **kwargs)
+                direction=True,
+                skip_subflows=True,
+                **kwargs)
         parser.add_argument('field', choices=self.mptcp_attributes.keys(),
                 help="Choose an mptcp attribute to plot")
         return parser
