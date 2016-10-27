@@ -7,6 +7,7 @@ import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import matplotlib  as mpl
+import collections
 # from mptcpanalyzer import fields_v2
 from itertools import cycle
 
@@ -21,7 +22,13 @@ class DssLengthHistogram(plot.Matplotlib):
     """
 
     def __init__(self):
-        super().__init__(title="DSS Length")
+        expected_pcaps = collections.OrderedDict({
+            "pcap": plot.PreprocessingActions.Preload,
+        })
+        super().__init__(
+                expected_pcaps,
+                title="DSS Length"
+            )
 
     def plot(self, df, mptcpstream, **kwargs):
         # data = main.data

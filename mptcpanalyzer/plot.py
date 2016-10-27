@@ -56,7 +56,7 @@ def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
     return query
 
 
-@six.add_metaclass(abc.ABCMeta)
+# @six.add_metaclass(abc.ABCMeta)
 class Plot:
     """
     This is a helper class designed to provide basic functionalities so that
@@ -74,10 +74,7 @@ class Plot:
 
     def __init__(
             self, 
-            input_pcaps: collections.OrderedDict[str, PreprocessingActions],
-            #={
-                # "pcap": PreprocessingActions.Preload
-            # },
+            input_pcaps,#: collections.OrderedDict[str, PreprocessingActions],
             title: str = None, 
             # cache=None,
             # main=None,
@@ -103,7 +100,7 @@ class Plot:
             parent_parsers=[],
             # available_dataframe: bool,
             # required_inputs: List[str] = ["pcap"],
-            # mptcpstream: bool = False,
+            mptcpstream: bool = False,
             direction: bool = False, skip_subflows: bool = True,
             dst_host: bool=False
         ):
