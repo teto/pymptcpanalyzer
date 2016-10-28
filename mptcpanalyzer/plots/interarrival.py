@@ -95,6 +95,8 @@ class InterArrivalTimes(plot.Matplotlib):
             ]
     
     def __init__(self, *args, **kwargs):
+        inputs = [
+        ]
         super().__init__(*args, **kwargs)
 
     def default_parser(self):

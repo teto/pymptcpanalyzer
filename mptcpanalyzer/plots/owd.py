@@ -54,10 +54,10 @@ class TcpOneWayDelay(plot.Matplotlib):
     def __init__(self, *args, **kwargs):
 
         # peu importe l'ordre plutot
-        expected_pcaps = collections.OrderedDict({
-            "host1_pcap": plot.PreprocessingActions.Preload,
-            "host2_pcap": plot.PreprocessingActions.Preload,
-        })
+        expected_pcaps = [
+            ("host1_pcap", plot.PreprocessingActions.Preload),
+            ("host2_pcap", plot.PreprocessingActions.Preload),
+        ]
         super().__init__(input_pcaps=expected_pcaps, *args, **kwargs)
         # self.suffixes = ("_snd", "_rcv")
         self.suffixes = ("", "_rcv")

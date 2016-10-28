@@ -22,9 +22,9 @@ class DssLengthHistogram(plot.Matplotlib):
     """
 
     def __init__(self):
-        expected_pcaps = collections.OrderedDict({
-            "pcap": plot.PreprocessingActions.Preload,
-        })
+        expected_pcaps = [
+            ("pcap", plot.PreprocessingActions.Preload),
+        ]
         super().__init__(
                 expected_pcaps,
                 title="DSS Length"
@@ -65,7 +65,10 @@ class DSSOverTime(plot.Matplotlib):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(title="dsn", **kwargs)
+        expected_pcaps = [
+            ("pcap", plot.PreprocessingActions.Preload),
+        ]
+        super().__init__(expected_pcaps, title="dsn", **kwargs)
 
     def default_parser(self, *args, **kwargs):
         parser = super().default_parser(*args, mptcpstream=True, 

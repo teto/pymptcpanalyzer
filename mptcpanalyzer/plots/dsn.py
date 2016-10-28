@@ -22,10 +22,10 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
     mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
-        pcaps = collections.OrderedDict({
-            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream
+        pcaps = [
+            ("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream),
             # | plot.PreprocessingActions.SkipSubflow
-        })
+        ]
         super().__init__(input_pcaps=pcaps, *args, **kwargs)
 
 

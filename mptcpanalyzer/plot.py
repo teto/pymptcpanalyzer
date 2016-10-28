@@ -10,7 +10,7 @@ import logging
 import collections
 import mptcpanalyzer as mp
 from enum import Enum, IntEnum
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from mptcpanalyzer.connection import MpTcpConnection
 
 import abc
@@ -74,7 +74,8 @@ class Plot:
 
     def __init__(
             self, 
-            input_pcaps,#: collections.OrderedDict[str, PreprocessingActions],
+            # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
+            input_pcaps: List[Tuple[str, PreprocessingActions]],
             title: str = None, 
             # cache=None,
             # main=None,
@@ -130,7 +131,7 @@ class Plot:
 
         # for name in required_inputs:
         print("preload = ", type(self.input_pcaps), self.input_pcaps)
-        for name, bitfield in self.input_pcaps.items():
+        for name, bitfield in self.input_pcaps:
             parser.add_argument(name, 
             # action="append",
             action="store",
@@ -271,7 +272,7 @@ class Plot:
         """
         assert main, "Need reference to MpTcpAnalyzer"
         dataframes = []
-        for pcap_name, action in self.input_pcaps.items():
+        for pcap_name, action in self.input_pcaps:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
                 df = main.load_into_pandas(kwargs.get(pcap_name))
