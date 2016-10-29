@@ -23,8 +23,11 @@ slog = logging.getLogger("owd")
 # This is a complex plot hence we added some
 # debug variables
 mock_cachename = "backup.csv"
-limit = 20
+# limit = 20
 
+def debug_convert(df):
+    return df.head(20)
+    # return df
 
 
 class TcpOneWayDelay(plot.Matplotlib):
@@ -144,8 +147,8 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # limit number of packets while testing 
         # HACK to process faster
-        h1_df = h1_df.head(limit)
-        h2_df = h2_df.head(limit)
+        h1_df = debug_convert(h1_df)
+        h2_df = debug_convert(h2_df)
 
         print("len(df1)=", len(h1_df), " len(rawdf2)=", len(h2_df))
         mapped_connection, score = mappings[0]
@@ -374,6 +377,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         for idx, df in grouped_by:
             print("ID=" , idx)
             print("df = ", df)
+
+            df = debug_convert(df)
 
         # set min(abstime_h1, abstime_2) as index
         # passe un label a chaque plot alors ?
