@@ -364,17 +364,20 @@ class Matplotlib(Plot):
         # self.title = args.title if args.title else self.title
         if opt.get('title', self.title):
             v.suptitle(self.title, fontsize=12)
-        
+ 
         if out:
             self.savefig(v, out)
 
         if display:
             if out is None:
                 # TODO create a temporary file
+                # print("%r")
+                # v.imshow()
                 with tempfile.NamedTemporaryFile() as tmpfile:
                     print("tempfile=", tmpfile)
                     print("\n=")
-                    self.savefig(v, tmpfile.name)
+                    r = self.savefig(v, tmpfile.name)
+                    print("returned", r)
                     self.display(tmpfile.name)
             else:
                 self.display(out)
@@ -419,7 +422,9 @@ class Matplotlib(Plot):
             You can set *dpi* for instance  (80 by default ?)
         """
         print("Saving into %s" % (filename))
-        filename = os.path.join(os.getcwd(), filename)
+        # filename = os.path.join(os.getcwd(), filename)
         # dpi can be set from resource config
-        fig.savefig(filename, **kwargs)
+# , the value of the rc parameter savefig.format
+        fig.savefig(filename, format="png", **kwargs)
+        return filename
 

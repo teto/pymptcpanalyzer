@@ -19,3 +19,8 @@ Analyze your pcap with https://f00l.de/pcapfix/.
 ImportError: No module named 'PyQt4'
 http://matplotlib.org/faq/usage_faq.html#what-is-a-backend
 
+
+4. It doesn't work, what should I do ?
+launch 
+To debug matplotlib at the same time, add the flags:
+verbose-helpful or --verbose-debug 

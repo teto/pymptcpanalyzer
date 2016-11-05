@@ -277,8 +277,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         #     sender_df, receiver_df = server_df, client_df
         #     left_on, right_on = "packetid", "mapped_index"
 
-        sender_df = sender_df.head(limit)
-        receiver_df = receiver_df.head(limit)
+        sender_df = debug_convert(sender_df) # .head(limit)
+        receiver_df = debug_convert(receiver_df)
         # print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
         # print("df1=\n", (df1))
         #" len(rawdf2)=", len(rawdf2))
@@ -379,25 +379,39 @@ class TcpOneWayDelay(plot.Matplotlib):
             print("df = ", df)
 
             df = debug_convert(df)
+            pplot = grouped_by.plot.line(
+                # gca = get current axes (Axes), create one if necessary
+                ax=axes,
+                legend=False,
+                x="abstime_h1",
+                y="owd",
+                label="toto", # seems to be a bug
+                # style="-o",
+                # grid=True,
+                # xticks=tcpstreams["reltime"],
+                # rotation for ticks
+                # rot=45, 
+                # lw=3
+            )
 
         # set min(abstime_h1, abstime_2) as index
         # passe un label a chaque plot alors ?
-        pplot = grouped_by.plot.line(
-            # gca = get current axes (Axes), create one if necessary
-            ax=axes,
-            legend=False,
-            x="abstime_h1",
-            y="owd",
-            # style="-o",
-            # grid=True,
-            # xticks=tcpstreams["reltime"],
-            # rotation for ticks
-            # rot=45, 
-            # lw=3
-        )
-        axes.legend()
-        handles, labels = axes.get_legend_handles_labels()
-        print("labels=", labels)
+        # pplot = grouped_by.plot.line(
+        #     # gca = get current axes (Axes), create one if necessary
+            # ax=axes,
+            # legend=False,
+            # x="abstime_h1",
+            # y="owd",
+            # # style="-o",
+            # # grid=True,
+            # # xticks=tcpstreams["reltime"],
+            # # rotation for ticks
+            # # rot=45, 
+            # # lw=3
+        # )
+        axes.legend(['toto', 'ta'])
+        # handles, labels = axes.get_legend_handles_labels()
+        # print("labels=", labels)
 
         # TODO add units
         axes.set_xlabel("Time (s)")
