@@ -230,6 +230,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             # res['dest'] = dest
             total = pd.concat([res, total])
 
+            # kept for debug
             filename = "merge_%d_%s.csv" % (mptcpstream, dest)
             res.to_csv(
                 filename, # output

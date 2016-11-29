@@ -195,17 +195,15 @@ class TsharkExporter:
         print(cmd)
 
         try:
-            # https://docs.python.org/3/library/subprocess.html#subprocess.check_output
-            # output = subprocess.Popen(cmd, shell=True) stdout=subprocess.PIPE,
-            # if type(
+            # TODO serialize wireshark options
             with open(output, "w+") as fd:
                 fd.write("# metadata: \n")
+                fd.flush() # need to flush else order gets messed up
                 proc = subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True)
-                out, stderr = proc.communicate(timeout=15)
-                # out = out.decode("UTF-8")
+                out, stderr = proc.communicate()
                 stderr = stderr.decode("UTF-8")
-
                 print("stderr=", stderr)
+
         except subprocess.CalledProcessError as e:
             log.error(str(e))
             print("ERROR")

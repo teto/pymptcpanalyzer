@@ -377,6 +377,8 @@ class MpTcpAnalyzer(cmd.Cmd):
             print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (
                 tcpstream, subflow_load, total_transferred, subflow_load / total_transferred * 100))
 
+        # TODO check for reinjections etc...
+
     @is_loaded
     def do_lc(self, *args):
         """
@@ -390,13 +392,37 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.list_subflows(mptcpstream)
 
     @is_loaded
-    def do_lr(self, *args):
+    def do_lr(self, line):
         """
         List reinjections
+        We want to be able to distinguish between good and bad reinjections
+        (like good and bad RTOs).
+        A good reinjection
         """
         # mptcp.duplicated_dsn
         # 
         print("Listing reinjections of the connection")
+        parser = argparse.ArgumentParser(
+            description="Listing reinjections of the connection"
+        )
+        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+        args = parser.parse_args(line)
+        df = self.data
+        df = self.data[df.mptcpstream == args.mptcpstream]
+        if df.empty:
+            print("No packet with mptcp.stream == %d" % args.mptcpstream)
+            return
+        # type(reinjections) = list (assume it's sorted )
+        # reinjections = df[["packetid", "reinjections"]]
+        known = set()
+        # reinjections = df["reinjections"].dropna()
+        reinjections = df[["packetid", "reinjections"]].dropna(axis=0, )# subset="reinjections")
+        # df.groupby('tcpstream')
+        for row in reinjections.itertuples():
+            # row.itertuples():
+            if row.packetid not in known:
+                print("packetid=%d reinjected in %s" % (row.packetid, row.reinjections))
+                known.update( [row.packetid] + row.reinjections)
 
     def do_batch(self, line):
         print("Running batched commands")
@@ -571,14 +597,15 @@ class MpTcpAnalyzer(cmd.Cmd):
                 # skip_blank_lines=True,
                 # hum not needed with comment='#'
                 comment='#',
-                header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
+                # we don't need 'header' when metadata is with comment
+                # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
                 # skiprows
                 sep=self.config["delimiter"],
                 dtype=dtypes,
                 converters={
                     "tcp.flags": lambda x: int(x, 16),
-                    # TODO reinjections, convert to list: ','.split()
-                    #"mptcp.duplicated_dsn": lambda x: x.split(','),
+                    # reinjections, converts to list of integers
+                    "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
                     #"mptcp.related_mapping": lambda x: x.split(','),
                 },
                 # memory_map=True, # could speed up processing
@@ -586,6 +613,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             # TODO:
             # No columns to parse from file
             data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
+            log.debug("Column names: %s", data.columns)
 
         # pp = pprint.PrettyPrinter(indent=4)
         # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
