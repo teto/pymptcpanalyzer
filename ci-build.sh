@@ -24,5 +24,7 @@ test -f ${BUILD}/test-install-bin/i3pystatus-setting-util
 # run tests
 PYTHONPATH=${BUILD}/test-install py.test -q --junitxml ${BUILD}/testlog.xml tests
 
+# mp plot owd_tcp examples/node0.pcap examples/node1.pcap 0 --display --verbose-debug
+
 # Check that the docs build w/o warnings (-W flag)
 sphinx-build -Nq -b html -W docs ${BUILD}/docs/

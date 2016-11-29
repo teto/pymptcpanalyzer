@@ -397,7 +397,11 @@ class MpTcpAnalyzer(cmd.Cmd):
         List reinjections
         We want to be able to distinguish between good and bad reinjections
         (like good and bad RTOs).
-        A good reinjection
+        A good reinjection is a reinjection for which either:
+        - the segment arrives first at the receiver
+        - the cumulative DACK arrives at the sender sooner thanks to that reinjection
+
+        To do that, we need to take into account latencies
         """
         # mptcp.duplicated_dsn
         # 
@@ -416,7 +420,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         # reinjections = df[["packetid", "reinjections"]]
         known = set()
         # reinjections = df["reinjections"].dropna()
-        reinjections = df[["packetid", "reinjections"]].dropna(axis=0, )# subset="reinjections")
+        reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
+        total_nb_reinjections = 0
         # df.groupby('tcpstream')
         for row in reinjections.itertuples():
             # row.itertuples():
@@ -541,7 +546,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             input_file: str,
             regen: bool=False,
             metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
-            ) -> pd.DataFrame:
+        ) -> pd.DataFrame:
         """
         load csv mptpcp data into pandas
 
@@ -677,6 +682,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes]
         print("TOTO")
         dataframes = plotter.preprocess(self, **dargs)
+        # TODO test with isinstance ?
         assert dataframes is not None, "Preprocess must return a list"
         print("dataframes", dataframes, " comapred to ", dargs)
         result = plotter.run(dataframes, **dargs)

@@ -333,7 +333,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         """
         # pd.merge(res, )
 
-        print("unidriectional results\n", res.head())
+        print("unidirectional results\n", res.head())
         # print(res[["packetid", "mapped_index", "owd", "sendkey_snd", "sendkey_rcv"]])
         return res
 
@@ -345,7 +345,6 @@ class TcpOneWayDelay(plot.Matplotlib):
         Disclaimer: Keep in mind this assumes a perfect synchronization between nodes, i.e.,
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
-
 
         See 
         Todo:
@@ -371,7 +370,10 @@ class TcpOneWayDelay(plot.Matplotlib):
         # group by title/direction
         # todo utiliser groupby
         cols = ["tcpstream_h1", "tcpstream_h2", "dest"]
+        print(res)
+        # print(res.columns)
         print(res.dtypes)
+        print("version", pd.__version__)
         grouped_by = res.groupby(cols, sort=False)
         print(grouped_by.head())
         print(len(grouped_by)) # len of 2 which is good, but why 
