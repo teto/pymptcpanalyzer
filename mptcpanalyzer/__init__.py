@@ -20,6 +20,12 @@ Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ]) # 'converte
 # Field.__new__.__defaults__ = (None, None)
 
 
+"""
+The number of rows in the CSV file assigned to metadata (mptcpanalyzer version,
+tshark options etc...)
+"""
+METADATA_ROWS = 2
+
 class TcpFlags(Enum):
     NONE = 0   
     FIN = 1   
@@ -151,6 +157,8 @@ def fields_v2():
         Field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number"),
         Field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack"),
         Field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number"),
+        Field("mptcp.related_mapping", "related_mappings", None, "DSS"),
+        Field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections"),
     ]
     return l
 
@@ -159,8 +167,10 @@ def fields_v2():
 def filter_df(skip_subflows=None, **kwargs):
         """
         Filters a pandas DataFrame
-        :param data a Pandas dataset
-        :param kwargs Accepted keywords are
+
+        Args:
+            data: a Pandas dataset
+            kwargs: Accepted keywords are
 
         direction = client or server
         """
@@ -179,4 +189,3 @@ def filter_df(skip_subflows=None, **kwargs):
             log.debug("Running query %s" % query)
             dat = data.query(query)
         return dat
-

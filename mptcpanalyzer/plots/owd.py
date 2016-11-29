@@ -189,9 +189,10 @@ class TcpOneWayDelay(plot.Matplotlib):
             # if dest == mp.Destination.Client:
             #     local_sender_df, local_receiver_df = local_receiver_df, local_sender_df
             res = self.generate_tcp_directional_owd_df(h1_unidirectional_df, h2_unidirectional_df, dest)
-            res['dest'] = dest
+            res['dest'] = dest.name
             total = pd.concat([res, total])
 
+            # TODO remove in the future
             filename = "merge_%d_%s.csv" % (mptcpstream, dest)
             res.to_csv(
                 filename, # output
@@ -203,7 +204,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
         # TODO reorder columns to have packet ids first !
-        total = total.reindex(columns=['packetid_h1', 'packetid_h2', 'owd'] + total.columns.tolist())
+        total = total.reindex(columns=['packetid_h1', 'packetid_h2',  'dest', 'owd',] + total.columns.tolist())
         total.to_csv(
             cachename, # output
             # columns=self.columns, 
@@ -370,7 +371,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         # todo utiliser groupby
         cols = ["tcpstream_h1", "tcpstream_h2", "dest"]
         print(res.dtypes)
-        grouped_by = res.groupby(cols,) # sort=False)
+        grouped_by = res.groupby(cols, sort=False)
         print(grouped_by.head())
         print(len(grouped_by)) # len of 2 which is good, but why 
         

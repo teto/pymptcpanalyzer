@@ -22,6 +22,7 @@ class Cache:
     def is_cache_valid(self, filename, depends: List[str]=None) -> Tuple[bool, str]:
         """
         Args:
+            metadata:
             depends: List of files to check
 
         Returns:
@@ -56,6 +57,8 @@ class Cache:
                     log.debug("Cache outdated by dependancy %s" % dependancy)
                     is_cache_valid = False
                     break
+
+            # then we check if metadata matches
         else:
             log.debug("No cache %s found" % cachename)
         # return is_cache_valid, cachename

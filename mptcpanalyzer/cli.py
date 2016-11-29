@@ -24,6 +24,7 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.version import __version__
 from mptcpanalyzer.data import *
 from mptcpanalyzer.cache import Cache
+from mptcpanalyzer.metadata import Metadata
 import mptcpanalyzer.connection as mc
 import mptcpanalyzer as mp
 import stevedore
@@ -509,7 +510,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         return csv_filename
 
 
-    def load_into_pandas(self, input_file: str, regen: bool =False) -> pd.DataFrame:
+    def load_into_pandas(
+            self,
+            input_file: str,
+            regen: bool=False,
+            metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
+            ) -> pd.DataFrame:
         """
         load csv mptpcp data into pandas
 
@@ -524,8 +530,10 @@ class MpTcpAnalyzer(cmd.Cmd):
         # todo addd csv extension if needed
 
         # csv_filename = self.get_matching_csv_filename(filename, regen)
-        is_cache_valid = self.cache.is_cache_valid(filename)
+        is_cache_valid = self.cache.is_cache_valid(filename, )
+        # if os.path.isfile(cachename):
         csv_filename = self.cache.cacheuid(filename)
+
         log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
         if regen or not is_cache_valid:
             log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
@@ -553,14 +561,31 @@ class MpTcpAnalyzer(cmd.Cmd):
         dtypes = {k: v for k, v in temp.items() if v is not None}
         log.debug("Loading a csv file %s" % csv_filename)
 
-        data = pd.read_csv(csv_filename, sep=self.config["delimiter"],
-            dtype=dtypes,
-            converters={
-                "tcp.flags": lambda x: int(x, 16),
-        }) 
-        # TODO: 
-        # No columns to parse from file
-        data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
+        with open(csv_filename) as fd:
+            # first line is metadata
+            # TODO: creer classe metadata read/write ?
+            # metadata = fd.readline()
+
+            data = pd.read_csv(
+                fd,
+                # skip_blank_lines=True,
+                # hum not needed with comment='#'
+                comment='#',
+                header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
+                # skiprows
+                sep=self.config["delimiter"],
+                dtype=dtypes,
+                converters={
+                    "tcp.flags": lambda x: int(x, 16),
+                    # TODO reinjections, convert to list: ','.split()
+                    #"mptcp.duplicated_dsn": lambda x: x.split(','),
+                    #"mptcp.related_mapping": lambda x: x.split(','),
+                },
+                # memory_map=True, # could speed up processing
+            )
+            # TODO:
+            # No columns to parse from file
+            data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
 
         # pp = pprint.PrettyPrinter(indent=4)
         # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))

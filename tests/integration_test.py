@@ -197,9 +197,31 @@ class IntegrationTest(TestCase):
         # out_basename = "interarrival_with_title.png"
         tpl = "plot owd {client_pcap} {server_pcap} 0"
         cmd = tpl.format(
-            client_pcap="examples/node0.pcap",
-            server_pcap="examples/node1.pcap"
+            client_pcap="examples/node0filtered.pcapng",
+            server_pcap="examples/node1filtered.pcapng"
         )
+
+        packets[mp.Destination.Server] = [
+1,
+3,
+4,
+5,
+6,
+7,
+8,
+9,
+10,
+11,
+12
+]
+                ]
+[
+2
+15
+17
+20
+]
+        pd.DataFrame()
         with tempfile.TemporaryDirectory() as tempdir:
             # with 
             # io.StringIO(content)
