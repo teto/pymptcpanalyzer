@@ -388,6 +388,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
 
+    @is_loaded
+    def do_lr(self, *args):
+        """
+        List reinjections
+        """
+        # mptcp.duplicated_dsn
+        # 
+        print("Listing reinjections of the connection")
 
     def do_batch(self, line):
         print("Running batched commands")
