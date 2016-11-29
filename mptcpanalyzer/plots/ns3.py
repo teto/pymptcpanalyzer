@@ -70,6 +70,12 @@ class PlotTraceSources(plot.Matplotlib):
     plot 
 
     """
+    def __init__(self, *args, **kwargs):
+        pcaps = [
+            # ("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream),
+            # | plot.PreprocessingActions.SkipSubflow
+        ]
+        super().__init__(input_pcaps=pcaps, *args, **kwargs)
 
     def default_parser(self, *args, **kwargs):
         """
@@ -79,7 +85,7 @@ class PlotTraceSources(plot.Matplotlib):
             description="unofficial ns3 mptcp plotting tool for TcpTraceHelper generated files")
         parser.add_argument("folder", help="Choose client or server folder")
         parser.add_argument("node", help="Choose node to filter from")
-        parser.add_argument("attributes", choices=ns3_attributes, 
+        parser.add_argument("attributes", choices=ns3_attributes,
                 nargs="+",
                 help="Choose client or server folder")
         # parser.add_argument("--node", "-n", dest="nodes", action="append", default=[0], help="Plot subflows along")

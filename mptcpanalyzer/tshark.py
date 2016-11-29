@@ -19,43 +19,44 @@ class Filetype(Enum):
 
 class TsharkExporter:
     """
-    TODO 
+    TODO
     in fact we could convert towards all formats supported by pandas:
     http://pandas.pydata.org/pandas-docs/stable/api.html#id12
-    
-    if you plan to add several options, you should use a specific profile instead, 
+
+    if you plan to add several options, you should use a specific profile instead,
     these options are meant to override a base profile
     """
-    options = { 
-        # used to be 'column.format' in older versions
-        # "tshark -G column-formats" list available formats 
-        # name is then considered as a field accessible via  -e _ws.col.<name>
-        # %Cus => Custom
-        # doc on this is not good, you have to check each function, for isntance: col_set_rel_time
-        # https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob;f=epan/column.c;h=5d3263d6ce0a814ae2480741e7233130cf0694e6;hb=HEAD
-        # rd => resolved
-        "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
-        # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
-        "mptcp.analyze_mappings" : True,
-# "nameres.hosts_file_handling": True,
-# nameres.use_external_name_resolver: True,
-# nameres.network_name: True
-        "mptcp.relative_sequence_numbers" : True,
-        "mptcp.intersubflows_retransmission": True,
-        # Disable DSS checks which consume quite a lot
-        "mptcp.analyze_mptcp": True,
-    }
 
 
     def __init__(self, tshark_bin="wireshark", delimiter="|", profile=None):
         """
-        :param profile wireshark profiles will setup everything as it should except the gui column format that 
+        Args:
+            profile: wireshark profiles will setup everything as it should except the gui column format that
         will be overriden to ensure compatibility with dissection system
         """
         self.tshark_bin = tshark_bin
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
         self.profile = profile
+        self.options = {
+                # used to be 'column.format' in older versions
+                # "tshark -G column-formats" list available formats
+                # name is then considered as a field accessible via  -e _ws.col.<name>
+                # %Cus => Custom
+                # doc on this is not good, you have to check each function, for isntance: col_set_rel_time
+                # https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob;f=epan/column.c;h=5d3263d6ce0a814ae2480741e7233130cf0694e6;hb=HEAD
+                # rd => resolved
+                "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
+                # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
+                "mptcp.analyze_mappings": True,
+                # "nameres.hosts_file_handling": True,
+                # nameres.use_external_name_resolver: True,
+                # nameres.network_name: True
+                "mptcp.relative_sequence_numbers": True,
+                "mptcp.intersubflows_retransmission": True,
+                # Disable DSS checks which consume quite a lot
+                "mptcp.analyze_mptcp": True,
+        }
 
     @staticmethod
     def get_default_options():
@@ -67,7 +68,7 @@ class TsharkExporter:
     @staticmethod
     def find_type(filename):
         """
-        \return a Filetype instance
+        return a Filetype instance
         Naive implementation relying on filename. Expects only one dot in filename
         Assumes
         """
@@ -83,9 +84,11 @@ class TsharkExporter:
             return Filetype.unsupported
 
 
-    def export_to_csv(self, input_filename: str, output_csv : str,
-            fields_to_export : List[str], tshark_filter : str =None):
+    def export_to_csv(self, input_filename: str, output_csv: str,
+            fields_to_export: List[str], tshark_filter: str =None):
         """
+        Args:
+            output_csv: should be a fd
         fields_to_export = dict
         Returns exit code, stderr
         """
@@ -98,8 +101,8 @@ class TsharkExporter:
             raise Exception("Input filename not a capture file")
 
         return self.tshark_export_fields(
-            self.tshark_bin, 
-            fields_to_export, 
+            self.tshark_bin,
+            fields_to_export,
             input_filename,
             output_csv,
             tshark_filter,
@@ -127,16 +130,20 @@ class TsharkExporter:
 
     @staticmethod
     def tshark_export_fields(
-        tshark_exe, 
+        tshark_exe,
         fields_to_export,
-        inputFilename, 
-        outputFilename, 
-        filter=None, 
+        inputFilename,
+        output: str,
+        filter=None,
         profile=None,
         csv_delimiter='|',
         options={},
     ):
         """
+        Args:
+            profile: wireshark profile
+            output: str
+            options:
         inputFilename should be pcap filename
         fields should be iterable (tuple, list ...)
         returns exit code, stderr
@@ -155,7 +162,7 @@ class TsharkExporter:
         def convert_options_into_str(options):
             """
             Expects a dict of wireshark options
-            TODO maybe it could use **kwargs instead 
+            TODO maybe it could use **kwargs instead
             """
             # relative_sequence_numbers = False
             out = ""
@@ -167,35 +174,40 @@ class TsharkExporter:
         # for some unknown reasons, -Y does not work so I use -2 -R instead
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
-        #  -E quote=n 
+        #  -E quote=n
         # the -2 is very important, else some mptcp parameters are not exported
         # TODO try with -w <outputFile> ?
-        cmd = ("{tsharkBinary} {profile} {tsharkOptions} {filterExpression}"
+        tpl = ("{tsharkBinary} {profile} {tsharkOptions} {filterExpression}"
                " -r {inputPcap} -T fields {fieldsExpanded} -E separator='{delimiter}'"
-               " -E header=y  -2 "
-               " > {outputFilename}").format(
+               " -E header=y  -2 ")
+
+        cmd = tpl.format(
             tsharkBinary=tshark_exe,
             profile=" -C %s" % profile if profile else "",
             tsharkOptions=convert_options_into_str(options),
             inputPcap=inputFilename,
-            outputCsv=outputFilename,
+            outputCsv=output,
             fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
             filterExpression=filter,
             delimiter=csv_delimiter,
-            outputFilename=outputFilename
+            # outputFilename=output
         )
         print(cmd)
 
         try:
             # https://docs.python.org/3/library/subprocess.html#subprocess.check_output
-            # output = subprocess.Popen(cmd, shell=True) stdout=subprocess.PIPE, 
-            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
-            out, stderr = proc.communicate()
-            # out = out.decode("UTF-8")
-            stderr = stderr.decode("UTF-8") 
-            print("stderr=", stderr)
+            # output = subprocess.Popen(cmd, shell=True) stdout=subprocess.PIPE,
+            # if type(
+            with open(output, "w+") as fd:
+                fd.write("# metadata: \n")
+                proc = subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True)
+                out, stderr = proc.communicate(timeout=15)
+                # out = out.decode("UTF-8")
+                stderr = stderr.decode("UTF-8")
+
+                print("stderr=", stderr)
         except subprocess.CalledProcessError as e:
-            log.error(e)
+            log.error(str(e))
             print("ERROR")
             output = " ehllo "
         # os.system(cmd)
@@ -210,7 +222,7 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     TODO this should be done using pandas library
     csv_filename
     csv_content should be a string
-    Then you can run SQL commands via SQLite Manager (firefox addo 
+    Then you can run SQL commands via SQLite Manager (firefox addo
     """
     log.info("Converting csv to sqlite table {table} into {db}".format(
         table=table_name,
@@ -218,8 +230,8 @@ def convert_csv_to_sql(csv_filename, database, table_name):
     ))
     # db = sqlite.connect(database)
     # csv_filename
-    # For the second case, when the table already exists, 
-    # every row of the CSV file, including the first row, is assumed to be actual content. If the CSV file contains an initial row of column labels, that row will be read as data and inserted into the table. To avoid this, make sure that table does not previously exist. 
+    # For the second case, when the table already exists,
+    # every row of the CSV file, including the first row, is assumed to be actual content. If the CSV file contains an initial row of column labels, that row will be read as data and inserted into the table. To avoid this, make sure that table does not previously exist.
     #
     init_command = (
         "DROP TABLE IF EXISTS {table};\n"
@@ -242,7 +254,7 @@ def convert_csv_to_sql(csv_filename, database, table_name):
 
         log.info("Running command:\n%s" % cmd)
         try:
-            output = subprocess.check_output(cmd, 
+            output = subprocess.check_output(cmd,
                                              input=".exit".encode(),
                                              shell=True)
         except subprocess.CalledProcessError as e:
