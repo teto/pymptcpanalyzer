@@ -197,8 +197,10 @@ class TcpOneWayDelay(plot.Matplotlib):
             res.to_csv(
                 filename, # output
                 columns=self.columns, 
-                index=True,
-                header=True,
+                # how do we get the config
+                sep=self.config["delimiter"], # self.config[''],
+                # index=True, # hide Index
+                header=True, # add 
                 # sep=main.config["DEFAULT"]["delimiter"],
             )
 
