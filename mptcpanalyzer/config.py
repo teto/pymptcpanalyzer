@@ -6,6 +6,12 @@ import logging
 
 log = logging.getLogger("mptcpanalyzer")
 
+"""
+Global config initialized in cli.py.
+Singleton-like
+"""
+config = None # type: MpTcpAnalyzerConfig
+
 
 class MpTcpAnalyzerConfig(configparser.ConfigParser):
     """
@@ -67,7 +73,6 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         #     log.debug("Could not find config file %s" % filename)
 
 
-    # @property
-    # def cache(self):
-    #     # 
-    #     return self["mptcpanalyzer"]["cache"]
+    @property
+    def cachedir(self):
+        return self["mptcpanalyzer"]["cache"]

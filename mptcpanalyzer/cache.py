@@ -6,8 +6,15 @@ import logging
 log = logging.getLogger("mptcpanalyzer")
 
 
+"""
+Similar to config
+"""
+cache = None # type: Cache
+
+# TODO rename
 class Cache:
     """
+    TODO copy from doc
     """
 
     def __init__(self, folder, disabled=False):

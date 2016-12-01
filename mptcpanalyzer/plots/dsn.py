@@ -78,8 +78,6 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
 
         # Generate "subflow X" labels
         # location: 3 => bottom left, 4 => bottom right
-        axes.legend(handles, [ "%s for Subflow %d" % (field, x) for x, _ in enumerate(labels) ], loc=4)
+        axes.legend(handles, [ "%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)], loc=4)
 
         return fig
-
-

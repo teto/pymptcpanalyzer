@@ -2,6 +2,7 @@ from unittest import TestCase
 import unittest
 
 import mptcpanalyzer as mp
+from mptcpanalyzer import load_into_pandas
 from mptcpanalyzer.cli import MpTcpAnalyzer, main
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.connection import MpTcpConnection
@@ -144,8 +145,8 @@ class IntegrationTest(TestCase):
         z = self.create_z()
         # expects 2 datasets
         # load from csv
-        ds1 = z.load_into_pandas("examples/node0.pcap")
-        ds2 = z.load_into_pandas("examples/node1.pcap")
+        ds1 = load_into_pandas("examples/node0.pcap")
+        ds2 = load_into_pandas("examples/node1.pcap")
 
         # just looking to map mptcp.stream 0
         main_connection = MpTcpConnection.build_from_dataframe(ds1, 0)

@@ -18,15 +18,17 @@ import logging
 import os
 import subprocess
 # from mptcpanalyzer.plot import Plot
-from mptcpanalyzer.tshark import TsharkExporter
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.data import *
-from mptcpanalyzer.cache import Cache
+from mptcpanalyzer.data import mptcp_match_connection
+# from mptcpanalyzer.cache import Cache, cache
+# from mptcpanalyzer.cache import Cache, cache
 from mptcpanalyzer.metadata import Metadata
-import mptcpanalyzer.connection as mc
+from mptcpanalyzer.connection import MpTcpConnection
+import mptcpanalyzer.cache as mc
 import mptcpanalyzer as mp
+from mptcpanalyzer import load_into_pandas
 import stevedore
 # import mptcpanalyzer.config
 import pandas as pd
@@ -96,9 +98,8 @@ class MpTcpAnalyzer(cmd.Cmd):
             data:  dataframe currently in use
         """
         self.prompt = "%s> " % "Ready"
-        self.config = cfg["mptcpanalyzer"]
         self.data = None # type: pd.DataFrame
-        self.cache = Cache(self.config["cache"])
+        # self.cache = Cache(self.config["cache"])
         if kwargs.get('no_cache'):
             self.cache.disabled = True
 
@@ -268,7 +269,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     @is_loaded
     def list_subflows(self, mptcpstreamid: int):
-        con = mc.MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
+        con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
         print("Description of mptcp.stream %d " % mptcpstreamid)
         print(con)
 
@@ -315,14 +316,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         #         "let the program automatically select the candidate with the best score")
 
         args = parser.parse_args(shlex.split(line))
-        df1 = self.load_into_pandas(args.pcap1)
-        df2 = self.load_into_pandas(args.pcap2)
+        df1 = load_into_pandas(args.pcap1)
+        df2 = load_into_pandas(args.pcap2)
 
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         print("Please read the help.")
 
         # TODO wrong api
-        mappings = data.mptcp_match_connection(df1, df2, args.mptcpstreams)
+        mappings = mptcp_match_connection(df1, df2, args.mptcpstreams)
 
         print("%d mapping(s) found" % len(mappings))
 
@@ -392,6 +393,17 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.list_subflows(mptcpstream)
 
     @is_loaded
+    def do_qualify_reinjections(self, line):
+        """
+
+        """
+        parser = argparse.ArgumentParser(
+            description="Listing reinjections of the connection"
+        )
+        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+
+
+    @is_loaded
     def do_lr(self, line):
         """
         List reinjections
@@ -440,7 +452,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.onecmd(command)
 
     def load(self, filename, regen: bool=False):
-        self.data = self.load_into_pandas(filename, regen)
+        self.data = load_into_pandas(filename, regen)
         self.prompt = "%s> " % os.path.basename(filename)
 
     def do_load(self, args):
@@ -472,7 +484,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         print("Run plot -h")
 
     def complete_plot(self, text, line, begidx, endidx):
-        # types = self._get_available_plots()
+        types = self._get_available_plots()
         # print("Line=%s" % line)
         # print("text=%s" % text)
         # print(types)
@@ -541,88 +553,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         return csv_filename
 
 
-    def load_into_pandas(
-            self,
-            input_file: str,
-            regen: bool=False,
-            metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
-        ) -> pd.DataFrame:
-        """
-        load csv mptpcp data into pandas
-
-        Args:
-            regen: Ignore the cache and regenerate any cached csv file from
-            the input pcap
-        """
-        log.debug("Asked to load %s" % input_file)
-
-        filename = os.path.expanduser(input_file)
-        filename = os.path.realpath(filename)
-        # todo addd csv extension if needed
-
-        # csv_filename = self.get_matching_csv_filename(filename, regen)
-        is_cache_valid = self.cache.is_cache_valid(filename, )
-        # if os.path.isfile(cachename):
-        csv_filename = self.cache.cacheuid(filename)
-
-        log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
-        if regen or not is_cache_valid:
-            log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
-
-            exporter = TsharkExporter(
-                self.config["tshark_binary"],
-                self.config["delimiter"],
-                self.config["wireshark_profile"],
-            )
-
-            retcode, stderr = exporter.export_to_csv(
-                filename,
-                csv_filename,
-                mp.get_fields("fullname", "name"),
-                tshark_filter="mptcp and not icmp"
-            )
-            log.info("exporter exited with code=%d", retcode)
-            if retcode != 0:
-                # remove invalid cache log.exception
-                os.remove(csv_filename)
-                raise Exception(stderr)
-
-
-        temp = mp.get_fields("fullname", "type")
-        dtypes = {k: v for k, v in temp.items() if v is not None}
-        log.debug("Loading a csv file %s" % csv_filename)
-
-        with open(csv_filename) as fd:
-            # first line is metadata
-            # TODO: creer classe metadata read/write ?
-            # metadata = fd.readline()
-
-            data = pd.read_csv(
-                fd,
-                # skip_blank_lines=True,
-                # hum not needed with comment='#'
-                comment='#',
-                # we don't need 'header' when metadata is with comment
-                # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
-                # skiprows
-                sep=self.config["delimiter"],
-                dtype=dtypes,
-                converters={
-                    "tcp.flags": lambda x: int(x, 16),
-                    # reinjections, converts to list of integers
-                    "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
-                    #"mptcp.related_mapping": lambda x: x.split(','),
-                },
-                # memory_map=True, # could speed up processing
-            )
-            # TODO:
-            # No columns to parse from file
-            data.rename(inplace=True, columns=mp.get_fields("fullname", "name"))
-            log.debug("Column names: %s", data.columns)
-
-        # pp = pprint.PrettyPrinter(indent=4)
-        # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
-        return data
 
     def pcap_loaded(self):
         return isinstance(self.data, pd.DataFrame)
@@ -641,7 +571,8 @@ class MpTcpAnalyzer(cmd.Cmd):
         # if self.data is None:
         #     parser.add_argument()
 
-        subparsers = parser.add_subparsers(dest="plot_type", title="Subparsers", help='sub-command help',)
+        subparsers = parser.add_subparsers(dest="plot_type",
+            title="Subparsers", help='sub-command help',)
         subparsers.required = True
 
         def register_plots(ext, subparsers):
@@ -669,10 +600,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         # if self.data is not None:
         #     dataframes.append(self.data)
 
-        # 
-        # for pcap in getattr(args, "pcap", []):
-        #     df = self.load_into_pandas(pcap)
-        #     dataframes.append(df)
 
 
         dargs = vars(args) # 'converts' the namespace to a dict
@@ -823,9 +750,12 @@ def main(arguments=None):
 
 
     args, unknown_args = parser.parse_known_args(arguments)
-    cfg = MpTcpAnalyzerConfig(args.config)
+    # global __config__
+    mp.config = MpTcpAnalyzerConfig(args.config)
     if args.cachedir:
-        cfg["mptcpanalyzer"]["cache"] = args.cachedir
+        mp.config["mptcpanalyzer"]["cache"] = args.cachedir
+    # print(mptcpanalyzer.cache)
+    mc.cache = mc.Cache(mp.config.cachedir)
 
     # logging.CRITICAL = 50
     if __name__ == '__main__':
@@ -835,10 +765,11 @@ def main(arguments=None):
 
 
     log.info("Starting in folder %s" % os.getcwd())
+    log.debug("Pandas version: %s" % pd.__version__)
 
     try:
 
-        analyzer = MpTcpAnalyzer(cfg, **vars(args))
+        analyzer = MpTcpAnalyzer(mp.config, **vars(args))
 
         if args.input_file:
             log.info("Input file")

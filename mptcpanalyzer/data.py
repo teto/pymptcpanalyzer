@@ -203,8 +203,10 @@ def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: Lis
     return mappings
 
 
-def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection):
+def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[Tuple[TcpConnection, int]]:
     """
+    Returns:
+        a list of tuple (
     """
 
     results = []

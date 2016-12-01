@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import logging
 import collections
 import mptcpanalyzer as mp
+from mptcpanalyzer import load_into_pandas
 from enum import Enum, IntEnum
 from typing import List, Dict, Tuple
 from mptcpanalyzer.connection import MpTcpConnection
@@ -73,10 +74,10 @@ class Plot:
     """
 
     def __init__(
-            self, 
+            self,
             # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
             input_pcaps: List[Tuple[str, PreprocessingActions]],
-            title: str = None, 
+            title: str = None,
             # cache=None,
             # main=None,
             *args, **kwargs) -> None:
@@ -132,7 +133,7 @@ class Plot:
         # for name in required_inputs:
         print("preload = ", type(self.input_pcaps), self.input_pcaps)
         for name, bitfield in self.input_pcaps:
-            parser.add_argument(name, 
+            parser.add_argument(name,
             # action="append",
             action="store",
             # metavar="pcap%d" % i,
@@ -198,11 +199,11 @@ class Plot:
         """
         pass
 
-    def filter_dataframe(self, rawdf, mptcpstream=None, skipped_subflows=[], 
+    def filter_dataframe(self, rawdf, mptcpstream=None, skipped_subflows=[],
             destination: mp.Destination=None,
             extra_query: str =None, **kwargs):
         """
-        Can filter a single dataframe beforehand 
+        Can filter a single dataframe beforehand
         (hence call it several times for several dataframes).
 
         Feel free to inherit/override this class.
@@ -275,10 +276,9 @@ class Plot:
         for pcap_name, action in self.input_pcaps:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
-                df = main.load_into_pandas(kwargs.get(pcap_name))
+                df = load_into_pandas(kwargs.get(pcap_name))
                 dataframes.append(df)
 
-        # self.load_into_pandas(pcap)
         # dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
         return dataframes
 
@@ -296,17 +296,12 @@ class Plot:
             None: has to be subclassed as the return value is used in :member:`.postprocess`
         """
         dataframes = rawdataframes
-        # if self.enable_preprocessing:
-        # for pcap in self.input_pcaps:
-# # self.load_into_pandas(pcap)
-        #     dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
 
         # if only one element, pass it directly instead of a list
         # if len(dataframes) == 1:
         #     dataframes = dataframes[0]
         dataframes = dataframes[0] if len(dataframes) == 1 else dataframes,
         self.plot(dataframes, **kwargs)
-
 
 
     def display(self, filename):
@@ -364,7 +359,7 @@ class Matplotlib(Plot):
         # self.title = args.title if args.title else self.title
         if opt.get('title', self.title):
             v.suptitle(self.title, fontsize=12)
- 
+
         if out:
             self.savefig(v, out)
 
@@ -418,7 +413,7 @@ class Matplotlib(Plot):
         Save a figure to a file
 
         Args:
-            kwargs: Forwarded to :member:`matplotlib.Figure.savefig`. 
+            kwargs: Forwarded to :member:`matplotlib.Figure.savefig`.
             You can set *dpi* for instance  (80 by default ?)
         """
         print("Saving into %s" % (filename))
@@ -427,4 +422,3 @@ class Matplotlib(Plot):
 # , the value of the rc parameter savefig.format
         fig.savefig(filename, format="png", **kwargs)
         return filename
-
