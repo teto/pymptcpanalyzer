@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import logging
 import collections
 import mptcpanalyzer as mp
-from mptcpanalyzer import load_into_pandas
+from mptcpanalyzer.data import load_into_pandas
 from enum import Enum, IntEnum
 from typing import List, Dict, Tuple
 from mptcpanalyzer.connection import MpTcpConnection

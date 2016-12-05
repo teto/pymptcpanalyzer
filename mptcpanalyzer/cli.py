@@ -21,16 +21,16 @@ import subprocess
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 # from mptcpanalyzer import get_default_fields, __default_fields__
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.data import mptcp_match_connection
+from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas
 # from mptcpanalyzer.cache import Cache, cache
 # from mptcpanalyzer.cache import Cache, cache
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection
 import mptcpanalyzer.cache as mc
 import mptcpanalyzer as mp
-from mptcpanalyzer import load_into_pandas
+# from mptcpanalyzer import load_into_pandas
 import stevedore
-# import mptcpanalyzer.config
+# from mptcpanalyzer.config import config
 import pandas as pd
 # import matplotlib.pyplot as plt
 import shlex
@@ -263,6 +263,10 @@ class MpTcpAnalyzer(cmd.Cmd):
             "mptcpstream", action="store", type=int,
             help="Equivalent to wireshark mptcp.stream id"
         )
+        parser.add_argument(
+            "-c", "--contributions", action="store_true", type=bool, default=False,
+            help="Display contribution of each subflow (taking into account reinjections ?)"
+        )
 
         args = parser.parse_args(shlex.split(args))
         self.list_subflows(args.mptcpstream)
@@ -414,6 +418,7 @@ class MpTcpAnalyzer(cmd.Cmd):
         - the cumulative DACK arrives at the sender sooner thanks to that reinjection
 
         To do that, we need to take into account latencies
+
         """
         # mptcp.duplicated_dsn
         # 
@@ -750,12 +755,14 @@ def main(arguments=None):
 
 
     args, unknown_args = parser.parse_known_args(arguments)
-    # global __config__
-    mp.config = MpTcpAnalyzerConfig(args.config)
+    # global mp.__CONFIG__
+    # config = mp.config.get_config()
+    config = mp.__CONFIG__ = MpTcpAnalyzerConfig(args.config)
+    # print("===== ma config:", __CONFIG__)
     if args.cachedir:
-        mp.config["mptcpanalyzer"]["cache"] = args.cachedir
+        config["mptcpanalyzer"]["cache"] = args.cachedir
     # print(mptcpanalyzer.cache)
-    mc.cache = mc.Cache(mp.config.cachedir)
+    mp.__CACHE__ = mc.Cache(config.cachedir)
 
     # logging.CRITICAL = 50
     if __name__ == '__main__':

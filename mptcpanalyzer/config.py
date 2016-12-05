@@ -10,7 +10,7 @@ log = logging.getLogger("mptcpanalyzer")
 Global config initialized in cli.py.
 Singleton-like
 """
-config = None # type: MpTcpAnalyzerConfig
+# config = None # type: MpTcpAnalyzerConfig
 
 
 class MpTcpAnalyzerConfig(configparser.ConfigParser):

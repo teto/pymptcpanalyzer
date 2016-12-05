@@ -3,7 +3,7 @@
 
 
 import mptcpanalyzer as mp
-from mptcpanalyzer import load_into_pandas
+from mptcpanalyzer.data import load_into_pandas
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer.data as data
 # import mptcpanalyzer
@@ -26,11 +26,6 @@ slog = logging.getLogger("owd")
 # debug variables
 mock_cachename = "backup.csv"
 # limit = 20
-
-
-def debug_convert(df):
-    return df.head(20)
-    # return df
 
 
 class TcpOneWayDelay(plot.Matplotlib):
@@ -225,129 +220,6 @@ class TcpOneWayDelay(plot.Matplotlib):
             # sep=main.config["DEFAULT"]["delimiter"],
         )
         return total
-
-    def generate_tcp_bidirectional_owd_df(
-            self, h1_df, h2_df, **kwargs):
-        """
-        """
-        total = None # pd.DataFrame()
-        for dest in mp.Destination:
-            q = main_connection.generate_direction_query(dest)
-            h1_directional_df = h1_df.query(q)
-            q = mapped_connection.generate_direction_query(dest)
-            h2_directional_df = h2_df.query(q)
-
-            # returns directional packetid <-> mapped
-            res = self.generate_tcp_directional_owd_df(client_directional, local_receiver_df, dest)
-            # res['dest'] = dest
-            total = pd.concat([res, total])
-
-            # kept for debug
-            filename = "merge_%d_%s.csv" % (mptcpstream, dest)
-            res.to_csv(
-                filename, # output
-                columns=self.columns, 
-                index=True,
-                header=True,
-                # sep=main.config["DEFAULT"]["delimiter"],
-            )
-
-
-    # TODO faire une fonction pour TCP simple
-    def generate_tcp_directional_owd_df(self, h1_df, h2_df, dest, **kwargs):
-        """
-        Generate owd in one sense
-        sender_df and receiver_df must be perfectly cleaned beforehand
-        Attr:
-
-        Returns 
-        """
-        log.info("Generating intermediary results")
-
-        min_h1 = h1_df['abstime'].min()
-        min_h2 = h2_df['abstime'].min()
-        # min
-        if min_h1 < min_h2:
-            print("Looks like h1 is the sender")
-            sender_df = h1_df
-            receiver_df = h2_df
-            suffixes = ('_h1', '_h2')
-        else:
-            print("Looks like h2 is the sender")
-            sender_df = h2_df
-            receiver_df = h1_df
-            suffixes = ('_h2', '_h1')
-        # sender_df.set_index('packetid', inplace=True)
-        # rawdf2.set_index('packetid', inplace=True)
-
-        # df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
-        # now we take only the subset matching the conversation
-
-        # limit number of packets while testing 
-        # HACK to process faster
-        # sender_df, receiver_df = client_df, server_df
-        # left_on, right_on = "mapped_index", "packetid"
-        # if dest == Destination.Client:
-        #     sender_df, receiver_df = server_df, client_df
-        #     left_on, right_on = "packetid", "mapped_index"
-
-        sender_df = debug_convert(sender_df) # .head(limit)
-        receiver_df = debug_convert(receiver_df)
-        # print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
-        # print("df1=\n", (df1))
-        #" len(rawdf2)=", len(rawdf2))
-
-
-        # this will return rawdf1 with an aditionnal "mapped_index" column that
-        # correspond to 
-        mapped_df = data.map_tcp_packets(sender_df, receiver_df)
-
-        # on sender_id = receiver_mapped_packetid
-
-        # TODO print statistics about how many packets have been mapped
-        # print(" len(mapped_df)")
-        # should print packetids
-
-        print("== DEBUG START ===")
-        print("Mapped index:")
-        print(mapped_df[["rcv_pktid", "packetid"]].head())
-        print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
-        print("== DEBUG END ===")
-        # client_df[ mapped_df[chosen_key]
-
-
-        # we don't want to
-        # on veut tjrs avoir le mapping
-        # if dest == Destination.Server:
-        res = pd.merge(
-            mapped_df, receiver_df, 
-            left_on="rcv_pktid", 
-            right_on="packetid",
-            # right_index=True, 
-            # TODO en fait suffit d'inverser les suffixes, h1, h2
-            suffixes=suffixes, # how to suffix columns (sender/receiver)
-            how="inner",
-            indicator=True # adds a "_merge" suffix
-        )
-
-        newcols = { 
-            'score' + suffixes[0]: 'score',
-        }
-        res.rename(columns=newcols, inplace=True)
-
-        # need to compute the owd depending on the direction right
-        # if dest == Destination.Server:
-        res['owd'] = res['abstime' + suffixes[1]] - res['abstime' + suffixes[0]]
-        # res['owd'] = sender_df[ mapped_df["receiver_pktid"],'abstime'] - receiver_df[mapped_df['sender_pktid'], 'abstime']
-
-        """
-        on renomme les colonnes
-        """
-        # pd.merge(res, )
-
-        print("unidirectional results\n", res.head())
-        # print(res[["packetid", "mapped_index", "owd", "sendkey_snd", "sendkey_rcv"]])
-        return res
 
     #def do_plot_owd(self, args):
     def plot(self, df_results, mptcpstream=None, **kwargs):

@@ -5,12 +5,20 @@ import os
 import pandas as pd
 import numpy as np
 from mptcpanalyzer.tshark import TsharkExporter, Filetype
-from mptcpanalyzer.config import MpTcpAnalyzerConfig
+# from mptcpanalyzer.config import MpTcpAnalyzerConfig, get_config
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
+import mptcpanalyzer as mp
+from mptcpanalyzer import get_fields, get_config, get_cache, Destination
 from typing import List, Any, Tuple
 import math
 
 log = logging.getLogger(__name__)
+
+
+"""
+Used when dealing with the merge of dataframes
+"""
+suffixes = ("", "_rcv")
 
 
 def ignore(f1, f2):
@@ -18,12 +26,18 @@ def ignore(f1, f2):
 
 
 def exact(f1, f2):
-    print("comparing values ", f1 , " and " , f2)
+    print("comparing values ", f1, " and ", f2)
     return 10 if (math.isnan(f1) and math.isnan(f2)) or f1 == f2 else float('-inf')
 
 
 def diff(f1, f2):
     return f2 - f1
+
+
+def debug_convert(df):
+    return df.head(20)
+    # return df
+
 
 """
 invariant: True if not modified by the network
@@ -51,6 +65,330 @@ scoring_rules = {
     "tcplen": exact,
     # "dsnraw64": exact,
 }
+
+
+# TODO move to an dataio package ?
+def load_into_pandas(
+    input_file: str,
+    regen: bool=False,
+    # metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
+) -> pd.DataFrame:
+    """
+    load csv mptpcp data into pandas
+
+    Args:
+        regen: Ignore the cache and regenerate any cached csv file from
+        the input pcap
+    """
+    log.debug("Asked to load %s" % input_file)
+
+    filename = os.path.expanduser(input_file)
+    filename = os.path.realpath(filename)
+    # todo addd csv extension if needed
+    cfg = mp.get_config()
+    cache = mp.get_cache()
+
+    # csv_filename = self.get_matching_csv_filename(filename, regen)
+    is_cache_valid = cache.is_cache_valid(filename, )
+    # if os.path.isfile(cachename):
+    csv_filename = cache.cacheuid(filename)
+
+    log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
+    if regen or not is_cache_valid:
+        log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
+
+        exporter = TsharkExporter(
+            cfg["mptcpanalyzer"]["tshark_binary"],
+            cfg["mptcpanalyzer"]["delimiter"],
+            cfg["mptcpanalyzer"]["wireshark_profile"],
+        )
+
+        retcode, stderr = exporter.export_to_csv(
+            filename,
+            csv_filename,
+            get_fields("fullname", "name"),
+            tshark_filter="mptcp and not icmp"
+        )
+        log.info("exporter exited with code=%d", retcode)
+        if retcode != 0:
+            # remove invalid cache log.exception
+            os.remove(csv_filename)
+            raise Exception(stderr)
+
+    print("CONFIG=", cfg)
+
+    temp = get_fields("fullname", "type")
+    dtypes = {k: v for k, v in temp.items() if v is not None}
+    log.debug("Loading a csv file %s" % csv_filename)
+
+    with open(csv_filename) as fd:
+        # first line is metadata
+        # TODO: creer classe metadata read/write ?
+        # metadata = fd.readline()
+
+        data = pd.read_csv(
+            fd,
+            # skip_blank_lines=True,
+            # hum not needed with comment='#'
+            comment='#',
+            # we don't need 'header' when metadata is with comment
+            # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
+            # skiprows
+            sep=cfg["mptcpanalyzer"]["delimiter"],
+            dtype=dtypes,
+            converters={
+                "tcp.flags": lambda x: int(x, 16),
+                # reinjections, converts to list of integers
+                "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
+                #"mptcp.related_mapping": lambda x: x.split(','),
+            },
+            # memory_map=True, # could speed up processing
+        )
+        # TODO:
+        # No columns to parse from file
+        data.rename(inplace=True, columns=get_fields("fullname", "name"))
+        log.debug("Column names: %s", data.columns)
+
+    # pp = pprint.PrettyPrinter(indent=4)
+    # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
+    return data
+
+
+# on a pas le filename :s
+def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
+    config = mp.get_config()
+    return df.to_csv(
+        filename, # output
+        # columns=self.columns,
+        # how do we get the config
+        sep=config["mptcpanalyzer"]["delimiter"],
+        # index=True, # hide Index
+        header=True, # add
+        **kwargs
+    )
+
+
+def merge_tcp_dataframes(
+    df1: pd.DataFrame, df2: pd.DataFrame, 
+    tcpstream: int
+) -> pd.DataFrame:
+    """
+    """
+    h1_df, h2_df = df1, df2
+    cfg = get_config()
+    main_connection = TcpConnection.build_from_dataframe(h1_df, tcpstream)
+
+    # du coup on a une liste
+    mappings = map_tcp_stream(h2_df, main_connection)
+
+    print("Found mappings %s" % mappings)
+    if len(mappings) <= 0:
+        print("Could not find a match in the second pcap for tcpstream %d" % tcpstream)
+        return
+
+
+    # limit number of packets while testing
+    # HACK to process faster
+    h1_df = debug_convert(h1_df)
+    h2_df = debug_convert(h2_df)
+
+    print("len(df1)=", len(h1_df), " len(rawdf2)=", len(h2_df))
+    mapped_connection, score = mappings[0]
+    print("Found mappings %s" % mappings)
+    for con, score in mappings:
+        print("Con: %s" % (con))
+
+    # print(h1_df["abstime"].head())
+    # print(h1_df.head())
+    # # should be sorted, to be sure we could use min() but more costly
+    # min_h1 = h1_df.loc[0,'abstime']
+    # min_h2 = h2_df.loc[0,'abstime']
+    # # min
+    # if min_h1 < min_h2:
+    #     print("Looks like h1 is the sender")
+    #     client_df = h1_df
+    #     receiver_df = h2_df
+    # else:
+    #     print("Looks like h2 is the sender")
+    #     client_df = h2_df
+    #     receiver_df = h1_df
+
+    print("Mapped connection %s to %s" % (mapped_connection, main_connection))
+
+    #  mapped_connection should be of type TcpConnection
+    # global __config__
+    # TODO we clean accordingly
+    # TODO for both directions
+    # total_results
+    total = None # pd.DataFrame()
+    for dest in Destination:
+        q = main_connection.generate_direction_query(dest)
+        h1_unidirectional_df = h1_df.query(q)
+        q = mapped_connection.generate_direction_query(dest)
+        h2_unidirectional_df = h2_df.query(q)
+
+
+        # if dest == mp.Destination.Client:
+        #     local_sender_df, local_receiver_df = local_receiver_df, local_sender_df
+        res = generate_tcp_directional_owd_df(h1_unidirectional_df, h2_unidirectional_df, dest)
+        res['dest'] = dest.name
+        total = pd.concat([res, total])
+
+        # TODO remove in the future
+        filename = "merge_%d_%s.csv" % (tcpstream, dest)
+        res.to_csv(
+            filename, # output
+            columns=columns,
+            # how do we get the config
+            sep=cfg["mptcpanalyzer"]["delimiter"],
+            # index=True, # hide Index
+            header=True, # add
+            # sep=main.config["DEFAULT"]["delimiter"],
+        )
+
+    print("Delimiter:", sep=cfg["mptcpanalyzer"]["delimiter"])
+
+    # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
+    # TODO reorder columns to have packet ids first !
+
+    # TODO move elsewhere, to outer function
+    # firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
+    # total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
+    # total.to_csv(
+    #     cachename, # output
+    #     # columns=self.columns,
+    #     index=False,
+    #     header=True,
+    #     # sep=main.config["DEFAULT"]["delimiter"],
+    # )
+    return total
+
+
+def merge_mptcp_dataframes(df1, df2, ):
+    pass
+
+# def generate_tcp_bidirectional_owd_df(
+#         self, h1_df, h2_df, **kwargs):
+#     """
+#     """
+#     total = None # pd.DataFrame()
+#     for dest in mp.Destination:
+#         q = main_connection.generate_direction_query(dest)
+#         h1_directional_df = h1_df.query(q)
+#         q = mapped_connection.generate_direction_query(dest)
+#         h2_directional_df = h2_df.query(q)
+
+#         # returns directional packetid <-> mapped
+#         res = self.generate_tcp_directional_owd_df(client_directional, local_receiver_df, dest)
+#         # res['dest'] = dest
+#         total = pd.concat([res, total])
+
+#         # kept for debug
+#         filename = "merge_%d_%s.csv" % (mptcpstream, dest)
+#         res.to_csv(
+#             filename, # output
+#             columns=self.columns, 
+#             index=True,
+#             header=True,
+#             # sep=main.config["DEFAULT"]["delimiter"],
+#         )
+
+
+# TODO faire une fonction pour TCP simple
+def generate_tcp_directional_owd_df(h1_df, h2_df, dest, **kwargs):
+    """
+    Generate owd in one sense
+    sender_df and receiver_df must be perfectly cleaned beforehand
+    Attr:
+
+    Returns 
+    """
+    log.info("Generating intermediary results")
+
+    min_h1 = h1_df['abstime'].min()
+    min_h2 = h2_df['abstime'].min()
+    # min
+    if min_h1 < min_h2:
+        print("Looks like h1 is the sender")
+        sender_df = h1_df
+        receiver_df = h2_df
+        suffixes = ('_h1', '_h2')
+    else:
+        print("Looks like h2 is the sender")
+        sender_df = h2_df
+        receiver_df = h1_df
+        suffixes = ('_h2', '_h1')
+    # sender_df.set_index('packetid', inplace=True)
+    # rawdf2.set_index('packetid', inplace=True)
+
+    # df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
+    # now we take only the subset matching the conversation
+
+    # limit number of packets while testing 
+    # HACK to process faster
+    # sender_df, receiver_df = client_df, server_df
+    # left_on, right_on = "mapped_index", "packetid"
+    # if dest == Destination.Client:
+    #     sender_df, receiver_df = server_df, client_df
+    #     left_on, right_on = "packetid", "mapped_index"
+
+    sender_df = debug_convert(sender_df) # .head(limit)
+    receiver_df = debug_convert(receiver_df)
+    # print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
+    # print("df1=\n", (df1))
+    #" len(rawdf2)=", len(rawdf2))
+
+
+    # this will return rawdf1 with an aditionnal "mapped_index" column that
+    # correspond to 
+    mapped_df = map_tcp_packets(sender_df, receiver_df)
+
+    # on sender_id = receiver_mapped_packetid
+
+    # TODO print statistics about how many packets have been mapped
+    # print(" len(mapped_df)")
+    # should print packetids
+
+    print("== DEBUG START ===")
+    print("Mapped index:")
+    print(mapped_df[["rcv_pktid", "packetid"]].head())
+    print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
+    print("== DEBUG END ===")
+    # client_df[ mapped_df[chosen_key]
+
+
+    # we don't want to
+    # on veut tjrs avoir le mapping
+    # if dest == Destination.Server:
+    res = pd.merge(
+        mapped_df, receiver_df, 
+        left_on="rcv_pktid", 
+        right_on="packetid",
+        # right_index=True, 
+        # TODO en fait suffit d'inverser les suffixes, h1, h2
+        suffixes=suffixes, # how to suffix columns (sender/receiver)
+        how="inner",
+        indicator=True # adds a "_merge" suffix
+    )
+
+    newcols = { 
+        'score' + suffixes[0]: 'score',
+    }
+    res.rename(columns=newcols, inplace=True)
+
+    # need to compute the owd depending on the direction right
+    # if dest == Destination.Server:
+    res['owd'] = res['abstime' + suffixes[1]] - res['abstime' + suffixes[0]]
+    # res['owd'] = sender_df[ mapped_df["receiver_pktid"],'abstime'] - receiver_df[mapped_df['sender_pktid'], 'abstime']
+
+    """
+    on renomme les colonnes
+    """
+    # pd.merge(res, )
+
+    print("unidirectional results\n", res.head())
+    # print(res[["packetid", "mapped_index", "owd", "sendkey_snd", "sendkey_rcv"]])
+    return res
 
 # def build_connections_from_dataset(df: pd.DataFrame, mptcpstreams: List[int]) -> List[MpTcpConnection]:
 #     """
