@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 """
 Used when dealing with the merge of dataframes
 """
-suffixes = ("", "_rcv")
+suffixes = ("_h1", "_h2")
 
 
 def ignore(f1, f2):
@@ -169,22 +169,74 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
 
 
 def merge_tcp_dataframes(
-    df1: pd.DataFrame, df2: pd.DataFrame, 
-    tcpstream: int
+    df1: pd.DataFrame, df2: pd.DataFrame,
+    df1_tcpstream: int
 ) -> pd.DataFrame:
     """
+    First looks in df2 for a  tcpstream matching df1_tcpstream
     """
-    h1_df, h2_df = df1, df2
-    cfg = get_config()
-    main_connection = TcpConnection.build_from_dataframe(h1_df, tcpstream)
+
+    main_connection = TcpConnection.build_from_dataframe(df1, df1_tcpstream)
 
     # du coup on a une liste
-    mappings = map_tcp_stream(h2_df, main_connection)
+    mappings = map_tcp_stream(df2, main_connection)
 
     print("Found mappings %s" % mappings)
     if len(mappings) <= 0:
-        print("Could not find a match in the second pcap for tcpstream %d" % tcpstream)
+        print("Could not find a match in the second pcap for tcpstream %d" % df1_tcpstream)
         return
+
+    print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
+    mapped_connection, score = mappings[0]
+    print("Found mappings %s" % mappings)
+    for con, score in mappings:
+        print("Con: %s" % (con))
+
+    return merge_tcp_dataframes_known_streams(
+        (df1, main_connection),
+        (df2, mapped_connection)
+    )
+
+
+
+def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[str]:
+    """
+    Generate column names
+    """
+
+    # columns =
+    return  [
+            "owd", 
+            "abstime" + suffixes[0], 
+            "abstime" + suffixes[1], 
+            "packetid" + suffixes[0], 
+            "packetid" + suffixes[1], 
+            "ipsrc" + suffixes[0], 
+            "ipsrc" + suffixes[1], 
+            "ipdst" + suffixes[0], 
+            "ipdst" + suffixes[1], 
+            "sport" + suffixes[0], 
+            "sport" + suffixes[1], 
+            "dport" + suffixes[0], 
+            "dport" + suffixes[1], 
+            "tcpseq"
+        ]
+
+def merge_tcp_dataframes_known_streams(
+    con1: Tuple[pd.DataFrame, TcpConnection],
+    con2: Tuple[pd.DataFrame, TcpConnection]
+) -> pd.DataFrame:
+    """
+
+    Args:
+        con1: Tuple dataframe/tcpstream id
+        con2: same
+
+    """
+    h1_df, main_connection = con1
+    h2_df, mapped_connection = con2
+    cfg = get_config()
+
 
 
     # limit number of packets while testing
@@ -192,11 +244,6 @@ def merge_tcp_dataframes(
     h1_df = debug_convert(h1_df)
     h2_df = debug_convert(h2_df)
 
-    print("len(df1)=", len(h1_df), " len(rawdf2)=", len(h2_df))
-    mapped_connection, score = mappings[0]
-    print("Found mappings %s" % mappings)
-    for con, score in mappings:
-        print("Con: %s" % (con))
 
     # print(h1_df["abstime"].head())
     # print(h1_df.head())
@@ -219,9 +266,19 @@ def merge_tcp_dataframes(
     # global __config__
     # TODO we clean accordingly
     # TODO for both directions
+    # TODO can be done afterwards
     # total_results
+    print("Delimiter:", sep=cfg["mptcpanalyzer"]["delimiter"])
+
+    # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
+    # TODO reorder columns to have packet ids first !
+
+    
+
+    columns = generate_columns([], [], suffixes)
     total = None # pd.DataFrame()
     for dest in Destination:
+        # TODO pass on suffixes
         q = main_connection.generate_direction_query(dest)
         h1_unidirectional_df = h1_df.query(q)
         q = mapped_connection.generate_direction_query(dest)
@@ -235,7 +292,7 @@ def merge_tcp_dataframes(
         total = pd.concat([res, total])
 
         # TODO remove in the future
-        filename = "merge_%d_%s.csv" % (tcpstream, dest)
+        filename = "merge_%d_%s.csv" % (main_connection.tcpstreamid, dest)
         res.to_csv(
             filename, # output
             columns=columns,
@@ -246,10 +303,6 @@ def merge_tcp_dataframes(
             # sep=main.config["DEFAULT"]["delimiter"],
         )
 
-    print("Delimiter:", sep=cfg["mptcpanalyzer"]["delimiter"])
-
-    # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-    # TODO reorder columns to have packet ids first !
 
     # TODO move elsewhere, to outer function
     # firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
@@ -295,15 +348,22 @@ def merge_mptcp_dataframes(df1, df2, ):
 
 
 # TODO faire une fonction pour TCP simple
-def generate_tcp_directional_owd_df(h1_df, h2_df, dest, **kwargs):
+def generate_tcp_directional_owd_df(h1_df, h2_df, dest,
+    suffixes=('_h1', '_h2'),
+    **kwargs
+):
     """
     Generate owd in one sense
     sender_df and receiver_df must be perfectly cleaned beforehand
+
     Attr:
+        suffixes:
 
     Returns 
     """
     log.info("Generating intermediary results")
+    # assert len(h1_df.groupby()) == 1
+    assert len(suffixes) == 2, "Should be 2 elements for host1 and host2"
 
     min_h1 = h1_df['abstime'].min()
     min_h2 = h2_df['abstime'].min()

@@ -61,23 +61,23 @@ class TcpOneWayDelay(plot.Matplotlib):
         ]
         super().__init__(input_pcaps=expected_pcaps, *args, **kwargs)
         # self.suffixes = ("_snd", "_rcv")
-        self.suffixes = ("", "_rcv")
-        self.columns = [
-            "owd", 
-            "abstime" + self.suffixes[0], 
-            "abstime" + self.suffixes[1], 
-            "packetid" + self.suffixes[0], 
-            "packetid" + self.suffixes[1], 
-            "ipsrc" + self.suffixes[0], 
-            "ipsrc" + self.suffixes[1], 
-            "ipdst" + self.suffixes[0], 
-            "ipdst" + self.suffixes[1], 
-            "sport" + self.suffixes[0], 
-            "sport" + self.suffixes[1], 
-            "dport" + self.suffixes[0], 
-            "dport" + self.suffixes[1], 
-            "tcpseq"
-        ] 
+        # self.suffixes = ("", "_rcv")
+        # self.columns = [
+        #     "owd", 
+        #     "abstime" + self.suffixes[0], 
+        #     "abstime" + self.suffixes[1], 
+        #     "packetid" + self.suffixes[0], 
+        #     "packetid" + self.suffixes[1], 
+        #     "ipsrc" + self.suffixes[0], 
+        #     "ipsrc" + self.suffixes[1], 
+        #     "ipdst" + self.suffixes[0], 
+        #     "ipdst" + self.suffixes[1], 
+        #     "sport" + self.suffixes[0], 
+        #     "sport" + self.suffixes[1], 
+        #     "dport" + self.suffixes[0], 
+        #     "dport" + self.suffixes[1], 
+        #     "tcpseq"
+        # ] 
 
 
     def default_parser(self, *args, **kwargs):
@@ -99,7 +99,9 @@ class TcpOneWayDelay(plot.Matplotlib):
 
 
     def get_cachename(self, pcap1, pcap2):
-        """fake cachename via concatenating 
+        """
+        fake cachename via concatenating 
+        Ideally the order of parameters should not matter
         """
         # TODO HACK mock
         return mock_cachename
@@ -135,8 +137,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         # we want to save results as a single file (easier to loader etc...)
         # so we concat ?
         # self.generate_owd_df(dataframes, cachename, **kwargs)
-        # assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
-        # h1_df, h2_df = dataframes
+        assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
+        h1_df, h2_df = dataframes
         # main_connection = TcpConnection.build_from_dataframe(h1_df, tcpstream)
 
         # # du coup on a une liste
@@ -210,11 +212,15 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
         # TODO reorder columns to have packet ids first !
+
+        total = data.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
         firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
         total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
+
+        columns = data.generate_columns([], [], data.suffixes)
         total.to_csv(
             cachename, # output
-            # columns=self.columns, 
+            columns=columns, 
             index=False,
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
@@ -264,12 +270,12 @@ class TcpOneWayDelay(plot.Matplotlib):
         grouped_by = res.groupby(cols, sort=False)
         print(grouped_by.head())
         print(len(grouped_by)) # len of 2 which is good, but why 
-        
+ 
         for idx, df in grouped_by:
             print("ID=" , idx)
             print("df = ", df)
 
-            df = debug_convert(df)
+            # df = debug_convert(df)
             pplot = grouped_by.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
