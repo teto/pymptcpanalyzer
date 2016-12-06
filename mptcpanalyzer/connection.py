@@ -40,6 +40,7 @@ class TcpConnection:
 
     def generate_direction_query(self, dest: Destination):
         """
+        Filter packets according to their destination
         """
         q = "tcpstream==%d " % self.tcpstreamid
         if dest is None:

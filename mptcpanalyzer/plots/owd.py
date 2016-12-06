@@ -139,88 +139,15 @@ class TcpOneWayDelay(plot.Matplotlib):
         # self.generate_owd_df(dataframes, cachename, **kwargs)
         assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
         h1_df, h2_df = dataframes
-        # main_connection = TcpConnection.build_from_dataframe(h1_df, tcpstream)
-
-        # # du coup on a une liste
-        # mappings = data.map_tcp_stream(h2_df, main_connection)
-
-        # print("Found mappings %s" % mappings)
-        # if len(mappings) <= 0:
-        #     print("Could not find a match in the second pcap for tcpstream %d" % tcpstream)
-        #     return 
-
-
-        # # limit number of packets while testing 
-        # # HACK to process faster
-        # h1_df = debug_convert(h1_df)
-        # h2_df = debug_convert(h2_df)
-
-        # print("len(df1)=", len(h1_df), " len(rawdf2)=", len(h2_df))
-        # mapped_connection, score = mappings[0]
-        # print("Found mappings %s" % mappings)
-        # for con, score in mappings:
-        #     print("Con: %s" % (con))
-
-        # # print(h1_df["abstime"].head())
-        # # print(h1_df.head())
-        # # # should be sorted, to be sure we could use min() but more costly
-        # # min_h1 = h1_df.loc[0,'abstime']
-        # # min_h2 = h2_df.loc[0,'abstime']
-        # # # min
-        # # if min_h1 < min_h2:
-        # #     print("Looks like h1 is the sender")
-        # #     client_df = h1_df
-        # #     receiver_df = h2_df
-        # # else:
-        # #     print("Looks like h2 is the sender")
-        # #     client_df = h2_df
-        # #     receiver_df = h1_df
-
-        # print("Mapped connection %s to %s" % (mapped_connection, main_connection))
-
-        # #  mapped_connection should be of type TcpConnection
-        # # global __config__
-        # # TODO we clean accordingly
-        # # TODO for both directions
-        # # total_results
-        # total = None # pd.DataFrame()
-        # for dest in mp.Destination:
-        #     q = main_connection.generate_direction_query(dest)
-        #     h1_unidirectional_df = h1_df.query(q)
-        #     q = mapped_connection.generate_direction_query(dest)
-        #     h2_unidirectional_df = h2_df.query(q)
-
-
-        #     # if dest == mp.Destination.Client:
-        #     #     local_sender_df, local_receiver_df = local_receiver_df, local_sender_df
-        #     res = self.generate_tcp_directional_owd_df(h1_unidirectional_df, h2_unidirectional_df, dest)
-        #     res['dest'] = dest.name
-        #     total = pd.concat([res, total])
-
-        #     # TODO remove in the future
-        #     filename = "merge_%d_%s.csv" % (mptcpstream, dest)
-        #     res.to_csv(
-        #         filename, # output
-        #         columns=self.columns, 
-        #         # how do we get the config
-        #         sep=mp.config["mptcpanalyzer"]["delimiter"], 
-        #         # index=True, # hide Index
-        #         header=True, # add 
-        #         # sep=main.config["DEFAULT"]["delimiter"],
-        #     )
-        # print("Delimiter:", sep=mp.config["mptcpanalyzer"]["delimiter"])
-
-        # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
-        # TODO reorder columns to have packet ids first !
 
         total = data.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
         firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
         total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
 
-        columns = data.generate_columns([], [], data.suffixes)
+        # columns = data.generate_columns([], [], data.suffixes)
         total.to_csv(
             cachename, # output
-            columns=columns, 
+            # columns=columns, 
             index=False,
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
@@ -260,13 +187,13 @@ class TcpOneWayDelay(plot.Matplotlib):
         # group by title/direction
         # todo utiliser groupby
 
-        print(res["dest"].head())
-        cols = ["tcpstream_h1", "tcpstream_h2", "dest"]
+        print(res["tcpdest"].head())
+        cols = ["tcpstream_h1", "tcpstream_h2", "tcpdest"]
         # cols = ["tcpstream_h1", "tcpstream_h2", ]
         # print(res)
         # print(res.columns)
         # print(res.dtypes)
-        
+ 
         grouped_by = res.groupby(cols, sort=False)
         print(grouped_by.head())
         print(len(grouped_by)) # len of 2 which is good, but why 

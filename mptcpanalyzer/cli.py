@@ -405,6 +405,33 @@ class MpTcpAnalyzer(cmd.Cmd):
             description="Listing reinjections of the connection"
         )
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+        parser.add_argument("pcap1", type=str, help="Capture file 1")
+        parser.add_argument("pcap2", type=str, help="Capture file 2")
+        parser.add_argument("mptcpstream1", type=int, help="mptcp.stream id")
+        # parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
+
+        args = parser.parse_known_args(line)
+
+        raw_df1 = load_into_pandas(args.mptcpstream1)
+        raw_df2 = load_into_pandas(args.mptcpstream2)
+        df_merged = merge_tcp_dataframes(df1, df2, args.mptcpstream)
+ 
+        """
+        Now the algorithm consists in :
+        for each reinjection:
+            look for the arrival time
+                compare with the arrival time of the original packet
+                if it arrived sooner:
+                    than it's a successful reinjection
+                else
+                    look for the first emitted dataack on each packet reception
+                    look for its reception by the sender
+        """
+        df1 = raw_df1['tcpstream' == mptcpstream1]
+        # use packet id as index
+        # df1_reinjections
+        # for df1
+
 
 
     @is_loaded

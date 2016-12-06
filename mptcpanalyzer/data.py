@@ -222,6 +222,9 @@ def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[
             "tcpseq"
         ]
 
+
+combo = Tuple[pd.DataFrame, TcpConnection]
+
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]
@@ -278,17 +281,32 @@ def merge_tcp_dataframes_known_streams(
     columns = generate_columns([], [], suffixes)
     total = None # pd.DataFrame()
     for dest in Destination:
-        # TODO pass on suffixes
+        # filter pa
         q = main_connection.generate_direction_query(dest)
         h1_unidirectional_df = h1_df.query(q)
         q = mapped_connection.generate_direction_query(dest)
         h2_unidirectional_df = h2_df.query(q)
 
+        # min_h1 = h1_unidirectional_df['abstime'].min()
+        # min_h2 = h2_unidirectional_df['abstime'].min()
+        # # min
+        # if min_h1 < min_h2:
+        #     print("Looks like h1 is the sender")
+        #     # sender_df = h1_df
+        #     # receiver_df = h2_df
+        #     suffixes = ('_h1', '_h2')
+        # else:
+        #     print("Looks like h2 is the sender")
+        #     # sender_df = h2_df
+        #     # receiver_df = h1_df
+        #     suffixes = ('_h2', '_h1')
+
+        # role = 
 
         # if dest == mp.Destination.Client:
         #     local_sender_df, local_receiver_df = local_receiver_df, local_sender_df
         res = generate_tcp_directional_owd_df(h1_unidirectional_df, h2_unidirectional_df, dest)
-        res['dest'] = dest.name
+        res['tcpdest'] = dest.name
         total = pd.concat([res, total])
 
         # TODO remove in the future
@@ -317,8 +335,85 @@ def merge_tcp_dataframes_known_streams(
     return total
 
 
-def merge_mptcp_dataframes(df1, df2, ):
-    pass
+def merge_mptcp_dataframes(
+    df1: pd.DataFrame, df2: pd.DataFrame,
+    df1_mptcpstream: int
+) -> pd.DataFrame:
+    """
+    First looks in df2 for a stream matching df1_mptcpstream
+    """
+    df1, df2 = dataframes
+    main_connection = data.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
+
+    # du coup on a une liste
+    mappings = data.mptcp_match_connection(df2, main_connection)
+
+    # print("Found mappings %s" % mappings)
+    # returned a dict
+    # if mptcpstream not in mappings:
+    #     print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
+    #     return 
+    # print("Number of %d" % len(mappings[mptcpstream]))
+    # print("#mappings=" len(mappings):
+    if len(mappings) <= 0:
+        # TODO throw instead
+        # raise Exception
+        print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
+        return 
+
+    print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
+    # mappings
+    mapped_connection, score = mappings[0]
+
+
+        # try:
+        #     idx = mapped_connection.subflows.index(sf)
+        #     sf2 = mapped_connection.subflows[idx]
+        #     common_subflows.append((sf, sf2))
+
+        # except ValueError:
+        #     continue
+
+    main_connection = TcpConnection.build_from_dataframe(df1, df1_tcpstream)
+
+    # du coup on a une liste
+    mappings = map_tcp_stream(df2, main_connection)
+
+    print("Found mappings %s" % mappings)
+    if len(mappings) <= 0:
+        print("Could not find a match in the second pcap for tcpstream %d" % df1_tcpstream)
+        return
+
+    print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
+    mapped_connection, score = mappings[0]
+    print("Found mappings %s" % mappings)
+    for con, score in mappings:
+        print("Con: %s" % (con))
+
+    return merge_mptcp_dataframes_known_streams(
+        (df1, main_connection),
+        (df2, mapped_connection)
+    )
+
+
+def merge_mptcp_dataframes_known_streams(
+    con1: Tuple[pd.DataFrame, MpTcpConnection],
+    con2: Tuple[pd.DataFrame, MpTcpConnection]
+) -> pd.DataFrame:
+    """
+    Useful for reinjections etc...
+    """
+    # mptcpdest=
+    main_connection, df1 = con1
+    mapped_connection, df2 = con2
+    # some subflows may have been blocked by routing/firewall
+    common_subflows = [] 
+    for sf in main_connection.subflows:
+        # if sf2 in 
+        for sf2 in mapped_connection.subflows:
+            if sf == sf2:
+                common_subflows.append((sf, sf2))
+                break
 
 # def generate_tcp_bidirectional_owd_df(
 #         self, h1_df, h2_df, **kwargs):
@@ -349,89 +444,93 @@ def merge_mptcp_dataframes(df1, df2, ):
 
 # TODO faire une fonction pour TCP simple
 def generate_tcp_directional_owd_df(h1_df, h2_df, dest,
-    suffixes=('_h1', '_h2'),
-    **kwargs
+suffixes=('_h1', '_h2'),
+**kwargs
 ):
-    """
-    Generate owd in one sense
-    sender_df and receiver_df must be perfectly cleaned beforehand
+"""
+Generate owd in one sense
+sender_df and receiver_df must be perfectly cleaned beforehand
 
-    Attr:
-        suffixes:
+Attr:
+    suffixes:
 
-    Returns 
-    """
-    log.info("Generating intermediary results")
-    # assert len(h1_df.groupby()) == 1
-    assert len(suffixes) == 2, "Should be 2 elements for host1 and host2"
+Returns 
+"""
+log.info("Generating intermediary results")
+# assert len(h1_df.groupby()) == 1
+assert len(suffixes) == 2, "Should be 2 elements for host1 and host2"
 
-    min_h1 = h1_df['abstime'].min()
-    min_h2 = h2_df['abstime'].min()
-    # min
-    if min_h1 < min_h2:
-        print("Looks like h1 is the sender")
-        sender_df = h1_df
-        receiver_df = h2_df
-        suffixes = ('_h1', '_h2')
-    else:
-        print("Looks like h2 is the sender")
-        sender_df = h2_df
-        receiver_df = h1_df
-        suffixes = ('_h2', '_h1')
-    # sender_df.set_index('packetid', inplace=True)
-    # rawdf2.set_index('packetid', inplace=True)
+min_h1 = h1_df['abstime'].min()
+min_h2 = h2_df['abstime'].min()
+# min
+if min_h1 < min_h2:
+    print("Looks like h1 is the sender")
+    sender_df = h1_df
+    receiver_df = h2_df
+    suffixes = ('_h1', '_h2')
+else:
+    print("Looks like h2 is the sender")
+    sender_df = h2_df
+    receiver_df = h1_df
+    suffixes = ('_h2', '_h1')
 
-    # df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
-    # now we take only the subset matching the conversation
+# role = 
+# sender_df.set_index('packetid', inplace=True)
+# rawdf2.set_index('packetid', inplace=True)
 
-    # limit number of packets while testing 
-    # HACK to process faster
-    # sender_df, receiver_df = client_df, server_df
-    # left_on, right_on = "mapped_index", "packetid"
-    # if dest == Destination.Client:
-    #     sender_df, receiver_df = server_df, client_df
-    #     left_on, right_on = "packetid", "mapped_index"
+# df1 = self.filter_dataframe(rawdf1, mptcpstream=mptcpstream, **kwargs)
+# now we take only the subset matching the conversation
 
-    sender_df = debug_convert(sender_df) # .head(limit)
-    receiver_df = debug_convert(receiver_df)
-    # print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
-    # print("df1=\n", (df1))
-    #" len(rawdf2)=", len(rawdf2))
+# limit number of packets while testing 
+# HACK to process faster
+# sender_df, receiver_df = client_df, server_df
+# left_on, right_on = "mapped_index", "packetid"
+# if dest == Destination.Client:
+#     sender_df, receiver_df = server_df, client_df
+#     left_on, right_on = "packetid", "mapped_index"
 
-
-    # this will return rawdf1 with an aditionnal "mapped_index" column that
-    # correspond to 
-    mapped_df = map_tcp_packets(sender_df, receiver_df)
-
-    # on sender_id = receiver_mapped_packetid
-
-    # TODO print statistics about how many packets have been mapped
-    # print(" len(mapped_df)")
-    # should print packetids
-
-    print("== DEBUG START ===")
-    print("Mapped index:")
-    print(mapped_df[["rcv_pktid", "packetid"]].head())
-    print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
-    print("== DEBUG END ===")
-    # client_df[ mapped_df[chosen_key]
+# sender_df = debug_convert(sender_df) # .head(limit)
+# receiver_df = debug_convert(receiver_df)
+# print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
+# print("df1=\n", (df1))
+#" len(rawdf2)=", len(rawdf2))
 
 
-    # we don't want to
-    # on veut tjrs avoir le mapping
-    # if dest == Destination.Server:
-    res = pd.merge(
-        mapped_df, receiver_df, 
-        left_on="rcv_pktid", 
-        right_on="packetid",
-        # right_index=True, 
-        # TODO en fait suffit d'inverser les suffixes, h1, h2
-        suffixes=suffixes, # how to suffix columns (sender/receiver)
-        how="inner",
-        indicator=True # adds a "_merge" suffix
-    )
+# this will return rawdf1 with an aditionnal "mapped_index" column that
+# correspond to 
+sender_df["pktrole"] = "sender" 
+receiver_df["pktrole"] = "receiver" # receiver_df.assign(pktrole="receiver")
+mapped_df = map_tcp_packets(sender_df, receiver_df)
 
-    newcols = { 
+# on sender_id = receiver_mapped_packetid
+
+# TODO print statistics about how many packets have been mapped
+# print(" len(mapped_df)")
+# should print packetids
+
+print("== DEBUG START ===")
+print("Mapped index:")
+print(mapped_df[["rcv_pktid", "packetid"]].head())
+print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
+print("== DEBUG END ===")
+# client_df[ mapped_df[chosen_key]
+
+
+# we don't want to
+# on veut tjrs avoir le mapping
+# if dest == Destination.Server:
+res = pd.merge(
+    mapped_df, receiver_df, 
+    left_on="rcv_pktid", 
+    right_on="packetid",
+    # right_index=True,
+    # TODO en fait suffit d'inverser les suffixes, h1, h2
+    suffixes=suffixes, # how to suffix columns (sender/receiver)
+    how="inner",
+    indicator=True # adds a "_merge" suffix
+)
+
+newcols = {
         'score' + suffixes[0]: 'score',
     }
     res.rename(columns=newcols, inplace=True)
@@ -538,26 +637,21 @@ def map_tcp_packets(
     Returns:
         a copy of rawdf1 with as Index the packetid + a new column called 
         "mapped_index" matching the Index of rawdf2
+        'rcv_pktid', 'score'
     """
     # DataFrame.add(other, axis='columns', level=None, fill_value=None)
     # adds a new column that contains only nan
     log.debug("Mapping TCP packets between TODO")
-    # df1 = sender_df.set_index('packetid', )
-    # df2 = receiver_df.set_index('packetid',) # [rawdf2["tcpstream"] == con2.tcpstreamid]
-    # df1 = sender_df
-    df2 = receiver_df
-    # df2.set_index('packetid', inplace=True)
 
-    # returns a new df with new columns
-    df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan, ) # =np.nan)
+    # returns a new df with new columns rcv_pktid, score initialized to NaN
+    df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan,) # =np.nan)
 
     # # Problem is to identify lost packets and retransmitted ones 
     # # so that they map to the same or none ?
-    limit = 5
+    limit=5 # limit nb of scores to display
 
     # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
     for row in sender_df.itertuples():
-        # print("len(df2)=", len(df2))
         scores = map_tcp_packet(receiver_df, row)
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
@@ -573,7 +667,6 @@ def map_tcp_packets(
         # drop the chosen index so that it doesn't get used a second time
         # todo pb la c qu'on utilise les packet id comme des index :/
             print("Score %f assigned to index %s" % (score, idx))
-            # print(df2)
             # df2.drop(df2.index[[idx]], inplace=True)
             # df2.drop(idx, inplace=True)
         else:
