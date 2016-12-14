@@ -190,6 +190,7 @@ def fields_v2():
         Field("mptcp.related_mapping", "related_mappings", None, "DSS"),
         Field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections"),
         Field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection"),
+        Field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list"),
     ]
     return l
 

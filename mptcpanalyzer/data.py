@@ -205,25 +205,26 @@ def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[
     """
 
     # columns =
-    return  [
-            "owd", 
-            "abstime" + suffixes[0], 
-            "abstime" + suffixes[1], 
-            "packetid" + suffixes[0], 
-            "packetid" + suffixes[1], 
-            "ipsrc" + suffixes[0], 
-            "ipsrc" + suffixes[1], 
-            "ipdst" + suffixes[0], 
-            "ipdst" + suffixes[1], 
-            "sport" + suffixes[0], 
-            "sport" + suffixes[1], 
-            "dport" + suffixes[0], 
-            "dport" + suffixes[1], 
-            "tcpseq"
-        ]
+    return [
+        "owd", 
+        "abstime" + suffixes[0], 
+        "abstime" + suffixes[1], 
+        "packetid" + suffixes[0], 
+        "packetid" + suffixes[1], 
+        "ipsrc" + suffixes[0], 
+        "ipsrc" + suffixes[1], 
+        "ipdst" + suffixes[0], 
+        "ipdst" + suffixes[1], 
+        "sport" + suffixes[0], 
+        "sport" + suffixes[1], 
+        "dport" + suffixes[0], 
+        "dport" + suffixes[1], 
+        "tcpseq"
+    ]
 
 
 combo = Tuple[pd.DataFrame, TcpConnection]
+
 
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
@@ -276,7 +277,6 @@ def merge_tcp_dataframes_known_streams(
     # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
     # TODO reorder columns to have packet ids first !
 
-    
 
     columns = generate_columns([], [], suffixes)
     total = None # pd.DataFrame()
@@ -377,10 +377,10 @@ def merge_mptcp_dataframes(
     # except ValueError:
     #     continue
 
-    main_connection = TcpConnection.build_from_dataframe(df1, df1_mptcpstream)
+    # main_connection = TcpConnection.build_from_dataframe(df1, df1_mptcpstream)
 
-    # du coup on a une liste
-    mappings = map_tcp_stream(df2, main_connection)
+    # # du coup on a une liste
+    # mappings = map_tcp_stream(df2, main_connection)
 
     print("Found mappings %s" % mappings)
     if len(mappings) <= 0:

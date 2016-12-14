@@ -399,7 +399,8 @@ class MpTcpAnalyzer(cmd.Cmd):
     @is_loaded
     def do_qualify_reinjections(self, line):
         """
-
+        test with:  
+            mp qualify_reinjections 0 
         """
         parser = argparse.ArgumentParser(
             description="Listing reinjections of the connection"
@@ -407,15 +408,17 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
         parser.add_argument("pcap1", type=str, help="Capture file 1")
         parser.add_argument("pcap2", type=str, help="Capture file 2")
+        # TODO le rendre optionnel ?
         parser.add_argument("mptcpstream1", type=int, help="mptcp.stream id")
+        # TODO filter on dest/role
+        # parser.add_argument("--role", type=int, help="mptcp.stream id")
         # parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
 
         args = parser.parse_known_args(line)
 
         raw_df1 = load_into_pandas(args.mptcpstream1)
         raw_df2 = load_into_pandas(args.mptcpstream2)
-        df_merged = merge_tcp_dataframes(df1, df2, args.mptcpstream)
- 
+        df_merged = merge_mptcp_dataframes_known_streams(raw_df1, raw_df2, args.mptcpstream, args.mptcpstream1)
         """
         Now the algorithm consists in :
         for each reinjection:
@@ -427,7 +430,18 @@ class MpTcpAnalyzer(cmd.Cmd):
                     look for the first emitted dataack on each packet reception
                     look for its reception by the sender
         """
-        df1 = raw_df1['tcpstream' == mptcpstream1]
+        # df1 = raw_df1['tcpstream' == mptcpstream1]
+        # 1/ keep list of original packets that are reinjected
+        # i.e., "reinjected_in" not empty but reinjection_of empty
+        query = "mptcprole == '%s'" % (Destination.Client)
+        res = df_merged.query(query)
+        # isnull / notnull
+        # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
+        res2 = res[pd.isnull( res["reinjection_of"])]
+        res2 = res2[pd.notnull( res["reinjected_in"])]
+        print("filtering reinjected %d" % (len(res2)))
+        res.any("reinjected_in")
+        # for in 
         # use packet id as index
         # df1_reinjections
         # for df1
