@@ -411,14 +411,23 @@ def merge_mptcp_dataframes_known_streams(
     # mptcpdest=
     main_connection, df1 = con1
     mapped_connection, df2 = con2
-    # some subflows may have been blocked by routing/firewall
-    common_subflows = [] 
+    # Keep subflows that are present in the two connections (useless anyway ?)
+    common_subflows = []
     for sf in main_connection.subflows:
-        # if sf2 in 
+        # if sf2 in
         for sf2 in mapped_connection.subflows:
             if sf == sf2:
                 common_subflows.append((sf, sf2))
                 break
+
+    
+    # TODO when looking into the cache, check for mptcpstream
+    # prepare metadata
+    # 
+
+    for subflow in common_subflows:
+        merge_tcp_dataframes_known_streams()
+
 
 # def generate_tcp_bidirectional_owd_df(
 #         self, h1_df, h2_df, **kwargs):

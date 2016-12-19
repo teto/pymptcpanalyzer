@@ -418,8 +418,12 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         raw_df1 = load_into_pandas(args.mptcpstream1)
         raw_df2 = load_into_pandas(args.mptcpstream2)
+
         df_merged = merge_mptcp_dataframes_known_streams(raw_df1, raw_df2, args.mptcpstream, args.mptcpstream1)
         """
+        Maybe wisest approach is to merge only relevant informations and use packetid as Index in the original df ?
+
+
         Now the algorithm consists in :
         for each reinjection:
             look for the arrival time
@@ -433,14 +437,16 @@ class MpTcpAnalyzer(cmd.Cmd):
         # df1 = raw_df1['tcpstream' == mptcpstream1]
         # 1/ keep list of original packets that are reinjected
         # i.e., "reinjected_in" not empty but reinjection_of empty
-        query = "mptcprole == '%s'" % (Destination.Client)
-        res = df_merged.query(query)
+        # query = "mptcprole == '%s'" % (Destination.Client)
+        # res = df_merged.query(query)
         # isnull / notnull
         # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
-        res2 = res[pd.isnull( res["reinjection_of"])]
-        res2 = res2[pd.notnull( res["reinjected_in"])]
+
+        # filter packets to only keep the original packets that are reinjected
+        res2 = res[pd.isnull(res["reinjection_of"])]
+        res2 = res2[pd.notnull(res["reinjected_in"])]
         print("filtering reinjected %d" % (len(res2)))
-        res.any("reinjected_in")
+        # res.any("reinjected_in")
         # for in 
         # use packet id as index
         # df1_reinjections
