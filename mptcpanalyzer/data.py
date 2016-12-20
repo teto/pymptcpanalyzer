@@ -231,17 +231,25 @@ def merge_tcp_dataframes_known_streams(
     con2: Tuple[pd.DataFrame, TcpConnection]
 ) -> pd.DataFrame:
     """
+    TODO should I return a merged df order in which
 
     Args:
         con1: Tuple dataframe/tcpstream id
         con2: same
 
+    Returns:
+        res
+        To ease debug we want to see packets in chronological order
+
+
+        For instance
+        ___________________________________________________
+        |         |           |
+
     """
     h1_df, main_connection = con1
     h2_df, mapped_connection = con2
     cfg = get_config()
-
-
 
     # limit number of packets while testing
     # HACK to process faster
@@ -309,7 +317,7 @@ def merge_tcp_dataframes_known_streams(
         res['tcpdest'] = dest.name
         total = pd.concat([res, total])
 
-        # TODO remove in the future
+        # TODO remove in the future (and / or use specific export fct)
         filename = "merge_%d_%s.csv" % (main_connection.tcpstreamid, dest)
         res.to_csv(
             filename, # output
@@ -407,6 +415,13 @@ def merge_mptcp_dataframes_known_streams(
     Useful for reinjections etc...
 
     :see: .merge_mptcp_dataframes
+
+
+    Returns:
+        Per-subflow dataframes
+        See .merge_tcp_dataframes_known_streams for in
+
+        I want to see packets leave as 
     """
     # mptcpdest=
     main_connection, df1 = con1
@@ -427,6 +442,8 @@ def merge_mptcp_dataframes_known_streams(
 
     for subflow in common_subflows:
         merge_tcp_dataframes_known_streams()
+
+
 
 
 # def generate_tcp_bidirectional_owd_df(
