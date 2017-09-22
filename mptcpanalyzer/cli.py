@@ -11,6 +11,7 @@ for argparse scripts as explained in
 - http://dingevoninteresse.de/wpblog/?p=176
 - https://travelingfrontiers.wordpress.com/2010/05/16/command-processing-argument-completion-in-python-cmd-module/
 
+todo test https://github.com/jonathanslenders/python-prompt-toolkit/tree/master/examples/tutorial
 """
 import sys
 import argparse
@@ -138,7 +139,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         super().__init__(completekey='tab', stdin=stdin)
 
-
     @property
     def plot_manager(self):
         return self.plot_mgr
@@ -150,7 +150,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         :param mgr: a stevedore plugin manager
         """
         self.plot_mgr = mgr
-
 
     def load_plugins(self, mgr=None):
         """
@@ -363,21 +362,18 @@ class MpTcpAnalyzer(cmd.Cmd):
         #     return
 
         args = parser.parse_args(line)
-        df = self.data[self.data.mptcpstream == args.mptcpstream]
-        if df.empty:
-            print("No packet with mptcp.stream == %d" % args.mptcpstream)
+        success, ret = stats.compute_throughput(self.data, args.mptcpstream)
+        # df = self.data[self.data.mptcpstream == args.mptcpstream]
+        # if df.empty:
+        if success is not True:
+            print("Throughput computation failed:")
+            print(ret)
             return
 
-        # for instance
-        dsn_min = df.dss_dsn.min()
-        dsn_max = df.dss_dsn.max()
-        total_transferred = dsn_max - dsn_min
-        d = df.groupby('tcpstream')
-        # drop_duplicates(subset='rownum', take_last=True)
-        print("mptcpstream %d transferred %d" % (args.mptcpstream, total_transferred))
-        for tcpstream, group in d:
-            subflow_load = group.drop_duplicates(
-                subset="dss_dsn").dss_length.sum()
+        total_transferred = ret["total_transferred"]
+        print("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_transferred"]))
+        for tcpstream, throughput in map(ret["subflow_stats"], lambda x: (x["tcpstreamid"], x["throughput"])):
+            subflow_load = throughput/ret["total_transferred"]
             print(subflow_load)
             print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (
                 tcpstream, subflow_load, total_transferred, subflow_load / total_transferred * 100))

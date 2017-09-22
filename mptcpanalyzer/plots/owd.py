@@ -30,7 +30,8 @@ mock_cachename = "backup.csv"
 
 class TcpOneWayDelay(plot.Matplotlib):
     """
-    The purpose of this plot is to display the one-way delay between the client 
+    The purpose of this plot is to display the "one-way delay" (OWD) (also called
+    one-way latency (OWL)) between the client
     and the server.
     To do this, you need to capture a communication at both ends, client and server.
 
@@ -63,21 +64,21 @@ class TcpOneWayDelay(plot.Matplotlib):
         # self.suffixes = ("_snd", "_rcv")
         # self.suffixes = ("", "_rcv")
         # self.columns = [
-        #     "owd", 
-        #     "abstime" + self.suffixes[0], 
-        #     "abstime" + self.suffixes[1], 
-        #     "packetid" + self.suffixes[0], 
-        #     "packetid" + self.suffixes[1], 
-        #     "ipsrc" + self.suffixes[0], 
-        #     "ipsrc" + self.suffixes[1], 
-        #     "ipdst" + self.suffixes[0], 
-        #     "ipdst" + self.suffixes[1], 
-        #     "sport" + self.suffixes[0], 
-        #     "sport" + self.suffixes[1], 
-        #     "dport" + self.suffixes[0], 
-        #     "dport" + self.suffixes[1], 
+        #     "owd",
+        #     "abstime" + self.suffixes[0],
+        #     "abstime" + self.suffixes[1],
+        #     "packetid" + self.suffixes[0],
+        #     "packetid" + self.suffixes[1],
+        #     "ipsrc" + self.suffixes[0],
+        #     "ipsrc" + self.suffixes[1],
+        #     "ipdst" + self.suffixes[0],
+        #     "ipdst" + self.suffixes[1],
+        #     "sport" + self.suffixes[0],
+        #     "sport" + self.suffixes[1],
+        #     "dport" + self.suffixes[0],
+        #     "dport" + self.suffixes[1],
         #     "tcpseq"
-        # ] 
+        # ]
 
 
     def default_parser(self, *args, **kwargs):
@@ -92,7 +93,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # parser.add_argument("--offset", action="store",
         #         type=float,
-        #         help="A possible offset added to the time of" 
+        #         help="A possible offset added to the time of"
         # )
 
         return parser
@@ -100,7 +101,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
     def get_cachename(self, pcap1, pcap2):
         """
-        fake cachename via concatenating 
+        fake cachename via concatenating
         Ideally the order of parameters should not matter
         """
         # TODO HACK mock
@@ -113,10 +114,10 @@ class TcpOneWayDelay(plot.Matplotlib):
         to compute OWDs. There results can be cached in which  case it's not necessary
         to load the original pcaps
 
-        First we get the cachename associated with the two pcaps. If it's cached we load 
+        First we get the cachename associated with the two pcaps. If it's cached we load
         directly this cache else we proceed as usual
 
-        TODO replace with things done in 
+        TODO replace with things done in
         """
         cachename = self.get_cachename(kwargs.get("host1_pcap"), kwargs.get("host2_pcap"))
         # if we can't load that file from cache
@@ -147,7 +148,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         # columns = data.generate_columns([], [], data.suffixes)
         total.to_csv(
             cachename, # output
-            # columns=columns, 
+            # columns=columns,
             index=False,
             header=True,
             # sep=main.config["DEFAULT"]["delimiter"],
@@ -163,7 +164,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
 
-        See 
+        See
         Todo:
             it should be possible to cache intermediary results (computed owds)
 
@@ -177,7 +178,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         res = df_results
         print("columns", res.columns)
 
-        # print(res[["packetid", "mapped_index", 
+        # print(res[["packetid", "mapped_index",
         #     "sendkey" + self.suffixes[0], "sendkey" + self.suffixes[1],]])
 
         # need to compute the owd depending on the direction right
@@ -193,11 +194,11 @@ class TcpOneWayDelay(plot.Matplotlib):
         # print(res)
         # print(res.columns)
         # print(res.dtypes)
- 
+
         grouped_by = res.groupby(cols, sort=False)
         print(grouped_by.head())
-        print(len(grouped_by)) # len of 2 which is good, but why 
- 
+        print(len(grouped_by)) # len of 2 which is good, but why
+
         for idx, df in grouped_by:
             print("ID=" , idx)
             print("df = ", df)
@@ -214,7 +215,7 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # grid=True,
                 # xticks=tcpstreams["reltime"],
                 # rotation for ticks
-                # rot=45, 
+                # rot=45,
                 # lw=3
             )
 
@@ -230,7 +231,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             # # grid=True,
             # # xticks=tcpstreams["reltime"],
             # # rotation for ticks
-            # # rot=45, 
+            # # rot=45,
             # # lw=3
         # )
         axes.legend(['toto', 'ta'])
@@ -258,7 +259,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 #         to compute OWDs. There results can be cached in which  case it's not necessary
 #         to load the original pcaps
 
-#         First we get the cachename associated with the two pcaps. If it's cached we load 
+#         First we get the cachename associated with the two pcaps. If it's cached we load
 #         directly this cache else we proceed as usual
 #         """
 #         cachename = self.get_cachename(kwargs.get("client_pcap"), kwargs.get("server_pcap"))
@@ -288,14 +289,14 @@ class TcpOneWayDelay(plot.Matplotlib):
 #         # returned a dict
 #         # if mptcpstream not in mappings:
 #         #     print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
-#         #     return 
+#         #     return
 #         # print("Number of %d" % len(mappings[mptcpstream]))
 #         # print("#mappings=" len(mappings):
 #         if len(mappings) <= 0:
 #             print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
-#             return 
+#             return
 
-#         # limit number of packets while testing 
+#         # limit number of packets while testing
 #         # HACK to process faster
 #         df1 = df1.head(limit)
 #         df2 = df2.head(limit)
@@ -305,9 +306,9 @@ class TcpOneWayDelay(plot.Matplotlib):
 #         mapped_connection, score = mappings[0]
 
 #         # some subflows may have been blocked by routing/firewall
-#         common_subflows = [] 
+#         common_subflows = []
 #         for sf in main_connection.subflows:
-#             # if sf2 in 
+#             # if sf2 in
 #             for sf2 in mapped_connection.subflows:
 #                 if sf == sf2:
 #                     common_subflows.append((sf, sf2))
@@ -326,4 +327,4 @@ class TcpOneWayDelay(plot.Matplotlib):
 #         assert len(common_subflows) > 0, "Should be at least one common sf"
 #         # print(mappings)
 #         print("Found mappings %s" % mappings)
-#         return 
+#         return

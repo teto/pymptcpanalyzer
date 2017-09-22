@@ -20,18 +20,18 @@ class CrossSubflowInterArrival(plot.Matplotlib):
 
     def default_parser(self):
         parser = super().default_parser()
-        # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", 
+        # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows",
                 # help="Consider only cross-subflow arrivals")
-        parser.add_argument("sender_ips", nargs="+", 
+        parser.add_argument("sender_ips", nargs="+",
                 help="list sender ips here to filter the dataset")
         return parser
 
     def plot(self, main, args, **kwargs):
         """
-        goal is here to generate a new Dataframe that lists only switchings between 
+        goal is here to generate a new Dataframe that lists only switchings between
         subflows for DSN arrival
         """
-        # print("data=", data) 
+        # print("data=", data)
         print("args", args)
         data = main.data
         dat = self.filter_ds(data, mptcpstream=args.mptcpstream, srcip=args.sender_ips)
@@ -53,9 +53,9 @@ class CrossSubflowInterArrival(plot.Matplotlib):
             if dat.iloc[i-1, tcpstreamcol] != dat.iloc[i, tcpstreamcol]:
                 # print("index i:", dat.iloc[i])
                 row = {
-                    'from': dat.iloc[i-1, tcpstreamcol], 
+                    'from': dat.iloc[i-1, tcpstreamcol],
                     'to':   dat.iloc[i, tcpstreamcol],
-                     'delta': dat.loc[i,"reltime"] - dat.loc[i-1,"reltime"] 
+                     'delta': dat.loc[i,"reltime"] - dat.loc[i-1,"reltime"]
                      }
 
                 # print("append row " , row)
@@ -66,7 +66,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
     	# todrop.append(i-1)
         # if args.crosssubflows:
         # else:
-        #     # compute delay between sending of 
+        #     # compute delay between sending of
         #     # rename into "delays"
         #     dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
         #     # need to compute interdeparture times
@@ -74,7 +74,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
             legend=False,
             grid=True,
             bins=10,
-            )   
+            )
 
         ax.set_ylabel("Proportion")
         ax.set_xlabel("Inter DSN departure time")
@@ -93,7 +93,7 @@ class InterArrivalTimes(plot.Matplotlib):
             "dsn",
             "dack"
             ]
-    
+
     def __init__(self, *args, **kwargs):
         inputs = [
         ]
@@ -103,7 +103,7 @@ class InterArrivalTimes(plot.Matplotlib):
         parser = super().default_parser()
         # parser.add_argument("--x-subflows", action="store_true", dest="crosssubflows", help="Consider only cross-subflow arrivals")
         parser.add_argument("attribute", choices=self.available, help="interarrival between which numbers")
-        parser.add_argument("sender_ips", nargs="+", 
+        parser.add_argument("sender_ips", nargs="+",
                 help="list sender ips here to filter the dataset")
         return parser
 
@@ -119,8 +119,8 @@ class InterArrivalTimes(plot.Matplotlib):
 
         # inplace=True generates warning
         dat = dat.sort_values("dsn", ascending=True, )
-       
-        # compute delay between sending of 
+
+        # compute delay between sending of
         # rename into "delays"
         dat["interdeparture"] = dat["reltime"] - dat["reltime"].shift()
         # need to compute interdeparture times
@@ -128,7 +128,7 @@ class InterArrivalTimes(plot.Matplotlib):
                 legend=False,
                 grid=True,
                 bins=10,
-                )   
+                )
 
         ax.set_ylabel("Proportion")
         ax.set_xlabel("Inter DSN departure time")

@@ -35,12 +35,10 @@ class TestCommand(Command):
         pass
 
     def run(self):
-        import sys, subprocess
+        import sys
+        import subprocess
 
-        raise SystemExit(
-                subprocess.call([sys.executable,
-                    '-m',
-                    'pisces.test']))
+        raise SystemExit(subprocess.call([sys.executable, '-m', 'pisces.test']))
 # How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
 # http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
@@ -62,67 +60,67 @@ if sys.argv[-1] == 'publish':
     sys.exit()
 
 
-
 setup(name="mptcpanalyzer",
-        version=main_ns['__version__'],
-        description="Analyze mptcp traces (.pcap)",
-        long_description=open('README.md').read(),
-        url="http://github.com/lip6-mptcp/mptcpanalyzer",
-        license="GPL",
-        author="Matthieu Coudron",
-        author_email="matthieu.coudron@lip6.fr",
-        classifiers=[
-            'Development Status :: 3 - Alpha',
-            'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-            'Intended Audience :: System Administrators',
-            'Intended Audience :: Science/Research',
-            'Intended Audience :: Telecommunications Industry',
-            'Environment :: Console',
-            'Programming Language :: Python :: 3.5',
-            ],
-        keywords=["mptcp analysis pcap"],
-        packages=find_packages(),
-        # [
-        # # "mptcpanalyzer", "mptcpanalyzer/plots",
-        # ],
-        # data files allows to install files outside the package
-        # see package_data to add files within pkg
-        # package_data=['
-        package_data={
-            '': ['*.md', "*.json"],
-            "mptcpanalyzer": ["toto/mptcp_fields.json"],
-            },
-        entry_points={
-            "console_scripts": [
-                # creates 2 system programs that can be called from PATH
-                'mptcpanalyzer = mptcpanalyzer.cli:main',
-                'mptcpexporter = mptcpanalyzer.exporter:main',
-                ],
-            # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
-            'mptcpanalyzer.plots': [
-                'attr = mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
-                'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
-                'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
-                # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
-                'dss = mptcpanalyzer.plots.dss:DSSOverTime',
-                'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
-                # 'owd = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
-                'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
-                'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
-            ],
-            # namespace for plugins that monkey patch the main Cmd class
-            'mptcpanalyzer.cmds': [
-                'stats = mptcpanalyzer.command_example:CommandExample',
-            ]
-        },
-        # pandas should include matplotlib dependancy right ?
-        install_requires=[
-              'stevedore',  # to implement a plugin mechanism
-              'matplotlib', # for plotting
-              'pandas>=0.17.1', # to load and process csv files
-              # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
+      version=main_ns['__version__'],
+      description="Analyze mptcp traces (.pcap)",
+      long_description=open('README.md').read(),
+      url="http://github.com/lip6-mptcp/mptcpanalyzer",
+      license="GPL",
+      author="Matthieu Coudron",
+      author_email="matthieu.coudron@lip6.fr",
+      classifiers=[
+          'Development Status :: 3 - Alpha',
+          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+          'Intended Audience :: System Administrators',
+          'Intended Audience :: Science/Research',
+          'Intended Audience :: Telecommunications Industry',
+          'Environment :: Console',
+          'Programming Language :: Python :: 3.5',
+          ],
+      keywords=["mptcp analysis pcap"],
+      packages=find_packages(),
+      # [
+      # # "mptcpanalyzer", "mptcpanalyzer/plots",
+      # ],
+      # data files allows to install files outside the package
+      # see package_data to add files within pkg
+      # package_data=['
+      package_data={
+          '': ['*.md', "*.json"],
+          "mptcpanalyzer": ["toto/mptcp_fields.json"],
+          },
+      entry_points={
+          "console_scripts": [
+              # creates 2 system programs that can be called from PATH
+              'mptcpanalyzer = mptcpanalyzer.cli:main',
+              'mptcpexporter = mptcpanalyzer.exporter:main',
               ],
-      # for now the core is not modular enough so just check that running the process produces the same files
+          # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
+          'mptcpanalyzer.plots': [
+              'attr = mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
+              # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
+              # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
+              # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
+              'dss = mptcpanalyzer.plots.dss:DSSOverTime',
+              'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
+              # 'owd = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
+              'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
+              'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
+              'throughput = mptcpanalyzer.plots.throughput:PlotThroughput',
+              ],
+          # namespace for plugins that monkey patch the main Cmd class
+          'mptcpanalyzer.cmds': [
+              'stats = mptcpanalyzer.command_example:CommandExample',
+              ]
+          },
+      # pandas should include matplotlib dependancy right ?
+        install_requires=[
+                'stevedore',  # to implement a plugin mechanism
+                'matplotlib', # for plotting
+                'pandas>=0.17.1', # to load and process csv files
+                # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
+                ],
+        # for now the core is not modular enough so just check that running the process produces the same files
       # test_suite="tests",
       #  cmdclass={
       #   'test': TestCommand

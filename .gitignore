@@ -3,3 +3,4 @@
 *.pcap
 *.init
 *.mptcpanalyzer*
+*.pyc
