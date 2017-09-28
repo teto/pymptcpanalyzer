@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-log = logging.getLogger(__name__)
+from typing import List, Any, Tuple, Dict, Callable
 
 
-def compute_throughput(df, mptcpstreamid):
+def compute_throughput(rawdf, mptcpstreamid):
     """
     Returns a tuple (True/false, dict)
     """
-    df = self.data[self.data.mptcpstream == args.mptcpstream]
+    df = rawdf[rawdf.mptcpstream == mptcpstreamid]
     if df.empty:
         return False, "No packet with mptcp.stream == %d" % mptcpstreamid
 
@@ -17,7 +17,7 @@ def compute_throughput(df, mptcpstreamid):
     total_transferred = dsn_max - dsn_min
     d = df.groupby('tcpstream')
     # drop_duplicates(subset='rownum', take_last=True)
-    subflow_stats = []
+    subflow_stats : List[Any] = []
     for tcpstream, group in d:
         # todo use tcp_seq_max/ tcp_seq_min
         # drop retransmitted

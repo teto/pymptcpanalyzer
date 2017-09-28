@@ -17,7 +17,8 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
     """
     Thin wrapper around configparser to set up default values
 
-    By default, mptcpanalyzer will try to load the config file first in $XDG_CACHE_HOME/mptcpanalyzer/config, then in
+    By default, mptcpanalyzer will try to load the config file
+    first in $XDG_CACHE_HOME/mptcpanalyzer/config, then in
     $HOME/.config/mptcpanalyzer/config.
 
     Example:
@@ -69,9 +70,6 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         if filename and filename not in loaded_from:
             raise ValueError("Could not load the specified configuration")
         log.info("Configuration loaded from %s", loaded_from)
-        # else:
-        #     log.debug("Could not find config file %s" % filename)
-
 
     @property
     def cachedir(self):

@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
-# import mptcpanalyzer as mp
-# from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
-import logging
 import argparse
 import matplotlib.pyplot as plt
-from mptcpanalyzer import fields_v2
 from mptcpanalyzer.statistics import compute_throughput
 import collections
-
-log = logging.getLogger(__name__)
 
 
 class SubflowThroughput(plot.Matplotlib):
@@ -87,4 +81,3 @@ class SubflowThroughput(plot.Matplotlib):
         # )
 
         return fig
-

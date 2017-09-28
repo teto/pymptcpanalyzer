@@ -3,24 +3,16 @@
 import argparse
 import os
 import tempfile
-# import core
 import matplotlib
 import matplotlib.pyplot as plt
-import logging
 import collections
 import mptcpanalyzer as mp
 from mptcpanalyzer.data import load_into_pandas
 from enum import Enum, IntEnum
-from typing import List, Dict, Tuple
 from mptcpanalyzer.connection import MpTcpConnection
 
 import abc
 import six
-
-
-
-log = logging.getLogger(__name__)
-
 
 
 class PreprocessingActions(IntEnum):
@@ -44,13 +36,13 @@ def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
 
     if ipsrc:
         query += " and ("
-        query_ipdst = map( lambda x: "ipsrc == '%s'" % x, ipsrc)
+        query_ipdst = map(lambda x: "ipsrc == '%s'" % x, ipsrc)
         query += ' or '.join(query_ipdst)
         query += ")"
 
     if ipdst:
         query += " and ("
-        query_ipdst = map( lambda x: "ipdst == '%s'" % x, ipdst)
+        query_ipdst = map(lambda x: "ipdst == '%s'" % x, ipdst)
         query += ' or '.join(query_ipdst)
         query += ")"
 
@@ -65,8 +57,8 @@ class Plot:
 
     See http://docs.openstack.org/developer/stevedore/tutorial/creating_plugins.html
 
-    .. warn: There is a bug in Pandas that prevents from plotting raw DSNs as uint64 see https://github.com/pymain/pandas/issues/11440
-
+    .. warn: A bug in Pandas prevents from plotting raw DSNs as uint64
+            see https://github.com/pymain/pandas/issues/11440
 
     Attributes:
         title (str): title to give to the plot
@@ -74,38 +66,35 @@ class Plot:
     """
 
     def __init__(
-            self,
-            # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
-            input_pcaps: List[Tuple[str, PreprocessingActions]],
-            title: str = None,
-            # cache=None,
-            # main=None,
-            *args, **kwargs) -> None:
+        self,
+        exporter : 'TsharkConfig',
+        # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
+        input_pcaps: List[Tuple[str, PreprocessingActions]],
+        title: str = None,
+        *args, **kwargs
+    ) -> None:
         """
         Args:
             title (str): Plot title
         """
         self.title = title
-        # self.enable_preprocessing = preprocess_dataframes
-        # self.main = main
         self.input_pcaps = input_pcaps
-
-        # assert self.main, "Need reference to MpTcpAnalyzer"
+        self.tshark_config = exporter
 
     @property
     def cache(self):
         return self.main.cache
 
     def default_parser(
-            self,
-            # TODO remove two followings ?
-            parent_parsers=[],
-            # available_dataframe: bool,
-            # required_inputs: List[str] = ["pcap"],
-            mptcpstream: bool = False,
-            direction: bool = False, skip_subflows: bool = True,
-            dst_host: bool=False
-        ):
+        self,
+        # TODO remove two followings ?
+        parent_parsers=[],
+        # available_dataframe: bool,
+        # required_inputs: List[str] = ["pcap"],
+        mptcpstream: bool = False,
+        direction: bool = False, skip_subflows: bool = True,
+        dst_host: bool=False
+    ):
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
@@ -133,12 +122,14 @@ class Plot:
         # for name in required_inputs:
         print("preload = ", type(self.input_pcaps), self.input_pcaps)
         for name, bitfield in self.input_pcaps:
-            parser.add_argument(name,
-            # action="append",
-            action="store",
-            # metavar="pcap%d" % i,
-            type=str,
-            help='Pcap file (or its associated csv)')
+            parser.add_argument(
+                name,
+                # action="append",
+                action="store",
+                # metavar="pcap%d" % i,
+                type=str,
+                help='Pcap file (or its associated csv)'
+            )
 
             # if bitfield & PreprocessingActions.FilterMpTcpStream:
             #     parser.add_argument(
@@ -146,10 +137,11 @@ class Plot:
             #         help='mptcp.stream id, you may find using the "list_connections" command'
             #     )
 
-
         if mptcpstream:
-            parser.add_argument('mptcpstream', action="store", type=int,
-                help='mptcp.stream id, you may find using the "list_connections" command')
+            parser.add_argument(
+                'mptcpstream', action="store", type=int,
+                help='mptcp.stream id, you may find using the'
+                '"list_connections" command')
 
             if direction:
                 # a bit hackish: we want the object to be of type class
@@ -158,32 +150,35 @@ class Plot:
                 class CustomDestinationChoices(list):
                     def __contains__(self, other):
                         return super().__contains__(other.value)
-                parser.add_argument('destination', action="store",
-                        choices=CustomDestinationChoices([e.value for e in mp.Destination]),
-                        type=lambda x: mp.Destination(x),
-                        help='Filter flows according to their direction'
-                            '(towards the client or the server)'
-                            'Depends on mptcpstream')
+                parser.add_argument(
+                    'destination', action="store",
+                    choices=CustomDestinationChoices([e.value for e in mp.Destination]),
+                    type=lambda x: mp.Destination(x),
+                    help='Filter flows according to their direction'
+                    '(towards the client or the server)'
+                    'Depends on mptcpstream')
 
         if dst_host:
-            parser.add_argument('ipdst_host', action="store",
-                    help='Filter flows according to the destination hostnames')
+            parser.add_argument(
+                'ipdst_host', action="store",
+                help='Filter flows according to the destination hostnames')
 
         if skip_subflows:
-            parser.add_argument('--skip', dest="skipped_subflows", type=int,
-                    action="append", default=[],
+            parser.add_argument(
+                '--skip', dest="skipped_subflows", type=int,
+                action="append", default=[],
                 help=("You can type here the tcp.stream of a subflow "
                     "not to take into account (because"
                     "it was filtered by iptables or else)"))
 
         parser.add_argument('-o', '--out', action="store", default=None,
-                help='Name of the output plot')
+            help='Name of the output plot')
         parser.add_argument('--display', action="store_true",
-                help='will display the generated plot (use xdg-open by default)')
+            help='will display the generated plot (use xdg-open by default)')
         parser.add_argument('--title', action="store", type=str,
-                help='Overrides the default plot title')
+            help='Overrides the default plot title')
         parser.add_argument('--primary', action="store_true",
-                help="Copy to X clipboard, requires `xsel` to be installed")
+            help="Copy to X clipboard, requires `xsel` to be installed")
         return parser
 
     @abc.abstractmethod
@@ -199,9 +194,11 @@ class Plot:
         """
         pass
 
-    def filter_dataframe(self, rawdf, mptcpstream=None, skipped_subflows=[],
-            destination: mp.Destination=None,
-            extra_query: str =None, **kwargs):
+    def filter_dataframe(
+        self, rawdf, mptcpstream=None, skipped_subflows=[],
+        destination: mp.Destination=None,
+        extra_query: str =None, **kwargs
+    ):
         """
         Can filter a single dataframe beforehand
         (hence call it several times for several dataframes).
@@ -212,7 +209,7 @@ class Plot:
             rawdf: Raw dataframe
             kwargs: expanded arguments returned by the parser
             destination: Filters packets depending on their :enum:`.Destination`
-            mptcpstream: Filters the dataframe so as to keep only the packets related to mptcp.stream == mptcpstream
+            mptcpstream: keep only the packets related to mptcp.stream == mptcpstream
             skipped_subflows: list of skipped subflows
             extra_query: Add some more filters to the pandas query
 
@@ -259,7 +256,6 @@ class Plot:
         #     raise Exception("Empty dataframe after running query [%s]" % query)
         return dataframe
 
-
     def postprocess(self, v, **opt):
         """
         Args:
@@ -276,12 +272,11 @@ class Plot:
         for pcap_name, action in self.input_pcaps:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
-                df = load_into_pandas(kwargs.get(pcap_name))
+                df = load_into_pandas(kwargs.get(pcap_name), self.tshark_config)
                 dataframes.append(df)
 
         # dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
         return dataframes
-
 
     def run(self, rawdataframes, **kwargs):
         """
@@ -303,7 +298,6 @@ class Plot:
         dataframes = dataframes[0] if len(dataframes) == 1 else dataframes,
         self.plot(dataframes, **kwargs)
 
-
     def display(self, filename):
         """
         Opens filename in your usual picture viewer
@@ -313,7 +307,6 @@ class Plot:
         cmd = "xdg-open %s" % (filename)
         print(cmd)
         os.system(cmd)
-
 
 
 class Matplotlib(Plot):
@@ -365,7 +358,7 @@ class Matplotlib(Plot):
 
         if display:
             if out is None:
-                # TODO create a temporary file
+                # TODO create a temporary file
                 # print("%r")
                 # v.imshow()
                 with tempfile.NamedTemporaryFile() as tmpfile:
@@ -378,7 +371,6 @@ class Matplotlib(Plot):
                 self.display(out)
 
         super().postprocess(v, **opt)
-
 
     def run(self, dataframes, styles, *pargs, **kwargs):
         """

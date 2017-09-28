@@ -312,7 +312,7 @@ class MpTcpConnection:
 
         common_sf = []
 
-        if self.server_key == other.server_key and main.client_key == other.client_key:
+        if self.server_key == other.server_key and self.client_key == other.client_key:
             log.debug("matching keys => same")
             return float('inf')
 

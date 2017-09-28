@@ -46,7 +46,8 @@ class TestCommand(Command):
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
 
-main_ns={}
+
+main_ns = {}
 ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
@@ -95,7 +96,11 @@ setup(name="mptcpanalyzer",
               'mptcpanalyzer = mptcpanalyzer.cli:main',
               'mptcpexporter = mptcpanalyzer.exporter:main',
               ],
-          # Each item in the list should be a string with name = module:importable where name is the user-visible name for the plugin, module is the Python import reference for the module, and importable is the name of something that can be imported from inside the module.
+          # Each item in the list should be a string with
+          # name = module:importable where name is the user-visible name for
+          # the plugin, module is the Python import reference for the module,
+          # and importable is the name of something that can be imported from
+          # inside the module.
           'mptcpanalyzer.plots': [
               'attr = mptcpanalyzer.plots.dsn:PerSubflowTimeVsAttribute',
               # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
@@ -105,9 +110,9 @@ setup(name="mptcpanalyzer",
               'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
               # 'owd = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
               'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
-              'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
-              'throughput = mptcpanalyzer.plots.throughput:PlotThroughput',
-              ],
+              # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
+              'throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
+            ],
           # namespace for plugins that monkey patch the main Cmd class
           'mptcpanalyzer.cmds': [
               'stats = mptcpanalyzer.command_example:CommandExample',
@@ -116,11 +121,11 @@ setup(name="mptcpanalyzer",
       # pandas should include matplotlib dependancy right ?
         install_requires=[
                 'stevedore',  # to implement a plugin mechanism
-                'matplotlib', # for plotting
-                'pandas>=0.17.1', # to load and process csv files
+                'matplotlib',  # for plotting
+                'pandas>=0.17.1',  # to load and process csv files
+                'cmd2',  # to improve cmd capabilities
                 # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
                 ],
-        # for now the core is not modular enough so just check that running the process produces the same files
       # test_suite="tests",
       #  cmdclass={
       #   'test': TestCommand

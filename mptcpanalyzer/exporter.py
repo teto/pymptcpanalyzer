@@ -8,7 +8,7 @@ import os
 import subprocess
 import logging
 import sys
-from mptcpanalyzer.tshark import TsharkExporter, convert_csv_to_sql
+from mptcpanalyzer.tshark import TsharkConfig, convert_csv_to_sql
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    exporter = TsharkExporter(tshark_exe, profile=args.profile)
+    exporter = TsharkConfig(tshark_exe, profile=args.profile)
     # exporter.tcp_relative_seq = args.relative if args.relative else True
     exporter.tcp_relative_seq = args.relative 
     # exporter.fields_to_export = fields_to_export

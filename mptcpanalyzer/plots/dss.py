@@ -4,14 +4,10 @@ import mptcpanalyzer.plot as plot
 import mptcpanalyzer as mp
 # from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
-import logging
 import matplotlib.pyplot as plt
-import matplotlib  as mpl
+import matplotlib as mpl
 import collections
-# from mptcpanalyzer import fields_v2
 from itertools import cycle
-
-log = logging.getLogger(__name__)
 
 
 class DssLengthHistogram(plot.Matplotlib):
@@ -56,7 +52,7 @@ class DSSOverTime(plot.Matplotlib):
     Draw small arrows with dsn as origin, and a *dss_length* length etc...
     Also allow to optionally display dataack
 
-    As the generated plot can end up being quite rich, it is a good idea to specify 
+    As the generated plot can end up being quite rich, it is a good idea to specify
     a |matplotlibrc| with high dimensions and high dpi.
 
     Todo:
@@ -71,7 +67,7 @@ class DSSOverTime(plot.Matplotlib):
         super().__init__(expected_pcaps, title="dsn", **kwargs)
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, mptcpstream=True, 
+        parser = super().default_parser(*args, mptcpstream=True,
                 direction=True, **kwargs)
         parser.add_argument('--dack', action="store_true", default=False,
                 help="Adds data acks to the graph")
@@ -83,7 +79,7 @@ class DSSOverTime(plot.Matplotlib):
 
     def plot(self, rawdf, destination=None, dack=False, relative=None, **args):
         """
-        Might be 
+        Might be
 
         """
         dack_str = "dss_rawack"
@@ -92,7 +88,7 @@ class DSSOverTime(plot.Matplotlib):
         ymin, ymax = float('inf'), 0
 
         rawdf.set_index("reltime", inplace=True)
-       
+
         df_forward = self.preprocess(rawdf, destination=destination, extra_query="dss_dsn > 0", **args)
 
         # compute limits of the plot
@@ -109,14 +105,14 @@ class DSSOverTime(plot.Matplotlib):
             """
             # returns a FancyArrow
             res = axes.arrow(idx, int(row[dsn_str]) , 0, row["dss_length"],
-                    head_width=0.05, head_length=0.1, **style) 
+                    head_width=0.05, head_length=0.1, **style)
             res.set_label("hello")
             return res
 
         handles, labels = axes.get_legend_handles_labels()
 
 
-        # TODO cycle manually through 
+        # TODO cycle manually through
         cycler = mpl.rcParams['axes.prop_cycle']
         styles = cycle(cycler)
         legends = []
@@ -163,7 +159,7 @@ class DSSOverTime(plot.Matplotlib):
                 else:
                     # df_backward = df_backward[df_backward.dack >=0]
 
-                    ax1 = df[dack_str].plot.line(ax=axes, 
+                    ax1 = df[dack_str].plot.line(ax=axes,
                             style=marker,
                             legend=False
                     )

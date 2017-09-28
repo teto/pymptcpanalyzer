@@ -17,13 +17,14 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
     """
     Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
     This should be the most straightforward plot.
-
     """
-    mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
 
     def __init__(self, *args, **kwargs):
         pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ]
         super().__init__(input_pcaps=pcaps, *args, **kwargs)
+
+        self.mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
+
 
     def default_parser(self, *args, **kwargs):
 

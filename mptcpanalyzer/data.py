@@ -4,12 +4,12 @@ import logging
 import os
 import pandas as pd
 import numpy as np
-from mptcpanalyzer.tshark import TsharkExporter, Filetype
+from mptcpanalyzer.tshark import TsharkConfig, Filetype
 # from mptcpanalyzer.config import MpTcpAnalyzerConfig, get_config
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 import mptcpanalyzer as mp
-from mptcpanalyzer import get_fields, get_config, get_cache, Destination
-from typing import List, Any, Tuple
+from mptcpanalyzer import get_config, get_cache, Destination
+from typing import List, Any, Tuple, Dict, Callable
 import math
 
 log = logging.getLogger(__name__)
@@ -45,10 +45,13 @@ Of the form Field.shortname
 
 Have a look at the graphic slide 28:
 https://www-phare.lip6.fr/cloudnet12/Multipath-TCP-tutorial-cloudnet.pptx
+
+TODO add it to Field ?
 """
 scoring_rules = {
     "packetid": ignore,
-    "abstime": diff, # in-order packets are more common than out of order ones
+    # in-order packets are more common than out of order ones
+    "abstime": diff,
     "default_time": ignore,
     "expected_token": exact,
     "sport": exact,
@@ -67,46 +70,53 @@ scoring_rules = {
 }
 
 
-# TODO move to an dataio package ?
+# def load_from_cache(input_file,):
+#     cache = mp.get_cache()
+
 def load_into_pandas(
     input_file: str,
+    config: TsharkConfig,
+    dependencies=[],
     regen: bool=False,
     # metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
 ) -> pd.DataFrame:
     """
-    load csv mptpcp data into pandas
+    load mptpcp data into pandas
 
     Args:
-        regen: Ignore the cache and regenerate any cached csv file from
-        the input pcap
+        input_file: pcap filename
+        config: Hard, keep changing
+        regen: Ignore the cache and regenerate any cached csv file from the input pcap
     """
     log.debug("Asked to load %s" % input_file)
 
     filename = os.path.expanduser(input_file)
     filename = os.path.realpath(filename)
-    # todo addd csv extension if needed
-    cfg = mp.get_config()
     cache = mp.get_cache()
 
     # csv_filename = self.get_matching_csv_filename(filename, regen)
-    is_cache_valid = cache.is_cache_valid(filename, )
     # if os.path.isfile(cachename):
-    csv_filename = cache.cacheuid(filename)
+    uid = cache.cacheuid(
+        filename,  # prefix (might want to shorten it a bit)
+        dependencies,
+        config.hash()  # suffix
+    )
+
+    # try:
+        # is_valid, csv_filename = cache.get(uid)
+    # except:
+    #     log.info("Cache invalid... Converting %s into %s" % (filename,))
+
+    is_cache_valid, csv_filename = cache.is_cache_valid(uid, )
 
     log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
     if regen or not is_cache_valid:
         log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
 
-        exporter = TsharkExporter(
-            cfg["mptcpanalyzer"]["tshark_binary"],
-            cfg["mptcpanalyzer"]["delimiter"],
-            cfg["mptcpanalyzer"]["wireshark_profile"],
-        )
-
-        retcode, stderr = exporter.export_to_csv(
+        retcode, stderr = config.export_to_csv(
             filename,
             csv_filename,
-            get_fields("fullname", "name"),
+            config.get_fields("fullname", "name"),
             tshark_filter="mptcp and not icmp"
         )
         log.info("exporter exited with code=%d", retcode)
@@ -115,9 +125,9 @@ def load_into_pandas(
             os.remove(csv_filename)
             raise Exception(stderr)
 
-    print("CONFIG=", cfg)
+    # print("CONFIG=", cfg)
 
-    temp = get_fields("fullname", "type")
+    temp = config.get_fields("fullname", "type")
     dtypes = {k: v for k, v in temp.items() if v is not None}
     log.debug("Loading a csv file %s" % csv_filename)
 
@@ -134,19 +144,19 @@ def load_into_pandas(
             # we don't need 'header' when metadata is with comment
             # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
             # skiprows
-            sep=cfg["mptcpanalyzer"]["delimiter"],
+            sep=config.delimiter,
             dtype=dtypes,
             converters={
                 "tcp.flags": lambda x: int(x, 16),
                 # reinjections, converts to list of integers
                 "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
-                #"mptcp.related_mapping": lambda x: x.split(','),
+                # "mptcp.related_mapping": lambda x: x.split(','),
             },
             # memory_map=True, # could speed up processing
         )
         # TODO:
         # No columns to parse from file
-        data.rename(inplace=True, columns=get_fields("fullname", "name"))
+        data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
         log.debug("Column names: %s", data.columns)
 
     # pp = pprint.PrettyPrinter(indent=4)
@@ -154,16 +164,15 @@ def load_into_pandas(
     return data
 
 
-# on a pas le filename :s
 def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
     config = mp.get_config()
     return df.to_csv(
-        filename, # output
+        filename,  # output
         # columns=self.columns,
         # how do we get the config
         sep=config["mptcpanalyzer"]["delimiter"],
         # index=True, # hide Index
-        header=True, # add
+        header=True,  # add
         **kwargs
     )
 
@@ -196,7 +205,6 @@ def merge_tcp_dataframes(
         (df1, main_connection),
         (df2, mapped_connection)
     )
-
 
 
 def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[str]:
@@ -297,9 +305,8 @@ def merge_tcp_dataframes_known_streams(
     # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
     # TODO reorder columns to have packet ids first !
 
-
     columns = generate_columns([], [], suffixes)
-    total = None # pd.DataFrame()
+    total = None  #  pd.DataFrame()
     for dest in Destination:
 
         q = server_con[1].generate_direction_query(dest)
@@ -325,7 +332,7 @@ def merge_tcp_dataframes_known_streams(
             # how do we get the config
             sep=cfg["mptcpanalyzer"]["delimiter"],
             # index=True, # hide Index
-            header=True, # add
+            header=True,  # add
             # sep=main.config["DEFAULT"]["delimiter"],
         )
 
@@ -521,7 +528,7 @@ def generate_tcp_directional_owd_df(
         # right_index=True,
         # TODO en fait suffit d'inverser les suffixes, h1, h2
         suffixes=suffixes, # how to suffix columns (sender/receiver)
-        how="inner", # 
+        how="inner", #
         indicator=True # adds a "_merge" suffix
     )
 
@@ -626,11 +633,11 @@ def map_tcp_packets(
     log.debug("Mapping TCP packets between TODO")
 
     # returns a new df with new columns rcv_pktid, score initialized to NaN
-    df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan,) # =np.nan)
+    df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan,)
 
     # # Problem is to identify lost packets and retransmitted ones
     # # so that they map to the same or none ?
-    limit = 5 # limit nb of scores to display
+    limit = 5  # limit nb of scores to display
 
     # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
     for row in sender_df.itertuples():
@@ -659,11 +666,7 @@ def map_tcp_packets(
     # print("head=\n", df_final.head())
     return df_final
 
-
-
-
 def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
-
 
     mappings = {}
     for mptcpstream1 in rawdf1["mptcpstream"].unique():
@@ -711,12 +714,12 @@ def mptcp_match_connection(
 
     """
     log.warning("mapping between datasets is not considered trustable yet")
-    results = [] # type: List[Tuple[Any, float]]
+    results = []  # type: List[Tuple[Any, float]]
 
-    mappings = {} # type: Dict[int,Tuple[Any, float]]
+    mappings = {}  # type: Dict[int,Tuple[Any, float]]
 
     # main = MpTcpConnection.build_from_dataframe(df, mptcpstream)
-    score = -1 # type: float
+    score = -1  # type: float
     results = []
 
     for mptcpstream2 in rawdf2["mptcpstream"].unique():

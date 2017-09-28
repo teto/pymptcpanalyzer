@@ -7,10 +7,8 @@ import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import os
-from mptcpanalyzer import fields_v2
 
 log = logging.getLogger(__name__)
-
 
 
 class PlotAggregationBenefit(plot.Matplotlib):
@@ -25,15 +23,15 @@ class PlotAggregationBenefit(plot.Matplotlib):
         \end{equation}
 
     """
-    def plot(df,  mptcpstream, field, **kwargs):
+    def plot(df, mptcpstream, field, **kwargs):
         """
-        We get min/max 
+        We get min/max
         Need a direction !
          idxmin() and idxmax()
         """
         # need to look for min/max DSN on each subflow
         con = MpTcpConnection.build_from_dataframe(df, mptcpstream)
-        
+
         # streams = df.groupby("tcpstream")
         for subflow in con.subflows:
             ds = df.query(subflow.generate_direction_query())

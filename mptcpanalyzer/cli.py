@@ -4,7 +4,9 @@
 # vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
 
 # Copyright 2015-2016 Université Pierre et Marie Curie
-# author: Matthieu coudron , matthieu.coudron@lip6.fr
+# Copyright 2017 IIJ Initiative for Internet Japan
+#
+# author: Matthieu coudron , coudron@iij.ad.jp
 """
 # the PYTHON_ARGCOMPLETE_OK line a few lines up can enable shell completion
 for argparse scripts as explained in
@@ -18,27 +20,25 @@ import argparse
 import logging
 import os
 import subprocess
-# from mptcpanalyzer.plot import Plot
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
-# from mptcpanalyzer import get_default_fields, __default_fields__
+from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas
-# from mptcpanalyzer.cache import Cache, cache
 # from mptcpanalyzer.cache import Cache, cache
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection
 import mptcpanalyzer.cache as mc
+import mptcpanalyzer.statistics as stats
 import mptcpanalyzer as mp
-# from mptcpanalyzer import load_into_pandas
 import stevedore
-# from mptcpanalyzer.config import config
 import pandas as pd
-# import matplotlib.pyplot as plt
 import shlex
 import cmd
 import traceback
 import pprint
 import textwrap
+from typing import List, Any, Tuple, Dict, Callable
+from cmd2 import Cmd
 
 from stevedore import extension
 
@@ -74,9 +74,11 @@ class MpTcpAnalyzer(cmd.Cmd):
     """
     mptcpanalyzer can run into 3 modes:
 
-    #. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.
-    #. if a filename is passed as argument, it will load commands from this file
-    #. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
+    #. interactive mode (default): an interpreter with some basic completion will accept your commands.
+    There is also some help embedded.
+    #. if a filename is passed as argument, it will load commands from
+    this file otherwise, it will consider the unknow arguments as one command,
+     the same that could be used interactively
     """
 
     intro = textwrap.dedent("""
@@ -89,7 +91,6 @@ class MpTcpAnalyzer(cmd.Cmd):
 
     def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin, **kwargs) -> None:
         """
-
         Args:
             cfg (MpTcpAnalyzerConfig): A valid configuration
 
@@ -99,10 +100,11 @@ class MpTcpAnalyzer(cmd.Cmd):
             data:  dataframe currently in use
         """
         self.prompt = "%s> " % "Ready"
-        self.data = None # type: pd.DataFrame
+        self.data = None  # type: pd.DataFrame
+        self.config = cfg
         # self.cache = Cache(self.config["cache"])
-        if kwargs.get('no_cache'):
-            self.cache.disabled = True
+        # if kwargs.get('no_cache'):
+        #     self.cache.disabled = True
 
         # LOAD PLOTS
         ######################
@@ -126,6 +128,12 @@ class MpTcpAnalyzer(cmd.Cmd):
             on_load_failure_callback=self.stevedore_error_handler
         )
 
+        self.tshark_config = TsharkConfig(
+            cfg["mptcpanalyzer"]["tshark_binary"],
+            cfg["mptcpanalyzer"]["delimiter"],
+            cfg["mptcpanalyzer"]["wireshark_profile"],
+        )
+
         # if loading commands from a file, we disable prompt not to pollute
         # output
         if stdin != sys.stdin:
@@ -135,7 +143,10 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.intro = ""
 
         """
-        The optional arguments stdin and stdout specify the input and output file objects that the Cmd instance or subclass instance will use for input and output. If not specified, they will default to sys.stdin and sys.stdout.
+        The optional arguments stdin and stdout specify the input and
+        output file objects that the Cmd instance or subclass instance will
+        use for input and output. If not specified, they will default to
+        sys.stdin and sys.stdout.
         """
         super().__init__(completekey='tab', stdin=stdin)
 
@@ -205,15 +216,15 @@ class MpTcpAnalyzer(cmd.Cmd):
             # log.debug("Input error: " % e)
             # print("Error: %s"% e)
             self.cmdloop()
-        # you can set a tuple of exceptions
+        # you can set a tuple of exceptions
         except mp.MpTcpException as e:
             print(e)
             self.cmdloop()
         except Exception as e:
             log.critical("Unknown error, aborting...")
-            log.critical(e)
+            log.critical("%s" % e)
             print("Displaying backtrace:\n")
-            print(traceback.print_exc())
+            traceback.print_exc()
 
         # finally:
         #     log.debug("Error logged")
@@ -230,19 +241,18 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         return True if stop is True else False
 
+    # def require_fields(mandatory_fields: list):  # -> Callable[...]:
+    #     """
+    #     Decorator used to check dataset contains all fields required by function
+    #     """
 
-    def require_fields(mandatory_fields: list):  # -> Callable[...]:
-        """
-        Decorator used to check dataset contains all fields required by function
-        """
-
-        def check_fields(self, *args, **kwargs):
-            columns = list(self.data.columns)
-            for field in mandatory_fields:
-                if field not in columns:
-                    raise Exception(
-                        "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-        return check_fields
+    #     def check_fields(self, *args, **kwargs):
+    #         columns = list(self.data.columns)
+    #         for field in mandatory_fields:
+    #             if field not in columns:
+    #                 raise Exception(
+    #                     "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
+    #     return check_fields
 
     # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     @is_loaded
@@ -293,7 +303,6 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         return l
 
-
     def do_map_connections(self, line):
         """
         Tries to map mptcp.streams from different pcaps.
@@ -306,21 +315,21 @@ class MpTcpAnalyzer(cmd.Cmd):
             description="This function tries to map a mptcp.stream from a dataframe (aka pcap) to mptcp.stream"
                         "in another dataframe. ")
 
-        # if not self.pcap_loaded():
         parser.add_argument("pcap1", action="store", help="pcap1 to load")
         parser.add_argument("pcap2", action="store", help="")
         parser.add_argument("mptcpstreams", action="store", nargs="*", help="to filter")
-        parser.add_argument('-v', '--verbose', dest="verbose", default=False,
-                action="store_true",
-                help="how to display each connection")
+        parser.add_argument(
+            '-v', '--verbose', dest="verbose", default=False,
+            action="store_true",
+            help="how to display each connection")
 
-        # parser.add_argument("--limit", dest="limit", type=int, action="store", 
+        # parser.add_argument("--limit", dest="limit", type=int, action="store",
         #         help="by default process of choosing good values is interactive, this"
         #         "let the program automatically select the candidate with the best score")
 
         args = parser.parse_args(shlex.split(line))
-        df1 = load_into_pandas(args.pcap1)
-        df2 = load_into_pandas(args.pcap2)
+        df1 = load_into_pandas(args.pcap1, self.tshark_config)
+        df2 = load_into_pandas(args.pcap2, self.tshark_config)
 
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         print("Please read the help.")
@@ -392,63 +401,56 @@ class MpTcpAnalyzer(cmd.Cmd):
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
 
-    @is_loaded
-    def do_qualify_reinjections(self, line):
-        """
-        test with:  
-            mp qualify_reinjections 0 
-        """
-        parser = argparse.ArgumentParser(
-            description="Listing reinjections of the connection"
-        )
-        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-        parser.add_argument("pcap1", type=str, help="Capture file 1")
-        parser.add_argument("pcap2", type=str, help="Capture file 2")
-        # TODO le rendre optionnel ?
-        parser.add_argument("mptcpstream1", type=int, help="mptcp.stream id")
-        # TODO filter on dest/role
-        # parser.add_argument("--role", type=int, help="mptcp.stream id")
-        # parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
+    # @is_loaded
+    # def do_qualify_reinjections(self, line):
+    #     """
+    #     test with:
+    #         mp qualify_reinjections 0
+    #     """
+    #     parser = argparse.ArgumentParser(
+    #         description="Listing reinjections of the connection"
+    #     )
+    #     parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+    #     parser.add_argument("pcap1", type=str, help="Capture file 1")
+    #     parser.add_argument("pcap2", type=str, help="Capture file 2")
+    #     # TODO le rendre optionnel ?
+    #     parser.add_argument("mptcpstream1", type=int, help="mptcp.stream id")
+    #     # TODO filter on dest/role
+    #     # parser.add_argument("--role", type=int, help="mptcp.stream id")
+    #     # parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
 
-        args = parser.parse_known_args(line)
+    #     args = parser.parse_known_args(line)
 
-        raw_df1 = load_into_pandas(args.mptcpstream1)
-        raw_df2 = load_into_pandas(args.mptcpstream2)
+    #     raw_df1 = load_into_pandas(args.mptcpstream1)
+    #     raw_df2 = load_into_pandas(args.mptcpstream2)
 
-        df_merged = merge_mptcp_dataframes_known_streams(raw_df1, raw_df2, args.mptcpstream, args.mptcpstream1)
-        """
-        Maybe wisest approach is to merge only relevant informations and use packetid as Index in the original df ?
-
-
-        Now the algorithm consists in :
-        for each reinjection:
-            look for the arrival time
-                compare with the arrival time of the original packet
-                if it arrived sooner:
-                    than it's a successful reinjection
-                else
-                    look for the first emitted dataack on each packet reception
-                    look for its reception by the sender
-        """
-        # df1 = raw_df1['tcpstream' == mptcpstream1]
-        # 1/ keep list of original packets that are reinjected
-        # i.e., "reinjected_in" not empty but reinjection_of empty
-        # query = "mptcprole == '%s'" % (Destination.Client)
-        # res = df_merged.query(query)
-        # isnull / notnull
-        # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
-
-        # filter packets to only keep the original packets that are reinjected
-        res2 = res[pd.isnull(res["reinjection_of"])]
-        res2 = res2[pd.notnull(res["reinjected_in"])]
-        print("filtering reinjected %d" % (len(res2)))
-        # res.any("reinjected_in")
-        # for in 
-        # use packet id as index
-        # df1_reinjections
-        # for df1
+    #     df_merged = merge_mptcp_dataframes_known_streams(raw_df1, raw_df2, args.mptcpstream, args.mptcpstream1)
+    #     """
+    #     Maybe wisest approach is to merge only relevant informations and use packetid as Index in the original df ?
 
 
+    #     Now the algorithm consists in :
+    #     for each reinjection:
+    #         look for the arrival time
+    #             compare with the arrival time of the original packet
+    #             if it arrived sooner:
+    #                 than it's a successful reinjection
+    #             else
+    #                 look for the first emitted dataack on each packet reception
+    #                 look for its reception by the sender
+    #     """
+    #     # df1 = raw_df1['tcpstream' == mptcpstream1]
+    #     # 1/ keep list of original packets that are reinjected
+    #     # i.e., "reinjected_in" not empty but reinjection_of empty
+    #     # query = "mptcprole == '%s'" % (Destination.Client)
+    #     # res = df_merged.query(query)
+    #     # isnull / notnull
+    #     # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
+
+    #     # filter packets to only keep the original packets that are reinjected
+    #     res2 = res[pd.isnull(res["reinjection_of"])]
+    #     res2 = res2[pd.notnull(res["reinjected_in"])]
+    #     print("filtering reinjected %d" % (len(res2)))
 
     @is_loaded
     def do_lr(self, line):
@@ -464,7 +466,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         """
         # mptcp.duplicated_dsn
-        # 
+        #
         print("Listing reinjections of the connection")
         parser = argparse.ArgumentParser(
             description="Listing reinjections of the connection"
@@ -480,14 +482,15 @@ class MpTcpAnalyzer(cmd.Cmd):
         # reinjections = df[["packetid", "reinjections"]]
         known = set()
         # reinjections = df["reinjections"].dropna()
-        reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
+        # subset="reinjections")
+        reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )
         total_nb_reinjections = 0
         # df.groupby('tcpstream')
         for row in reinjections.itertuples():
             # row.itertuples():
             if row.packetid not in known:
                 print("packetid=%d reinjected in %s" % (row.packetid, row.reinjections))
-                known.update( [row.packetid] + row.reinjections)
+                known.update([row.packetid] + row.reinjections)
 
     def do_batch(self, line):
         print("Running batched commands")
@@ -500,7 +503,8 @@ class MpTcpAnalyzer(cmd.Cmd):
             self.onecmd(command)
 
     def load(self, filename, regen: bool=False):
-        self.data = load_into_pandas(filename, regen)
+
+        self.data = load_into_pandas(filename, self.tshark_config, regen)
         self.prompt = "%s> " % os.path.basename(filename)
 
     def do_load(self, args):
@@ -510,17 +514,18 @@ class MpTcpAnalyzer(cmd.Cmd):
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots'
         )
-        parser.add_argument("input_file", action="store",
-                help="Either a pcap or a csv file (in good format)."
-                "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
-                "If it can't find one (or with the flag --regen), it will generate a "
-                "csv from the pcap with the external tshark program.")
-        parser.add_argument("--regen", "-r", action="store_true",
-                help="Force the regeneration of the cached CSV file from the pcap input")
+        parser.add_argument(
+            "input_file", action="store",
+            help="Either a pcap or a csv file (in good format)."
+            "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+            "If it can't find one (or with the flag --regen), it will generate a "
+            "csv from the pcap with the external tshark program.")
+        parser.add_argument(
+            "--regen", "-r", action="store_true",
+            help="Force the regeneration of the cached CSV file from the pcap input")
 
         args = parser.parse_args(shlex.split(args))
         self.load(args.input_file, args.regen)
-
 
     def do_plot(self, args, mgr=None):
         """
@@ -539,68 +544,15 @@ class MpTcpAnalyzer(cmd.Cmd):
         l = [x for x in types if x.startswith(text)]
         return l
 
-
     def do_list_available_plots(self, args):
         """
         Print available plots. Mostly for debug, you should use 'plot'.
         """
-
         plot_names = self.list_available_plots()
         print(plot_names)
 
     def list_available_plots(self):
-        # def _get_names(ext, names: list):
-        #     names.append (ext.name)
-
-        # names = []
-        # self.plot_mgr.map(_get_names, names)
-        # def _get_names(ext, names: list):
-        #     names.append (ext.name)
-
-        # self.plot_mgr.map(_get_names, names)
-        # return names
         return self.plot_mgr.names()
-
-# TODO rename look intocache ?
-    def get_matching_csv_filename(self, filename,):
-        """
-        Name is bad, since the function can generate  the file if required
-        Expects a realpath as filename
-        Accept either a .csv or a .pcap file
-        Returns realpath towards resulting csv filename
-        """
-        realpath = filename
-        basename, ext = os.path.splitext(realpath)
-        # print("Basename=%s" % basename)
-        # csv_filename = filename
-
-        if ext == ".csv":
-            log.debug("Filename already has .csv extension")
-            csv_filename = realpath
-        else:
-            print("%s format is not supported as is. Needs to be converted first" %
-                (filename))
-            csv_filename 
-
-            # def matching_cache_filename(filename):
-            #     """
-            #     Expects a realpath else
-            #     """
-            #     # create a list of path elements (separated by system separator '/' or '\'
-            #     # from the absolute filename
-            #     l = os.path.realpath(filename).split(os.path.sep)
-            #     _, ext = os.path.splitext(filename)
-            #     if ext != ".csv":
-            #         res += ".csv"
-            #     return res
-
-            # # csv_filename = filename + ".csv"  #  str(Filetype.csv.value)
-            # csv_filename = matching_cache_filename(realpath)
-            # cache_is_invalid = True
-
-        return csv_filename
-
-
 
     def pcap_loaded(self):
         return isinstance(self.data, pd.DataFrame)
@@ -619,17 +571,18 @@ class MpTcpAnalyzer(cmd.Cmd):
         # if self.data is None:
         #     parser.add_argument()
 
-        subparsers = parser.add_subparsers(dest="plot_type",
-            title="Subparsers", help='sub-command help',)
-        subparsers.required = True
+        subparsers = parser.add_subparsers(
+            dest="plot_type", title="Subparsers", help='sub-command help',)
+        subparsers.required = True  # type: ignore
 
         def register_plots(ext, subparsers):
             """Adds a parser per plot"""
             # check if dat is loaded
             parser = ext.obj.default_parser()
             assert parser, "Forgot to return parser"
-            subparsers.add_parser(ext.name, parents=[parser],
-                add_help=False)
+            subparsers.add_parser(
+                ext.name, parents=[parser], add_help=False
+            )
 
         self.plot_mgr.map(register_plots, subparsers)
 
@@ -642,15 +595,13 @@ class MpTcpAnalyzer(cmd.Cmd):
         cli_args = shlex.split(cli_args)
         args, unknown_args = parser.parse_known_args(cli_args)
         # Allocate plot object
-        plotter = self.plot_mgr[args.plot_type].obj
+        plotter = self.plot_mgr[args.plot_type].obj(self.tshark_config)
 
         # dataframes = []
         # if self.data is not None:
         #     dataframes.append(self.data)
 
-
-
-        dargs = vars(args) # 'converts' the namespace to a dict
+        dargs = vars(args)  # 'converts' the namespace to a dict
 
         # TODO
         # inspect.getfullargspec(fileinput.input))
@@ -675,13 +626,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         mptcpanalyzer saves pcap to csv converted files in a cache folder, (most likely
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
-        # 
+        #
         print("Cleaning cache [%s]" % self.cache.folder)
         self.cache.clean()
         # for cached_csv in os.scandir(self.config.cache):
         #     log.info("Removing " + cached_csv.path)
         #     os.unlink(cached_csv.path)
-
 
     # def help_clean_cache(self):
 
@@ -724,8 +674,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         """
         super().preloop()
         # print("toto")
-
-
 
 
 def main(arguments=None):
@@ -796,23 +744,20 @@ def main(arguments=None):
         "can also be used as "
     )
 
-
     args, unknown_args = parser.parse_known_args(arguments)
-    # global mp.__CONFIG__
-    # config = mp.config.get_config()
-    config = mp.__CONFIG__ = MpTcpAnalyzerConfig(args.config)
+
+    # mp.__CONFIG__ =
+    config = MpTcpAnalyzerConfig(args.config)
     # print("===== ma config:", __CONFIG__)
     if args.cachedir:
         config["mptcpanalyzer"]["cache"] = args.cachedir
-    # print(mptcpanalyzer.cache)
     mp.__CACHE__ = mc.Cache(config.cachedir)
 
     # logging.CRITICAL = 50
     if __name__ == '__main__':
         level = logging.CRITICAL - min(args.debug, 4) * 10
-    # log.setLevel(level)
+        # log.setLevel(level)
         print("Log level set to %s " % logging.getLevelName(level))
-
 
     log.info("Starting in folder %s" % os.getcwd())
     log.debug("Pandas version: %s" % pd.__version__)
@@ -844,7 +789,8 @@ def main(arguments=None):
             # list2cmdline is undocumented function so it  might disappear
             # http://stackoverflow.com/questions/12130163/how-to-get-resulting-subprocess-command-string
             # but just doing "analyzer.onecmd(' '.join(unknown_args))" is not enough
-            analyzer.onecmd(subprocess.list2cmdline(unknown_args))
+            cmd = subprocess.list2cmdline(unknown_args)  # type: ignore
+            analyzer.onecmd(cmd)
         else:
             log.info("Starting interactive mode")
             analyzer.cmdloop()
@@ -852,7 +798,7 @@ def main(arguments=None):
     except Exception as e:
         print("An error happened :\n%s" % e)
         print("Displaying backtrace:\n")
-        print(traceback.print_exc())
+        traceback.print_exc()
         return 1
     finally:
         return 0

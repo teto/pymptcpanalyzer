@@ -9,7 +9,7 @@ log = logging.getLogger("mptcpanalyzer")
 """
 Similar to config
 """
-cache = None # type: Cache
+cache = None  # type: Cache
 
 # TODO rename
 class Cache:
@@ -22,77 +22,77 @@ class Cache:
         os.makedirs(self.folder, exist_ok=True)
         self.disabled = disabled
 
+    def load_from_cache(self, uid):
+        pass
 
-    # self.csv_cachename)
-    # , translator=str)
-    # translator: converts filename to a specific
-    def is_cache_valid(self, filename, depends: List[str]=None) -> Tuple[bool, str]:
-        """
-        Args:
-            metadata:
-            depends: List of files to check
-
-        Returns:
-            A tuple of (True if cache exists, encoded cachename)
-
-        """
-        log.debug("Checking cache for %s" % filename)
-        is_cache_valid = False
-
-        # todo rename to encode rather
-        # cachename = self.matching_cache_filename(filename)
-        if depends is None:
-            depends = [filename]
-
-        cachename = self.cacheuid(filename)
-
-        if self.disabled:
-            log.debug("Cache disabled, hence requested cache deemed invalid")
-        elif os.path.isfile(cachename):
-            log.info("A cache %s was found" % cachename)
-            ctime_cached = os.path.getctime(cachename)
-            # ctime_pcap = os.path.getctime(filename)
-            # print(ctime_cached , " vs ", ctime_pcap)
-            is_cache_valid = True
-            for dependancy in depends:
-                ctime_dep = os.path.getctime(dependancy)
-
-                if ctime_cached >= ctime_dep:
-                    log.debug("Cache dependancy %s ctime (%s) is valid (>= %s)" 
-                            % (dependancy, ctime_dep, ctime_cached))
-                else:
-                    log.debug("Cache outdated by dependancy %s" % dependancy)
-                    is_cache_valid = False
-                    break
-
-            # then we check if metadata matches
-        else:
-            log.debug("No cache %s found" % cachename)
-        # return is_cache_valid, cachename
-        return is_cache_valid
-
-    # def csv_cachename(self, filename):
+    # todo use get() instead
+    # def is_cache_valid(self, uid, dependencies: List[str]=None) -> Tuple[bool, str]:
     #     """
-    #     Expects a realpath else
+    #     Args:
+    #         metadata:
+    #         depends: List of files to check, useful when a cached file results
+    #             from merging several files, to compute OWD for instance
+
+    #     Returns:
+    #         A tuple of (True if cache exists, encoded cachename)
+
     #     """
-    #     # create a list of path elements
-    #     # from the absolute filename
-    #     l = os.path.realpath(filename).split(os.path.sep)
-    #     res = os.path.join(self.folder, '%'.join(l))
-    #     # _, ext = os.path.splitext(filename)
-    #     # if ext != ".csv":
-    #     #     res += ".csv"
-    #     return res
+    #     log.debug("Checking cache for %s" % uid)
+    #     is_cache_valid = False
 
+    #     # todo rename to encode rather
+    #     # cachename = self.matching_cache_filename(filename)
+    #     if dependencies is None:
+    #         dependencies = [filename]
 
-    def cacheuid(self, filename):
+    #     cachename = self.cacheuid(filename)
+
+    #     if self.disabled:
+    #         log.debug("Cache disabled, hence requested cache deemed invalid")
+    #     elif os.path.isfile(cachename):
+    #         log.info("A cache %s was found" % cachename)
+    #         ctime_cached = os.path.getctime(cachename)
+    #         # ctime_pcap = os.path.getctime(filename)
+    #         # print(ctime_cached , " vs ", ctime_pcap)
+    #         is_cache_valid = True
+    #         for dependancy in dependencies:
+    #             # todo use mtime instead ?!
+    #             ctime_dep = os.path.getctime(dependancy)
+
+    #             if ctime_cached >= ctime_dep:
+    #                 log.debug(
+    #                     "Cache dependancy %s ctime (%s) is valid (>= %s)"
+    #                     % (dependancy, ctime_dep, ctime_cached))
+    #             else:
+    #                 log.debug("Cache outdated by dependancy %s" % dependancy)
+    #                 is_cache_valid = False
+    #                 break
+
+    #         # then we check if metadata matches
+    #     else:
+    #         log.debug("No cache %s found" % cachename)
+    #     # return is_cache_valid, cachename
+    #     return is_cache_valid
+
+    @staticmethod
+    def cacheuid(self, prefix: str, dependencies=[], suffix: str=""):
         """
         generate from filename a unique uuid
         """
+        # do a hash of all files in 
+        temp = ""
+        for dep in dependencies:
+            prefix + " " + suffix
+            # for dependancy in depends:
+            # todo use mtime instead ?!
+            mtime_dep = os.path.getmtime(dep)
+            temp = temp + dep + str(mtime_dep)
+
+        return prefix + str(hash(temp)) + suffix
 
         # encode path to cache
-        chunks = os.path.realpath(filename).split(os.path.sep)
-        return os.path.join(self.folder, '%'.join(chunks))
+        # chunks = os.path.realpath(filename).split(os.path.sep)
+        # return os.path.join(self.folder, '%'.join(chunks))
 
     def clean(self):
         log.info("Cleaning cache [%s]" % self.folder)
