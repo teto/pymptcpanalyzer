@@ -90,6 +90,7 @@ def load_into_pandas(
     """
     log.debug("Asked to load %s" % input_file)
 
+    # TODO get the real path and use it in hash ?
     filename = os.path.expanduser(input_file)
     filename = os.path.realpath(filename)
     cache = mp.get_cache()

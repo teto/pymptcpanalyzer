@@ -79,12 +79,10 @@ class Cache:
         """
         generate from filename a unique uuid
         """
-        # do a hash of all files in 
         temp = ""
         for dep in dependencies:
             prefix + " " + suffix
             # for dependancy in depends:
-            # todo use mtime instead ?!
             mtime_dep = os.path.getmtime(dep)
             temp = temp + dep + str(mtime_dep)
 

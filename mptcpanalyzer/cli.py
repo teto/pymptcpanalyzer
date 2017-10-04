@@ -746,14 +746,11 @@ def main(arguments=None):
 
     args, unknown_args = parser.parse_known_args(arguments)
 
-    # mp.__CONFIG__ =
     config = MpTcpAnalyzerConfig(args.config)
-    # print("===== ma config:", __CONFIG__)
     if args.cachedir:
         config["mptcpanalyzer"]["cache"] = args.cachedir
     mp.__CACHE__ = mc.Cache(config.cachedir)
 
-    # logging.CRITICAL = 50
     if __name__ == '__main__':
         level = logging.CRITICAL - min(args.debug, 4) * 10
         # log.setLevel(level)

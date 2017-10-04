@@ -128,8 +128,9 @@ class TsharkConfig:
         self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
         self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
         self.add_field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections")
-        self.add_field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection")
-        self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
+        # TODO use new names
+        # self.add_field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection")
+        # self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
 
     def add_field(self, fullname, name, type, label):
 
