@@ -37,7 +37,7 @@ import cmd
 import traceback
 import pprint
 import textwrap
-from typing import List, Any, Tuple, Dict, Callable
+from typing import List, Any, Tuple, Dict, Callable, Set
 from cmd2 import Cmd
 
 from stevedore import extension
@@ -381,7 +381,7 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         total_transferred = ret["total_transferred"]
         print("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_transferred"]))
-        for tcpstream, throughput in map(ret["subflow_stats"], lambda x: (x["tcpstreamid"], x["throughput"])):
+        for tcpstream, throughput in map(lambda x: (x["tcpstreamid"], x["throughput"]), ret["subflow_stats"]):
             subflow_load = throughput/ret["total_transferred"]
             print(subflow_load)
             print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (
@@ -480,7 +480,7 @@ class MpTcpAnalyzer(cmd.Cmd):
             return
         # type(reinjections) = list (assume it's sorted )
         # reinjections = df[["packetid", "reinjections"]]
-        known = set()
+        known : Set[int] = set()
         # reinjections = df["reinjections"].dropna()
         # subset="reinjections")
         reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )
@@ -748,7 +748,7 @@ def main(arguments=None):
 
     config = MpTcpAnalyzerConfig(args.config)
     if args.cachedir:
-        config["mptcpanalyzer"]["cache"] = args.cachedir
+        config["mptcpanalyzer"]["cache"] = args.cachedir # type: ignore
     mp.__CACHE__ = mc.Cache(config.cachedir)
 
     if __name__ == '__main__':
@@ -761,7 +761,7 @@ def main(arguments=None):
 
     try:
 
-        analyzer = MpTcpAnalyzer(mp.config, **vars(args))
+        analyzer = MpTcpAnalyzer(config, **vars(args))
 
         if args.input_file:
             log.info("Input file")

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import collections
 from itertools import cycle
+from typing import List
 
 
 class DssLengthHistogram(plot.Matplotlib):

@@ -93,4 +93,7 @@ class MpTcpException(Exception):
 class MpTcpMissingPcap(MpTcpException):
     pass
 
+__all__ = [
+        'log',
+        ]
 

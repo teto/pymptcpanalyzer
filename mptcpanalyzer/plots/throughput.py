@@ -6,6 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 from mptcpanalyzer.statistics import compute_throughput
 import collections
+from typing import List
 
 
 class SubflowThroughput(plot.Matplotlib):
