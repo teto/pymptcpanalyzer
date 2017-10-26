@@ -47,12 +47,14 @@ class TestCommand(Command):
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
 
 
-main_ns = {}
+# main_ns = {}
 ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
+    version = main_ns['__version__']
 
 if sys.argv[-1] == 'publish':
+    import os
     os.system("python setup.py sdist upload")
     os.system("python setup.py bdist_wheel upload")
     print("You probably want to also tag the version now:")
@@ -62,13 +64,13 @@ if sys.argv[-1] == 'publish':
 
 
 setup(name="mptcpanalyzer",
-      version=main_ns['__version__'],
+      version=version,
       description="Analyze mptcp traces (.pcap)",
       long_description=open('README.md').read(),
       url="http://github.com/lip6-mptcp/mptcpanalyzer",
       license="GPL",
       author="Matthieu Coudron",
-      author_email="matthieu.coudron@lip6.fr",
+      author_email="coudron@iij.ad.jp",
       classifiers=[
           'Development Status :: 3 - Alpha',
           'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
@@ -108,8 +110,8 @@ setup(name="mptcpanalyzer",
               # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
               'dss = mptcpanalyzer.plots.dss:DSSOverTime',
               'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
-              # 'owd = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
-              'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
+              # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
+              # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
               # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
               'throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
             ],

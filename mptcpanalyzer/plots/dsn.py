@@ -7,7 +7,7 @@ import pandas as pd
 import logging
 import argparse
 import matplotlib.pyplot as plt
-from mptcpanalyzer import fields_v2
+# from mptcpanalyzer import fields_v2
 import collections
 
 log = logging.getLogger(__name__)

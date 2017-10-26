@@ -10,7 +10,7 @@ from .config import MpTcpAnalyzerConfig
 from .cache import Cache
 
 # from .data import load_into_pandas
-from typing import Iterable # List, Any, Tuple, Dict, Callable
+# from typing import Iterable, List #, Any, Tuple, Dict, Callable
 
 log = logging.getLogger(__name__)
 
@@ -95,5 +95,6 @@ class MpTcpMissingPcap(MpTcpException):
 
 __all__ = [
         'log',
+        'List'
         ]
 

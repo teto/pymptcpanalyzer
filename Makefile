@@ -1,3 +1,6 @@
+all:
+	# disabled
+
 doc:
 	make -C docs html
 
