@@ -61,7 +61,11 @@ class TcpOneWayDelay(plot.Matplotlib):
             ("host1_pcap", plot.PreprocessingActions.Preload),
             ("host2_pcap", plot.PreprocessingActions.Preload),
         ]
-        super().__init__(input_pcaps=expected_pcaps, *args, **kwargs)
+        super().__init__(
+               *args,
+               input_pcaps=expected_pcaps,
+               **kwargs
+        )
         # self.suffixes = ("_snd", "_rcv")
         # self.suffixes = ("", "_rcv")
         # self.columns = [

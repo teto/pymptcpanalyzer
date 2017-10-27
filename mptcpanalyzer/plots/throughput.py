@@ -17,7 +17,11 @@ class SubflowThroughput(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
         pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ]
-        super().__init__(input_pcaps=pcaps, *args, **kwargs)
+        super().__init__(
+            *args,
+            input_pcaps=pcaps,
+            **kwargs
+        )
 
     def default_parser(self, *args, **kwargs):
 

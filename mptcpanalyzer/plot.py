@@ -71,7 +71,7 @@ class Plot:
         self,
         exporter : 'TsharkConfig',
         # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
-        # TypedDict to
+        # TypedDict is in mypy 0.540
         input_pcaps: List[Tuple[str, PreprocessingActions]],
         title: str = None,
         *args, **kwargs
@@ -326,6 +326,7 @@ class Matplotlib(Plot):
 
 
     def __init__(self, *args, **kwargs):
+        # print(args)
         super().__init__(*args, **kwargs)
 
     def default_parser(self, *args, **kwargs):

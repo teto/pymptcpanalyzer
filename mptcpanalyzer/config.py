@@ -4,7 +4,7 @@ import configparser
 import os
 import logging
 
-log = logging.getLogger("mptcpanalyzer")
+log = logging.getLogger(__name__)
 
 """
 Global config initialized in cli.py.

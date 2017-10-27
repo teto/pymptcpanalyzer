@@ -102,6 +102,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         self.prompt = "%s> " % "Ready"
         self.data = None  # type: pd.DataFrame
         self.config = cfg
+        self.tshark_config = TsharkConfig(
+            cfg["mptcpanalyzer"]["tshark_binary"],
+            cfg["mptcpanalyzer"]["delimiter"],
+            cfg["mptcpanalyzer"]["wireshark_profile"],
+        )
+
         # self.cache = Cache(self.config["cache"])
         # if kwargs.get('no_cache'):
         #     self.cache.disabled = True
@@ -110,13 +116,14 @@ class MpTcpAnalyzer(cmd.Cmd):
         ######################
         # you can  list available plots under the namespace
         # https://pypi.python.org/pypi/entry_point_inspector
-
+        # stevedore doc has now moved to 
+        # https://docs.openstack.org/stevedore/latest/reference/index.html#stevedore.extension.ExtensionManager
         # mgr = driver.DriverManager(
         self.plot_mgr = extension.ExtensionManager(
             namespace='mptcpanalyzer.plots',
             invoke_on_load=True,
             verify_requirements=True,
-            invoke_args=(),
+            invoke_args=(self.tshark_config,),
         )
 
         self.cmd_mgr = extension.ExtensionManager(
@@ -126,12 +133,6 @@ class MpTcpAnalyzer(cmd.Cmd):
             invoke_args=(),
             propagate_map_exceptions=False,
             on_load_failure_callback=self.stevedore_error_handler
-        )
-
-        self.tshark_config = TsharkConfig(
-            cfg["mptcpanalyzer"]["tshark_binary"],
-            cfg["mptcpanalyzer"]["delimiter"],
-            cfg["mptcpanalyzer"]["wireshark_profile"],
         )
 
         # if loading commands from a file, we disable prompt not to pollute
@@ -586,16 +587,12 @@ class MpTcpAnalyzer(cmd.Cmd):
 
         self.plot_mgr.map(register_plots, subparsers)
 
-        # results = mgr.map(_get_plot_names, "toto")
-        # for name, subplot in plot_types.items():
-            # subparsers.add_parser(
-                # name, parents=[subplot.default_parser()], add_help=False)
 
-        # try:
         cli_args = shlex.split(cli_args)
         args, unknown_args = parser.parse_known_args(cli_args)
         # Allocate plot object
-        plotter = self.plot_mgr[args.plot_type].obj(self.tshark_config)
+        # self.tshark_config
+        plotter = self.plot_mgr[args.plot_type].obj
 
         # dataframes = []
         # if self.data is not None:
@@ -604,8 +601,6 @@ class MpTcpAnalyzer(cmd.Cmd):
         dargs = vars(args)  # 'converts' the namespace to a dict
 
         # TODO
-        # inspect.getfullargspec(fileinput.input))
-        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes]
         print("TOTO")
         dataframes = plotter.preprocess(self, **dargs)
         # TODO test with isinstance ?

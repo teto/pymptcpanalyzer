@@ -21,9 +21,13 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
         pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ]
-        super().__init__(input_pcaps=pcaps, *args, **kwargs)
+        super().__init__(*args,
+            input_pcaps=pcaps,
+            **kwargs)
 
-        self.mptcp_attributes = dict((x.name, x.label) for x in fields_v2() if x.label)
+        # todo get them from 
+        self.mptcp_attributes = self.tshark_config.get_fields('name', 'label')
+        # dict((x.name, x.label) for x in fields_v2() if x.label)
 
 
     def default_parser(self, *args, **kwargs):

@@ -47,7 +47,7 @@ class TestCommand(Command):
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
 
 
-# main_ns = {}
+main_ns = {}
 ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)

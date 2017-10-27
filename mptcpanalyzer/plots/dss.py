@@ -9,7 +9,9 @@ import matplotlib as mpl
 import collections
 from itertools import cycle
 from typing import List
+import logging
 
+log = logging.getLogger(__name__)
 
 class DssLengthHistogram(plot.Matplotlib):
     """
@@ -18,13 +20,15 @@ class DssLengthHistogram(plot.Matplotlib):
     .. warning:: WIP
     """
 
-    def __init__(self):
-        expected_pcaps = [
+    def __init__(self, *args, **kwargs):
+        input_pcaps = [
             ("pcap", plot.PreprocessingActions.Preload),
         ]
         super().__init__(
-                expected_pcaps,
-                title="DSS Length"
+                args,
+                input_pcaps=input_pcaps,
+                title="DSS Length",
+                **kwargs
             )
 
     def plot(self, df, mptcpstream, **kwargs):
@@ -61,11 +65,17 @@ class DSSOverTime(plot.Matplotlib):
         - ability to display relative #seq
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         expected_pcaps = [
             ("pcap", plot.PreprocessingActions.Preload),
         ]
-        super().__init__(expected_pcaps, title="dsn", **kwargs)
+        print("toto: ", args)
+        super().__init__(
+            *args,
+            input_pcaps=expected_pcaps,
+            title="dsn",
+            **kwargs
+        )
 
     def default_parser(self, *args, **kwargs):
         parser = super().default_parser(*args, mptcpstream=True,
