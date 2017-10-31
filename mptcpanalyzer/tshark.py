@@ -234,7 +234,7 @@ class TsharkConfig:
     def hash(self,):
         cmd = self.generate_command(
             self.tshark_bin,
-            self.fields, # TODO convert to list
+            self.get_fields('name'), # TODO convert to list
             "PLACEHOLDER",
             self.filter,
             profile=self.profile,

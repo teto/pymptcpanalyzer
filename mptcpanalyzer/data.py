@@ -9,7 +9,7 @@ from mptcpanalyzer.tshark import TsharkConfig, Filetype
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 import mptcpanalyzer as mp
 from mptcpanalyzer import get_config, get_cache, Destination
-from typing import List, Any, Tuple, Dict, Callable
+from typing import List, Any, Tuple, Dict, Callable, Collection
 import math
 
 log = logging.getLogger(__name__)
@@ -76,8 +76,8 @@ scoring_rules = {
 def load_into_pandas(
     input_file: str,
     config: TsharkConfig,
-    dependencies=[],
     regen: bool=False,
+    dependencies: Collection =[],
     # metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
 ) -> pd.DataFrame:
     """
@@ -103,12 +103,12 @@ def load_into_pandas(
         config.hash()  # suffix
     )
 
-    # try:
-        # is_valid, csv_filename = cache.get(uid)
-    # except:
-    #     log.info("Cache invalid... Converting %s into %s" % (filename,))
+    try:
+        is_valid = cache.get(uid)
+    except:
+        log.info("Cache invalid... Converting %s into %s" % (filename,))
 
-    is_cache_valid, csv_filename = cache.is_cache_valid(uid, )
+    # is_cache_valid, csv_filename = cache.is_cache_valid(uid, )
 
     log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
     if regen or not is_cache_valid:

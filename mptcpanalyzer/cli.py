@@ -6,7 +6,7 @@
 # Copyright 2015-2016 Université Pierre et Marie Curie
 # Copyright 2017 IIJ Initiative for Internet Japan
 #
-# author: Matthieu coudron , coudron@iij.ad.jp
+# Matthieu coudron , coudron@iij.ad.jp
 """
 # the PYTHON_ARGCOMPLETE_OK line a few lines up can enable shell completion
 for argparse scripts as explained in
@@ -33,11 +33,11 @@ import mptcpanalyzer as mp
 import stevedore
 import pandas as pd
 import shlex
-import cmd
 import traceback
 import pprint
 import textwrap
 from typing import List, Any, Tuple, Dict, Callable, Set
+# from cmd import Cmd
 from cmd2 import Cmd
 
 from stevedore import extension
@@ -70,7 +70,7 @@ def is_loaded(f):
     return wrapped
 
 
-class MpTcpAnalyzer(cmd.Cmd):
+class MpTcpAnalyzer(Cmd):
     """
     mptcpanalyzer can run into 3 modes:
 
@@ -111,6 +111,13 @@ class MpTcpAnalyzer(cmd.Cmd):
         # self.cache = Cache(self.config["cache"])
         # if kwargs.get('no_cache'):
         #     self.cache.disabled = True
+
+        # cmd2 specific initialization
+        self.abbrev = True;  #  when no ambiguities, run the command
+        self.allow_cli_args = False;
+        self.allow_redirection = True;  # allow pipes in commands
+        self.default_to_shell = False;
+        self.debug = True;  #  for now
 
         # LOAD PLOTS
         ######################
@@ -651,11 +658,12 @@ class MpTcpAnalyzer(cmd.Cmd):
         l = [x for x in self.data.columns if x.startswith(text)]
         return l
 
-    def do_quit(self, *args):
-        """
-        Quit/exit program
-        """
-        return True
+    # not needed in cmd2
+    # def do_quit(self, *args):
+    #     """
+    #     Quit/exit program
+    #     """
+    #     return True
 
     def do_EOF(self, line):
         """

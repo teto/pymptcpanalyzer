@@ -96,7 +96,7 @@ setup(name="mptcpanalyzer",
           "console_scripts": [
               # creates 2 system programs that can be called from PATH
               'mptcpanalyzer = mptcpanalyzer.cli:main',
-              'mptcpexporter = mptcpanalyzer.exporter:main',
+              # 'mptcpexporter = mptcpanalyzer.exporter:main',
               ],
           # Each item in the list should be a string with
           # name = module:importable where name is the user-visible name for
@@ -126,6 +126,8 @@ setup(name="mptcpanalyzer",
                 'matplotlib',  # for plotting
                 'pandas>=0.17.1',  # to load and process csv files
                 'cmd2',  # to improve cmd capabilities
+                # beaker looks nice for cache management
+                # 'gnureadline',  # to get history capabilities
                 # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
                 ],
       # test_suite="tests",
