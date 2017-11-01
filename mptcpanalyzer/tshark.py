@@ -176,10 +176,13 @@ class TsharkConfig:
 
 
     def export_to_csv(
-        self, input_filename: str, output_csv: str,
+        self, input_filename: str,
+        output_csv, # a file descriptor
         fields_to_export: List[str], tshark_filter: str =None
     ):
         """
+        output_csv can be an fd
+
         Returns exit code, stderr
         """
         log.info("Converting pcap [{pcap}] to csv [{csv}]".format(
@@ -203,13 +206,14 @@ class TsharkConfig:
 
         try:
             # TODO serialize wireshark options
-            with open(output_csv, "w+") as fd:
-                fd.write("# metadata: \n")
-                fd.flush()  # need to flush else order gets messed up
-                proc = subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True)
-                out, stderr = proc.communicate()
-                stderr = stderr.decode("UTF-8")
-                print("stderr=", stderr)
+            # with open(output_csv, "w+") as fd:
+            fd = output_csv
+            fd.write("# metadata: \n")
+            fd.flush()  # need to flush else order gets messed up
+            proc = subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True)
+            out, stderr = proc.communicate()
+            stderr = stderr.decode("UTF-8")
+            print("stderr=", stderr)
 
         except subprocess.CalledProcessError as e:
             log.error(str(e))

@@ -36,6 +36,7 @@ import shlex
 import traceback
 import pprint
 import textwrap
+import readline
 from typing import List, Any, Tuple, Dict, Callable, Set
 # from cmd import Cmd
 from cmd2 import Cmd
@@ -47,8 +48,6 @@ plugin_logger.addHandler(logging.StreamHandler())
 
 log = logging.getLogger("mptcpanalyzer")
 ch = logging.StreamHandler()
-
-# %(asctime)s - %
 formatter = logging.Formatter('%(name)s:%(levelname)s: %(message)s')
 ch.setFormatter(formatter)
 
@@ -56,6 +55,7 @@ log.addHandler(ch)
 log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
+histfile_size = 100
 
 def is_loaded(f):
     """
@@ -281,7 +281,7 @@ class MpTcpAnalyzer(Cmd):
             help="Equivalent to wireshark mptcp.stream id"
         )
         parser.add_argument(
-            "-c", "--contributions", action="store_true", type=bool, default=False,
+            "-c", "--contributions", action="store_true", default=False,
             help="Display contribution of each subflow (taking into account reinjections ?)"
         )
 
@@ -371,7 +371,7 @@ class MpTcpAnalyzer(Cmd):
         )
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
         parser.add_argument("--deep", action="store_true", help="Deep analysis, computes transferred bytes etc...")
-        parser.add_argument("--amount", action="store_true", type=int, help="mptcp.stream id")
+        parser.add_argument("--amount", action="store_true", help="mptcp.stream id")
         # try:
         #     mptcpstream = int(mptcpstream)
         # except ValueError as e:
@@ -387,13 +387,13 @@ class MpTcpAnalyzer(Cmd):
             print(ret)
             return
 
-        total_transferred = ret["total_transferred"]
-        print("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_transferred"]))
-        for tcpstream, throughput in map(lambda x: (x["tcpstreamid"], x["throughput"]), ret["subflow_stats"]):
-            subflow_load = throughput/ret["total_transferred"]
-            print(subflow_load)
-            print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (
-                tcpstream, subflow_load, total_transferred, subflow_load / total_transferred * 100))
+        total_transferred = ret["total_bytes"]
+        print("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
+        for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
+            subflow_load = sf_bytes/ret["total_bytes"]
+            # print(subflow_load)
+            print('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
+                tcpstream, sf_bytes, total_transferred, subflow_load ))
 
         # TODO check for reinjections etc...
 
@@ -675,9 +675,17 @@ class MpTcpAnalyzer(Cmd):
         """
         Executed once when cmdloop is called
         """
-        super().preloop()
+        # super().preloop()
         # print("toto")
+        histfile = self.config["mptcpanalyzer"]['history']
+        if readline and os.path.exists(histfile):
+            readline.read_history_file(histfile)
 
+    def postloop(self):
+        histfile = self.config["mptcpanalyzer"]['history']
+        if readline:
+            readline.set_history_length(histfile_size)
+            readline.write_history_file(histfile)
 
 def main(arguments=None):
     """

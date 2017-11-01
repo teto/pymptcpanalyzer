@@ -42,6 +42,10 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
             "mptcpanalyzer"
         )
+        history_filename = os.path.join(
+            os.getenv("XDG_DATA_HOME", os.path.expanduser("~/.local/share/")),
+            "mptcpanalyzer.lst"
+        )
 
         # ensure defaults for mandatory parameters
         self.read_dict({
@@ -49,6 +53,8 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
                 "tshark_binary": "tshark",
                 "delimiter": "|",
                 "cache": cache_filename,
+                "history": history_filename,
+                "history_size": 200,
                 "wireshark_profile": "",
                 "style0": "",
                 "style1": "",
@@ -57,6 +63,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             }
         })
 
+        # we don t respect XDG_CONFIG_DIRS but who does ?
         if filename is None:
             xdg_config = os.getenv("XDG_CONFIG_HOME", "~/.config")
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")

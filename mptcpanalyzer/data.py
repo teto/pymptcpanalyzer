@@ -11,6 +11,7 @@ import mptcpanalyzer as mp
 from mptcpanalyzer import get_config, get_cache, Destination
 from typing import List, Any, Tuple, Dict, Callable, Collection
 import math
+import tempfile
 
 log = logging.getLogger(__name__)
 
@@ -100,31 +101,37 @@ def load_into_pandas(
     uid = cache.cacheuid(
         filename,  # prefix (might want to shorten it a bit)
         dependencies,
-        config.hash()  # suffix
+        str(config.hash())  + '.csv'
     )
 
-    try:
-        is_valid = cache.get(uid)
-    except:
-        log.info("Cache invalid... Converting %s into %s" % (filename,))
+    # try:
+    is_cache_valid, csv_filename = cache.get(uid)
+
+    # except:
+    #     log.info("Cache invalid... Converting %s into %s" % (filename,))
 
     # is_cache_valid, csv_filename = cache.is_cache_valid(uid, )
 
     log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
     if regen or not is_cache_valid:
-        log.info("Cache invalid... Converting %s into %s" % (filename, csv_filename))
+        log.info("Cache invalid... Converting %s " % (filename,))
 
-        retcode, stderr = config.export_to_csv(
-            filename,
-            csv_filename,
-            config.get_fields("fullname", "name"),
-            tshark_filter="mptcp and not icmp"
-        )
-        log.info("exporter exited with code=%d", retcode)
-        if retcode != 0:
-            # remove invalid cache log.exception
-            os.remove(csv_filename)
-            raise Exception(stderr)
+        with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
+            retcode, stderr = config.export_to_csv(
+                filename,
+                # csv_filename,
+                out,
+                config.get_fields("fullname", "name"),
+                tshark_filter="mptcp and not icmp"
+            )
+            log.info("exporter exited with code=%d", retcode)
+            if retcode is 0:
+                out.close()
+                cache.put(uid, out.name)
+            else:
+                # remove invalid cache log.exception
+                # os.remove(csv_filename)
+                raise Exception(stderr)
 
     # print("CONFIG=", cfg)
 
@@ -448,8 +455,8 @@ def merge_mptcp_dataframes_known_streams(
     # prepare metadata
     #
 
-    for subflow in common_subflows:
-        merge_tcp_dataframes_known_streams()
+    # for subflow in common_subflows:
+    #     merge_tcp_dataframes_known_streams()
 
 
 

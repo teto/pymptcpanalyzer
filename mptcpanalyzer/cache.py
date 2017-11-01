@@ -16,7 +16,8 @@ cache = None  # type: Cache
 class CacheId:
     def __init__(self, prefix: str, dependencies: Collection=[], suffix: str="" ) -> None:
         self.dependencies = dependencies
-        self.tpl = prefix + "%s" + suffix
+        log.debug("%r %r", prefix, suffix)
+        self.tpl = prefix + '%s' + str(suffix)
 
     @property
     def filename(self,):
@@ -59,9 +60,9 @@ class Cache:
 
     def get(self, uid: CacheId):
 
-
         cachename = uid.filename
         dependencies = uid.dependencies
+        is_cache_valid = False
 
         # if self.disabled:
         #     log.debug("Cache disabled, hence requested cache deemed invalid")
@@ -88,9 +89,9 @@ class Cache:
         else:
             log.debug("No cache %s found" % cachename)
         # return is_cache_valid, cachename
-        return is_cache_valid
+        return is_cache_valid, cachename
 
-    def put(self, uid: CacheId, result):
+    def put(self, uid: CacheId, result: str):
         shutil.move(result, uid.filename)
 
     # todo use get() instead
@@ -115,7 +116,9 @@ class Cache:
 
     #     cachename = self.cacheuid(filename)
 
-
+    @staticmethod
+    def cacheuid(prefix: str, dependencies: Collection=[], suffix: str=""):
+        return CacheId(prefix, dependencies, suffix)
 
     def clean(self):
         log.info("Cleaning cache [%s]" % self.folder)

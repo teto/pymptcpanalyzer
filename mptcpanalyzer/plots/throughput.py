@@ -54,14 +54,16 @@ class SubflowThroughput(plot.Matplotlib):
             print("Failure: %s", ret)
             return
 
-        tcpstreams = dat.groupby('tcpstream')
+        # tcpstreams = dat.groupby('tcpstream')
 
         # print("%d streams in the MPTCP flow" % len(tcpstreams))
-        ret["throughput"]
+        ret["bytes"]
+        data = map(lambda x: x['bytes'], ret['subflow_stats'])
+        s = pd.Series(data=data)
 
         # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
-
+        s.plot.bar(stacked=True, ax=axes);
         # pd.Series
         # .hist(
         # for idx, (streamid, ds) in enumerate(tcpstreams):
@@ -72,8 +74,8 @@ class SubflowThroughput(plot.Matplotlib):
         #         grid=True,
         #     )
 
-        # axes.set_xlabel("Time (s)")
-        # axes.set_ylabel(self.mptcp_attributes[field])
+        axes.set_xlabel("Time (s)")
+        axes.set_ylabel("contribution")
 
         # handles, labels = axes.get_legend_handles_labels()
 

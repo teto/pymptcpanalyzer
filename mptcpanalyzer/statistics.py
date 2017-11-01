@@ -5,6 +5,8 @@ from typing import List, Any, Tuple, Dict, Callable
 
 def compute_throughput(rawdf, mptcpstreamid):
     """
+    TODO thath should be per destination
+
     Returns a tuple (True/false, dict)
     """
     df = rawdf[rawdf.mptcpstream == mptcpstreamid]
@@ -22,13 +24,14 @@ def compute_throughput(rawdf, mptcpstreamid):
         # todo use tcp_seq_max/ tcp_seq_min
         # drop retransmitted
         subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
-        subflow_stats.append({'tcpstreamid': tcpstream, 'throughput': subflow_load})
+        print('subflow_load', subflow_load)
+        subflow_stats.append({'tcpstreamid': tcpstream, 'bytes': subflow_load})
         # print(subflow_load)
         # print('tcpstream %d transferred %d out of %d, hence is responsible for %f%%' % (tcpstream, subflow_load, total_transferred, subflow_load / total_transferred * 100))
 
     return True, {
         'mptcpstreamid': mptcpstreamid,
         'total_goodput': total_transferred,
-        'total_throughput': sum(subflow_stats, lambda x: x.throughput),
+        'total_bytes': sum( map(lambda x: x['bytes'], subflow_stats)),
         'subflow_stats': subflow_stats,
-        }
+    }
