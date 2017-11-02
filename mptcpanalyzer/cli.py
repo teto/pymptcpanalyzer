@@ -370,16 +370,49 @@ class MpTcpAnalyzer(Cmd):
             description="Prints a summary of the mptcp connection"
         )
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-        parser.add_argument("--deep", action="store_true", help="Deep analysis, computes transferred bytes etc...")
-        parser.add_argument("--amount", action="store_true", help="mptcp.stream id")
+        # parser.add_argument("--deep", action="store_true", help="Deep analysis, computes transferred bytes etc...")
+        # parser.add_argument("--amount", action="store_true", help="mptcp.stream id")
+
+            # if direction:
+            #     # a bit hackish: we want the object to be of type class
+            #     # but we want to display the user readable version
+            #     # so we subclass list to convert the Enum to str value first.
+        # class CustomDestinationChoices(list):
+        #     def __contains__(self, other):
+        #         # print("%r", other)
+        #         return super().__contains__(other.name)
+
+        parser.add_argument(
+                    'destination', 
+                    action="store",
+                    # type=lambda color: str(color) ,#; getattr(mp.Destination,x),
+                    # choices=mp.Destination,
+                    choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
+                    type=lambda x: mp.Destination[x],
+                    # choices=[e.name.lower() for e in mp.Destination],
+                    # type=lambda x: mp.Destination[x],
+                    help='Filter flows according to their direction'
+                    '(towards the client or the server)'
+                    'Depends on mptcpstream')
+
         # try:
         #     mptcpstream = int(mptcpstream)
         # except ValueError as e:
         #     print("Expecting the mptcp.stream id as argument: %s" % e)
         #     return
 
-        args = parser.parse_args(line)
-        success, ret = stats.compute_throughput(self.data, args.mptcpstream)
+        args = parser.parse_args(shlex.split(line))
+        # args = parser.parse_args(line)
+        # print("%s" % args)
+        # TODO
+        df = self.data
+        mptcpstream = args.mptcpstream
+
+        # con = MpTcpConnection.build_from_dataframe(df, mptcpstream)
+        # q = con.generate_direction_query(destination)
+        success, ret = stats.mptcp_compute_throughput(
+                self.data, args.mptcpstream, args.destination
+        )
         # df = self.data[self.data.mptcpstream == args.mptcpstream]
         # if df.empty:
         if success is not True:
@@ -393,7 +426,7 @@ class MpTcpAnalyzer(Cmd):
             subflow_load = sf_bytes/ret["total_bytes"]
             # print(subflow_load)
             print('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
-                tcpstream, sf_bytes, total_transferred, subflow_load ))
+                tcpstream, sf_bytes, total_transferred, subflow_load*100))
 
         # TODO check for reinjections etc...
 

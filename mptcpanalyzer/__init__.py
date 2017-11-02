@@ -69,6 +69,23 @@ class Destination(Enum):
     Client = 0
     Server = 1
 
+    def __str__(self):
+        # Note that defining __str__ is required to get ArgumentParser's help output to include the human readable (values) of Color
+        return self.name
+    # def __getitem__(cls, name):
+    #     return cls._member_map_[name]
+    @staticmethod
+    def from_string(s):
+        try:
+            return Destination[s]
+        except KeyError:
+            raise ValueError()
+
+class CustomDestinationChoices(list):
+    def __contains__(self, other):
+        # print("%r", other)
+        return super().__contains__(other.name)
+
 
 def reverse_destination(dest: Destination):
 

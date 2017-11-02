@@ -69,7 +69,7 @@ class Plot:
 
     def __init__(
         self,
-        exporter : 'TsharkConfig',
+        exporter : 'TsharkConfig',  # TODO look into mypy forward declarations
         # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
         # TypedDict is in mypy 0.540
         input_pcaps: List[Tuple[str, PreprocessingActions]],
@@ -150,13 +150,15 @@ class Plot:
                 # a bit hackish: we want the object to be of type class
                 # but we want to display the user readable version
                 # so we subclass list to convert the Enum to str value first.
-                class CustomDestinationChoices(list):
-                    def __contains__(self, other):
-                        return super().__contains__(other.value)
+                # class CustomDestinationChoices(list):
+                #     def __contains__(self, other):
+                #         return super().__contains__(other.name)
+
                 parser.add_argument(
                     'destination', action="store",
-                    choices=CustomDestinationChoices([e.value for e in mp.Destination]),
-                    type=lambda x: mp.Destination(x),
+                    choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
+                    # type=lambda x: mp.Destination.from_string(x),
+                    type=lambda x: mp.Destination[x],
                     help='Filter flows according to their direction'
                     '(towards the client or the server)'
                     'Depends on mptcpstream')

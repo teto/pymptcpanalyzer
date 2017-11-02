@@ -4,7 +4,7 @@ import mptcpanalyzer.plot as plot
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
-from mptcpanalyzer.statistics import compute_throughput
+from mptcpanalyzer.statistics import mptcp_compute_throughput
 import collections
 from typing import List
 
@@ -39,7 +39,7 @@ class SubflowThroughput(plot.Matplotlib):
             # help="Choose an mptcp attribute to plot")
         return parser
 
-    def plot(self, dat, mptcpstream, **kwargs):
+    def plot(self, dat, mptcpstream, destination, **kwargs):
         """
         getcallargs
         """
@@ -49,7 +49,7 @@ class SubflowThroughput(plot.Matplotlib):
         # dat = rawdf
 
         fig = plt.figure()
-        success, ret = compute_throughput(dat, mptcpstream)
+        success, ret = mptcp_compute_throughput(dat, mptcpstream, destination)
         if success is not True:
             print("Failure: %s", ret)
             return
@@ -57,13 +57,14 @@ class SubflowThroughput(plot.Matplotlib):
         # tcpstreams = dat.groupby('tcpstream')
 
         # print("%d streams in the MPTCP flow" % len(tcpstreams))
-        ret["bytes"]
+        # ret["bytes"]
         data = map(lambda x: x['bytes'], ret['subflow_stats'])
-        s = pd.Series(data=data)
+        s = pd.DataFrame(data=pd.Series(data))
+        print (s)
 
         # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
-        s.plot.bar(stacked=True, ax=axes);
+        s.T.plot.bar(stacked=True, by=None, ax=axes);
         # pd.Series
         # .hist(
         # for idx, (streamid, ds) in enumerate(tcpstreams):
