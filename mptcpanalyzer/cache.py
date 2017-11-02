@@ -2,6 +2,7 @@ import os
 from typing import List, Tuple, Collection
 import logging
 import shutil
+from pathlib import Path
 
 
 # log = logging.getLogger("mptcpanalyzer")
@@ -14,7 +15,11 @@ Similar to config
 cache = None  # type: Cache
 
 class CacheId:
-    def __init__(self, prefix: str, dependencies: Collection=[], suffix: str="" ) -> None:
+    def __init__(self, prefix: str,
+            dependencies: Collection=[Path],
+            suffix: str="" ) -> None:
+
+        # TODO check all Path exists / .exists()
         self.dependencies = dependencies
         log.debug("%r %r", prefix, suffix)
         self.tpl = prefix + '%s' + str(suffix)
@@ -60,7 +65,7 @@ class Cache:
 
     def get(self, uid: CacheId):
 
-        cachename = uid.filename
+        cachename = cache.folder + uid.filename
         dependencies = uid.dependencies
         is_cache_valid = False
 
@@ -92,7 +97,7 @@ class Cache:
         return is_cache_valid, cachename
 
     def put(self, uid: CacheId, result: str):
-        shutil.move(result, uid.filename)
+        shutil.move(result, cache.folder + uid.filename)
 
     # todo use get() instead
     # def is_cache_valid(self, uid, dependencies: List[str]=None) -> Tuple[bool, str]:
