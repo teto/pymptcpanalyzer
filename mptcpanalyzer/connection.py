@@ -61,7 +61,7 @@ class TcpConnection:
         """
         If every parameter is equal, returns +oo
         """
-        if (self.server_ip == other.server_ip and 
+        if (self.server_ip == other.server_ip and
                 self.client_ip == other.client_ip and
                 self.client_port == other.client_port and
                 self.server_port == other.server_port):
@@ -73,8 +73,8 @@ class TcpConnection:
 
     def __eq__(self, other):
         """
-        Ignores 
-        A NAT/PAT could have rewritten IPs in which case you probably 
+        Ignores
+        A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
         return self.score(other) == float('inf')
@@ -101,7 +101,8 @@ class TcpConnection:
 
         df = rawdf[rawdf.tcpstream == tcpstreamid]
         if len(df.index) == 0:
-            raise MpTcpException("No packet with this stream id")
+            print(rawdf.head())
+            raise MpTcpException("No packet with this tcp.stream id %r" % tcpstreamid)
 
         # print(df["tcpflags"].head())
 
@@ -122,12 +123,12 @@ class TcpConnection:
 
     def reversed(self):
         return self.create_subflow(
-            self.tcpstreamid, self.server_ip, self.client_ip, 
-            self.server_port, self.client_port, 
+            self.tcpstreamid, self.server_ip, self.client_ip,
+            self.server_port, self.client_port,
         )
 
     # def __repr__(self):
-    #     return 
+    #     return
     def __str__(self):
         line = ("tcp.stream {s.tcpstreamid} : {s.client_ip}:{s.client_port} "
                 " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
@@ -144,8 +145,8 @@ class MpTcpSubflow(TcpConnection):
 
     def reversed(self):
         res = self.create_subflow(
-            self.tcpstreamid, self.server_ip, self.client_ip, 
-            self.server_port, self.client_port, 
+            self.tcpstreamid, self.server_ip, self.client_ip,
+            self.server_port, self.client_port,
         )
         res.addrid = self.addrid
         return res
@@ -192,7 +193,7 @@ class MpTcpConnection:
             print(q)
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
-        
+
         print(result)
         return result
 
@@ -214,7 +215,7 @@ class MpTcpConnection:
 
         ds = ds[ds.mptcpstream == mptcpstreamid]
         if len(ds.index) == 0:
-            raise MpTcpException("No packet with this stream id")
+            raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
         # this returns the indexes where a sendkey is set :
         res = get_index_of_non_null_values(ds["sendkey"])
@@ -288,8 +289,8 @@ class MpTcpConnection:
 
     def __eq__(self, other):
         """
-        Ignores 
-        A NAT/PAT could have rewritten IPs in which case you probably 
+        Ignores
+        A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
         return self.score(other) == float('inf')
@@ -302,7 +303,7 @@ class MpTcpConnection:
         Returns:
             a score
             - '-inf' means it's not possible those 2 matched
-            - '+inf' means 
+            - '+inf' means
         """
 
         score = 0

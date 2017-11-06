@@ -178,7 +178,7 @@ class TsharkConfig:
     def export_to_csv(
         self, input_filename: str,
         output_csv, # a file descriptor
-        fields_to_export: List[str], tshark_filter: str =None
+        fields_to_export: List[str],
     ):
         """
         output_csv can be an fd
@@ -197,7 +197,7 @@ class TsharkConfig:
             self.tshark_bin,
             fields_to_export,
             input_filename,
-            tshark_filter,
+            self.filter,
             profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
@@ -223,17 +223,6 @@ class TsharkConfig:
         # except CalledProcessError as e:
         # print(output)
         return proc.returncode, stderr
-
-        # return self.tshark_export_fields(
-        #     self.tshark_bin,
-        #     fields_to_export,
-        #     input_filename,
-        #     output_csv,
-        #     tshark_filter,
-        #     profile=self.profile,
-        #     csv_delimiter=self.delimiter,
-        #     options=self.options,
-        # )
 
     def hash(self,):
         cmd = self.generate_command(

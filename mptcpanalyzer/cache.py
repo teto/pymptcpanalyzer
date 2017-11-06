@@ -5,7 +5,6 @@ import shutil
 from pathlib import Path
 
 
-# log = logging.getLogger("mptcpanalyzer")
 log = logging.getLogger(__name__)
 
 
@@ -16,13 +15,18 @@ cache = None  # type: Cache
 
 class CacheId:
     def __init__(self, prefix: str,
-            dependencies: Collection=[Path],
+            deps: Collection=[Path],
             suffix: str="" ) -> None:
+        """
+        todo remove prefix, and build it from deps basenames
+        """
+        assert len(deps) > 0, "without dependency, why use cache ?"
+
 
         # TODO check all Path exists / .exists()
-        self.dependencies = dependencies
+        self.dependencies = map(os.path.abspath, deps)
         log.debug("%r %r", prefix, suffix)
-        self.tpl = prefix + '%s' + str(suffix)
+        self.tpl = prefix + "_".join([os.path.basename(dep) for dep in deps]) + '%s' + str(suffix)
 
     @property
     def filename(self,):
@@ -65,7 +69,7 @@ class Cache:
 
     def get(self, uid: CacheId):
 
-        cachename = cache.folder + uid.filename
+        cachename = os.path.join(self.folder, uid.filename)
         dependencies = uid.dependencies
         is_cache_valid = False
 
@@ -97,7 +101,7 @@ class Cache:
         return is_cache_valid, cachename
 
     def put(self, uid: CacheId, result: str):
-        shutil.move(result, cache.folder + uid.filename)
+        shutil.move(result, os.path.join(self.folder, uid.filename))
 
     # todo use get() instead
     # def is_cache_valid(self, uid, dependencies: List[str]=None) -> Tuple[bool, str]:

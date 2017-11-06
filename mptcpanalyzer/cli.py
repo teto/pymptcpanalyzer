@@ -55,6 +55,8 @@ log.addHandler(ch)
 log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
+print("logger nqme from cli", __name__)
+
 histfile_size = 100
 
 def is_loaded(f):
@@ -99,6 +101,7 @@ class MpTcpAnalyzer(Cmd):
             config: configution to get user parameters
             data:  dataframe currently in use
         """
+        # self.colorize( , "blue")
         self.prompt = "%s> " % "Ready"
         self.data = None  # type: pd.DataFrame
         self.config = cfg
@@ -118,6 +121,8 @@ class MpTcpAnalyzer(Cmd):
         self.allow_redirection = True;  # allow pipes in commands
         self.default_to_shell = False;
         self.debug = True;  #  for now
+        self.set_posix_shlex = True
+        self.shortcuts.update({'lr': 'do_list_reinjections', '~': 'squirm'})
 
         # LOAD PLOTS
         ######################
@@ -169,6 +174,10 @@ class MpTcpAnalyzer(Cmd):
         :param mgr: a stevedore plugin manager
         """
         self.plot_mgr = mgr
+
+    # set_posix_shlex
+    # def preparse(raw):
+    #     return shlex.split(raw)
 
     def load_plugins(self, mgr=None):
         """
@@ -264,7 +273,7 @@ class MpTcpAnalyzer(Cmd):
 
     # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     @is_loaded
-    def do_ls(self, args):
+    def do_list_subflows(self, args):
         """
         list mptcp subflows
                 [mptcp.stream id]
@@ -298,11 +307,11 @@ class MpTcpAnalyzer(Cmd):
         for sf in con.subflows:
             print("\t%s" % sf)
 
-    def help_ls(self):
+    def help_list_subflows(self):
 
         return "Use parser -h"
 
-    def complete_ls(self, text, line, begidx, endidx):
+    def complete_list_subflows(self, text, line, begidx, endidx):
         """ help to complete the args """
         # conversion to set removes duplicate keys
         l = list(set(self.data["mptcpstream"]))
@@ -494,7 +503,7 @@ class MpTcpAnalyzer(Cmd):
     #     print("filtering reinjected %d" % (len(res2)))
 
     @is_loaded
-    def do_lr(self, line):
+    def do_list_reinjections(self, line):
         """
         List reinjections
         We want to be able to distinguish between good and bad reinjections
@@ -533,22 +542,22 @@ class MpTcpAnalyzer(Cmd):
                 print("packetid=%d reinjected in %s" % (row.packetid, row.reinjections))
                 known.update([row.packetid] + row.reinjections)
 
-    def do_batch(self, line):
-        print("Running batched commands")
-        # with open(args.batch) as fd:
+    # def do_batch(self, line):
+    #     print("Running batched commands")
+    #     # with open(args.batch) as fd:
 
-    def batch(self, fd):
-        log.info("Batched commands")
-        for command in fd:
-            log.info(">>> %s" % command)
-            self.onecmd(command)
+    # def batch(self, fd):
+    #     log.info("Batched commands")
+    #     for command in fd:
+    #         log.info(">>> %s" % command)
+    #         self.onecmd(command)
 
     def load(self, filename, regen: bool=False):
 
         self.data = load_into_pandas(filename, self.tshark_config, regen)
         self.prompt = "%s> " % os.path.basename(filename)
 
-    def do_load(self, args):
+    def do_load_pcap(self, args):
         """
         Load the file as the current one
         """
@@ -641,11 +650,11 @@ class MpTcpAnalyzer(Cmd):
         dargs = vars(args)  # 'converts' the namespace to a dict
 
         # TODO
-        print("TOTO")
+        # print("TOTO")
         dataframes = plotter.preprocess(self, **dargs)
         # TODO test with isinstance ?
         assert dataframes is not None, "Preprocess must return a list"
-        print("dataframes", dataframes, " comapred to ", dargs)
+        # print("dataframes", dataframes, " comapred to ", dargs)
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
 
@@ -662,8 +671,9 @@ class MpTcpAnalyzer(Cmd):
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
         #
-        print("Cleaning cache [%s]" % self.cache.folder)
-        self.cache.clean()
+        cache =  mp.get_cache()
+        print("Cleaning cache [%s]" % cache.folder)
+        cache.clean()
         # for cached_csv in os.scandir(self.config.cache):
         #     log.info("Removing " + cached_csv.path)
         #     os.unlink(cached_csv.path)
@@ -780,13 +790,13 @@ def main(arguments=None):
     )
 
 
-    parser.add_argument(
-        "--batch", "-b", action="store", type=argparse.FileType('r'),
-        default=None,
-        help="Accepts a filename as argument from which commands will be loaded."
-        "Commands follow the same syntax as in the interpreter"
-        "can also be used as "
-    )
+    # parser.add_argument(
+    #     "--batch", "-b", action="store", type=argparse.FileType('r'),
+    #     default=None,
+    #     help="Accepts a filename as argument from which commands will be loaded."
+    #     "Commands follow the same syntax as in the interpreter"
+    #     "can also be used as "
+    # )
 
     args, unknown_args = parser.parse_known_args(arguments)
 
@@ -814,9 +824,9 @@ def main(arguments=None):
             analyzer.do_load(cmd)
             # analyzer.onecmd(cmd)
 
-        if args.batch:
-            log.info("Batched commands")
-            analyzer.batch(args.batch)
+        # if args.batch:
+        #     log.info("Batched commands")
+        #     analyzer.batch(args.batch)
             # # with open(args.batch) as fd:
             # for command in args.batch:
             #     log.info(">>> %s" % command)

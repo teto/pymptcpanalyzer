@@ -2,27 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import numpy as np
-import pandas as pd
-# import os
 from enum import Enum, IntEnum
 from .config import MpTcpAnalyzerConfig
 from .cache import Cache
 
-# from .data import load_into_pandas
-# from typing import Iterable, List #, Any, Tuple, Dict, Callable
 
 log = logging.getLogger(__name__)
+# print("logger name from init", __name__)
 
-
-# cache = None # type: Cache
-# config = None # type: MpTcpAnalyzerConfig
 
 __CONFIG__ = None  # type: 'MpTcpAnalyzerConfig'
 __CACHE__ = None  # type: 'Cache'
 
 
-def get_cache():
+def get_cache() -> Cache:
     global __CACHE__  # add this line!
     # print("config STATE=", __CONFIG__)
     if __CACHE__ is None:  # see notes below; explicit test for None
@@ -30,7 +23,7 @@ def get_cache():
     return __CACHE__
 
 
-def get_config():
+def get_config() -> MpTcpAnalyzerConfig:
     global __CONFIG__  # add this line!
     print("config STATE=", __CONFIG__)
     if __CONFIG__ is None:  # see notes below; explicit test for None

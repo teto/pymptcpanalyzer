@@ -15,6 +15,7 @@ import tempfile
 
 log = logging.getLogger(__name__)
 
+# todo rename to mapper ?
 
 """
 Used when dealing with the merge of dataframes
@@ -74,11 +75,16 @@ scoring_rules = {
 # def load_from_cache(input_file,):
 #     cache = mp.get_cache()
 
+# def load_into_pandas(
+#         ):
+
 def load_into_pandas(
     input_file: str,
     config: TsharkConfig,
-    regen: bool=False,
     dependencies: Collection =[],
+    # load_cb = load_pcap_into_pandas,
+    regen: bool=False,
+    **extra
     # metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
 ) -> pd.DataFrame:
     """
@@ -87,6 +93,8 @@ def load_into_pandas(
     Args:
         input_file: pcap filename
         config: Hard, keep changing
+        load_cb: callback to use if cache not available
+        extra: extra arguments to forward to load_cb
         regen: Ignore the cache and regenerate any cached csv file from the input pcap
     """
     log.debug("Asked to load %s" % input_file)
@@ -99,7 +107,8 @@ def load_into_pandas(
     # csv_filename = self.get_matching_csv_filename(filename, regen)
     # if os.path.isfile(cachename):
     uid = cache.cacheuid(
-        filename,  # prefix (might want to shorten it a bit)
+        # filename,  # prefix (might want to shorten it a bit)
+        '',
         dependencies,
         str(config.hash())  + '.csv'
     )
@@ -122,7 +131,6 @@ def load_into_pandas(
                 # csv_filename,
                 out,
                 config.get_fields("fullname", "name"),
-                tshark_filter="mptcp and not icmp"
             )
             log.info("exporter exited with code=%d", retcode)
             if retcode is 0:

@@ -3,16 +3,17 @@
 import argparse
 import os
 import tempfile
-import matplotlib
+# import matplotlib
 import matplotlib.pyplot as plt
-import collections
+# import collections
 import mptcpanalyzer as mp
+import pandas as pd
 from mptcpanalyzer.data import load_into_pandas
 from enum import Enum, IntEnum
 from mptcpanalyzer.connection import MpTcpConnection
-from typing import Iterable, List, Any, Tuple, Dict, Callable
+from typing import Iterable, List, Any, Tuple, Dict, Callable, Collection
 import abc
-import six
+# import six
 import logging
 
 log = logging.getLogger(__name__)
@@ -83,10 +84,11 @@ class Plot:
         self.title = title
         self.input_pcaps = input_pcaps
         self.tshark_config = exporter
+        self.tshark_config.filter="mptcp and not icmp"
 
-    @property
-    def cache(self):
-        return self.main.cache
+    # @property
+    # def cache(self):
+    #     return self.main.cache
 
     def default_parser(
         self,
@@ -268,7 +270,7 @@ class Plot:
         """
         pass
 
-    def preprocess(self, main, **kwargs):
+    def preprocess(self, main, **kwargs) -> Collection[ pd.DataFrame ]:
         """
         Must return the dataframes used by plot
         """
@@ -277,7 +279,9 @@ class Plot:
         for pcap_name, action in self.input_pcaps:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
-                df = load_into_pandas(kwargs.get(pcap_name), self.tshark_config)
+                filename = kwargs.get(pcap_name)
+                df = load_into_pandas(filename, self.tshark_config,
+                        [ filename ])
                 dataframes.append(df)
 
         # dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]

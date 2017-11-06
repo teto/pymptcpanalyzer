@@ -3,9 +3,9 @@
 
 
 import mptcpanalyzer as mp
-from mptcpanalyzer.data import load_into_pandas
+# from mptcpanalyzer.data import load_into_pandas
 import mptcpanalyzer.plot as plot
-import mptcpanalyzer.data as data
+import mptcpanalyzer.data as woo
 # import mptcpanalyzer
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import pandas as pd
@@ -13,8 +13,9 @@ import logging
 import matplotlib.pyplot as plt
 import os
 import argparse
-import math
+# import math
 import collections
+from mptcpanalyzer.cache import CacheId
 
 from typing import Iterable, List #, Any, Tuple, Dict, Callable
 
@@ -66,6 +67,8 @@ class TcpOneWayDelay(plot.Matplotlib):
                input_pcaps=expected_pcaps,
                **kwargs
         )
+
+        self.tshark_config.filter = "tcp";
         # self.suffixes = ("_snd", "_rcv")
         # self.suffixes = ("", "_rcv")
         # self.columns = [
@@ -93,7 +96,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         # parser.add_argument("host1", action="store", help="pcap captured on first host")
         # parser.add_argument("host2", action="store", help="pcap captured on second host")
         parser = super().default_parser(
-            *args, parent_parsers=[parser], mptcpstream=True, **kwargs
+            *args, parent_parsers=[parser], mptcpstream=False, **kwargs
         )
 
         # parser.add_argument("--offset", action="store",
@@ -104,61 +107,116 @@ class TcpOneWayDelay(plot.Matplotlib):
         return parser
 
 
-    def get_cachename(self, pcap1, pcap2):
-        """
-        fake cachename via concatenating
-        Ideally the order of parameters should not matter
-        """
-        # TODO HACK mock
-        return mock_cachename
-        return os.path.join(pcap1, os.path.sep, pcap2)
+#    def get_cachename(self, pcap1, pcap2):
+#        """
+#        fake cachename via concatenating
+#        Ideally the order of parameters should not matter
+#        """
+#        # TODO HACK mock
+#        return mock_cachename
+#        return os.path.join(pcap1, os.path.sep, pcap2)
 
-    def preprocess(self, main, mptcpstream=None, **kwargs):
+    def preprocess(self, main, mptcpstream=None,
+            # host1_pcap, host2_pcap,
+            **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
-        to compute OWDs. There results can be cached in which  case it's not necessary
-        to load the original pcaps
+        to compute OWDs.
+        These results can be cached in which  case it's not necessary
+        to load the original pcaps.
 
         First we get the cachename associated with the two pcaps. If it's cached we load
         directly this cache else we proceed as usual
 
-        TODO replace with things done in
+        TODO generate cachename from dependencies basenames :
         """
-        cachename = self.get_cachename(kwargs.get("host1_pcap"), kwargs.get("host2_pcap"))
+        # h1, h2 = super().preprocess()
+        cacheid = CacheId("owd", [
+            # host1_pcap,
+            kwargs.get("host1_pcap"),
+            kwargs.get("host2_pcap")
+            ], ".csv")
+
+        print(" main = %r", main)
         # if we can't load that file from cache
         try:
-            df = load_into_pandas(cachename)
-            log.info("Loaded from cache")
-            return df
-        except Exception:
-            log.debug("Could not load cached results %s" % cachename)
+            cache = mp.get_cache()
+
+            valid, cachename = cache.get(cacheid)
+            log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
+            # print(**kwargs)
+            print(kwargs)
+
+            if not valid:
+                # generate h1/h2 cache
+                dataframes = super().preprocess(main, **kwargs)
+                # tcpstream = mptcpstream # we kept mptcpstream as a convenience
+                # TODO 
+                print("FIX tcpstreamid AFTER DEBUG")
+                tcpstream = 0 # we kept mptcpstream as a convenience
+
+                # we want to save results as a single file (easier to loader etc...)
+                # so we concat ?
+                # self.generate_owd_df(dataframes, cachename, **kwargs)
+                # print("len=%d" % len(dataframes))
+                assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
+                h1_df, h2_df = dataframes
+
+                total = woo.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
+                firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
+                total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
+                print("Saving into %s", cachename)
+                total.to_csv(
+                    cachename, # output
+                    # columns=columns,
+                    index=False,
+                    header=True,
+                    # sep=main.config["DEFAULT"]["delimiter"],
+                )
+                return total
 
 
-        log.info("Regenerating from cache")
-        dataframes = super().preprocess(main, mptcpstream=mptcpstream, **kwargs)
+            else:
+                log.info("Loaded from cache")
+                # pd.read_csv()
+                with open(cachename) as fd:
+                    # first line is metadata
+                    # TODO: creer classe metadata read/write ?
+                    # metadata = fd.readline()
 
-        tcpstream = mptcpstream # we kept mptcpstream as a convenience
+                    data = pd.read_csv(
+                        fd,
+                        # skip_blank_lines=True,
+                        # hum not needed with comment='#'
+                        comment='#',
+                        # we don't need 'header' when metadata is with comment
+                        # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
+                        # skiprows
+                        sep=self.config.delimiter,
+                        # dtype=dtypes,
+                        # converters={
+                        #     "tcp.flags": lambda x: int(x, 16),
+                        #     # reinjections, converts to list of integers
+                        #     "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
+                        #     # "mptcp.related_mapping": lambda x: x.split(','),
+                        # },
+                        # memory_map=True, # could speed up processing
+                    )
+                    # TODO:
+                    # No columns to parse from file
+                    # data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
+                    log.debug("Column names: %s", data.columns)
 
+                return data
 
-        # we want to save results as a single file (easier to loader etc...)
-        # so we concat ?
-        # self.generate_owd_df(dataframes, cachename, **kwargs)
-        assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
-        h1_df, h2_df = dataframes
+        except Exception as e:
+            print("exception happened %s" % e )
+            raise e
+            # log.debug("Could not load cached results %s" % cachename)
 
-        total = data.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
-        firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
-        total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
-
+        # log.info("Regenerating from cache")
         # columns = data.generate_columns([], [], data.suffixes)
-        total.to_csv(
-            cachename, # output
-            # columns=columns,
-            index=False,
-            header=True,
-            # sep=main.config["DEFAULT"]["delimiter"],
-        )
-        return total
+        # return None
 
     #def do_plot_owd(self, args):
     def plot(self, df_results, mptcpstream=None, **kwargs):
