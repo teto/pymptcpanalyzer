@@ -128,7 +128,6 @@ class MpTcpAnalyzer(Cmd):
         ######################
         # you can  list available plots under the namespace
         # https://pypi.python.org/pypi/entry_point_inspector
-        # stevedore doc has now moved to 
         # https://docs.openstack.org/stevedore/latest/reference/index.html#stevedore.extension.ExtensionManager
         # mgr = driver.DriverManager(
         self.plot_mgr = extension.ExtensionManager(
@@ -392,17 +391,18 @@ class MpTcpAnalyzer(Cmd):
         #         return super().__contains__(other.name)
 
         parser.add_argument(
-                    'destination', 
-                    action="store",
-                    # type=lambda color: str(color) ,#; getattr(mp.Destination,x),
-                    # choices=mp.Destination,
-                    choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
-                    type=lambda x: mp.Destination[x],
-                    # choices=[e.name.lower() for e in mp.Destination],
-                    # type=lambda x: mp.Destination[x],
-                    help='Filter flows according to their direction'
-                    '(towards the client or the server)'
-                    'Depends on mptcpstream')
+            'destination',
+            action="store",
+            # type=lambda color: str(color) ,#; getattr(mp.Destination,x),
+            # choices=mp.Destination,
+            choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
+            type=lambda x: mp.Destination[x],
+            # choices=[e.name.lower() for e in mp.Destination],
+            # type=lambda x: mp.Destination[x],
+            help='Filter flows according to their direction'
+            '(towards the client or the server)'
+            'Depends on mptcpstream'
+        )
 
         # try:
         #     mptcpstream = int(mptcpstream)
@@ -674,11 +674,6 @@ class MpTcpAnalyzer(Cmd):
         cache =  mp.get_cache()
         print("Cleaning cache [%s]" % cache.folder)
         cache.clean()
-        # for cached_csv in os.scandir(self.config.cache):
-        #     log.info("Removing " + cached_csv.path)
-        #     os.unlink(cached_csv.path)
-
-    # def help_clean_cache(self):
 
     def do_dump(self, args):
         """
@@ -702,11 +697,12 @@ class MpTcpAnalyzer(Cmd):
         return l
 
     # not needed in cmd2
-    # def do_quit(self, *args):
-    #     """
-    #     Quit/exit program
-    #     """
-    #     return True
+    def do_quit(self, *args):
+        """
+        Quit/exit program
+        """
+        print("Thanks for flying with mptcpanalyzer.")
+        return True
 
     def do_EOF(self, line):
         """
@@ -718,8 +714,6 @@ class MpTcpAnalyzer(Cmd):
         """
         Executed once when cmdloop is called
         """
-        # super().preloop()
-        # print("toto")
         histfile = self.config["mptcpanalyzer"]['history']
         if readline and os.path.exists(histfile):
             readline.read_history_file(histfile)
@@ -790,20 +784,15 @@ def main(arguments=None):
     )
 
 
-    # parser.add_argument(
-    #     "--batch", "-b", action="store", type=argparse.FileType('r'),
-    #     default=None,
-    #     help="Accepts a filename as argument from which commands will be loaded."
-    #     "Commands follow the same syntax as in the interpreter"
-    #     "can also be used as "
-    # )
-
     args, unknown_args = parser.parse_known_args(arguments)
 
     config = MpTcpAnalyzerConfig(args.config)
     if args.cachedir:
         config["mptcpanalyzer"]["cache"] = args.cachedir # type: ignore
+
+    # setup global variables
     mp.__CACHE__ = mc.Cache(config.cachedir)
+    mp.__CONFIG__ = config
 
     if __name__ == '__main__':
         level = logging.CRITICAL - min(args.debug, 4) * 10
@@ -823,14 +812,6 @@ def main(arguments=None):
             # cmd += " -r" if args.regen else ""
             analyzer.do_load(cmd)
             # analyzer.onecmd(cmd)
-
-        # if args.batch:
-        #     log.info("Batched commands")
-        #     analyzer.batch(args.batch)
-            # # with open(args.batch) as fd:
-            # for command in args.batch:
-            #     log.info(">>> %s" % command)
-            #     analyzer.onecmd(command)
 
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict

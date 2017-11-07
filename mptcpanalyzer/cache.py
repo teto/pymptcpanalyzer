@@ -24,7 +24,7 @@ class CacheId:
 
 
         # TODO check all Path exists / .exists()
-        self.dependencies = map(os.path.abspath, deps)
+        self.dependencies = list(map(os.path.abspath, deps))
         log.debug("%r %r", prefix, suffix)
         self.tpl = prefix + "_".join([os.path.basename(dep) for dep in deps]) + '%s' + str(suffix)
 

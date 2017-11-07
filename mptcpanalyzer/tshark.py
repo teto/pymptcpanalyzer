@@ -40,7 +40,7 @@ name: shortname used in mptcpanalyzer
 type: python type pandas should convert this field to
 label: used when plotting
 """
-Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ])
+Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', 'score'])
 # Field.__new__.__defaults__ = (None, None)
 
 
@@ -84,6 +84,9 @@ class TsharkConfig:
             "mptcp.analyze_mptcp": True,
         }
         self.fields = []  # type: List[Field]
+        self.add_basic_fields()
+
+    def add_basic_fields(self):
         self.add_field("frame.number", "packetid", np.int64, False, )
         # TODO set tot datetime ?
         self.add_field("frame.time_relative", "reltime", None, False, )
@@ -94,43 +97,45 @@ class TsharkConfig:
         self.add_field("_ws.col.ipdst", "ipdst", str, False, )
         self.add_field("ip.src_host", "ipsrc_host", str, False)
         self.add_field("ip.dst_host", "ipdst_host", str, False)
-        self.add_field("mptcp.expected_token", "expected_token", str, False)
         # set to categorical ?
         # self.add_field("mptcp.client", "direction", np.float64, False)
         # "mptcp.rawdsn64":        "dsnraw64"
         # "mptcp.ack":        "dack"
         self.add_field("tcp.stream", "tcpstream", np.float64, False)
-        self.add_field("mptcp.stream", "mptcpstream", np.float, False)
         self.add_field("tcp.srcport", "sport", np.float, False)
         self.add_field("tcp.dstport", "dport", np.float, False)
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", np.int64, True)
+        self.add_field("tcp.flags", "tcpflags", np.float64, False)
+        self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number")
+        self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
+
+    def add_mptcp_fields(self, advanced=False):
+        self.add_field("mptcp.expected_token", "expected_token", str, False)
+        self.add_field("mptcp.stream", "mptcpstream", np.float, False)
         self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False)
         self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False)
         self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False)
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False)
         self.add_field("tcp.options.mptcp.subtype", "subtype", np.object, False)
-        self.add_field("tcp.flags", "tcpflags", np.float64, False)
-        self.add_field(
-            "tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64, "DSS Sequence Number")
+        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64, "DSS Sequence Number")
         self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64, "DSS raw ack")
         self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number")
         self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length")
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False)
-
-    def add_retransmission_fields(self):
         self.add_field("mptcp.master", "master", bool, False)
-        self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number")
-        self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
         self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number")
         self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack")
         self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
-        self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
-        self.add_field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections")
-        # TODO use new names
-        # self.add_field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection")
-        # self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
+
+    # def add_retransmission_fields(self):
+        if advanced:
+            self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
+            self.add_field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections")
+            # TODO use new names
+            # self.add_field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection")
+            # self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
 
     def add_field(self, fullname, name, type, label):
 
@@ -185,9 +190,9 @@ class TsharkConfig:
 
         Returns exit code, stderr
         """
-        log.info("Converting pcap [{pcap}] to csv [{csv}]".format(
+        log.info("Converting pcap [{pcap}] ".format(
             pcap=input_filename,
-            csv=output_csv)
+            )
         )
 
         if find_type(input_filename) != Filetype.pcap:

@@ -12,6 +12,7 @@ from mptcpanalyzer.data import load_into_pandas
 from enum import Enum, IntEnum
 from mptcpanalyzer.connection import MpTcpConnection
 from typing import Iterable, List, Any, Tuple, Dict, Callable, Collection
+import copy
 import abc
 # import six
 import logging
@@ -72,7 +73,7 @@ class Plot:
         self,
         exporter : 'TsharkConfig',  # TODO look into mypy forward declarations
         # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
-        # TypedDict is in mypy 0.540
+        # TypedDict is in mypy 0.540, also needs mypy_extension
         input_pcaps: List[Tuple[str, PreprocessingActions]],
         title: str = None,
         *args, **kwargs
@@ -83,7 +84,8 @@ class Plot:
         """
         self.title = title
         self.input_pcaps = input_pcaps
-        self.tshark_config = exporter
+        # python shallow copies objects by default
+        self.tshark_config = copy.deepcopy(exporter)
         self.tshark_config.filter="mptcp and not icmp"
 
     # @property

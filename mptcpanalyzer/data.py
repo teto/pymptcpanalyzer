@@ -14,6 +14,7 @@ import math
 import tempfile
 
 log = logging.getLogger(__name__)
+slog = logging.getLogger(__name__)
 
 # todo rename to mapper ?
 
@@ -28,7 +29,7 @@ def ignore(f1, f2):
 
 
 def exact(f1, f2):
-    print("comparing values ", f1, " and ", f2)
+    # print("comparing values ", f1, " and ", f2)
     return 10 if (math.isnan(f1) and math.isnan(f2)) or f1 == f2 else float('-inf')
 
 
@@ -81,7 +82,7 @@ scoring_rules = {
 def load_into_pandas(
     input_file: str,
     config: TsharkConfig,
-    dependencies: Collection =[],
+    dependencies: Collection =[], # TODO remove 
     # load_cb = load_pcap_into_pandas,
     regen: bool=False,
     **extra
@@ -200,7 +201,7 @@ def merge_tcp_dataframes(
     """
     First looks in df2 for a  tcpstream matching df1_tcpstream
     """
-
+    log.debug("Merging TCP dataframes ")  # % ( df1))
     main_connection = TcpConnection.build_from_dataframe(df1, df1_tcpstream)
 
     # du coup on a une liste
@@ -316,7 +317,7 @@ def merge_tcp_dataframes_known_streams(
 
     print("Mapped connection %s to %s" % (mapped_connection, main_connection))
 
-    print("Delimiter:", sep=cfg["mptcpanalyzer"]["delimiter"])
+    # print("Delimiter:", sep=cfg["mptcpanalyzer"]["delimiter"])
 
     # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
     # TODO reorder columns to have packet ids first !
@@ -520,7 +521,8 @@ def generate_tcp_directional_owd_df(
 
     # this will return rawdf1 with an aditionnal "mapped_index" column that
     # correspond to
-    mapped_df = map_tcp_packets(sender_df, receiver_df)
+    toexplain = [ 20 ]
+    mapped_df = map_tcp_packets(sender_df, receiver_df, toexplain)
 
     # on sender_id = receiver_mapped_packetid
 
@@ -531,7 +533,8 @@ def generate_tcp_directional_owd_df(
     print("== DEBUG START ===")
     print("Mapped index:")
     print(mapped_df[["rcv_pktid", "packetid"]].head())
-    print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
+    # print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
+    # print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
     print("== DEBUG END ===")
 
     # we don't want to
@@ -564,7 +567,7 @@ def generate_tcp_directional_owd_df(
 
 
 
-def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
+def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]: # Tuple(row, score)
     # instead should be index ?
     """
     Packets may disappear, get retransmitted
@@ -590,13 +593,15 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
         # log.debug("comparison based on columns %s " % df.columns)
         for field in df.columns:
             try:
-                log.debug("comparing pktids %d with %d for field %s" % (_get_pktid(packet), _get_pktid(row), field))
+                if explain:
+                    log.debug("comparing pktids %d with %d for field %s" % (_get_pktid(packet), _get_pktid(row), field))
                 f1 = getattr(p1, field)
                 f2 = getattr(p2, field)
                 score += scoring_rules[field](f1, f2)
                 # log.debug("new score after column [%s] = %f" % (field, score))
                 if math.isinf(score):
-                    log.debug("Score set to infinity  for field %s" % field)
+                    if explain:
+                        log.debug("Score set to infinity for field %s" % field)
                     break
             except Exception as e:
                 pass
@@ -618,7 +623,7 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
             log.debug("packet %d mapped to %d with a score of %d" % (_get_pktid(packet), _get_pktid(row), score))
             scores.append((_get_pktid(row), score))
         else:
-            log.debug("Found no match for %d, skipping.." % _get_pktid(packet))
+            log.debug("Found no match for pktid %d, skipping.." % _get_pktid(packet))
 
     # sort by score
     scores.sort(key=lambda x: x[1], reverse=True)
@@ -627,10 +632,14 @@ def map_tcp_packet(df, packet) -> List[Tuple[Any, float]]: # Tuple(row, score)
 
 def map_tcp_packets(
     sender_df, receiver_df,
+    explain=[] 
         # con1: TcpConnection, con2: TcpConnection
 ) -> pd.DataFrame:
     """
     Stream ids must already mapped
+    Args:
+        explain = increase verbosity for packet ids in this list
+
     Todo:
         check N = len(sender_df) - len(receiver_df) to know how many packets should be missing,
         then cut off lowest N.
@@ -657,17 +666,23 @@ def map_tcp_packets(
 
     # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
     for row in sender_df.itertuples():
-        scores = map_tcp_packet(receiver_df, row)
+
+        explain_pkt = row.packetid in explain
+        scores = map_tcp_packet(receiver_df, row, explain_pkt)
         print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
         # print("row=", df_final.loc[row.index, "packetid"])
         # df_final.loc[row.index , 'mapped_index'] = 2 # scores[0][0]
         # print(type(row.Index), type(row.index))
         if len(scores) >= 1:
+            if explain_pkt:
+                for idx, score in scores:
+                    log.debug("Score %s=%s" % (idx, score))
             idx, score = scores[0]
 
             df_final.set_value(row.Index, 'rcv_pktid', idx)
             df_final.set_value(row.Index, 'score', score)
+            # TODO we might want to remove that packets from further search
 
         # drop the chosen index so that it doesn't get used a second time
         # todo pb la c qu'on utilise les packet id comme des index :/

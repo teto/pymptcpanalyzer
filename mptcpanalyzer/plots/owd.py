@@ -26,7 +26,6 @@ slog = logging.getLogger("owd")
 
 # This is a complex plot hence we added some
 # debug variables
-mock_cachename = "backup.csv"
 # limit = 20
 
 
@@ -67,8 +66,13 @@ class TcpOneWayDelay(plot.Matplotlib):
                input_pcaps=expected_pcaps,
                **kwargs
         )
+        print("filter=%s" % self.tshark_config.filter)
 
         self.tshark_config.filter = "tcp";
+        # TODO a purer version would be best
+        self.tshark_config.fields = []
+        self.tshark_config.add_basic_fields();
+        # print("filter=%s" % self.tshark_config.filter)
         # self.suffixes = ("_snd", "_rcv")
         # self.suffixes = ("", "_rcv")
         # self.columns = [
@@ -93,10 +97,13 @@ class TcpOneWayDelay(plot.Matplotlib):
         parser = argparse.ArgumentParser(
             description="Helps plotting One Way Delays between tcp connections"
         )
-        # parser.add_argument("host1", action="store", help="pcap captured on first host")
-        # parser.add_argument("host2", action="store", help="pcap captured on second host")
         parser = super().default_parser(
             *args, parent_parsers=[parser], mptcpstream=False, **kwargs
+        )
+        parser.add_argument("--explain", action="append",
+                default=[],
+                type=int,
+                help="List packets "
         )
 
         # parser.add_argument("--offset", action="store",
@@ -106,15 +113,6 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         return parser
 
-
-#    def get_cachename(self, pcap1, pcap2):
-#        """
-#        fake cachename via concatenating
-#        Ideally the order of parameters should not matter
-#        """
-#        # TODO HACK mock
-#        return mock_cachename
-#        return os.path.join(pcap1, os.path.sep, pcap2)
 
     def preprocess(self, main, mptcpstream=None,
             # host1_pcap, host2_pcap,
@@ -136,6 +134,8 @@ class TcpOneWayDelay(plot.Matplotlib):
             kwargs.get("host1_pcap"),
             kwargs.get("host2_pcap")
             ], ".csv")
+
+        print("filter=%s" % self.tshark_config.filter)
 
         print(" main = %r", main)
         # if we can't load that file from cache
@@ -163,7 +163,9 @@ class TcpOneWayDelay(plot.Matplotlib):
                 h1_df, h2_df = dataframes
 
                 total = woo.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
-                firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
+                # 'packetid_h1', 'packetid_h2',
+                # 'dest',
+                firstcols = [ 'packetid_sender', 'packetid_receiver', 'owd']
                 total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
                 print("Saving into %s", cachename)
                 total.to_csv(
@@ -192,7 +194,7 @@ class TcpOneWayDelay(plot.Matplotlib):
                         # we don't need 'header' when metadata is with comment
                         # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
                         # skiprows
-                        sep=self.config.delimiter,
+                        sep=self.tshark_config.delimiter,
                         # dtype=dtypes,
                         # converters={
                         #     "tcp.flags": lambda x: int(x, 16),
@@ -250,6 +252,8 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # group by title/direction
         # todo utiliser groupby
+        print("Plotting is not ready yet ")
+        exit(1)
 
         print(res["tcpdest"].head())
         cols = ["tcpstream_h1", "tcpstream_h2", "tcpdest"]
