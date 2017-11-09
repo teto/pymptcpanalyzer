@@ -39,7 +39,7 @@ import textwrap
 import readline
 from typing import List, Any, Tuple, Dict, Callable, Set
 # from cmd import Cmd
-from cmd2 import Cmd
+import cmd2
 
 from stevedore import extension
 
@@ -55,7 +55,7 @@ log.addHandler(ch)
 log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
-print("logger nqme from cli", __name__)
+# print("logger name from cli", __name__)
 
 histfile_size = 100
 
@@ -72,7 +72,7 @@ def is_loaded(f):
     return wrapped
 
 
-class MpTcpAnalyzer(Cmd):
+class MpTcpAnalyzer(cmd2.Cmd):
     """
     mptcpanalyzer can run into 3 modes:
 
@@ -101,8 +101,10 @@ class MpTcpAnalyzer(Cmd):
             config: configution to get user parameters
             data:  dataframe currently in use
         """
-        # self.colorize( , "blue")
-        self.prompt = "%s> " % "Ready"
+
+        self.shortcuts.update({'ls': 'list_subflows', 'lr': 'list_reinjections'})
+        super().__init__(completekey='tab', stdin=stdin)
+        self.prompt = self.colorize("Ready>" , "blue")
         self.data = None  # type: pd.DataFrame
         self.config = cfg
         self.tshark_config = TsharkConfig(
@@ -122,7 +124,7 @@ class MpTcpAnalyzer(Cmd):
         self.default_to_shell = False;
         self.debug = True;  #  for now
         self.set_posix_shlex = True
-        self.shortcuts.update({'lr': 'do_list_reinjections', '~': 'squirm'})
+ 
 
         # LOAD PLOTS
         ######################
@@ -160,7 +162,10 @@ class MpTcpAnalyzer(Cmd):
         use for input and output. If not specified, they will default to
         sys.stdin and sys.stdout.
         """
-        super().__init__(completekey='tab', stdin=stdin)
+
+        
+        print(self.shortcuts)
+
 
     @property
     def plot_manager(self):
@@ -308,7 +313,7 @@ class MpTcpAnalyzer(Cmd):
 
     def help_list_subflows(self):
 
-        return "Use parser -h"
+        print( "Use parser -h")
 
     def complete_list_subflows(self, text, line, begidx, endidx):
         """ help to complete the args """
@@ -801,6 +806,7 @@ def main(arguments=None):
 
     log.info("Starting in folder %s" % os.getcwd())
     log.debug("Pandas version: %s" % pd.__version__)
+    log.debug("cmd2 version: %s" % cmd2.__version__)
 
     try:
 
@@ -816,13 +822,14 @@ def main(arguments=None):
         # if extra parameters passed via the cmd line, consider it is one command
         # not args.batch ? both should conflict
         elif unknown_args:
-            log.info("One-shot command with unknown_args=  %s" % unknown_args)
+            log.info("One-shot command(s) with unknown_args=  %s" % unknown_args)
 
             # list2cmdline is undocumented function so it  might disappear
             # http://stackoverflow.com/questions/12130163/how-to-get-resulting-subprocess-command-string
             # but just doing "analyzer.onecmd(' '.join(unknown_args))" is not enough
-            cmd = subprocess.list2cmdline(unknown_args)  # type: ignore
-            analyzer.onecmd(cmd)
+            # cmd = subprocess.list2cmdline(unknown_args)  # type: ignore
+            for cmd in unknown_args:
+                analyzer.onecmd(cmd)
         else:
             log.info("Starting interactive mode")
             analyzer.cmdloop()

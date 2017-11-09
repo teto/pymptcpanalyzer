@@ -632,7 +632,7 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]: # Tupl
 
 def map_tcp_packets(
     sender_df, receiver_df,
-    explain=[] 
+    explain=[]
         # con1: TcpConnection, con2: TcpConnection
 ) -> pd.DataFrame:
     """
@@ -657,15 +657,19 @@ def map_tcp_packets(
     # adds a new column that contains only nan
     log.debug("Mapping TCP packets between TODO")
 
-    # returns a new df with new columns rcv_pktid, score initialized to NaN
+    # returns a new object with new columns rcv_pktid, score initialized to NaN
     df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan,)
+    print(sender_df)
+    # log.debug(df_final.columns)
 
     # # Problem is to identify lost packets and retransmitted ones
     # # so that they map to the same or none ?
     limit = 5  # limit nb of scores to display
 
     # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
-    for row in sender_df.itertuples():
+    print(df_final)
+    # for row_id, row in enumerate(sender_df.values):
+    for row_id, row in enumerate(sender_df.itertuples(index=False)):
 
         explain_pkt = row.packetid in explain
         scores = map_tcp_packet(receiver_df, row, explain_pkt)
@@ -680,8 +684,20 @@ def map_tcp_packets(
                     log.debug("Score %s=%s" % (idx, score))
             idx, score = scores[0]
 
-            df_final.set_value(row.Index, 'rcv_pktid', idx)
-            df_final.set_value(row.Index, 'score', score)
+            # at or iat 
+            # You should never modify something you are iterating over.
+            # print("row.Index=%r (out of %d) and idx=%r" % (row.Index, len(df_final), idx))
+            print("row.id=%r (out of %d) and idx=%r" % (row_id, len(df_final), idx))
+            # print("df_final.=%r " % (row.Index, idx))
+            # df_final.iat[row.Index, df_final.columns.get_loc('rcv_pktid')] = idx
+            pkt_column = df_final.columns.get_loc('rcv_pktid')
+            score_column = df_final.columns.get_loc('score')
+            df_final.iloc[row_id, pkt_column] = idx
+            # df_final.loc[row.Index, 'rcv_pktid'] = idx
+            # df_final.at[row.Index, 'rcv_pktid'] = idx
+            # iat only accepts an integer while iloc can accept a tuple etc
+            # print(df_final.iat[row.Index].score)
+            df_final.iloc[row_id, score_column] = score
             # TODO we might want to remove that packets from further search
 
         # drop the chosen index so that it doesn't get used a second time
