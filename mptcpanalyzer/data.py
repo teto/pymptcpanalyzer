@@ -521,7 +521,7 @@ def generate_tcp_directional_owd_df(
 
     # this will return rawdf1 with an aditionnal "mapped_index" column that
     # correspond to
-    toexplain = [ 20 ]
+    toexplain = [ 418 ]
     mapped_df = map_tcp_packets(sender_df, receiver_df, toexplain)
 
     # on sender_id = receiver_mapped_packetid
@@ -540,6 +540,24 @@ def generate_tcp_directional_owd_df(
     # we don't want to
     # on veut tjrs avoir le mapping
     # if dest == Destination.Server:
+    print("Mapped df:")
+    print(mapped_df)
+    print("receiver df:")
+    print(receiver_df)
+
+    # print("Duplicated ")
+    # print(mapped_df.index.duplicated(keep='first'))
+    # receiver_df has fewer packets
+    # print("Duplicated receiver")
+    # print(receiver_df.index.duplicated(keep='first'))
+
+    if mapped_df.rcv_pktid.is_unique is False:
+        log.warn("There seems to be an error: some packets were mapped several times.")
+
+    # check for nan/ drop them
+    if mapped_df.rcv_pktid.is_unique is False:
+        log.warn("There seems to be an error: some packets were mapped several times.")
+
     res = pd.merge(
         mapped_df, receiver_df,
         left_on="rcv_pktid",
@@ -576,7 +594,7 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]: # Tupl
         packet:
 
     Returns:
-        a list of tuples (index, score)
+        a list of tuples (pktid, score)
     """
 
     def _get_pktid(row) -> int:
@@ -622,8 +640,8 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]: # Tupl
         if not math.isinf(score):
             log.debug("packet %d mapped to %d with a score of %d" % (_get_pktid(packet), _get_pktid(row), score))
             scores.append((_get_pktid(row), score))
-        else:
-            log.debug("Found no match for pktid %d, skipping.." % _get_pktid(packet))
+        # else:
+        #     log.debug("Found no match for pktid %d, skipping.." % _get_pktid(packet))
 
     # sort by score
     scores.sort(key=lambda x: x[1], reverse=True)
@@ -668,17 +686,21 @@ def map_tcp_packets(
 
     # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
     print(df_final)
+
+    pkt_column = df_final.columns.get_loc('rcv_pktid')
+    score_column = df_final.columns.get_loc('score')
+
     # for row_id, row in enumerate(sender_df.values):
     for row_id, row in enumerate(sender_df.itertuples(index=False)):
 
         explain_pkt = row.packetid in explain
         scores = map_tcp_packet(receiver_df, row, explain_pkt)
-        print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
         # takes best score index
         # print("row=", df_final.loc[row.index, "packetid"])
         # df_final.loc[row.index , 'mapped_index'] = 2 # scores[0][0]
         # print(type(row.Index), type(row.index))
         if len(scores) >= 1:
+            print("first %d packets (pandas.index/score)s=\n%s" % (limit, scores[:limit]))
             if explain_pkt:
                 for idx, score in scores:
                     log.debug("Score %s=%s" % (idx, score))
@@ -690,8 +712,6 @@ def map_tcp_packets(
             print("row.id=%r (out of %d) and idx=%r" % (row_id, len(df_final), idx))
             # print("df_final.=%r " % (row.Index, idx))
             # df_final.iat[row.Index, df_final.columns.get_loc('rcv_pktid')] = idx
-            pkt_column = df_final.columns.get_loc('rcv_pktid')
-            score_column = df_final.columns.get_loc('score')
             df_final.iloc[row_id, pkt_column] = idx
             # df_final.loc[row.Index, 'rcv_pktid'] = idx
             # df_final.at[row.Index, 'rcv_pktid'] = idx
@@ -706,9 +726,14 @@ def map_tcp_packets(
             # df2.drop(df2.index[[idx]], inplace=True)
             # df2.drop(idx, inplace=True)
         else:
-            log.debug("No map found for this packet")
+            # log.debug("No map found for this packet")
+            log.debug("Found no match for pktid %d, skipping.." % row.packetid)
 
         # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index )
+
+    # checks that 
+    # if df_final.rcv_pktid.is_unique is False:
+    #     log.warn("There seems to be an error: some packets were mapped several times.")
 
     # print("head=\n", df_final.head())
     return df_final
