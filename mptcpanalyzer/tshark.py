@@ -112,7 +112,7 @@ class TsharkConfig:
         self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
         self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment")
         self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64, "TCP timestamp tsval")
-        self.add_field("tcp.options.timestamp.tsecr", "tcptsval", np.float64, "TCP timestamp tsecr")
+        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64, "TCP timestamp tsecr")
 
     def add_mptcp_fields(self, advanced=False):
         self.add_field("mptcp.expected_token", "expected_token", str, False)

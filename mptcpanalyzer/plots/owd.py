@@ -150,7 +150,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             if not valid:
                 # generate h1/h2 cache
                 dataframes = super().preprocess(main, **kwargs)
-                # tcpstream = mptcpstream # we kept mptcpstream as a convenience
+                tcpstream = mptcpstream # we kept mptcpstream as a convenience
                 # TODO 
                 print("FIX tcpstreamid AFTER DEBUG")
                 tcpstream = 0 # we kept mptcpstream as a convenience
@@ -179,7 +179,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
 
             else:
-                log.info("Loaded from cache")
+                log.info("Loaded from cache %s" % cachename)
                 # pd.read_csv()
                 with open(cachename) as fd:
                     # first line is metadata
@@ -192,9 +192,9 @@ class TcpOneWayDelay(plot.Matplotlib):
                         # hum not needed with comment='#'
                         comment='#',
                         # we don't need 'header' when metadata is with comment
-                        # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
+                        header=0, # read column names from row 2 (before, it's metadata)
                         # skiprows
-                        sep=self.tshark_config.delimiter,
+                        # sep=self.tshark_config.delimiter,
                         # dtype=dtypes,
                         # converters={
                         #     "tcp.flags": lambda x: int(x, 16),
@@ -242,6 +242,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         res = df_results
         print("columns", res.columns)
+        print("info", res.info())
 
         # print(res[["packetid", "mapped_index",
         #     "sendkey" + self.suffixes[0], "sendkey" + self.suffixes[1],]])
@@ -252,17 +253,21 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # group by title/direction
         # todo utiliser groupby
-        print("Plotting is not ready yet ")
-        exit(1)
+        # print("Plotting is not ready yet ")
+        # exit(1)
 
-        print(res["tcpdest"].head())
-        cols = ["tcpstream_h1", "tcpstream_h2", "tcpdest"]
+        # print(res["tcpdest"].head())
+        cols = "tcpdest"
         # cols = ["tcpstream_h1", "tcpstream_h2", ]
         # print(res)
         # print(res.columns)
         # print(res.dtypes)
-
-        grouped_by = res.groupby(cols, sort=False)
+# df.reset_index(drop=True)
+        # grouped_by = res.groupby(by=cols, sort=False)
+        # print(res.head())
+        print(res[['tcpdest']])
+        # print(res[:,'tcpdest'])
+        grouped_by = res.groupby(by=cols, )
         print(grouped_by.head())
         print(len(grouped_by)) # len of 2 which is good, but why
 
@@ -275,7 +280,7 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
                 legend=False,
-                x="abstime_h1",
+                x="abstime_sender",
                 y="owd",
                 label="toto", # seems to be a bug
                 # style="-o",

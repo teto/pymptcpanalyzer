@@ -521,7 +521,7 @@ def generate_tcp_directional_owd_df(
 
     # this will return rawdf1 with an aditionnal "mapped_index" column that
     # correspond to
-    toexplain = [ 418 ]
+    toexplain = [ 35 ]
     mapped_df = map_tcp_packets(sender_df, receiver_df, toexplain)
 
     # on sender_id = receiver_mapped_packetid
