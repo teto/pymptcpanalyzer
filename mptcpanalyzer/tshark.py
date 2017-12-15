@@ -41,7 +41,6 @@ type: python type pandas should convert this field to
 label: used when plotting
 """
 Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ])
-# Field.__new__.__defaults__ = (None, None)
 
 
 class TsharkConfig:

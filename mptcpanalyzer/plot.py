@@ -11,7 +11,7 @@ import pandas as pd
 from mptcpanalyzer.data import load_into_pandas
 from enum import Enum, IntEnum
 from mptcpanalyzer.connection import MpTcpConnection
-from typing import Iterable, List, Any, Tuple, Dict, Callable, Collection
+from typing import Iterable, List, Any, Tuple, Dict, Collection
 import copy
 import abc
 # import six
@@ -35,7 +35,6 @@ def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
     filter mainset from ips
     filter to only account for one direction (departure or arrival)
     """
-    # if mptcpstream:
     query = " mptcpstream == %d " % mptcpstream
 
     if ipsrc:
@@ -53,7 +52,6 @@ def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
     return query
 
 
-# @six.add_metaclass(abc.ABCMeta)
 class Plot:
     """
     This is a helper class designed to provide basic functionalities so that
@@ -68,12 +66,10 @@ class Plot:
         title (str): title to give to the plot
         enabel_preprocessing (bool): Automatically filters dataframes beforehand
     """
-
     def __init__(
         self,
         exporter : 'TsharkConfig',  # TODO look into mypy forward declarations
-        # we want an ordered dict but type hinting OrderedDict is not in python3 batteries
-        # TypedDict is in mypy 0.540, also needs mypy_extension
+        # TypedDict is in mypy 0.540 but it requires mypy_extension and is unstable
         input_pcaps: List[Tuple[str, PreprocessingActions]],
         title: str = None,
         *args, **kwargs
@@ -88,16 +84,10 @@ class Plot:
         self.tshark_config = copy.deepcopy(exporter)
         self.tshark_config.filter="mptcp and not icmp"
 
-    # @property
-    # def cache(self):
-    #     return self.main.cache
 
     def default_parser(
         self,
-        # TODO remove two followings ?
         parent_parsers=[],
-        # available_dataframe: bool,
-        # required_inputs: List[str] = ["pcap"],
         mptcpstream: bool = False,
         direction: bool = False, skip_subflows: bool = True,
         dst_host: bool=False
@@ -122,12 +112,7 @@ class Plot:
             add_help=False if len(parent_parsers) else True,
         )
 
-        # how many pcaps shall we load ?
-        # count = required_nb_of_dataframes - (1 if available_dataframe else 0)
-        # for i in range(0, count):
-
-        # for name in required_inputs:
-        print("preload = ", type(self.input_pcaps), self.input_pcaps)
+        # print("preload = ", type(self.input_pcaps), self.input_pcaps)
         for name, bitfield in self.input_pcaps:
             parser.add_argument(
                 name,
@@ -286,7 +271,6 @@ class Plot:
                         [ filename ])
                 dataframes.append(df)
 
-        # dataframes = [self.filter_dataframe(df, **kwargs) for df in dataframes]
         return dataframes
 
     def run(self, rawdataframes, **kwargs):
@@ -303,9 +287,6 @@ class Plot:
         """
         dataframes = rawdataframes
 
-        # if only one element, pass it directly instead of a list
-        # if len(dataframes) == 1:
-        #     dataframes = dataframes[0]
         dataframes = dataframes[0] if len(dataframes) == 1 else dataframes,
         self.plot(dataframes, **kwargs)
 
@@ -334,7 +315,6 @@ class Matplotlib(Plot):
 
 
     def __init__(self, *args, **kwargs):
-        # print(args)
         super().__init__(*args, **kwargs)
 
     def default_parser(self, *args, **kwargs):
@@ -361,7 +341,6 @@ class Matplotlib(Plot):
             out: if the file was saved to a file
 
         """
-        # self.title = args.title if args.title else self.title
         if opt.get('title', self.title):
             v.suptitle(self.title, fontsize=12)
 
@@ -370,9 +349,6 @@ class Matplotlib(Plot):
 
         if display:
             if out is None:
-                # TODO create a temporary file
-                # print("%r")
-                # v.imshow()
                 with tempfile.NamedTemporaryFile() as tmpfile:
                     print("tempfile=", tmpfile)
                     print("\n=")
@@ -395,9 +371,6 @@ class Matplotlib(Plot):
         Returns:
             A matplotlib figure
         """
-        # autofilter dataset if needed
-        # with plt.style.context(args.styles):
-        # setup styles if any
         log.debug("Using matplotlib styles: %s" % styles)
 
         if len(dataframes) == 1:
@@ -421,8 +394,6 @@ class Matplotlib(Plot):
             You can set *dpi* for instance  (80 by default ?)
         """
         print("Saving into %s" % (filename))
-        # filename = os.path.join(os.getcwd(), filename)
-        # dpi can be set from resource config
-# , the value of the rc parameter savefig.format
+        # most settings (dpi for instance) can be set from resource config
         fig.savefig(filename, format="png", **kwargs)
         return filename

@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple, Collection
+from typing import Collection
 import logging
 import shutil
 from pathlib import Path
@@ -22,7 +22,6 @@ class CacheId:
         """
         assert len(deps) > 0, "without dependency, why use cache ?"
 
-
         # TODO check all Path exists / .exists()
         self.dependencies = list(map(os.path.abspath, deps))
         log.debug("%r %r", prefix, suffix)
@@ -40,12 +39,10 @@ class CacheId:
         log.debug("Computing uid from dependencies %r" % dependencies)
         temp = ""
         for dep in dependencies:
-            # for dependancy in depends:
             mtime_dep = os.path.getmtime(dep)
             temp = temp + dep + str(mtime_dep)
 
         return self.tpl % str(hash(temp))
-        # return prefix + str(hash(temp)) + str(suffix)
 
         # encode path to cache
         # chunks = os.path.realpath(filename).split(os.path.sep)
@@ -56,7 +53,6 @@ class CacheId:
     #     return Cache.cacheuid()
 
 
-# TODO rename
 class Cache:
     """
     TODO copy from doc
@@ -83,47 +79,22 @@ class Cache:
             is_cache_valid = True
             for dependancy in dependencies:
                 # todo use mtime instead ?!
-                ctime_dep = os.path.getctime(dependancy)
+                mtime_dep = os.path.getmtime(dependancy)
 
-                if ctime_cached >= ctime_dep:
+                if ctime_cached >= mtime_dep:
                     log.debug(
                         "Cache dependancy %s ctime (%s) is valid (>= %s)"
-                        % (dependancy, ctime_dep, ctime_cached))
+                        % (dependancy, mtime_dep, ctime_cached))
                 else:
                     log.debug("Cache outdated by dependancy %s" % dependancy)
                     is_cache_valid = False
                     break
-
-            # then we check if metadata matches
         else:
             log.debug("No cache %s found" % cachename)
-        # return is_cache_valid, cachename
         return is_cache_valid, cachename
 
     def put(self, uid: CacheId, result: str):
         shutil.move(result, os.path.join(self.folder, uid.filename))
-
-    # todo use get() instead
-    # def is_cache_valid(self, uid, dependencies: List[str]=None) -> Tuple[bool, str]:
-    #     """
-    #     Args:
-    #         metadata:
-    #         depends: List of files to check, useful when a cached file results
-    #             from merging several files, to compute OWD for instance
-
-    #     Returns:
-    #         A tuple of (True if cache exists, encoded cachename)
-
-    #     """
-    #     log.debug("Checking cache for %s" % uid)
-    #     is_cache_valid = False
-
-    #     # todo rename to encode rather
-    #     # cachename = self.matching_cache_filename(filename)
-    #     if dependencies is None:
-    #         dependencies = [filename]
-
-    #     cachename = self.cacheuid(filename)
 
     @staticmethod
     def cacheuid(prefix: str, dependencies: Collection=[], suffix: str=""):
