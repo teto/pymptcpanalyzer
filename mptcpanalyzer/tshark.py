@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 import logging
 import subprocess
 import os
@@ -37,7 +37,8 @@ def find_type(filename):
 """
 fullname: wireshark name
 name: shortname used in mptcpanalyzer
-type: python type pandas should convert this field to
+type: python type pandas should convert this field to be careful that pandas integers
+can't be NA, which is why we use floats mot of the time, which is a waste
 label: used when plotting
 """
 Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ])
@@ -105,8 +106,8 @@ class TsharkConfig:
         self.add_field("tcp.dstport", "dport", np.float, False)
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
-        self.add_field("tcp.window_size", "rwnd", np.int64, True)
-        self.add_field("tcp.flags", "tcpflags", np.float64, False)
+        self.add_field("tcp.window_size", "rwnd", np.float64, True)
+        self.add_field("tcp.flags", "tcpflags", np.int64, False)
         self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number")
         self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
         self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment")
@@ -212,7 +213,7 @@ class TsharkConfig:
         print(cmd)
 
         try:
-            # TODO serialize wireshark options
+            # TODO serialize wireshark options in header
             # with open(output_csv, "w+") as fd:
             fd = output_csv
             fd.write("# metadata: \n")
@@ -226,9 +227,6 @@ class TsharkConfig:
             log.error(str(e))
             print("ERROR")
             output = " ehllo "
-        # os.system(cmd)
-        # except CalledProcessError as e:
-        # print(output)
         return proc.returncode, stderr
 
     def hash(self,):

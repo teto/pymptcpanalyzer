@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 import mptcpanalyzer as mp
 import pandas as pd
 from mptcpanalyzer.data import load_into_pandas
-from enum import Enum, IntEnum
+from mptcpanalyzer.tshark import TsharkConfig
+from enum import IntEnum
 from mptcpanalyzer.connection import MpTcpConnection
-from typing import Iterable, List, Any, Tuple, Dict, Collection
+from typing import List, Tuple, Collection
 import copy
 import abc
-# import six
 import logging
 
 log = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class Plot:
     """
     def __init__(
         self,
-        exporter : 'TsharkConfig',  # TODO look into mypy forward declarations
+        exporter : TsharkConfig,
         # TypedDict is in mypy 0.540 but it requires mypy_extension and is unstable
         input_pcaps: List[Tuple[str, PreprocessingActions]],
         title: str = None,
@@ -112,7 +112,6 @@ class Plot:
             add_help=False if len(parent_parsers) else True,
         )
 
-        # print("preload = ", type(self.input_pcaps), self.input_pcaps)
         for name, bitfield in self.input_pcaps:
             parser.add_argument(
                 name,
@@ -267,8 +266,7 @@ class Plot:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
                 filename = kwargs.get(pcap_name)
-                df = load_into_pandas(filename, self.tshark_config,
-                        [ filename ])
+                df = load_into_pandas(filename, self.tshark_config,)
                 dataframes.append(df)
 
         return dataframes
@@ -295,7 +293,6 @@ class Plot:
         Opens filename in your usual picture viewer
         Relies on xdg-open by default so set your mimetypes correctly !
         """
-        log.debug("Displaying file")
         cmd = "xdg-open %s" % (filename)
         print(cmd)
         os.system(cmd)
@@ -350,10 +347,9 @@ class Matplotlib(Plot):
         if display:
             if out is None:
                 with tempfile.NamedTemporaryFile() as tmpfile:
-                    print("tempfile=", tmpfile)
-                    print("\n=")
+                    print("No output file set, using tempfile=%s" % tmpfile)
                     r = self.savefig(v, tmpfile.name)
-                    print("returned", r)
+                    log.debug("returned %r" % r)
                     self.display(tmpfile.name)
             else:
                 self.display(out)

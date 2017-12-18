@@ -8,7 +8,6 @@ import logging
 import argparse
 import matplotlib.pyplot as plt
 # from mptcpanalyzer import fields_v2
-import collections
 
 log = logging.getLogger(__name__)
 
@@ -25,9 +24,7 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
             input_pcaps=pcaps,
             **kwargs)
 
-        # todo get them from 
         self.mptcp_attributes = self.tshark_config.get_fields('name', 'label')
-        # dict((x.name, x.label) for x in fields_v2() if x.label)
 
 
     def default_parser(self, *args, **kwargs):

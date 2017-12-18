@@ -2,13 +2,9 @@
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer as mp
-# from mptcpanalyzer.connection import MpTcpConnection
-import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import collections
 from itertools import cycle
-from typing import List
 import logging
 
 log = logging.getLogger(__name__)

@@ -69,12 +69,9 @@ class Cache:
         dependencies = uid.dependencies
         is_cache_valid = False
 
-        # if self.disabled:
-        #     log.debug("Cache disabled, hence requested cache deemed invalid")
         if os.path.isfile(cachename):
             log.info("A cache %s was found" % cachename)
             ctime_cached = os.path.getctime(cachename)
-            # ctime_pcap = os.path.getctime(filename)
             # print(ctime_cached , " vs ", ctime_pcap)
             is_cache_valid = True
             for dependancy in dependencies:
@@ -94,7 +91,9 @@ class Cache:
         return is_cache_valid, cachename
 
     def put(self, uid: CacheId, result: str):
-        shutil.move(result, os.path.join(self.folder, uid.filename))
+        dest = os.path.join(self.folder, uid.filename)
+        log.info("Moving file %s to %s" % (result, dest))
+        shutil.move(result, dest)
 
     @staticmethod
     def cacheuid(prefix: str, dependencies: Collection=[], suffix: str=""):

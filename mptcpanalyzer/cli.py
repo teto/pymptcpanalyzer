@@ -67,7 +67,7 @@ def is_loaded(f):
         if self.data is not None:
             return f(self, *args)
         else:
-            raise mp.MpTcpException("Please load a pcap with `load` first")
+            raise mp.MpTcpException("Please load a pcap with `load_pcap` first")
         return None
     return wrapped
 
@@ -102,7 +102,11 @@ class MpTcpAnalyzer(cmd2.Cmd):
             data:  dataframe currently in use
         """
 
-        self.shortcuts.update({'ls': 'list_subflows', 'lr': 'list_reinjections'})
+        self.shortcuts.update({
+            'lc': 'list_connections',
+            'ls': 'list_subflows',
+            'lr': 'list_reinjections'
+        })
         super().__init__(completekey='tab', stdin=stdin)
         self.prompt = self.colorize("Ready>" , "blue")
         self.data = None  # type: pd.DataFrame
@@ -113,10 +117,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
             cfg["mptcpanalyzer"]["wireshark_profile"],
         )
 
-        # self.cache = Cache(self.config["cache"])
-        # if kwargs.get('no_cache'):
-        #     self.cache.disabled = True
-
         # cmd2 specific initialization
         self.abbrev = True;  #  when no ambiguities, run the command
         self.allow_cli_args = False;
@@ -124,7 +124,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         self.default_to_shell = False;
         self.debug = True;  #  for now
         self.set_posix_shlex = True
- 
 
         # LOAD PLOTS
         ######################
@@ -162,9 +161,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         use for input and output. If not specified, they will default to
         sys.stdin and sys.stdout.
         """
-
-        
-        print(self.shortcuts)
+        # print(self.shortcuts)
 
 
     @property
@@ -445,13 +442,11 @@ class MpTcpAnalyzer(cmd2.Cmd):
         # TODO check for reinjections etc...
 
     @is_loaded
-    def do_lc(self, *args):
+    def do_list_connections(self, *args):
         """
         List mptcp connections via their ids (mptcp.stream)
         """
-        # self.data.describe()
         streams = self.data.groupby("mptcpstream")
-
         print('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
@@ -547,16 +542,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
                 print("packetid=%d reinjected in %s" % (row.packetid, row.reinjections))
                 known.update([row.packetid] + row.reinjections)
 
-    # def do_batch(self, line):
-    #     print("Running batched commands")
-    #     # with open(args.batch) as fd:
-
-    # def batch(self, fd):
-    #     log.info("Batched commands")
-    #     for command in fd:
-    #         log.info(">>> %s" % command)
-    #         self.onecmd(command)
-
     def load(self, filename, regen: bool=False):
 
         self.data = load_into_pandas(filename, self.tshark_config, regen)
@@ -589,13 +574,10 @@ class MpTcpAnalyzer(cmd2.Cmd):
         self.plot_mptcpstream(args)
 
     def help_plot(self):
-        print("Run plot -h")
+        self.do_plot("-h")
 
     def complete_plot(self, text, line, begidx, endidx):
         types = self._get_available_plots()
-        # print("Line=%s" % line)
-        # print("text=%s" % text)
-        # print(types)
         l = [x for x in types if x.startswith(text)]
         return l
 

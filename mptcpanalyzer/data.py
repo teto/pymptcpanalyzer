@@ -4,7 +4,7 @@ import logging
 import os
 import pandas as pd
 import numpy as np
-from mptcpanalyzer.tshark import TsharkConfig, Filetype
+from mptcpanalyzer.tshark import TsharkConfig
 # from mptcpanalyzer.config import MpTcpAnalyzerConfig, get_config
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 import mptcpanalyzer as mp
@@ -73,23 +73,15 @@ scoring_rules = {
 }
 
 
-# def load_from_cache(input_file,):
-#     cache = mp.get_cache()
-
-# def load_into_pandas(
-#         ):
-
 def load_into_pandas(
     input_file: str,
     config: TsharkConfig,
-    dependencies: Collection =[], # TODO remove 
-    # load_cb = load_pcap_into_pandas,
     regen: bool=False,
     **extra
     # metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
 ) -> pd.DataFrame:
     """
-    load mptpcp data into pandas
+    load mptcp  data into pandas
 
     Args:
         input_file: pcap filename
@@ -106,15 +98,13 @@ def load_into_pandas(
     cache = mp.get_cache()
 
     # csv_filename = self.get_matching_csv_filename(filename, regen)
-    # if os.path.isfile(cachename):
     uid = cache.cacheuid(
-        # filename,  # prefix (might want to shorten it a bit)
-        '',
-        dependencies,
+        '',  # prefix (might want to shorten it a bit)
+        # os.path.basename(filename), # prefix
+        [ filename ], # dependancies
         str(config.hash())  + '.csv'
     )
 
-    # try:
     is_cache_valid, csv_filename = cache.get(uid)
 
     # except:
@@ -122,9 +112,9 @@ def load_into_pandas(
 
     # is_cache_valid, csv_filename = cache.is_cache_valid(uid, )
 
-    log.debug("valid cache: %d cachename: %s" % (is_cache_valid, csv_filename))
+    log.debug("cache validity=%d cachename: %s" % (is_cache_valid, csv_filename))
     if regen or not is_cache_valid:
-        log.info("Cache invalid... Converting %s " % (filename,))
+        log.info("Cache invalid or regen %d... Converting %s " % (regen, filename,))
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
             retcode, stderr = config.export_to_csv(
@@ -142,39 +132,42 @@ def load_into_pandas(
                 # os.remove(csv_filename)
                 raise Exception(stderr)
 
-    # print("CONFIG=", cfg)
-
     temp = config.get_fields("fullname", "type")
     dtypes = {k: v for k, v in temp.items() if v is not None}
     log.debug("Loading a csv file %s" % csv_filename)
 
-    with open(csv_filename) as fd:
-        # first line is metadata
-        # TODO: creer classe metadata read/write ?
-        # metadata = fd.readline()
+    try:
+        with open(csv_filename) as fd:
+            # first line is metadata
+            # TODO: creer classe metadata read/write ?
+            # metadata = fd.readline()
 
-        data = pd.read_csv(
-            fd,
-            # skip_blank_lines=True,
-            # hum not needed with comment='#'
-            comment='#',
-            # we don't need 'header' when metadata is with comment
-            # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
-            # skiprows
-            sep=config.delimiter,
-            dtype=dtypes,
-            converters={
-                "tcp.flags": lambda x: int(x, 16),
-                # reinjections, converts to list of integers
-                "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
-                # "mptcp.related_mapping": lambda x: x.split(','),
-            },
-            # memory_map=True, # could speed up processing
-        )
-        # TODO:
-        # No columns to parse from file
-        data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
-        log.debug("Column names: %s", data.columns)
+            data = pd.read_csv(
+                fd,
+                # skip_blank_lines=True,
+                # hum not needed with comment='#'
+                comment='#',
+                # we don't need 'header' when metadata is with comment
+                # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
+                # skiprows
+                sep=config.delimiter,
+                dtype=dtypes,
+                converters={
+                    "tcp.flags": lambda x: int(x, 16),
+                    # reinjections, converts to list of integers
+                    "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
+                    # "mptcp.related_mapping": lambda x: x.split(','),
+                },
+                # memory_map=True, # could speed up processing
+            )
+            # TODO:
+            # No columns to parse from file
+            data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
+            log.debug("Column names: %s", data.columns)
+    except Exception as e:
+        print("You may need to filter more your pcap to keep only mptcp packets")
+        raise e
+        # TODO rethrow the error ?
 
     # pp = pprint.PrettyPrinter(indent=4)
     # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
@@ -690,7 +683,6 @@ def map_tcp_packets(
     pkt_column = df_final.columns.get_loc('rcv_pktid')
     score_column = df_final.columns.get_loc('score')
 
-    # for row_id, row in enumerate(sender_df.values):
     for row_id, row in enumerate(sender_df.itertuples(index=False)):
 
         explain_pkt = row.packetid in explain
@@ -706,7 +698,6 @@ def map_tcp_packets(
                     log.debug("Score %s=%s" % (idx, score))
             idx, score = scores[0]
 
-            # at or iat 
             # You should never modify something you are iterating over.
             # print("row.Index=%r (out of %d) and idx=%r" % (row.Index, len(df_final), idx))
             print("row.id=%r (out of %d) and idx=%r" % (row_id, len(df_final), idx))
@@ -731,7 +722,7 @@ def map_tcp_packets(
 
         # print("registered = %s" % ( df_final.loc[row.Index, 'mapped_index'])) # , ' at index: ', row.index )
 
-    # checks that 
+    # checks that
     # if df_final.rcv_pktid.is_unique is False:
     #     log.warn("There seems to be an error: some packets were mapped several times.")
 

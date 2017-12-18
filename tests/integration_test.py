@@ -143,8 +143,6 @@ class IntegrationTest(TestCase):
         Test to check if the program correctly mapped one connection to another
         """
         z = self.create_z()
-        # expects 2 datasets
-        # load from csv
         ds1 = load_into_pandas("examples/node0.pcap")
         ds2 = load_into_pandas("examples/node1.pcap")
 
@@ -153,11 +151,8 @@ class IntegrationTest(TestCase):
 
         self.assertEqual(main_connection.client_key, 7214480005779690518)
         results = data.mptcp_match_connection(ds1, ds2, main_connection)
-        # self.assertEqual( len(cmd), 0, "An error happened")
         self.assertGreaterEqual(len(results), 1, "There must be at least one result")
         mapped_connection = results[0][0]
-        # assertTupleEqual
-        # clientkey == 
         self.assertEqual(mapped_connection.client_key, main_connection.client_key)
         # if we try to map packets, 9 should be mapped to 9 first
 
