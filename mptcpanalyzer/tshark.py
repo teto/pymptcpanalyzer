@@ -65,7 +65,7 @@ class TsharkConfig:
         # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
         self.profile = profile
-        self.filter = ""  # mptcp ...
+        self.filter = "mptcp or tcp"
         self.options = {
             # used to be 'column.format' in older versions
             # "tshark -G column-formats" list available formats
@@ -84,7 +84,39 @@ class TsharkConfig:
             "mptcp.analyze_mptcp": True,
         }
         self.fields = []  # type: List[Field]
+
+        # the split between option is to allow tcp-only wireshark inspection, which is much faster
+        # but for now it is more convenient to
         self.add_basic_fields()
+        self.add_mptcp_fields(True)
+        try:
+            self.check_fields([ "mptcp.related_mapping" ])
+        except subprocess.CalledProcessError as e:
+            # ignore it
+            log.warn("Could not check ")
+            pass
+
+    def check_fields(self, fields: List[str]):
+        """
+        """
+
+        searches = fields
+        # out, stderr = proc.communicate()
+        with subprocess.Popen([self.tshark_bin, "-G", "fields" ], stdout=subprocess.PIPE,
+                # stderr=
+                # bufsize=1, # means line buffered with universal_newlines set
+                # universal_newlines=True, # opens in text mode
+        ) as proc:
+            # out, stderr = proc.communicate()
+            matches = []
+            for line in proc.stdout:
+                matches = [x for x in searches if x in line]
+                searches = [item for item in searches if item not in matches]
+            # print
+            # matches
+            # stderr = stderr.decode("UTF-8")
+            return matches
+
 
     def add_basic_fields(self):
         self.add_field("frame.number", "packetid", np.int64, False, )
@@ -134,6 +166,8 @@ class TsharkConfig:
 
     # def add_retransmission_fields(self):
         if advanced:
+        # TODO autodetect
+        # tshark -G fields|grep mptcp.related_mapping
             self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
             self.add_field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections")
             # TODO use new names
@@ -216,18 +250,19 @@ class TsharkConfig:
             # TODO serialize wireshark options in header
             # with open(output_csv, "w+") as fd:
             fd = output_csv
-            fd.write("# metadata: \n")
+            fd.write("# metadata: %s\n" % (cmd))
             fd.flush()  # need to flush else order gets messed up
-            proc = subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True)
-            out, stderr = proc.communicate()
-            stderr = stderr.decode("UTF-8")
-            print("stderr=", stderr)
+            with subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True) as proc:
+                out, stderr = proc.communicate()
+                stderr = stderr.decode("UTF-8")
+                print("stderr=", stderr)
+                return proc.returncode, stderr
 
         except subprocess.CalledProcessError as e:
+            # e.cmd failed
             log.error(str(e))
             print("ERROR")
-            output = " ehllo "
-        return proc.returncode, stderr
+            return e.returncode, e.stderr
 
     def hash(self,):
         cmd = self.generate_command(

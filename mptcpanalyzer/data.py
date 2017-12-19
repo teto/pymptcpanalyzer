@@ -133,7 +133,7 @@ def load_into_pandas(
                 raise Exception(stderr)
 
     temp = config.get_fields("fullname", "type")
-    dtypes = {k: v for k, v in temp.items() if v is not None}
+    dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
     log.debug("Loading a csv file %s" % csv_filename)
 
     try:
