@@ -15,6 +15,8 @@ cache = None  # type: Cache
 
 class CacheId:
     def __init__(self, prefix: str,
+            # TODO maybe we should use Union of stuff ?
+            # to solve "getmtime" has incompatible type "AnyStr"; expected "Union[bytes, str, Path]
             deps: Collection=[Path],
             suffix: str="" ) -> None:
         """

@@ -88,9 +88,10 @@ class TsharkConfig:
         # the split between option is to allow tcp-only wireshark inspection, which is much faster
         # but for now it is more convenient to
         self.add_basic_fields()
-        self.add_mptcp_fields(True)
+        self.add_mptcp_fields(False)
         try:
-            self.check_fields([ "mptcp.related_mapping" ])
+            matches = self.check_fields([ "mptcp.related_mapping" ])
+            print("MATCHES=", matches)
         except subprocess.CalledProcessError as e:
             # ignore it
             log.warn("Could not check ")
@@ -105,7 +106,7 @@ class TsharkConfig:
         with subprocess.Popen([self.tshark_bin, "-G", "fields" ], stdout=subprocess.PIPE,
                 # stderr=
                 # bufsize=1, # means line buffered with universal_newlines set
-                # universal_newlines=True, # opens in text mode
+                universal_newlines=True, # opens in text mode
         ) as proc:
             # out, stderr = proc.communicate()
             matches = []
@@ -202,6 +203,7 @@ class TsharkConfig:
 
     def get_fields(self, field, field2=None):
         """
+        TODO maybe we can use groupby instead
         Args:
             field: should be a string in Field
             field2: If field2 is None, returns a list with the field asked, else
@@ -235,6 +237,7 @@ class TsharkConfig:
         if find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
 
+        # rename to args
         cmd = self.generate_command(
             self.tshark_bin,
             fields_to_export,
@@ -244,17 +247,22 @@ class TsharkConfig:
             csv_delimiter=self.delimiter,
             options=self.options,
         )
-        print(cmd)
+        cmd_str = ' '.join(cmd)
+        print(cmd_str)
 
         try:
             # TODO serialize wireshark options in header
             # with open(output_csv, "w+") as fd:
             fd = output_csv
-            fd.write("# metadata: %s\n" % (cmd))
+            fd.write("# metadata: %s\n" % (cmd_str))
             fd.flush()  # need to flush else order gets messed up
-            with subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE, shell=True) as proc:
+            # shell=True
+            with subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE) as proc:
                 out, stderr = proc.communicate()
                 stderr = stderr.decode("UTF-8")
+                print("ERROT", )
+                print("ran cmd", proc.args)
+                # print("cmd failed")
                 print("stderr=", stderr)
                 return proc.returncode, stderr
 
@@ -262,6 +270,7 @@ class TsharkConfig:
             # e.cmd failed
             log.error(str(e))
             print("ERROR")
+            print(e.cmd)
             return e.returncode, e.stderr
 
     def hash(self,):
@@ -273,8 +282,9 @@ class TsharkConfig:
             profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
-        )
-        return hash(cmd)
+            )
+        # because lists are unhashable
+        return hash(' '.join(cmd))
 
     def export_to_sql(self, input_pcap, output_db, table_name="connections"):
         """
@@ -297,57 +307,78 @@ class TsharkConfig:
         tshark_exe,
         fields_to_export: List[str],
         inputFilename,
-        filter=None,
+        read_filter=None,
         profile=None,
         csv_delimiter='|',
         options={},
     ):
         """
+        TODO build as the array expected by Popen ?
         """
-        def convert_field_list_into_tshark_str(fields):
-            """
-            TODO fix if empty
-            """
-            return ' -e ' + ' -e '.join(fields)
+        # def convert_field_list_into_tshark_str(fields):
+        #     """
+        #     TODO fix if empty
+        #     """
+        #     return ' -e ' + ' -e '.join(fields)
 
-        # fields that tshark should export
-        # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
-        # to filter connection
-        filter = ' -R "%s"' % (filter) if filter else ''
+        # # fields that tshark should export
+        # # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
+        # # to read_filter connection
+        # read_filter = ' -R "%s"' % (read_filter) if read_filter else ''
 
-        def convert_options_into_str(options):
-            """
-            Expects a dict of wireshark options
-            TODO maybe it could use **kwargs instead
-            """
-            # relative_sequence_numbers = False
-            out = ""
-            for option, value in options.items():
-                out += ' -o {option}:{value}'.format(option=option, value=value)
-            return out
+        # def convert_options_into_str(options):
+        #     """
+        #     Expects a dict of wireshark options
+        #     TODO maybe it could use **kwargs instead
+        #     """
+        #     # relative_sequence_numbers = False
+        #     out = ""
+        #     for option, value in options.items():
+        #         out += ' -o {option}:{value}'.format(option=option, value=value)
+        #     return out
 
-        # for some unknown reasons, -Y does not work so I use -2 -R instead
-        # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
-        # single-quotes, n no quotes (the default).
-        #  -E quote=n
-        # the -2 is very important, else some mptcp parameters are not exported
-        # TODO try with -w <outputFile> ?
-        tpl = ("{tsharkBinary} {profile} {tsharkOptions} {filterExpression}"
-               " -T fields {fieldsExpanded} -E separator='{delimiter}'"
-               " -E header=y  -2 "
-               " -r {inputPcap}"
-        )
+        # # for some unknown reasons, -Y does not work so I use -2 -R instead
+        # # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
+        # # single-quotes, n no quotes (the default).
+        # #  -E quote=n
+        # # the -2 is very important, else some mptcp parameters are not exported
+        # # TODO try with -w <outputFile> ?
+        # tpl = ("{tsharkBinary} {profile} {tsharkOptions} {read_filterExpression}"
+        #        " -T fields {fieldsExpanded} -E separator='{delimiter}'"
+        #        " -E header=y  -2 "
+        #        " -r {inputPcap}"
+        # )
 
-        cmd = tpl.format(
-            tsharkBinary=tshark_exe,
-            profile=" -C %s" % profile if profile else "",
-            tsharkOptions=convert_options_into_str(options),
-            inputPcap=inputFilename,
-            fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
-            filterExpression=filter,
-            delimiter=csv_delimiter,
-            # outputFilename=output
-        )
+        # cmd = tpl.format(
+        #     tsharkBinary=tshark_exe,
+        #     profile=" -C %s" % profile if profile else "",
+        #     tsharkOptions=convert_options_into_str(options),
+        #     inputPcap=inputFilename,
+        #     fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
+        #     read_filterExpression=read_filter,
+        #     delimiter=csv_delimiter,
+        #     # outputFilename=output
+        # )
+        cmd = [
+            tshark_exe,
+            "-E", "header=y", "-2",
+            "-r", inputFilename,
+            "-E", "separator=" + csv_delimiter,
+        ]
+        if profile:
+            cmd.extend([ '-C', profile ])
+
+        for option, value in options.items():
+            cmd.extend( [ '-o', option + ":" + str(value) ])
+
+        if read_filter:
+            cmd.extend(['-R', read_filter])
+
+        cmd.extend(['-T', 'fields'])
+        for f in fields_to_export:
+            cmd.extend([ '-e', f])
+        # print(cmd)
+        # join to get str
         return cmd
 
 

@@ -107,11 +107,6 @@ def load_into_pandas(
 
     is_cache_valid, csv_filename = cache.get(uid)
 
-    # except:
-    #     log.info("Cache invalid... Converting %s into %s" % (filename,))
-
-    # is_cache_valid, csv_filename = cache.is_cache_valid(uid, )
-
     log.debug("cache validity=%d cachename: %s" % (is_cache_valid, csv_filename))
     if regen or not is_cache_valid:
         log.info("Cache invalid or regen %d... Converting %s " % (regen, filename,))
@@ -128,8 +123,6 @@ def load_into_pandas(
                 out.close()
                 cache.put(uid, out.name)
             else:
-                # remove invalid cache log.exception
-                # os.remove(csv_filename)
                 raise Exception(stderr)
 
     temp = config.get_fields("fullname", "type")
@@ -151,13 +144,16 @@ def load_into_pandas(
                 # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
                 # skiprows
                 sep=config.delimiter,
-                dtype=dtypes,
+                # we can't have both a converter and a dtype for a field so we pop tcp.flags
+                # dtype=dtypes.pop("tcp.flags"),
+                dtype=dtypes, # poping still generates
                 converters={
                     "tcp.flags": lambda x: int(x, 16),
                     # reinjections, converts to list of integers
                     "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
                     # "mptcp.related_mapping": lambda x: x.split(','),
                 },
+                # na_filter=, # might make it able to deal with non-TCP packets
                 # memory_map=True, # could speed up processing
             )
             # TODO:
