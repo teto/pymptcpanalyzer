@@ -31,6 +31,7 @@ class CacheTest(TestCase):
                 print("cachedir=%s\n" % cachedir)
                 print("f=%s/cachename=" % f)
                 cache = Cache(cachedir)
+                cache.cacheuid("", [f.as_posix()], "")
                 self.assertFalse(cache.is_cache_valid(f.as_posix()), "cache should not exist yet")
                 f_uid = cache.cacheuid(f.as_posix())
                 shutil.copy(f.as_posix(), f_uid)
@@ -48,7 +49,7 @@ class CacheTest(TestCase):
                 time.sleep(0.5)
                 f = Path(tmpdir, "toto.txt")
                 f.touch()
-                self.assertFalse(cache.is_cache_valid(f.as_posix()), "Cache should be older than file and thus invalid")
+                self.assertFalse(cache.get(f.as_posix()), "Cache should be older than file and thus invalid")
 
 
     def test_clean(self):
@@ -56,6 +57,7 @@ class CacheTest(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             cache = Cache(tmpdir)
+            cache.cacheuid("prefix", [], "suffix")
             Path(tmpdir, "toto.txt").touch()
 
             self.assertGreater(len(os.listdir(cache.folder)), 0, "cache should contain elements")

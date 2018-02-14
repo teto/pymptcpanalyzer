@@ -15,24 +15,19 @@ cache = None  # type: Cache
 
 class CacheId:
     def __init__(self, prefix: str,
-            # TODO maybe we should use Union of stuff ?
-            # to solve "getmtime" has incompatible type "AnyStr"; expected "Union[bytes, str, Path]
             deps: Collection=[Path],
             suffix: str="" ) -> None:
         """
-        todo remove prefix, and build it from deps basenames
+        Builds a cache 'prefix_dep1_dep2_suffix'
         """
         assert len(deps) > 0, "without dependency, why use cache ?"
 
-        # TODO check all Path exists / .exists()
         self.dependencies = list(map(os.path.abspath, deps))
         log.debug("%r %r", prefix, suffix)
         self.tpl = prefix + "_".join([os.path.basename(dep) for dep in deps]) + '%s' + str(suffix)
 
     @property
     def filename(self,):
-    # @staticmethod
-    # def cacheuid(prefix: str, dependencies: Collection=[], suffix: str=""):
         """
         generate a unique uuid
         dependencies should be filename
@@ -46,20 +41,12 @@ class CacheId:
 
         return self.tpl % str(hash(temp))
 
-        # encode path to cache
-        # chunks = os.path.realpath(filename).split(os.path.sep)
-        # return os.path.join(self.folder, '%'.join(chunks))
-
-    # @property
-    # def filename(self,).
-    #     return Cache.cacheuid()
-
 
 class Cache:
     """
-    TODO copy from doc
+    1/ generate an id via cacheuid
+    2/ if get returns false, generate the file and use put
     """
-
     def __init__(self, folder, disabled=False):
         self.folder = folder
         os.makedirs(self.folder, exist_ok=True)
@@ -74,15 +61,12 @@ class Cache:
         if os.path.isfile(cachename):
             log.info("A cache %s was found" % cachename)
             ctime_cached = os.path.getctime(cachename)
-            # print(ctime_cached , " vs ", ctime_pcap)
             is_cache_valid = True
             for dependancy in dependencies:
-                # todo use mtime instead ?!
                 mtime_dep = os.path.getmtime(dependancy)
 
                 if ctime_cached >= mtime_dep:
-                    log.debug(
-                        "Cache dependancy %s ctime (%s) is valid (>= %s)"
+                    log.debug("Cache dependancy %s ctime (%s) is valid (>= %s)"
                         % (dependancy, mtime_dep, ctime_cached))
                 else:
                     log.debug("Cache outdated by dependancy %s" % dependancy)

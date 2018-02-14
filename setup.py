@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
 # Copyright 2015-2016 Université Pierre et Marie Curie
+# Copyright 2017-2018 IIJ Innovation Institute
 # Author(s): Matthieu Coudron <matthieu.coudron@lip6.fr>
 #
 # This file is part of mptcpanalyzer.
@@ -25,27 +26,12 @@ from distutils.core import setup
 from distutils.util import convert_path
 import sys
 
-class TestCommand(Command):
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        import sys
-        import subprocess
-
-        raise SystemExit(subprocess.call([sys.executable, '-m', 'pisces.test']))
 # How to package ?
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
 # http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
 #
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
-
 
 main_ns = {}
 ver_path = convert_path('mptcpanalyzer/version.py')
@@ -94,9 +80,7 @@ setup(name="mptcpanalyzer",
           },
       entry_points={
           "console_scripts": [
-              # creates 2 system programs that can be called from PATH
               'mptcpanalyzer = mptcpanalyzer.cli:main',
-              # 'mptcpexporter = mptcpanalyzer.exporter:main',
               ],
           # Each item in the list should be a string with
           # name = module:importable where name is the user-visible name for
@@ -120,16 +104,13 @@ setup(name="mptcpanalyzer",
               'stats = mptcpanalyzer.command_example:CommandExample',
               ]
           },
-      # pandas should include matplotlib dependancy right ?
-        install_requires=[
-                'stevedore',  # to implement a plugin mechanism
-                'matplotlib',  # for plotting
-                'pandas>=0.17.1',  # to load and process csv files
-                'cmd2',  # to improve cmd capabilities
-                # beaker looks nice for cache management
-                # 'gnureadline',  # to get history capabilities
-                # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
-                ],
+      install_requires=[
+              'stevedore',  # to implement a plugin mechanism
+              'matplotlib',  # for plotting
+              'pandas>=0.17.1',  # to load and process csv files
+              'cmd2',  # to improve cmd capabilities
+              # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
+              ],
       # test_suite="tests",
       #  cmdclass={
       #   'test': TestCommand
