@@ -109,7 +109,7 @@ setup(name="mptcpanalyzer",
               'matplotlib',  # for plotting
               'pandas>=0.17.1',  # to load and process csv files
               'cmd2',  # to improve cmd capabilities
-              'mypy',  # for static checking
+              # 'mypy',  # for static checking
               # 'sympy',  # for symbolic computation (more of a side project though)
               # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
               ],

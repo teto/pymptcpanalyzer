@@ -65,7 +65,6 @@ class DSSOverTime(plot.Matplotlib):
         expected_pcaps = [
             ("pcap", plot.PreprocessingActions.Preload),
         ]
-        print("toto: ", args)
         super().__init__(
             *args,
             input_pcaps=expected_pcaps,

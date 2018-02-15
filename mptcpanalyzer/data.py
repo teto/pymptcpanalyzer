@@ -1,11 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import logging
 import os
 import pandas as pd
 import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig
-# from mptcpanalyzer.config import MpTcpAnalyzerConfig, get_config
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 import mptcpanalyzer as mp
 from mptcpanalyzer import get_config, get_cache, Destination
@@ -16,7 +13,6 @@ import tempfile
 log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
 
-# todo rename to mapper ?
 
 """
 Used when dealing with the merge of dataframes
@@ -43,6 +39,7 @@ def debug_convert(df):
 
 
 """
+when trying to map packets from a file to another
 invariant: True if not modified by the network
 Of the form Field.shortname
 
@@ -131,14 +128,9 @@ def load_into_pandas(
 
     try:
         with open(csv_filename) as fd:
-            # first line is metadata
-            # TODO: creer classe metadata read/write ?
-            # metadata = fd.readline()
 
             data = pd.read_csv(
                 fd,
-                # skip_blank_lines=True,
-                # hum not needed with comment='#'
                 comment='#',
                 # we don't need 'header' when metadata is with comment
                 # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
@@ -156,14 +148,11 @@ def load_into_pandas(
                 # na_filter=, # might make it able to deal with non-TCP packets
                 # memory_map=True, # could speed up processing
             )
-            # TODO:
-            # No columns to parse from file
             data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
             log.debug("Column names: %s", data.columns)
     except Exception as e:
         print("You may need to filter more your pcap to keep only mptcp packets")
         raise e
-        # TODO rethrow the error ?
 
     # pp = pprint.PrettyPrinter(indent=4)
     # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))

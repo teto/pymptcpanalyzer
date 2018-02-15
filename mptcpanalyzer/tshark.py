@@ -91,16 +91,15 @@ class TsharkConfig:
         self.add_mptcp_fields(False)
         try:
             matches = self.check_fields([ "mptcp.related_mapping" ])
-            print("MATCHES=", matches)
         except subprocess.CalledProcessError as e:
-            # ignore it
-            log.warn("Could not check ")
+            log.warn("Could not check fields ")
             pass
 
     def check_fields(self, fields: List[str]):
         """
+        Check that this version of wireshark knows the fields we are going to use.
+        It is helpful when working with a custom wireshark.
         """
-
         searches = fields
         # out, stderr = proc.communicate()
         with subprocess.Popen([self.tshark_bin, "-G", "fields" ], stdout=subprocess.PIPE,
@@ -108,32 +107,22 @@ class TsharkConfig:
                 # bufsize=1, # means line buffered with universal_newlines set
                 universal_newlines=True, # opens in text mode
         ) as proc:
-            # out, stderr = proc.communicate()
-            matches = []
+            matches: List[str] = [] 
             for line in proc.stdout:
                 matches = [x for x in searches if x in line]
                 searches = [item for item in searches if item not in matches]
-            # print
-            # matches
-            # stderr = stderr.decode("UTF-8")
             return matches
 
 
     def add_basic_fields(self):
         self.add_field("frame.number", "packetid", np.int64, False, )
-        # TODO set tot datetime ?
         self.add_field("frame.time_relative", "reltime", None, False, )
-        # set to deltatime
         self.add_field("frame.time_delta", "time_delta", None, False, )
         self.add_field("frame.time_epoch", "abstime", None, False, )
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, )
         self.add_field("_ws.col.ipdst", "ipdst", str, False, )
         self.add_field("ip.src_host", "ipsrc_host", str, False)
         self.add_field("ip.dst_host", "ipdst_host", str, False)
-        # set to categorical ?
-        # self.add_field("mptcp.client", "direction", np.float64, False)
-        # "mptcp.rawdsn64":        "dsnraw64"
-        # "mptcp.ack":        "dack"
         self.add_field("tcp.stream", "tcpstream", np.float64, False)
         self.add_field("tcp.srcport", "sport", np.float, False)
         self.add_field("tcp.dstport", "dport", np.float, False)
@@ -165,10 +154,7 @@ class TsharkConfig:
         self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack")
         self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
 
-    # def add_retransmission_fields(self):
         if advanced:
-        # TODO autodetect
-        # tshark -G fields|grep mptcp.related_mapping
             self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
             self.add_field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections")
             # TODO use new names
@@ -176,7 +162,6 @@ class TsharkConfig:
             # self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
 
     def add_field(self, fullname, name, type, label):
-
         """
         It's kinda scary to use float everywhere but when using integers, pandas
         asserts at the first NaN

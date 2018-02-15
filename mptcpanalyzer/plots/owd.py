@@ -1,19 +1,12 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-
 import mptcpanalyzer as mp
-# from mptcpanalyzer.data import load_into_pandas
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer.data as woo
-# import mptcpanalyzer
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import os
 import argparse
-# import math
 import collections
 from mptcpanalyzer.cache import CacheId
 
@@ -66,7 +59,6 @@ class TcpOneWayDelay(plot.Matplotlib):
                input_pcaps=expected_pcaps,
                **kwargs
         )
-        print("filter=%s" % self.tshark_config.filter)
 
         self.tshark_config.filter = "tcp";
         # TODO a purer version would be best
@@ -130,28 +122,23 @@ class TcpOneWayDelay(plot.Matplotlib):
         """
         # h1, h2 = super().preprocess()
         cacheid = CacheId("owd", [
-            # host1_pcap,
             kwargs.get("host1_pcap"),
             kwargs.get("host2_pcap")
             ], ".csv")
 
-        print("filter=%s" % self.tshark_config.filter)
 
-        print(" main = %r", main)
         # if we can't load that file from cache
         try:
             cache = mp.get_cache()
 
             valid, cachename = cache.get(cacheid)
             log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
-            # print(**kwargs)
             print(kwargs)
 
             if not valid:
                 # generate h1/h2 cache
                 dataframes = super().preprocess(main, **kwargs)
-                tcpstream = mptcpstream # we kept mptcpstream as a convenience
-                # TODO 
+                tcpstream = mptcpstream  # we kept mptcpstream as a convenience
                 print("FIX tcpstreamid AFTER DEBUG")
                 tcpstream = 0 # we kept mptcpstream as a convenience
 
