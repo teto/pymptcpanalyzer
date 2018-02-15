@@ -33,7 +33,7 @@ import sys
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3.5 setup.py install --user -vvv
 
-main_ns = {}
+main_ns = {} # type: ignore
 ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
@@ -109,6 +109,8 @@ setup(name="mptcpanalyzer",
               'matplotlib',  # for plotting
               'pandas>=0.17.1',  # to load and process csv files
               'cmd2',  # to improve cmd capabilities
+              'mypy',  # for static checking
+              # 'sympy',  # for symbolic computation (more of a side project though)
               # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
               ],
       # test_suite="tests",

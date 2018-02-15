@@ -14,42 +14,51 @@ from pathlib import Path
 class CacheTest(TestCase):
 
     def setUp(self):
-        # Changing log level to DEBUG
         loglevel = logging.DEBUG
         logging.basicConfig(level=loglevel)
 
-    def test_validity(self):
-        # TODO test is_cache_valid with multiple depandancies 
+    def test_single_dep(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            f = Path(tmpdir, "toto.txt")
+            f.touch()
+            generated_cache = Path(tmpdir, "generated.txt")
+            generated_cache.touch()
 
+            with tempfile.TemporaryDirectory() as cachedir:
+                cache = Cache(cachedir)
+                uid_f = cache.cacheuid("", [f], "")
+
+                res, name = cache.get(uid_f)
+                self.assertFalse(res, "cache should not exist yet")
+
+                cache.put(uid_f, generated_cache.as_posix())
+                res2, name2 = cache.get(uid_f)
+                self.assertTrue(res2, "cache should be valid")
+
+    def test_multiple_dependencies(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             f = Path(tmpdir, "toto.txt")
             g = Path(tmpdir, "toto2.txt")
+            generated = Path(tmpdir, "generated.txt")
+            generated.touch()
             f.touch()
+            g.touch()
             with tempfile.TemporaryDirectory() as cachedir:
-                print("tmpdir=", tmpdir)
-                print("cachedir=%s\n" % cachedir)
-                print("f=%s/cachename=" % f)
                 cache = Cache(cachedir)
-                cache.cacheuid("", [f.as_posix()], "")
-                self.assertFalse(cache.is_cache_valid(f.as_posix()), "cache should not exist yet")
-                f_uid = cache.cacheuid(f.as_posix())
-                shutil.copy(f.as_posix(), f_uid)
-                self.assertTrue(cache.is_cache_valid(f.as_posix()), "cache should be valid")
-                # self.assertFalse(cache.is_cache_valid(f.as_posix(), [f.as_posix(), g.as_posix()]), 
-                        # "dependancy on g not satisfied (g not created yet)")
-                g.touch()
-                g_uid = cache.cacheuid(g.as_posix())
-                shutil.copy(g.as_posix(), g_uid)
-                self.assertTrue(cache.is_cache_valid(f.as_posix(), [f.as_posix(), g.as_posix()]), 
-                        "dependancy on g ok")
 
-                # invalidate cache
+                uid_g = cache.cacheuid("", [f, g], "")
+                cache.put(uid_g, generated.as_posix())
+                res3, name3 = cache.get(uid_g)
+                self.assertTrue(res3, "multidependancy cache items should be ok")
+
+                # invalidates cache by recreating one of the dependency
                 f.unlink()
                 time.sleep(0.5)
                 f = Path(tmpdir, "toto.txt")
                 f.touch()
-                self.assertFalse(cache.get(f.as_posix()), "Cache should be older than file and thus invalid")
+                res4, name4 = cache.get(uid_g)
+                self.assertFalse(res4, "Cache should be older than file and thus invalid")
 
 
     def test_clean(self):
@@ -57,9 +66,11 @@ class CacheTest(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             cache = Cache(tmpdir)
-            cache.cacheuid("prefix", [], "suffix")
-            Path(tmpdir, "toto.txt").touch()
+            f = Path("toto.txt")
+            uid = cache.cacheuid("prefix", [f], "suffix")
+            f.touch()
 
+            cache.put(uid, f.as_posix())
             self.assertGreater(len(os.listdir(cache.folder)), 0, "cache should contain elements")
 
             cache.clean()

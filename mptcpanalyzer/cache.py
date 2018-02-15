@@ -1,5 +1,5 @@
 import os
-from typing import Collection
+from typing import Collection, Union, Any
 import logging
 import shutil
 from pathlib import Path
@@ -15,7 +15,7 @@ cache = None  # type: Cache
 
 class CacheId:
     def __init__(self, prefix: str,
-            deps: Collection=[Path],
+            deps: Collection=[Union[str, Path]],
             suffix: str="" ) -> None:
         """
         Builds a cache 'prefix_dep1_dep2_suffix'
@@ -30,6 +30,7 @@ class CacheId:
     def filename(self,):
         """
         generate a unique uuid
+        hash modification time of dependencies too
         dependencies should be filename
         """
         dependencies = self.dependencies
@@ -54,29 +55,39 @@ class Cache:
 
     def get(self, uid: CacheId):
 
-        cachename = os.path.join(self.folder, uid.filename)
-        dependencies = uid.dependencies
         is_cache_valid = False
+        try:
+            cachename = os.path.join(self.folder, uid.filename)
+            dependencies = uid.dependencies
 
-        if os.path.isfile(cachename):
-            log.info("A cache %s was found" % cachename)
-            ctime_cached = os.path.getctime(cachename)
-            is_cache_valid = True
-            for dependancy in dependencies:
-                mtime_dep = os.path.getmtime(dependancy)
+            if os.path.isfile(cachename):
+                log.info("A cache %s was found" % cachename)
+                ctime_cached = os.path.getctime(cachename)
+                is_cache_valid = True
+                for dependency in dependencies:
 
-                if ctime_cached >= mtime_dep:
-                    log.debug("Cache dependancy %s ctime (%s) is valid (>= %s)"
-                        % (dependancy, mtime_dep, ctime_cached))
-                else:
-                    log.debug("Cache outdated by dependancy %s" % dependancy)
-                    is_cache_valid = False
-                    break
-        else:
-            log.debug("No cache %s found" % cachename)
-        return is_cache_valid, cachename
+                    mtime_dep = os.path.getmtime(dependency) # type: ignore
+
+                    if ctime_cached >= mtime_dep:
+                        log.debug("Cache dependency %s ctime (%s) is valid (>= %s)"
+                            % (dependency, mtime_dep, ctime_cached))
+                    else:
+                        log.debug("Cache outdated by dependency %s" % dependency)
+                        is_cache_valid = False
+                        break
+            else:
+                log.debug("No cache %s found" % cachename)
+        except Exception as e:
+            log.debug("Invalid cache: %s" % e)
+            is_cache_valid = False
+            cachename = "invalid"
+        finally:
+            return is_cache_valid, cachename
 
     def put(self, uid: CacheId, result: str):
+        """
+        Moves 'result' in the cache
+        """
         dest = os.path.join(self.folder, uid.filename)
         log.info("Moving file %s to %s" % (result, dest))
         shutil.move(result, dest)

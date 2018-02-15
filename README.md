@@ -45,7 +45,7 @@ https://launchpad.net/~dreibh/+archive/ubuntu/ppa/ .
 
 Once wireshark is installed you can install mptcpanalyzer via pip:
 
-`$ python3.5 -mpip install mptcpanalyzer --user`
+`$ python3.6 -mpip install mptcpanalyzer --user`
 
 python3.5+ is mandatory since we rely on its type hinting features.
 Dependancies are (some will be made optional in the future):
@@ -55,6 +55,8 @@ Dependancies are (some will be made optional in the future):
 - the data analysis library [pandas](http://pandas.pydata.org/) >= 0.17.1
 - lnumexpr to run specific queries in pandas
 - [matplotlib](http://matplotlib) to plot graphs
+- [cmd2](https://github.com/python-cmd2/cmd2) to generate the command line
+- [mypy](https://github.com/python-cmd2/cmd2) for static analysis
 
 # How to use ?
 
@@ -79,10 +81,17 @@ in `lc` output.
 
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
 
+# How to contribute
+
+See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html)
+
+If you have issues with mypy, you can suffix with `# type: ignore`
+
 # Similar tools
 
 If I have forgotten about your tool, file an issue, for know we are aware of:
 - [mptcptrace](https://bitbucket.org/bhesmans/mptcptrace) with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
+- [mptcpplot](https://github.com/nasa/multipath-tcp-tools/)
 
 
 [mptcptrace]: https://bitbucket.org/bhesmans/mptcptrace
