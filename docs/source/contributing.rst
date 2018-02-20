@@ -81,6 +81,11 @@ Just follow the example in:
 .. automodule:: mptcpanalyzer.command_example
 
 
+Write a test
+--------------------------------------------------------------------------------
+You can use transcript-based testing:
+http://cmd2.readthedocs.io/en/latest/transcript.html
+
 How to upload it to pypi (for the forgetful maintainer)
 --------------------------------------------------------------------------------
 

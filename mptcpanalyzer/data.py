@@ -9,6 +9,7 @@ from mptcpanalyzer import get_config, get_cache, Destination
 from typing import List, Any, Tuple, Dict, Callable, Collection
 import math
 import tempfile
+import pprint
 
 log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
@@ -25,7 +26,6 @@ def ignore(f1, f2):
 
 
 def exact(f1, f2):
-    # print("comparing values ", f1, " and ", f2)
     return 10 if (math.isnan(f1) and math.isnan(f2)) or f1 == f2 else float('-inf')
 
 
@@ -35,18 +35,18 @@ def diff(f1, f2):
 
 def debug_convert(df):
     return df.head(20)
-    # return df
 
 
 """
-when trying to map packets from a file to another
+when trying to map packets from a pcap to another, we give a score to each mapping
+based on per-field rules.
+
 invariant: True if not modified by the network
 Of the form Field.shortname
 
 Have a look at the graphic slide 28:
 https://www-phare.lip6.fr/cloudnet12/Multipath-TCP-tutorial-cloudnet.pptx
 
-TODO add it to Field ?
 """
 scoring_rules = {
     "packetid": ignore,
@@ -66,7 +66,6 @@ scoring_rules = {
     "dss_ssn": exact,
     "tcpseq": exact,
     "tcplen": exact,
-    # "dsnraw64": exact,
 }
 
 
@@ -75,7 +74,6 @@ def load_into_pandas(
     config: TsharkConfig,
     regen: bool=False,
     **extra
-    # metadata: Metadata=Metadata(), # passer une fct plutot qui check validite ?
 ) -> pd.DataFrame:
     """
     load mptcp  data into pandas
@@ -89,15 +87,12 @@ def load_into_pandas(
     """
     log.debug("Asked to load %s" % input_file)
 
-    # TODO get the real path and use it in hash ?
     filename = os.path.expanduser(input_file)
     filename = os.path.realpath(filename)
     cache = mp.get_cache()
 
-    # csv_filename = self.get_matching_csv_filename(filename, regen)
     uid = cache.cacheuid(
         '',  # prefix (might want to shorten it a bit)
-        # os.path.basename(filename), # prefix
         [ filename ], # dependancies
         str(config.hash())  + '.csv'
     )
@@ -111,7 +106,6 @@ def load_into_pandas(
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
             retcode, stderr = config.export_to_csv(
                 filename,
-                # csv_filename,
                 out,
                 config.get_fields("fullname", "name"),
             )
@@ -125,8 +119,12 @@ def load_into_pandas(
     temp = config.get_fields("fullname", "type")
     dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
     log.debug("Loading a csv file %s" % csv_filename)
+    pp = pprint.PrettyPrinter(indent=4)
 
     try:
+        def _convert_flags(x):
+            return int(x, 16)
+
         with open(csv_filename) as fd:
 
             data = pd.read_csv(
@@ -136,15 +134,16 @@ def load_into_pandas(
                 # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
                 # skiprows
                 sep=config.delimiter,
-                # we can't have both a converter and a dtype for a field so we pop tcp.flags
+                # having both a converter and a dtype for a field generates warnings
+                # so we pop tcp.flags
                 # dtype=dtypes.pop("tcp.flags"),
                 dtype=dtypes, # poping still generates
                 converters={
-                    "tcp.flags": lambda x: int(x, 16),
+                    "tcp.flags": _convert_flags,
                     # reinjections, converts to list of integers
-                    "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
-                    # "mptcp.related_mapping": lambda x: x.split(','),
+                    "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                 },
+                # nrows=10, # useful for debugging purpose
                 # na_filter=, # might make it able to deal with non-TCP packets
                 # memory_map=True, # could speed up processing
             )
@@ -154,8 +153,8 @@ def load_into_pandas(
         print("You may need to filter more your pcap to keep only mptcp packets")
         raise e
 
-    # pp = pprint.PrettyPrinter(indent=4)
     # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
+
     return data
 
 
@@ -163,10 +162,8 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
     config = mp.get_config()
     return df.to_csv(
         filename,  # output
-        # columns=self.columns,
         # how do we get the config
         sep=config["mptcpanalyzer"]["delimiter"],
-        # index=True, # hide Index
         header=True,  # add
         **kwargs
     )

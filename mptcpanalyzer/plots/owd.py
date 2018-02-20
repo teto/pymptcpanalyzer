@@ -49,7 +49,6 @@ class TcpOneWayDelay(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
-        # peu importe l'ordre plutot
         expected_pcaps = [
             ("host1_pcap", plot.PreprocessingActions.Preload),
             ("host2_pcap", plot.PreprocessingActions.Preload),
@@ -64,7 +63,6 @@ class TcpOneWayDelay(plot.Matplotlib):
         # TODO a purer version would be best
         self.tshark_config.fields = []
         self.tshark_config.add_basic_fields();
-        # print("filter=%s" % self.tshark_config.filter)
         # self.suffixes = ("_snd", "_rcv")
         # self.suffixes = ("", "_rcv")
         # self.columns = [
@@ -107,7 +105,6 @@ class TcpOneWayDelay(plot.Matplotlib):
 
 
     def preprocess(self, main, mptcpstream=None,
-            # host1_pcap, host2_pcap,
             **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
@@ -118,14 +115,12 @@ class TcpOneWayDelay(plot.Matplotlib):
         First we get the cachename associated with the two pcaps. If it's cached we load
         directly this cache else we proceed as usual
 
-        TODO generate cachename from dependencies basenames :
         """
         # h1, h2 = super().preprocess()
         cacheid = CacheId("owd", [
             kwargs.get("host1_pcap"),
             kwargs.get("host2_pcap")
             ], ".csv")
-
 
         # if we can't load that file from cache
         try:
@@ -203,11 +198,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             raise e
             # log.debug("Could not load cached results %s" % cachename)
 
-        # log.info("Regenerating from cache")
-        # columns = data.generate_columns([], [], data.suffixes)
-        # return None
 
-    #def do_plot_owd(self, args):
     def plot(self, df_results, mptcpstream=None, **kwargs):
         """
         Ideally it should be mapped automatically
@@ -216,14 +207,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         it relies on the pcap absolute time field.
         While this is true in discrete time simulators such as ns3
 
-        See
-        Todo:
-            it should be possible to cache intermediary results (computed owds)
-
         """
-        # assert mptcpstream is not None, "parser should provide automatically this"
 
-        # prepare a plot
         fig = plt.figure()
         axes = fig.gca()
 

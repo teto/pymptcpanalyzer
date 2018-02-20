@@ -1,16 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import logging
 import csv
 import tempfile
 import copy
-# import subprocess
 import sqlite3 as sql
 
-# from core import get_basename
-# from mptcpanalyzer.core import build_csv_header_from_list_of_fields
-# from mptcpanalyzer.core import load_fields_to_export_from_file
-# from mptcpanalyzer import get_basename
 
 log = logging.getLogger(__name__)
 

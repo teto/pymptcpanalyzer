@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#  vim: set et fdm=manual fenc= ff=unix sts=4 sw=4 ts=8 :
 import configparser
 import os
 import logging
@@ -10,7 +8,6 @@ log = logging.getLogger(__name__)
 Global config initialized in cli.py.
 Singleton-like
 """
-# config = None # type: MpTcpAnalyzerConfig
 
 
 class MpTcpAnalyzerConfig(configparser.ConfigParser):
@@ -63,7 +60,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             }
         })
 
-        # we don t respect XDG_CONFIG_DIRS but who does ?
+        # we don t respect XDG_CONFIG_DIRS
         if filename is None:
             xdg_config = os.getenv("XDG_CONFIG_HOME", "~/.config")
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")
@@ -72,7 +69,6 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             log.info("Config file set to %s" % filename)
             filenames = [filename]
 
-        # if os.path.exists(filename):
         loaded_from = self.read(filenames)
         if filename and filename not in loaded_from:
             raise ValueError("Could not load the specified configuration")

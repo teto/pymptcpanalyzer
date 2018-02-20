@@ -129,7 +129,7 @@ class TsharkConfig:
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", np.float64, True)
-        self.add_field("tcp.flags", "tcpflags", np.int64, False)
+        self.add_field("tcp.flags", "tcpflags", str, False)
         self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number")
         self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
         self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment")
@@ -143,20 +143,20 @@ class TsharkConfig:
         self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False)
         self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False)
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False)
-        self.add_field("tcp.options.mptcp.subtype", "subtype", np.object, False)
+        self.add_field("tcp.options.mptcp.subtype", "subtype", str, False) # can contain "2,4"
         self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64, "DSS Sequence Number")
         self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64, "DSS raw ack")
         self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number")
         self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length")
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False)
-        self.add_field("mptcp.master", "master", bool, False)
+        # self.add_field("mptcp.master", "master", bool, False)
         self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number")
         self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack")
         self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
 
         if advanced:
             self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
-            self.add_field("mptcp.duplicated_dsn", "reinjections", None, "Reinjections")
+            self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
             # self.add_field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection")
             # self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
@@ -237,11 +237,9 @@ class TsharkConfig:
 
         try:
             # TODO serialize wireshark options in header
-            # with open(output_csv, "w+") as fd:
             fd = output_csv
             fd.write("# metadata: %s\n" % (cmd_str))
             fd.flush()  # need to flush else order gets messed up
-            # shell=True
             with subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE) as proc:
                 out, stderr = proc.communicate()
                 stderr = stderr.decode("UTF-8")
@@ -252,7 +250,6 @@ class TsharkConfig:
                 return proc.returncode, stderr
 
         except subprocess.CalledProcessError as e:
-            # e.cmd failed
             log.error(str(e))
             print("ERROR")
             print(e.cmd)
@@ -298,52 +295,13 @@ class TsharkConfig:
         options={},
     ):
         """
-        TODO build as the array expected by Popen ?
+        Generate tshark command
         """
-        # def convert_field_list_into_tshark_str(fields):
-        #     """
-        #     TODO fix if empty
-        #     """
-        #     return ' -e ' + ' -e '.join(fields)
 
-        # # fields that tshark should export
-        # # exhaustive list https://www.wireshark.org/docs/dfref/f/frame.html
-        # # to read_filter connection
-        # read_filter = ' -R "%s"' % (read_filter) if read_filter else ''
-
-        # def convert_options_into_str(options):
-        #     """
-        #     Expects a dict of wireshark options
-        #     TODO maybe it could use **kwargs instead
-        #     """
-        #     # relative_sequence_numbers = False
-        #     out = ""
-        #     for option, value in options.items():
-        #         out += ' -o {option}:{value}'.format(option=option, value=value)
-        #     return out
-
-        # # for some unknown reasons, -Y does not work so I use -2 -R instead
-        # # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
-        # # single-quotes, n no quotes (the default).
-        # #  -E quote=n
-        # # the -2 is very important, else some mptcp parameters are not exported
-        # # TODO try with -w <outputFile> ?
-        # tpl = ("{tsharkBinary} {profile} {tsharkOptions} {read_filterExpression}"
-        #        " -T fields {fieldsExpanded} -E separator='{delimiter}'"
-        #        " -E header=y  -2 "
-        #        " -r {inputPcap}"
-        # )
-
-        # cmd = tpl.format(
-        #     tsharkBinary=tshark_exe,
-        #     profile=" -C %s" % profile if profile else "",
-        #     tsharkOptions=convert_options_into_str(options),
-        #     inputPcap=inputFilename,
-        #     fieldsExpanded=convert_field_list_into_tshark_str(fields_to_export),
-        #     read_filterExpression=read_filter,
-        #     delimiter=csv_delimiter,
-        #     # outputFilename=output
-        # )
+        # for some unknown reasons, -Y does not work so I use -2 -R instead
+        # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
+        # single-quotes, n no quotes (the default).
+        # the -2 is very important, else some mptcp parameters are not exported
         cmd = [
             tshark_exe,
             "-E", "header=y", "-2",
@@ -362,8 +320,6 @@ class TsharkConfig:
         cmd.extend(['-T', 'fields'])
         for f in fields_to_export:
             cmd.extend([ '-e', f])
-        # print(cmd)
-        # join to get str
         return cmd
 
 

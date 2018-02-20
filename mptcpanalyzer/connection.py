@@ -101,10 +101,8 @@ class TcpConnection:
 
         df = rawdf[rawdf.tcpstream == tcpstreamid]
         if len(df.index) == 0:
-            print(rawdf.head())
+            # print(rawdf.head())
             raise MpTcpException("No packet with this tcp.stream id %r" % tcpstreamid)
-
-        # print(df["tcpflags"].head())
 
         # + mp.TcpFlags TODO record ISN !!
         # syns = df[df.tcpflags == mp.TcpFlags.SYN]
@@ -127,8 +125,9 @@ class TcpConnection:
             self.server_port, self.client_port,
         )
 
-    # def __repr__(self):
-    #     return
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         line = ("tcp.stream {s.tcpstreamid} : {s.client_ip}:{s.client_port} "
                 " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
@@ -138,8 +137,6 @@ class TcpConnection:
 class MpTcpSubflow(TcpConnection):
 
     def __init__(self, *args, addrid=None):
-        """ """
-        print(*args)
         super().__init__(*args)
         self.addrid = addrid
 
@@ -256,24 +253,23 @@ class MpTcpConnection:
             subflows.append(subflow)
 
         result = MpTcpConnection(mptcpstreamid, client_key, client_token,
-            server_key, server_token,
-            subflows)
-        log.debug("Creating connection %s", result)
+            server_key, server_token, subflows)
+        # log.debug("Creating connection %s", result)
         return result
 
 
     @staticmethod
     def filter_ds(data, **kwargs):
         """
+        Args:
         Filters a pandas dataset
-        :param data: a Pandas dataset
-        :param kwargs: Accepted keywords are
+            :param data: a Pandas dataset
+            :param kwargs: Accepted keywords are
 
         direction = client or server
         """
         dat = data
         for field, value in dict(**kwargs).items():
-            # print("name, value", field)
             query = "{field} == '{value}'".format(field=field, value=value)
 
             log.debug("Running query %s" % query)
@@ -348,21 +344,5 @@ class MpTcpConnection:
             ckey=self.client_key,
             ctoken=self.client_token,
         )
-        # extra = ""
-        # addrid = []
-        # if len(gr2[gr2.master == 1]) > 0:
-        #     addrid = ["master", "master"]
-        # else:
-        #     # look for MP_JOIN <=> tcp.options.mptcp.subtype == 1
-        #     # la ca foire
-        #     for i, ipsrc in enumerate( [gr2['ipsrc'].iloc[0], gr2['ipdst'].iloc[0] ]):
-        #         gro=gr2[(gr2.tcpflags >= 2) & (gr2.addrid) & (gr2.ipsrc == ipsrc)]
-        #         # print("nb of results:", len(gro))
-        #         if len(gro):
-        #             # print("i=",i)
-        #             value = int(gro["addrid"].iloc[0])
-        #         else:
-        #             value = "Unknown"
-        #         addrid.insert(i, value)
 
         return res

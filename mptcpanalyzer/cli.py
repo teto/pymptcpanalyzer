@@ -24,7 +24,6 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas
-# from mptcpanalyzer.cache import Cache, cache
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection
 import mptcpanalyzer.cache as mc
@@ -38,7 +37,6 @@ import pprint
 import textwrap
 import readline
 from typing import List, Any, Tuple, Dict, Callable, Set
-# from cmd import Cmd
 import cmd2
 
 from stevedore import extension
@@ -52,12 +50,11 @@ formatter = logging.Formatter('%(name)s:%(levelname)s: %(message)s')
 ch.setFormatter(formatter)
 
 log.addHandler(ch)
-log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
-# print("logger name from cli", __name__)
 
-histfile_size = 100
+histfile_size = 1000
 
 def is_loaded(f):
     """
@@ -302,15 +299,13 @@ class MpTcpAnalyzer(cmd2.Cmd):
     def list_subflows(self, mptcpstreamid: int):
         con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
         print("Description of mptcp.stream %d " % mptcpstreamid)
-        print(con)
 
         print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
         for sf in con.subflows:
             print("\t%s" % sf)
 
     def help_list_subflows(self):
-
-        print( "Use parser -h")
+        print("Use parser -h")
 
     def complete_list_subflows(self, text, line, begidx, endidx):
         """ help to complete the args """
@@ -340,10 +335,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
             '-v', '--verbose', dest="verbose", default=False,
             action="store_true",
             help="how to display each connection")
-
-        # parser.add_argument("--limit", dest="limit", type=int, action="store",
-        #         help="by default process of choosing good values is interactive, this"
-        #         "let the program automatically select the candidate with the best score")
 
         args = parser.parse_args(shlex.split(line))
         df1 = load_into_pandas(args.pcap1, self.tshark_config)
@@ -424,8 +415,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         success, ret = stats.mptcp_compute_throughput(
                 self.data, args.mptcpstream, args.destination
         )
-        # df = self.data[self.data.mptcpstream == args.mptcpstream]
-        # if df.empty:
         if success is not True:
             print("Throughput computation failed:")
             print(ret)
@@ -435,7 +424,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         print("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
             subflow_load = sf_bytes/ret["total_bytes"]
-            # print(subflow_load)
             print('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
                 tcpstream, sf_bytes, total_transferred, subflow_load*100))
 
@@ -515,8 +503,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         To do that, we need to take into account latencies
 
         """
-        # mptcp.duplicated_dsn
-        #
         print("Listing reinjections of the connection")
         parser = argparse.ArgumentParser(
             description="Listing reinjections of the connection"
@@ -528,16 +514,10 @@ class MpTcpAnalyzer(cmd2.Cmd):
         if df.empty:
             print("No packet with mptcp.stream == %d" % args.mptcpstream)
             return
-        # type(reinjections) = list (assume it's sorted )
-        # reinjections = df[["packetid", "reinjections"]]
         known : Set[int] = set()
-        # reinjections = df["reinjections"].dropna()
-        # subset="reinjections")
         reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )
         total_nb_reinjections = 0
-        # df.groupby('tcpstream')
         for row in reinjections.itertuples():
-            # row.itertuples():
             if row.packetid not in known:
                 print("packetid=%d reinjected in %s" % (row.packetid, row.reinjections))
                 known.update([row.packetid] + row.reinjections)
@@ -603,11 +583,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         parser = argparse.ArgumentParser(
             description='Generate MPTCP stats & plots')
 
-        # TODO if no df loaded, add an argument ? or the plot should
-        # say how many it needs?
-        # if self.data is None:
-        #     parser.add_argument()
-
         subparsers = parser.add_subparsers(
             dest="plot_type", title="Subparsers", help='sub-command help',)
         subparsers.required = True  # type: ignore
@@ -627,37 +602,21 @@ class MpTcpAnalyzer(cmd2.Cmd):
         cli_args = shlex.split(cli_args)
         args, unknown_args = parser.parse_known_args(cli_args)
         # Allocate plot object
-        # self.tshark_config
         plotter = self.plot_mgr[args.plot_type].obj
 
-        # dataframes = []
-        # if self.data is not None:
-        #     dataframes.append(self.data)
 
         dargs = vars(args)  # 'converts' the namespace to a dict
 
-        # TODO
-        # print("TOTO")
         dataframes = plotter.preprocess(self, **dargs)
-        # TODO test with isinstance ?
         assert dataframes is not None, "Preprocess must return a list"
-        # print("dataframes", dataframes, " comapred to ", dargs)
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
-
-        # except SystemExit as e:
-        #     # e is the error code to call sys.exit() with
-        #     print("Parser failure:", e)
-        # except NotImplementedError:
-        #     print("Plot subclass miss a requested feature")
-        #     return 1
 
     def do_clean_cache(self, line):
         """
         mptcpanalyzer saves pcap to csv converted files in a cache folder, (most likely
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
-        #
         cache =  mp.get_cache()
         print("Cleaning cache [%s]" % cache.folder)
         cache.clean()
@@ -703,11 +662,13 @@ class MpTcpAnalyzer(cmd2.Cmd):
         """
         histfile = self.config["mptcpanalyzer"]['history']
         if readline and os.path.exists(histfile):
+            log.debug("Loading history from %s" % histfile)
             readline.read_history_file(histfile)
 
     def postloop(self):
         histfile = self.config["mptcpanalyzer"]['history']
         if readline:
+            log.debug("Saving history to %s" % histfile)
             readline.set_history_length(histfile_size)
             readline.write_history_file(histfile)
 
@@ -717,7 +678,6 @@ def main(arguments=None):
 
     Args:
         arguments_to_parse (list parsable by argparse.parse_args.): Made as a parameter since it makes testing easier
-
 
     Returns:
         return value will be passed to sys.exit
@@ -730,12 +690,8 @@ def main(arguments=None):
         description='Generate MPTCP (Multipath Transmission Control Protocol) stats & plots'
     )
 
-    #  todo make it optional
     parser.add_argument(
         "--load", "-l", dest="input_file",
-        # type=argparse
-        # "input_file",  nargs="?",
-        # action="store", default=None,
         help="Either a pcap or a csv file (in good format)."
         "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
         "If it can't find one (or with the flag --regen), it will generate a "
@@ -754,22 +710,17 @@ def main(arguments=None):
         " verbose such as '-dddd'"
     )
     parser.add_argument(
-        "--no-cache", "-r", action="store_true",
-        default=False,
+        "--no-cache", "-r", action="store_true", default=False,
         help="mptcpanalyzer creates a cache of files in the folder "
         "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
         "Force the regeneration of the cached CSV file from the pcap input"
     )
     parser.add_argument(
-        "--cachedir", action="store",
-        # default="$XDG_CACHE_HOME/mptcpanalyzer",
-        type=str,
-        # type=lambda x: os.path.isdir(x),
+        "--cachedir", action="store", type=str,
         help="mptcpanalyzer creates a cache of files in the folder "
         "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
         "Force the regeneration of the cached CSV file from the pcap input"
     )
-
 
     args, unknown_args = parser.parse_known_args(arguments)
 
@@ -781,12 +732,11 @@ def main(arguments=None):
     mp.__CACHE__ = mc.Cache(config.cachedir)
     mp.__CONFIG__ = config
 
-    if __name__ == '__main__':
-        level = logging.CRITICAL - min(args.debug, 4) * 10
-        # log.setLevel(level)
-        print("Log level set to %s " % logging.getLevelName(level))
+    level = logging.CRITICAL - min(args.debug, 4) * 10
+    log.setLevel(level)
+    print("Log level set to %s " % logging.getLevelName(level))
 
-    log.info("Starting in folder %s" % os.getcwd())
+    log.debug("Starting in folder %s" % os.getcwd())
     log.debug("Pandas version: %s" % pd.__version__)
     log.debug("cmd2 version: %s" % cmd2.__version__)
 
@@ -797,19 +747,12 @@ def main(arguments=None):
         if args.input_file:
             log.info("Input file")
             cmd = args.input_file
-            # cmd += " -r" if args.regen else ""
             analyzer.do_load(cmd)
-            # analyzer.onecmd(cmd)
 
         # if extra parameters passed via the cmd line, consider it is one command
-        # not args.batch ? both should conflict
         elif unknown_args:
             log.info("One-shot command(s) with unknown_args=  %s" % unknown_args)
 
-            # list2cmdline is undocumented function so it  might disappear
-            # http://stackoverflow.com/questions/12130163/how-to-get-resulting-subprocess-command-string
-            # but just doing "analyzer.onecmd(' '.join(unknown_args))" is not enough
-            # cmd = subprocess.list2cmdline(unknown_args)  # type: ignore
             for cmd in unknown_args:
                 analyzer.onecmd(cmd)
         else:
