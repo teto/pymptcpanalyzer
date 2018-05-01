@@ -129,7 +129,7 @@ class TcpConnection:
         return self.__str__()
 
     def __str__(self):
-        line = ("tcp.stream {s.tcpstreamid} : {s.client_ip}:{s.client_port} "
+        line = ("tcp.stream {s.tcpstreamid}: {s.client_ip}:{s.client_port} "
                 " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
         return line
 
@@ -165,10 +165,6 @@ class MpTcpConnection:
         self.server_key = server_key
         self.server_token = server_token
 
-
-    # def is_similar(self, other: MpTcpConnection):
-    #     """
-    #     """
     def __contains__(self, key: MpTcpSubflow):
         """
         Mostly an approximation
@@ -181,10 +177,7 @@ class MpTcpConnection:
         Returns
             Query
         """
-        # TODO test this function
-
         queries = []
-        # queries.append("mptcpstream == %d" % self.mptcpstreamid)
         for sf in self.subflows:
             q = " (" + sf.generate_direction_query(destination) + ") "
             print(q)
@@ -277,12 +270,6 @@ class MpTcpConnection:
         return dat
 
 
-    def compute_subflows(self):
-        """
-        """
-        # tcpstreams = self.ds.groupby('tcpstream')
-        pass
-
     def __eq__(self, other):
         """
         Ignores
@@ -291,7 +278,6 @@ class MpTcpConnection:
         """
         return self.score(other) == float('inf')
 
-    # def score(self, other):
     def score(self, other: 'MpTcpConnection') -> float:
         """
         ALREADY FILTERED dataframes
@@ -324,8 +310,6 @@ class MpTcpConnection:
                 common_sf.append(sf)
             else:
                 log.debug("subflows don't match")
-            # elif sf.master:
-            #     return float('-inf')
 
         # TODO compare start times supposing cloak are insync ?
         return score

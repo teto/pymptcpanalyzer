@@ -760,7 +760,7 @@ def main(arguments=None):
             analyzer.cmdloop()
 
     except Exception as e:
-        print("An error happened :\n%s" % e)
+        print("An error happened:\n%s" % e)
         print("Displaying backtrace:\n")
         traceback.print_exc()
         return 1
