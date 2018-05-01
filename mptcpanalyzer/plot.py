@@ -244,9 +244,6 @@ class Plot:
             log.info("Running query:\n%s\n" % query)
             dataframe = rawdf.query(query)
 
-        # TODO remove should be left to plot df.empty
-        # if not len(dataframe.index):
-        #     raise Exception("Empty dataframe after running query [%s]" % query)
         return dataframe
 
     def postprocess(self, v, **opt):
@@ -260,7 +257,7 @@ class Plot:
         """
         Must return the dataframes used by plot
         """
-        assert main, "Need reference to MpTcpAnalyzer"
+        assert main.empty, "Need reference to MpTcpAnalyzer"
         dataframes = []
         for pcap_name, action in self.input_pcaps:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
