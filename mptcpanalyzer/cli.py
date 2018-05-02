@@ -607,7 +607,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         dargs = vars(args)  # 'converts' the namespace to a dict
 
-        dataframes = plotter.preprocess(self, **dargs)
+        dataframes = plotter.preprocess(**dargs)
         assert dataframes is not None, "Preprocess must return a list"
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)

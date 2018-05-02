@@ -32,7 +32,6 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         parent = argparse.ArgumentParser(
             description="Helps plotting Data sequence numbers"
         )
-        # parent.add_argument("pcap", action="store", help="Input pcap")
         parser = super().default_parser(
             *args, parent_parsers=[parent],
             mptcpstream=True,
@@ -47,11 +46,6 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         """
         getcallargs
         """
-
-        # inspect.getfullargspec(fileinput.input))
-        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
-        # dat = rawdf
-
         fig = plt.figure()
         tcpstreams = dat.groupby('tcpstream')
 

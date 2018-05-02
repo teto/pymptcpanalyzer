@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
-# Copyright 2015-2016 Université Pierre et Marie Curie
+# Copyright 2015-2016 Universite Pierre et Marie Curie
 # Copyright 2017-2018 IIJ Innovation Institute
 # Author(s): Matthieu Coudron <matthieu.coudron@lip6.fr>
 #

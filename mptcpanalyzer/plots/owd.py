@@ -104,7 +104,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         return parser
 
 
-    def preprocess(self, main, mptcpstream=None,
+    def preprocess(self, mptcpstream=None,
             **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
@@ -132,7 +132,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
             if not valid:
                 # generate h1/h2 cache
-                dataframes = super().preprocess(main, **kwargs)
+                dataframes = super().preprocess(**kwargs)
                 tcpstream = mptcpstream  # we kept mptcpstream as a convenience
                 print("FIX tcpstreamid AFTER DEBUG")
                 tcpstream = 0 # we kept mptcpstream as a convenience
