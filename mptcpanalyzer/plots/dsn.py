@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
-# import mptcpanalyzer as mp
-# from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
 import logging
 import argparse
 import matplotlib.pyplot as plt
-# from mptcpanalyzer import fields_v2
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +47,6 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         print("%d streams in the MPTCP flow" % len(tcpstreams))
         print("Plotting field %s" % field)
 
-        # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
 
         for idx, (streamid, ds) in enumerate(tcpstreams):
