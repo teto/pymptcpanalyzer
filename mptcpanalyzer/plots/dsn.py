@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
-# import mptcpanalyzer as mp
-# from mptcpanalyzer.connection import MpTcpConnection
 import pandas as pd
 import logging
 import argparse
 import matplotlib.pyplot as plt
-# from mptcpanalyzer import fields_v2
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +27,6 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         parent = argparse.ArgumentParser(
             description="Helps plotting Data sequence numbers"
         )
-        # parent.add_argument("pcap", action="store", help="Input pcap")
         parser = super().default_parser(
             *args, parent_parsers=[parent],
             mptcpstream=True,
@@ -47,18 +41,12 @@ class PerSubflowTimeVsAttribute(plot.Matplotlib):
         """
         getcallargs
         """
-
-        # inspect.getfullargspec(fileinput.input))
-        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
-        # dat = rawdf
-
         fig = plt.figure()
         tcpstreams = dat.groupby('tcpstream')
 
         print("%d streams in the MPTCP flow" % len(tcpstreams))
         print("Plotting field %s" % field)
 
-        # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
 
         for idx, (streamid, ds) in enumerate(tcpstreams):

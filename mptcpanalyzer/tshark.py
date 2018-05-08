@@ -234,7 +234,6 @@ class TsharkConfig:
             with subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE) as proc:
                 out, stderr = proc.communicate()
                 stderr = stderr.decode("UTF-8")
-                print("ERROT", )
                 print("ran cmd", proc.args)
                 print("stderr=", stderr)
                 return proc.returncode, stderr

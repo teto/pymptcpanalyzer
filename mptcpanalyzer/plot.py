@@ -239,11 +239,11 @@ class Plot:
         """
         pass
 
-    def preprocess(self, main, **kwargs) -> Collection[ pd.DataFrame ]:
+    def preprocess(self, **kwargs) -> Collection[ pd.DataFrame ]:
         """
         Must return the dataframes used by plot
+        kwargs should contain arguments with the pcap names passed to self.input_pcaps
         """
-        assert main, "Need reference to MpTcpAnalyzer"
         dataframes = []
         for pcap_name, action in self.input_pcaps:
             print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))

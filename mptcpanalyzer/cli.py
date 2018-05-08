@@ -496,7 +496,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         dargs = vars(args)  # 'converts' the namespace to a dict
 
-        dataframes = plotter.preprocess(self, **dargs)
+        dataframes = plotter.preprocess(**dargs)
         assert dataframes is not None, "Preprocess must return a list"
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
@@ -649,7 +649,7 @@ def main(arguments=None):
             analyzer.cmdloop()
 
     except Exception as e:
-        print("An error happened :\n%s" % e)
+        print("An error happened:\n%s" % e)
         print("Displaying backtrace:\n")
         traceback.print_exc()
         return 1

@@ -44,20 +44,12 @@ class SubflowThroughput(plot.Matplotlib):
         getcallargs
         """
 
-        # inspect.getfullargspec(fileinput.input))
-        # dataframes = [ plotter.preprocess(df, **dargs) for df in dataframes ]
-        # dat = rawdf
-
         fig = plt.figure()
         success, ret = mptcp_compute_throughput(dat, mptcpstream, destination)
         if success is not True:
             print("Failure: %s", ret)
             return
 
-        # tcpstreams = dat.groupby('tcpstream')
-
-        # print("%d streams in the MPTCP flow" % len(tcpstreams))
-        # ret["bytes"]
         data = map(lambda x: x['bytes'], ret['subflow_stats'])
         s = pd.DataFrame(data=pd.Series(data))
         print (s)
