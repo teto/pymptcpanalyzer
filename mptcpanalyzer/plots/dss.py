@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer as mp
 import matplotlib.pyplot as plt
@@ -28,16 +26,10 @@ class DssLengthHistogram(plot.Matplotlib):
             )
 
     def plot(self, df, mptcpstream, **kwargs):
-        # data = main.data
-        # dat = data[data.mptcpstream == args.mptcpstream]
-        # if not len(dat.index):
-        #     print("no packet matching mptcp.stream %d" % args.mptcpstream)
-        #     return
 
         fig = plt.figure()
         axes = fig.gca()
         df.set_index("reltime", inplace=True)
-        # tcpstreams = dat.groupby('tcpstream')
         field = "dss_length"
         pplot = df[field].plot.hist(
             ax=axes,
@@ -100,8 +92,6 @@ class DSSOverTime(plot.Matplotlib):
         # compute limits of the plot
         ymin, ymax = min(ymin, df_forward[dsn_str].min()), max(ymax, df_forward[dsn_str].max())
 
-        print("dack=", dack)
-        # figsize=(40, 40)
         fig = plt.figure()
         axes = fig.gca()
 
@@ -154,37 +144,25 @@ class DSSOverTime(plot.Matplotlib):
 
             cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
 
-            # mpl_cycle = mpl.cycler(marker=['s', 'o', 'x']) + mpl.cycl
             markers = cycle(cycler)
             for tcpstream, df in df_backward.groupby('tcpstream'):
                 marker = next(markers)
-                print("len(df)=", len(df))
-                # artist_recorded = False
                 if df.empty:
                     log.debug("No dack for tcpstream %d" % tcpstream)
                 else:
-                    # df_backward = df_backward[df_backward.dack >=0]
-
                     ax1 = df[dack_str].plot.line(ax=axes,
                             style=marker,
                             legend=False
                     )
                     lines, labels = ax1.get_legend_handles_labels()
-                    # print("lines/ax1/axes", lines[-1] )
                     legend_artists.append(lines[-1])
                     legends.append("dack for sf %d" % tcpstream)
 
         # location: 3 => bottom left, 4 => bottom right
-        # axes.legend(handles, legends, loc=4) loc='best'
         axes.legend(legend_artists, legends, loc=4)
 
         axes.set_ylabel("Data Sequence Number (DSN)")
         axes.set_xlabel("Relative time (s)")
-        # if dack == True:
-        #     ymin, ymax = min(ymin, df_backward[dack_str].min()), max(ymax, df_backward[dack_str].max())
-        # axes.set_xlim([4,10])
-        # print(ymin, ymax)
         axes.set_ylim([ymin,ymax])
         return fig
-
 

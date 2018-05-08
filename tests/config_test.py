@@ -19,7 +19,6 @@ class ConfigTest(TestCase):
         """
         Override XDG_CONFIG_HOME and checks it's correctly loaded
         """
-        #TODO use tempdir
         with tempfile.TemporaryDirectory() as dirname:
             # os.copy
             # TODO check it can work even if XDG_CONFIG_HOME is empty

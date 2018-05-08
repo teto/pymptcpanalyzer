@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import argparse
 import os
 import tempfile
-# import matplotlib
 import matplotlib.pyplot as plt
-# import collections
 import mptcpanalyzer as mp
 import pandas as pd
 from mptcpanalyzer.data import load_into_pandas
@@ -19,11 +15,10 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 class PreprocessingActions(IntEnum):
     """
-    Used to set bitfields
-
-    TODO: skipSubflows ? filterDirection ?
+    What to do with pcaps on the command line
     """
     DoNothing = 0
     Preload = 1
@@ -69,7 +64,6 @@ class Plot:
     def __init__(
         self,
         exporter : TsharkConfig,
-        # TypedDict is in mypy 0.540 but it requires mypy_extension and is unstable
         input_pcaps: List[Tuple[str, PreprocessingActions]],
         title: str = None,
         *args, **kwargs
@@ -115,18 +109,10 @@ class Plot:
         for name, bitfield in self.input_pcaps:
             parser.add_argument(
                 name,
-                # action="append",
                 action="store",
-                # metavar="pcap%d" % i,
                 type=str,
                 help='Pcap file (or its associated csv)'
             )
-
-            # if bitfield & PreprocessingActions.FilterMpTcpStream:
-            #     parser.add_argument(
-            #         'mptcpstream', action="store", type=int,
-            #         help='mptcp.stream id, you may find using the "list_connections" command'
-            #     )
 
         if mptcpstream:
             parser.add_argument(
@@ -244,9 +230,6 @@ class Plot:
             log.info("Running query:\n%s\n" % query)
             dataframe = rawdf.query(query)
 
-        # TODO remove should be left to plot df.empty
-        # if not len(dataframe.index):
-        #     raise Exception("Empty dataframe after running query [%s]" % query)
         return dataframe
 
     def postprocess(self, v, **opt):
@@ -372,8 +355,6 @@ class Matplotlib(Plot):
         if len(dataframes) == 1:
             dataframes = dataframes[0]
 
-        # matplotlib.pyplot.style.use(args.styles)
-        # ('dark_background')
         with plt.style.context(styles):
             print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
             fig = self.plot(dataframes, styles=styles, **kwargs)

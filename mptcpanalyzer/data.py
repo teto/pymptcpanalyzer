@@ -93,7 +93,7 @@ def load_into_pandas(
 
     uid = cache.cacheuid(
         '',  # prefix (might want to shorten it a bit)
-        [ filename ], # dependancies
+        [ filename ], # dependencies
         str(config.hash())  + '.csv'
     )
 
@@ -130,9 +130,6 @@ def load_into_pandas(
             data = pd.read_csv(
                 fd,
                 comment='#',
-                # we don't need 'header' when metadata is with comment
-                # header=mp.METADATA_ROWS, # read column names from row 2 (before, it's metadata)
-                # skiprows
                 sep=config.delimiter,
                 # having both a converter and a dtype for a field generates warnings
                 # so we pop tcp.flags
@@ -144,8 +141,6 @@ def load_into_pandas(
                     "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                 },
                 # nrows=10, # useful for debugging purpose
-                # na_filter=, # might make it able to deal with non-TCP packets
-                # memory_map=True, # could speed up processing
             )
             data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
             log.debug("Column names: %s", data.columns)
@@ -154,17 +149,15 @@ def load_into_pandas(
         raise e
 
     # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
-
     return data
 
 
 def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
     config = mp.get_config()
     return df.to_csv(
-        filename,  # output
-        # how do we get the config
+        filename,
         sep=config["mptcpanalyzer"]["delimiter"],
-        header=True,  # add
+        header=True,
         **kwargs
     )
 
@@ -176,10 +169,9 @@ def merge_tcp_dataframes(
     """
     First looks in df2 for a  tcpstream matching df1_tcpstream
     """
-    log.debug("Merging TCP dataframes ")  # % ( df1))
+    log.debug("Merging TCP dataframes ")
     main_connection = TcpConnection.build_from_dataframe(df1, df1_tcpstream)
 
-    # du coup on a une liste
     mappings = map_tcp_stream(df2, main_connection)
 
     print("Found mappings %s" % mappings)
@@ -203,8 +195,6 @@ def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[
     """
     Generate column names
     """
-
-    # columns =
     return [
         "owd",
         "abstime" + suffixes[0],
@@ -226,13 +216,11 @@ def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[
 combo = Tuple[pd.DataFrame, TcpConnection]
 
 
-# TODO use named tuples ?
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]
 ) -> pd.DataFrame:
     """
-    TODO should I return a merged df order in which
 
     Generates an intermediate file with the owds.
 
@@ -319,13 +307,11 @@ def merge_tcp_dataframes_known_streams(
         # TODO remove in the future (and / or use specific export fct)
         filename = "merge_%d_%s.csv" % (main_connection.tcpstreamid, dest)
         res.to_csv(
-            filename, # output
+            filename,
             columns=columns,
-            # how do we get the config
             sep=cfg["mptcpanalyzer"]["delimiter"],
             # index=True, # hide Index
-            header=True,  # add
-            # sep=main.config["DEFAULT"]["delimiter"],
+            header=True,
         )
 
 
@@ -445,37 +431,7 @@ def merge_mptcp_dataframes_known_streams(
 
 
 
-# def generate_tcp_bidirectional_owd_df(
-#         self, h1_df, h2_df, **kwargs):
-#     """
-#     """
-#     total = None # pd.DataFrame()
-#     for dest in mp.Destination:
-#         q = main_connection.generate_direction_query(dest)
-#         h1_directional_df = h1_df.query(q)
-#         q = mapped_connection.generate_direction_query(dest)
-#         h2_directional_df = h2_df.query(q)
-
-#         # returns directional packetid <-> mapped
-#         res = self.generate_tcp_directional_owd_df(client_directional, local_receiver_df, dest)
-#         # res['dest'] = dest
-#         total = pd.concat([res, total])
-
-#         # kept for debug
-#         filename = "merge_%d_%s.csv" % (mptcpstream, dest)
-#         res.to_csv(
-#             filename, # output
-#             columns=self.columns,
-#             index=True,
-#             header=True,
-#             # sep=main.config["DEFAULT"]["delimiter"],
-#         )
-
-
-# TODO faire une fonction pour TCP simple
 def generate_tcp_directional_owd_df(
-    # todo
-    # h1_df, h2_df,
     sender_df, receiver_df,
     dest,
     suffixes=('_sender', '_receiver'),
@@ -560,7 +516,7 @@ def generate_tcp_directional_owd_df(
 
 
 
-def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]: # Tuple(row, score)
+def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
     # instead should be index ?
     """
     Packets may disappear, get retransmitted

@@ -60,24 +60,20 @@ class TsharkConfig:
             profile: wireshark profiles will setup everything as it should
                 except the gui column format that will be overriden to ensure
                 compatibility with dissection system
+
+             "tshark -G column-formats" list available formats
+             name is then considered as a field accessible via  -e _ws.col.<name>
+             %Cus => Custom
+             see epan/column.c / col_set_rel_time
         """
         self.tshark_bin = tshark_bin
-        # self.fields_to_export = fields_to_export
         self.delimiter = delimiter
         self.profile = profile
         self.filter = "mptcp or tcp"
         self.options = {
-            # used to be 'column.format' in older versions
-            # "tshark -G column-formats" list available formats
-            # name is then considered as a field accessible via  -e _ws.col.<name>
-            # %Cus => Custom
-            # see epan/column.c / col_set_rel_time
             "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
             # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
             "mptcp.analyze_mappings": True,
-            # "nameres.hosts_file_handling": True,
-            # nameres.use_external_name_resolver: True,
-            # nameres.network_name: True
             "mptcp.relative_sequence_numbers": True,
             "mptcp.intersubflows_retransmission": True,
             # Disable DSS checks which consume quite a lot
@@ -85,8 +81,8 @@ class TsharkConfig:
         }
         self.fields = []  # type: List[Field]
 
-        # the split between option is to allow tcp-only wireshark inspection, which is much faster
-        # but for now it is more convenient to
+        # the split between option is to potentially allow for tcp-only wireshark inspection
+        # (much faster)
         self.add_basic_fields()
         self.add_mptcp_fields(False)
         try:
@@ -101,10 +97,7 @@ class TsharkConfig:
         It is helpful when working with a custom wireshark.
         """
         searches = fields
-        # out, stderr = proc.communicate()
         with subprocess.Popen([self.tshark_bin, "-G", "fields" ], stdout=subprocess.PIPE,
-                # stderr=
-                # bufsize=1, # means line buffered with universal_newlines set
                 universal_newlines=True, # opens in text mode
         ) as proc:
             matches: List[str] = [] 
@@ -149,7 +142,6 @@ class TsharkConfig:
         self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number")
         self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length")
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False)
-        # self.add_field("mptcp.master", "master", bool, False)
         self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number")
         self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack")
         self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
@@ -222,7 +214,6 @@ class TsharkConfig:
         if find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
 
-        # rename to args
         cmd = self.generate_command(
             self.tshark_bin,
             fields_to_export,
@@ -245,7 +236,6 @@ class TsharkConfig:
                 stderr = stderr.decode("UTF-8")
                 print("ERROT", )
                 print("ran cmd", proc.args)
-                # print("cmd failed")
                 print("stderr=", stderr)
                 return proc.returncode, stderr
 
@@ -268,22 +258,6 @@ class TsharkConfig:
         # because lists are unhashable
         return hash(' '.join(cmd))
 
-    def export_to_sql(self, input_pcap, output_db, table_name="connections"):
-        """
-        SQL export possible from pcap or csv (i.e. pcap will be converted first to CSV)
-        """
-
-        log.info("Converting pcap [{pcap}] to sqlite database [{db}]".format(
-            pcap=input_pcap,
-            db=output_db
-        ))
-
-        # csv_filename = get_basename(output_db, "csv")
-        csv_filename = output_db + ".csv"
-        self.export_pcap_to_csv(input_pcap, csv_filename)
-
-        convert_csv_to_sql(csv_filename, output_db, table_name)
-
     @staticmethod
     def generate_command(
         tshark_exe,
@@ -301,7 +275,7 @@ class TsharkConfig:
         # for some unknown reasons, -Y does not work so I use -2 -R instead
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
-        # the -2 is very important, else some mptcp parameters are not exported
+        # the -2 is important, else some mptcp parameters are not exported
         cmd = [
             tshark_exe,
             "-E", "header=y", "-2",
@@ -321,51 +295,3 @@ class TsharkConfig:
         for f in fields_to_export:
             cmd.extend([ '-e', f])
         return cmd
-
-
-# TODO replace with pandas export
-def convert_csv_to_sql(csv_filename, database, table_name):
-    """
-    TODO this should be done using pandas library
-    Then you can run SQL commands via SQLite Manager (firefox addo
-    """
-    log.info("Converting csv to sqlite table {table} into {db}".format(
-        table=table_name,
-        db=database
-    ))
-    # db = sqlite.connect(database)
-    # For the second case, when the table already exists,
-    # every row of the CSV file, including the first row, is assumed to be actual content.
-    # If the CSV file contains an initial row of column labels, that row will be read as data
-    # and inserted into the table.
-    # To avoid this, make sure that table does not previously exist.
-    #
-    init_command = (
-        "DROP TABLE IF EXISTS {table};\n"
-        ".separator {delimiter}\n"
-        # ".mode csv\n"
-        ".import {csvFile} {table}\n"
-    ).format(delimiter="|",
-             csvFile=csv_filename,
-             table=table_name)
-    log.info("Creating db %s (if does not exist)" % database)
-    with tempfile.NamedTemporaryFile("w+", delete=False) as f:
-        # with open(tempInitFilename, "w+") as f:
-        f.write(init_command)
-        f.flush()
-
-        cmd = "sqlite3 -init {initFilename} {db} ".format(
-            initFilename=f.name,
-            db=database,
-        )
-
-        log.info("Running command:\n%s" % cmd)
-        try:
-            output = subprocess.check_output(cmd,
-                                             input=".exit".encode(),
-                                             shell=True)
-        except subprocess.CalledProcessError as e:
-            log.error("%s" % e)
-            output = "Failure" + str(e)
-
-    return output

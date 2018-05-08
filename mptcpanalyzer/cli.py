@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf8
 # PYTHON_ARGCOMPLETE_OK
 # vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
 
@@ -120,7 +119,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         self.allow_redirection = True;  # allow pipes in commands
         self.default_to_shell = False;
         self.debug = True;  #  for now
-        self.set_posix_shlex = True
+        self.set_posix_shlex = True  # need cmd2 >= 0.8
 
         # LOAD PLOTS
         ######################
@@ -158,7 +157,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         use for input and output. If not specified, they will default to
         sys.stdin and sys.stdout.
         """
-        # print(self.shortcuts)
 
 
     @property
@@ -172,10 +170,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         :param mgr: a stevedore plugin manager
         """
         self.plot_mgr = mgr
-
-    # set_posix_shlex
-    # def preparse(raw):
-    #     return shlex.split(raw)
 
     def load_plugins(self, mgr=None):
         """
@@ -227,11 +221,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         # Exception raised by sys.exit(), which is called by argparse
         # we don't want the program to finish just when there is an input error
         except SystemExit as e:
-            # e is the error code to call sys.exit() with
-            # log.debug("Input error: " % e)
-            # print("Error: %s"% e)
             self.cmdloop()
-        # you can set a tuple of exceptions
         except mp.MpTcpException as e:
             print(e)
             self.cmdloop()
@@ -240,12 +230,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
             log.critical("%s" % e)
             print("Displaying backtrace:\n")
             traceback.print_exc()
-
-        # finally:
-        #     log.debug("Error logged")
-        # except NotImplementedError:
-        #     print("Plot subclass miss a requested feature")
-        #     return 1
 
     def postcmd(self, stop, line):
         """
@@ -256,20 +240,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         return True if stop is True else False
 
-    # def require_fields(mandatory_fields: list):  # -> Callable[...]:
-    #     """
-    #     Decorator used to check dataset contains all fields required by function
-    #     """
-
-    #     def check_fields(self, *args, **kwargs):
-    #         columns = list(self.data.columns)
-    #         for field in mandatory_fields:
-    #             if field not in columns:
-    #                 raise Exception(
-    #                     "Missing mandatory field [%s] in csv, regen the file or check the separator" % field)
-    #     return check_fields
-
-    # @require_fields(['sport', 'dport', 'ipdst', 'ipsrc'])
     @is_loaded
     def do_list_subflows(self, args):
         """
@@ -282,7 +252,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         parser = argparse.ArgumentParser(
             description="List subflows of an MPTCP connection"
         )
-
         parser.add_argument(
             "mptcpstream", action="store", type=int,
             help="Equivalent to wireshark mptcp.stream id"
@@ -291,7 +260,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
             "-c", "--contributions", action="store_true", default=False,
             help="Display contribution of each subflow (taking into account reinjections ?)"
         )
-
         args = parser.parse_args(shlex.split(args))
         self.list_subflows(args.mptcpstream)
 
@@ -343,7 +311,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         print("Please read the help.")
 
-        # TODO wrong api
         mappings = mptcp_match_connection(df1, df2, args.mptcpstreams)
 
         print("%d mapping(s) found" % len(mappings))
@@ -371,47 +338,21 @@ class MpTcpAnalyzer(cmd2.Cmd):
             description="Prints a summary of the mptcp connection"
         )
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-        # parser.add_argument("--deep", action="store_true", help="Deep analysis, computes transferred bytes etc...")
-        # parser.add_argument("--amount", action="store_true", help="mptcp.stream id")
-
-            # if direction:
-            #     # a bit hackish: we want the object to be of type class
-            #     # but we want to display the user readable version
-            #     # so we subclass list to convert the Enum to str value first.
-        # class CustomDestinationChoices(list):
-        #     def __contains__(self, other):
-        #         # print("%r", other)
-        #         return super().__contains__(other.name)
 
         parser.add_argument(
             'destination',
             action="store",
-            # type=lambda color: str(color) ,#; getattr(mp.Destination,x),
-            # choices=mp.Destination,
             choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
             type=lambda x: mp.Destination[x],
-            # choices=[e.name.lower() for e in mp.Destination],
-            # type=lambda x: mp.Destination[x],
             help='Filter flows according to their direction'
             '(towards the client or the server)'
             'Depends on mptcpstream'
         )
 
-        # try:
-        #     mptcpstream = int(mptcpstream)
-        # except ValueError as e:
-        #     print("Expecting the mptcp.stream id as argument: %s" % e)
-        #     return
-
         args = parser.parse_args(shlex.split(line))
-        # args = parser.parse_args(line)
-        # print("%s" % args)
-        # TODO
         df = self.data
         mptcpstream = args.mptcpstream
 
-        # con = MpTcpConnection.build_from_dataframe(df, mptcpstream)
-        # q = con.generate_direction_query(destination)
         success, ret = stats.mptcp_compute_throughput(
                 self.data, args.mptcpstream, args.destination
         )
@@ -438,57 +379,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         print('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
-
-    # @is_loaded
-    # def do_qualify_reinjections(self, line):
-    #     """
-    #     test with:
-    #         mp qualify_reinjections 0
-    #     """
-    #     parser = argparse.ArgumentParser(
-    #         description="Listing reinjections of the connection"
-    #     )
-    #     parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-    #     parser.add_argument("pcap1", type=str, help="Capture file 1")
-    #     parser.add_argument("pcap2", type=str, help="Capture file 2")
-    #     # TODO le rendre optionnel ?
-    #     parser.add_argument("mptcpstream1", type=int, help="mptcp.stream id")
-    #     # TODO filter on dest/role
-    #     # parser.add_argument("--role", type=int, help="mptcp.stream id")
-    #     # parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
-
-    #     args = parser.parse_known_args(line)
-
-    #     raw_df1 = load_into_pandas(args.mptcpstream1)
-    #     raw_df2 = load_into_pandas(args.mptcpstream2)
-
-    #     df_merged = merge_mptcp_dataframes_known_streams(raw_df1, raw_df2, args.mptcpstream, args.mptcpstream1)
-    #     """
-    #     Maybe wisest approach is to merge only relevant informations and use packetid as Index in the original df ?
-
-
-    #     Now the algorithm consists in :
-    #     for each reinjection:
-    #         look for the arrival time
-    #             compare with the arrival time of the original packet
-    #             if it arrived sooner:
-    #                 than it's a successful reinjection
-    #             else
-    #                 look for the first emitted dataack on each packet reception
-    #                 look for its reception by the sender
-    #     """
-    #     # df1 = raw_df1['tcpstream' == mptcpstream1]
-    #     # 1/ keep list of original packets that are reinjected
-    #     # i.e., "reinjected_in" not empty but reinjection_of empty
-    #     # query = "mptcprole == '%s'" % (Destination.Client)
-    #     # res = df_merged.query(query)
-    #     # isnull / notnull
-    #     # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
-
-    #     # filter packets to only keep the original packets that are reinjected
-    #     res2 = res[pd.isnull(res["reinjection_of"])]
-    #     res2 = res2[pd.notnull(res["reinjected_in"])]
-    #     print("filtering reinjected %d" % (len(res2)))
 
     @is_loaded
     def do_list_reinjections(self, line):
@@ -603,7 +493,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
         args, unknown_args = parser.parse_known_args(cli_args)
         # Allocate plot object
         plotter = self.plot_mgr[args.plot_type].obj
-
 
         dargs = vars(args)  # 'converts' the namespace to a dict
 

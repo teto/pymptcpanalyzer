@@ -1,9 +1,6 @@
 import json
 import subprocess
 
-
-
-# most liekly would be best into a "utils.py":
 def copy_to_x(content):
     """
     Copy to *clipboard*
@@ -24,5 +21,4 @@ def get_dtypes(d):
         if isinstance(val, tuple) and len(val) > 1:
             ret.update({key: val[1]})
     return ret
-
 
