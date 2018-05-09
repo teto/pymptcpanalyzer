@@ -125,6 +125,17 @@ def load_into_pandas(
         def _convert_flags(x):
             return int(x, 16)
 
+        def _convert_to_list(x):
+            """
+            returns np.nan instead of [] to allow for faster filtering
+            """
+            # pandas error message are not the best to understand why the convert failed
+            # so we use this instead of lambda for debug reasons
+            print("converting %r" % x)
+            res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
+            return res
+
+
         with open(csv_filename) as fd:
 
             data = pd.read_csv(
@@ -138,7 +149,9 @@ def load_into_pandas(
                 converters={
                     "tcp.flags": _convert_flags,
                     # reinjections, converts to list of integers
-                    "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
+                    # "mptcp.reinjection": _convert_to_list,
+                    "mptcp.reinjection_listing": _convert_to_list,
+                    # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                 },
                 # nrows=10, # useful for debugging purpose
             )
