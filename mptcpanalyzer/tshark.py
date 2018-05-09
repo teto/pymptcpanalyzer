@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 import subprocess
 import os
@@ -88,7 +87,7 @@ class TsharkConfig:
         # the split between option is to allow tcp-only wireshark inspection, which is much faster
         # but for now it is more convenient to
         self.add_basic_fields()
-        self.add_mptcp_fields(False)
+        self.add_mptcp_fields()
         try:
             matches = self.check_fields([ "mptcp.related_mapping" ])
         except subprocess.CalledProcessError as e:
@@ -136,7 +135,7 @@ class TsharkConfig:
         self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64, "TCP timestamp tsval")
         self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64, "TCP timestamp tsecr")
 
-    def add_mptcp_fields(self, advanced=False):
+    def add_mptcp_fields(self, advanced=True):
         self.add_field("mptcp.expected_token", "expected_token", str, False)
         self.add_field("mptcp.stream", "mptcpstream", np.float, False)
         self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False)
@@ -156,10 +155,10 @@ class TsharkConfig:
 
         if advanced:
             self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
-            self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
+            # self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
-            # self.add_field("mptcp.reinjection_of", "reinjection_of", None, "Reinjection")
-            # self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
+            self.add_field("mptcp.reinjection", "reinjection_of", float, "Reinjection")
+            self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
 
     def add_field(self, fullname, name, type, label):
         """

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf8
 # PYTHON_ARGCOMPLETE_OK
 # vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
@@ -6,7 +5,7 @@
 # Copyright 2015-2016 Université Pierre et Marie Curie
 # Copyright 2017 IIJ Initiative for Internet Japan
 #
-# Matthieu coudron , coudron@iij.ad.jp
+# Matthieu coudron, coudron@iij.ad.jp
 """
 # the PYTHON_ARGCOMPLETE_OK line a few lines up can enable shell completion
 for argparse scripts as explained in
@@ -397,12 +396,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
             'Depends on mptcpstream'
         )
 
-        # try:
-        #     mptcpstream = int(mptcpstream)
-        # except ValueError as e:
-        #     print("Expecting the mptcp.stream id as argument: %s" % e)
-        #     return
-
         args = parser.parse_args(shlex.split(line))
         # args = parser.parse_args(line)
         # print("%s" % args)
@@ -503,24 +496,33 @@ class MpTcpAnalyzer(cmd2.Cmd):
         To do that, we need to take into account latencies
 
         """
-        print("Listing reinjections of the connection")
+        # print("Listing reinjections of the connection")
         parser = argparse.ArgumentParser(
             description="Listing reinjections of the connection"
         )
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+        parser.add_argument("--summary", action="store_true", default=False,
+                help="Just count reinjections")
+
         args = parser.parse_args(line)
         df = self.data
         df = self.data[df.mptcpstream == args.mptcpstream]
         if df.empty:
             print("No packet with mptcp.stream == %d" % args.mptcpstream)
             return
-        known : Set[int] = set()
-        reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )
+
+        # known : Set[int] = set()
+        print(df.columns)
+        reinjections = df[["packetid", 'tcpstream', "reinjection_of"]].dropna(axis=0, )
         total_nb_reinjections = 0
         for row in reinjections.itertuples():
-            if row.packetid not in known:
-                print("packetid=%d reinjected in %s" % (row.packetid, row.reinjections))
-                known.update([row.packetid] + row.reinjections)
+            # if row.packetid not in known:
+            print("packetid=%d reinjected in %s (tcp.stream %d)" % (row.reinjection_of, row.packetid, row.tcpstream))
+                # known.update([row.packetid] + row.reinjection)
+
+        reinjections = df["reinjection_of"].dropna(axis=0, )
+        print("number of reinjections of ")
+
 
     def load(self, filename, regen: bool=False):
 

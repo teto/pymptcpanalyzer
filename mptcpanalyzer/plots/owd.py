@@ -181,7 +181,6 @@ class TcpOneWayDelay(plot.Matplotlib):
                         # converters={
                         #     "tcp.flags": lambda x: int(x, 16),
                         #     # reinjections, converts to list of integers
-                        #     "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x else np.nan,
                         #     # "mptcp.related_mapping": lambda x: x.split(','),
                         # },
                         # memory_map=True, # could speed up processing
