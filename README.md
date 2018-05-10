@@ -12,7 +12,7 @@
 Presentation 
 ===
 
-Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
+Mptcpanalyzer is a python (>=3.6) tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
 It works on linux only.
 
 It accepts as input a capture file (\*.pcap) and from there generates a CSV file 
@@ -87,11 +87,17 @@ See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html)
 
 If you have issues with mypy, you can suffix with `# type: ignore`
 
+# TODO 
+- use configobj to load config defaults/validation ?
+- as in mptcpplot plot some events (e.g., MP\_JOIN) differently ?
+- choose colors of subflows
+
 # Similar tools
 
 If I have forgotten about your tool, file an issue, for know we are aware of:
-- [mptcptrace](https://bitbucket.org/bhesmans/mptcptrace) with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
-- [mptcpplot](https://github.com/nasa/multipath-tcp-tools/)
+- [mptcptrace] with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
+- [mptcpplot] with [generated output example](https://roland.grc.nasa.gov/~jishac/mptcpplot/)
 
 
 [mptcptrace]: https://bitbucket.org/bhesmans/mptcptrace
+[mptcpplot]: https://github.com/nasa/multipath-tcp-tools/
