@@ -125,19 +125,22 @@ def load_into_pandas(
         def _convert_flags(x):
             return int(x, 16)
 
-        def _convert_to_list(x):
+        def _convert_to_list(x, field="no desc"):
             """
             returns np.nan instead of [] to allow for faster filtering
             """
             # pandas error message are not the best to understand why the convert failed
             # so we use this instead of lambda for debug reasons
-            print("converting %r" % x)
+            print("converting field %s with value %r" % (field, x))
             res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
             return res
 
 
         with open(csv_filename) as fd:
 
+            import functools
+
+            # TODO use packetid as Index
             data = pd.read_csv(
                 fd,
                 comment='#',
@@ -152,8 +155,8 @@ def load_into_pandas(
                 converters={
                     "tcp.flags": _convert_flags,
                     # reinjections, converts to list of integers
-                    # "mptcp.reinjection": _convert_to_list,
-                    "mptcp.reinjection_listing": _convert_to_list,
+                    "mptcp.reinjection": functools.partial(_convert_to_list, field="reinjectionOf"),
+                    "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
                     # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                 },
                 # nrows=10, # useful for debugging purpose
@@ -161,6 +164,8 @@ def load_into_pandas(
                 # memory_map=True, # could speed up processing
             )
             data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
+            # we want packetid column to survive merges/dataframe transformation so keepit as a column
+            data.set_index("packetid", drop=False, inplace=True)
             log.debug("Column names: %s", data.columns)
     except Exception as e:
         print("You may need to filter more your pcap to keep only mptcp packets")
@@ -516,7 +521,6 @@ def generate_tcp_directional_owd_df(
 
     # TODO print statistics about how many packets have been mapped
     # print(" len(mapped_df)")
-    # should print packetids
 
     print("== DEBUG START ===")
     print("Mapped index:")
@@ -568,7 +572,6 @@ def generate_tcp_directional_owd_df(
     # res['owd'] = client_df[ mapped_df["receiver_pktid"],'abstime'] - server_df[mapped_df['sender_pktid'], 'abstime']
 
     print("unidirectional results\n", res.head())
-    # print(res[["packetid", "mapped_index", "owd", "sendkey_snd", "sendkey_rcv"]])
     return res
 
 
@@ -672,7 +675,6 @@ def map_tcp_packets(
     # # so that they map to the same or none ?
     limit = 5  # limit nb of scores to display
 
-    # df_res = pd.DataFrame(columns=['packetid', 'score', "mapped_rcvpktid"])
     print(df_final)
 
     pkt_column = df_final.columns.get_loc('rcv_pktid')
@@ -683,7 +685,6 @@ def map_tcp_packets(
         explain_pkt = row.packetid in explain
         scores = map_tcp_packet(receiver_df, row, explain_pkt)
         # takes best score index
-        # print("row=", df_final.loc[row.index, "packetid"])
         # df_final.loc[row.index , 'mapped_index'] = 2 # scores[0][0]
         # print(type(row.Index), type(row.index))
         if len(scores) >= 1:

@@ -496,7 +496,9 @@ class MpTcpAnalyzer(cmd2.Cmd):
         To do that, we need to take into account latencies
 
         """
-        # print("Listing reinjections of the connection")
+        print("WARNING: Requires (until upstreaming) a custom wireshark:\n"
+            "Check out https://github.com/teto/wireshark/tree/reinject_stable"
+        )
         parser = argparse.ArgumentParser(
             description="Listing reinjections of the connection"
         )
@@ -513,12 +515,27 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         # known : Set[int] = set()
         print(df.columns)
-        reinjections = df[["packetid", 'tcpstream', "reinjection_of"]].dropna(axis=0, )
+        reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
         total_nb_reinjections = 0
         for row in reinjections.itertuples():
             # if row.packetid not in known:
-            print("packetid=%d reinjected in %s (tcp.stream %d)" % (row.reinjection_of, row.packetid, row.tcpstream))
-                # known.update([row.packetid] + row.reinjection)
+            # ','.join(map(str,row.reinjection_of)
+            print("packetid=%d (tcp.stream %d) is a reinjection of %d packets: " 
+                    % ( row.Index, row.tcpstream,
+                        len(row.reinjection_of)
+                        )
+            )
+
+            # print("reinjOf=", row.reinjection_of)
+            # assuming packetid is the index
+            for pktId in row.reinjection_of:
+                # print("packetId %d" % pktId)
+                # entry = self.data.iloc[ pktId - 1]
+                entry = self.data.loc[ pktId ]
+                # entry = df.loc[ df.packetid == pktId]
+                # print("packetId %r" % entry)
+                print("- packet %d (tcp.stream %d)" % (entry.packetid, entry.tcpstream))
+            # known.update([row.packetid] + row.reinjection)
 
         reinjections = df["reinjection_of"].dropna(axis=0, )
         print("number of reinjections of ")
@@ -528,6 +545,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         self.data = load_into_pandas(filename, self.tshark_config, regen)
         self.prompt = "%s> " % os.path.basename(filename)
+
 
     def do_load_pcap(self, args):
         """
@@ -747,7 +765,7 @@ def main(arguments=None):
         analyzer = MpTcpAnalyzer(config, **vars(args))
 
         if args.input_file:
-            log.info("Input file")
+            log.info("Loading Input file %s" % args.input_file)
             cmd = args.input_file
             analyzer.do_load(cmd)
 
