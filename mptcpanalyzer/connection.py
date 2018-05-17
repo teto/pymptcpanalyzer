@@ -59,7 +59,7 @@ class TcpConnection:
 
     def score(self, other):
         """
-        If every parameter is equal, returns +oo
+        If every parameter is equal, returns +oo else 0
         """
         if (self.server_ip == other.server_ip and
                 self.client_ip == other.client_ip and
@@ -116,8 +116,6 @@ class TcpConnection:
         )
         log.debug("Created connection %s", result)
         return result
-
-
 
     def reversed(self):
         return self.create_subflow(
@@ -217,7 +215,6 @@ class MpTcpConnection:
         client_token = ds["expected_token"].iloc[cid]
         server_key = ds["sendkey"].iloc[res[1]]
         server_token = ds["expected_token"].iloc[res[1]]
-        # print("client key", client_key, "/", client_token, "/", server_key, server_token)
         master_id = ds["tcpstream"].iloc[0]
 
         subflows = []
@@ -236,6 +233,7 @@ class MpTcpConnection:
                 raise MpTcpException("Missing MP_JOIN")
             row = res[0]
             token = subflow_ds["recvtok"].iloc[row]
+
             subflow = MpTcpSubflow.create_subflow(tcpstreamid,
                 subflow_ds['ipsrc'].iloc[row], subflow_ds['ipdst'].iloc[row],
                 subflow_ds['sport'].iloc[row], subflow_ds['dport'].iloc[row],
@@ -243,6 +241,7 @@ class MpTcpConnection:
 
             if (token == client_token):
                 subflow = subflow.reversed()
+
             subflows.append(subflow)
 
         result = MpTcpConnection(mptcpstreamid, client_key, client_token,
@@ -328,5 +327,6 @@ class MpTcpConnection:
             ckey=self.client_key,
             ctoken=self.client_token,
         )
+        for sf in self.subflows:
 
         return res

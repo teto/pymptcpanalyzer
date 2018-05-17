@@ -433,14 +433,12 @@ def merge_mptcp_dataframes_known_streams(
 
     :see: .merge_mptcp_dataframes
 
-
     Returns:
         Per-subflow dataframes
         See .merge_tcp_dataframes_known_streams for in
 
         I want to see packets leave as
     """
-    # mptcpdest=
     main_connection, df1 = con1
     mapped_connection, df2 = con2
     # Keep subflows that are present in the two connections (useless anyway ?)
@@ -725,7 +723,11 @@ def map_tcp_packets(
     # print("head=\n", df_final.head())
     return df_final
 
+
 def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
+    """
+    TODO remove ?
+    """
 
     mappings = {}
     for mptcpstream1 in rawdf1["mptcpstream"].unique():
@@ -741,7 +743,7 @@ def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: Lis
 def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[Tuple[TcpConnection, int]]:
     """
     Returns:
-        a list of tuple (
+        a sorted list of mappings (tcpconnection, score) with the first one being the most probable
     """
 
     results = []
@@ -761,25 +763,24 @@ def mptcp_match_connection(
     rawdf2: pd.DataFrame, main: MpTcpConnection
 ) -> List[Tuple[MpTcpConnection, float]]:
     """
-    .. warn: Do not trust the results yet WIP !
+    warn: Do not trust the results yet WIP !
+
+    Returns:
+        List of (connection, score) with the best mapping first
 
     This function tries to map a mptcp.stream from a dataframe (aka pcap) to mptcp.stream
-    in another dataframe.
-
-    It goes over
-
-    Args:
-        ds1, ds2
-
+    in another dataframe. For now it just looks at IP level stuff without considering subflow 
+    mapping score
     """
     log.warning("mapping between datasets is not considered trustable yet")
     results = []  # type: List[Tuple[Any, float]]
 
     mappings = {}  # type: Dict[int,Tuple[Any, float]]
 
-    # main = MpTcpConnection.build_from_dataframe(df, mptcpstream)
     score = -1  # type: float
     results = []
+
+    print("%r" % main)
 
     for mptcpstream2 in rawdf2["mptcpstream"].unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
