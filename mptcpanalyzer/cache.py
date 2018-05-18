@@ -101,3 +101,9 @@ class Cache:
         for cached_csv in os.scandir(self.folder):
             log.info("Removing " + cached_csv.path)
             os.unlink(cached_csv.path)
+
+
+    # helpers to generate specific uids
+    @staticmethod
+    def merged_uid(pcap1, pcap2, stream1, stream2, suffix):
+        return CacheId("owd", [ pcap1, pcap2, stream1, stream2], suffix)

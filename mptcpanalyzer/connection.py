@@ -77,6 +77,8 @@ class TcpConnection:
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
+        # print("self=%r"% self)
+        # print("other=%r"% other)
         return self.score(other) == float('inf')
 
     @staticmethod
@@ -275,6 +277,7 @@ class MpTcpConnection:
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
+        # print("self=%r", self)
         return self.score(other) == float('inf')
 
     def score(self, other: 'MpTcpConnection') -> float:
@@ -303,7 +306,9 @@ class MpTcpConnection:
         # with nat, ips don't mean a thing ?
         for sf in self.subflows:
             # TODO compute a score
-            if sf in other.subflows or sf.reversed in other.subflows:
+            # print("checking subflow %r" % sf)
+            # print("reversed subflow %r" % sf.reversed())
+            if sf in other.subflows or sf.reversed() in other.subflows:
                 log.debug("Subflow %s in common" % sf)
                 score += 10
                 common_sf.append(sf)
@@ -311,6 +316,7 @@ class MpTcpConnection:
                 log.debug("subflows don't match")
 
         # TODO compare start times supposing cloak are insync ?
+        # print( " score of %r" % score)
         return score
 
 
@@ -327,6 +333,9 @@ class MpTcpConnection:
             ckey=self.client_key,
             ctoken=self.client_token,
         )
-        for sf in self.subflows:
+
+        res += '\n'.join(map(str, self.subflows))
+        # for sf in self.subflows:
+        #     res += str(sf)
 
         return res

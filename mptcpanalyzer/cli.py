@@ -22,7 +22,7 @@ import subprocess
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas, map_tcp_stream
+from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import mptcpanalyzer.cache as mc
@@ -54,6 +54,8 @@ log.addHandler(ch)
 
 
 histfile_size = 1000
+
+CAT_REINJECTIONS = "Reinjections"
 
 def is_loaded(f):
     """
@@ -397,32 +399,23 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
 
         main_connection = MpTcpConnection.build_from_dataframe(df1, args.mptcpstreamid)
-        print("%r" % main_connection)
         mappings = mptcp_match_connection(df2, main_connection)
 
         print("%d mapping(s) found" % len(mappings))
         for match, score in mappings:
 
             # output = "{c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}"
-            output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score}"
+            output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score} {extra}"
             formatted_output = output.format(
                 c1=main_connection,
                 c2=match,
-                score=score
+                score=score,
+                extra=self.color('red', " <-- should be a correct match") if score == float('inf') else ""
             )
+            
             print(formatted_output)
-
-        # for con1, scores in mappings.items():
-        #     for con2, score in scores:
-
-        #         if args.verbose:
-        #             output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score}"
-        #         formatted_output = output.format(
-        #             c1=con1,
-        #             c2=con2,
-        #             score=score
-        #         )
-        #         print(formatted_output)
+        # TODO split into 
+        # sauce = self.select('sweet salty', 'Sauce? ')
 
     @is_loaded
     def do_summary(self, line):
@@ -496,33 +489,81 @@ class MpTcpAnalyzer(cmd2.Cmd):
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
 
-    # @is_loaded
-    # def do_qualify_reinjections(self, line):
-    #     """
-    #     test with:
-    #         mp qualify_reinjections 0
-    #     """
-    #     parser = argparse.ArgumentParser(
-    #         description="Listing reinjections of the connection"
-    #     )
-    #     parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-    #     parser.add_argument("pcap1", type=str, help="Capture file 1")
-    #     parser.add_argument("pcap2", type=str, help="Capture file 2")
-    #     # TODO le rendre optionnel ?
-    #     parser.add_argument("mptcpstream1", type=int, help="mptcp.stream id")
-    #     # TODO filter on dest/role
-    #     # parser.add_argument("--role", type=int, help="mptcp.stream id")
-    #     # parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
 
-    #     args = parser.parse_known_args(line)
+    @experimental
+    # @with_category(CAT_REINJECTIONS)
+    def do_print_owds(self, line):
+        parser = argparse.ArgumentParser(
+            description="This function tries merges a tcp stream from 2 pcaps"
+                        "in an attempt to print owds. See map_tcp_connection first maybe."
+        )
 
-    #     raw_df1 = load_into_pandas(args.mptcpstream1)
-    #     raw_df2 = load_into_pandas(args.mptcpstream2)
+        parser.add_argument("pcap1", action="store", help="first to load")
+        parser.add_argument("pcap2", action="store", help="second pcap")
+        parser.add_argument("tcpstreamid", action="store", type=int, help="tcp.stream id visible in wireshark")
+        parser.add_argument("tcpstreamid2", action="store", type=int, help="tcp.stream id visible in wireshark")
+        # give a choice "hash" / "stochastic"
+        # parser.add_argument("--map-packets", action="store", type=int, help="tcp.stream id visible in wireshark")
+        parser.add_argument(
+            '-v', '--verbose', dest="verbose", default=False,
+            action="store_true",
+            help="how to display each connection"
+        )
 
-    #     df_merged = merge_mptcp_dataframes_known_streams(raw_df1, raw_df2, args.mptcpstream, args.mptcpstream1)
-    #     """
-    #     Maybe wisest approach is to merge only relevant informations and use packetid as Index in the original df ?
+        args = parser.parse_args(shlex.split(line))
+        df = load_merged_tcpstreams_into_pandas(
+                args.pcap1,
+                args.pcap2,
+        )
+        # df1 = load_into_pandas(args.pcap1, self.tshark_config)
+        # df2 = load_into_pandas(args.pcap2, self.tshark_config)
 
+        # main_connection = TcpConnection.build_from_dataframe(df1, args.tcpstreamid)
+        # other_connection = TcpConnection.build_from_dataframe(df2, args.tcpstreamid2)
+
+        # result = merge_tcp_dataframes_known_streams(
+        #         (df1, main_connection),
+        #         (df2, other_connection)
+        # )
+        print("print_owds finished")
+        print("TODO display before doing plots")
+        # print(result.head(20))
+
+
+    @experimental
+    # put when cmd2 gets bumped to 0.8.5
+    # @with_category(CAT_REINJECTIONS)
+    def do_qualify_reinjections(self, line):
+        """
+        test with:
+            mp qualify_reinjections 0
+        """
+        parser = argparse.ArgumentParser(
+            description="""
+            Qualify reinjections of the connection.
+            You might want to run map_mptcp_connection first to find out 
+            what map to which
+            """
+        )
+        parser.add_argument("pcap1", type=str, help="Capture file 1")
+        parser.add_argument("pcap2", type=str, help="Capture file 2")
+        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+        # TODO le rendre optionnel ?
+        parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
+
+
+        args = parser.parse_args(shlex.split(line))
+        df1 = load_into_pandas(args.pcap1, self.tshark_config)
+        df2 = load_into_pandas(args.pcap2, self.tshark_config)
+
+        con1 = MpTcpConnection.build_from_dataframe(df1, args.mptcpstream)
+        con2 = MpTcpConnection.build_from_dataframe(df2, args.mptcpstream2)
+
+        df_merged = merge_mptcp_dataframes_known_streams(
+            (df1, con1),
+            (df2, con2)
+        )
+        print(df_merged.head(30))
 
     #     Now the algorithm consists in :
     #     for each reinjection:
@@ -579,7 +620,9 @@ class MpTcpAnalyzer(cmd2.Cmd):
             return
 
         # known : Set[int] = set()
-        print(df.columns)
+        # print(df.columns)
+
+        # TODO move to outer function ?
         reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
         total_nb_reinjections = 0
         for row in reinjections.itertuples():
@@ -603,7 +646,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
             # known.update([row.packetid] + row.reinjection)
 
         reinjections = df["reinjection_of"].dropna(axis=0, )
-        print("number of reinjections of ")
+        # print("number of reinjections of ")
 
 
     def load(self, filename, regen: bool=False):
