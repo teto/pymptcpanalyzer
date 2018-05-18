@@ -59,7 +59,7 @@ class TcpConnection:
 
     def score(self, other):
         """
-        If every parameter is equal, returns +oo
+        If every parameter is equal, returns +oo else 0
         """
         if (self.server_ip == other.server_ip and
                 self.client_ip == other.client_ip and
@@ -77,6 +77,8 @@ class TcpConnection:
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
+        # print("self=%r"% self)
+        # print("other=%r"% other)
         return self.score(other) == float('inf')
 
     @staticmethod
@@ -116,8 +118,6 @@ class TcpConnection:
         )
         log.debug("Created connection %s", result)
         return result
-
-
 
     def reversed(self):
         return self.create_subflow(
@@ -217,7 +217,6 @@ class MpTcpConnection:
         client_token = ds["expected_token"].iloc[cid]
         server_key = ds["sendkey"].iloc[res[1]]
         server_token = ds["expected_token"].iloc[res[1]]
-        # print("client key", client_key, "/", client_token, "/", server_key, server_token)
         master_id = ds["tcpstream"].iloc[0]
 
         subflows = []
@@ -236,6 +235,7 @@ class MpTcpConnection:
                 raise MpTcpException("Missing MP_JOIN")
             row = res[0]
             token = subflow_ds["recvtok"].iloc[row]
+
             subflow = MpTcpSubflow.create_subflow(tcpstreamid,
                 subflow_ds['ipsrc'].iloc[row], subflow_ds['ipdst'].iloc[row],
                 subflow_ds['sport'].iloc[row], subflow_ds['dport'].iloc[row],
@@ -243,6 +243,7 @@ class MpTcpConnection:
 
             if (token == client_token):
                 subflow = subflow.reversed()
+
             subflows.append(subflow)
 
         result = MpTcpConnection(mptcpstreamid, client_key, client_token,
@@ -276,6 +277,7 @@ class MpTcpConnection:
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
+        # print("self=%r", self)
         return self.score(other) == float('inf')
 
     def score(self, other: 'MpTcpConnection') -> float:
@@ -304,7 +306,9 @@ class MpTcpConnection:
         # with nat, ips don't mean a thing ?
         for sf in self.subflows:
             # TODO compute a score
-            if sf in other.subflows or sf.reversed in other.subflows:
+            # print("checking subflow %r" % sf)
+            # print("reversed subflow %r" % sf.reversed())
+            if sf in other.subflows or sf.reversed() in other.subflows:
                 log.debug("Subflow %s in common" % sf)
                 score += 10
                 common_sf.append(sf)
@@ -312,6 +316,7 @@ class MpTcpConnection:
                 log.debug("subflows don't match")
 
         # TODO compare start times supposing cloak are insync ?
+        # print( " score of %r" % score)
         return score
 
 
@@ -328,5 +333,9 @@ class MpTcpConnection:
             ckey=self.client_key,
             ctoken=self.client_token,
         )
+
+        res += '\n'.join(map(str, self.subflows))
+        # for sf in self.subflows:
+        #     res += str(sf)
 
         return res

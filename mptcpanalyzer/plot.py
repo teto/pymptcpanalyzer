@@ -246,7 +246,7 @@ class Plot:
         """
         dataframes = []
         for pcap_name, action in self.input_pcaps:
-            print("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
+            log.info("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
             if action >= PreprocessingActions.Preload:
                 filename = kwargs.get(pcap_name)
                 df = load_into_pandas(filename, self.tshark_config,)

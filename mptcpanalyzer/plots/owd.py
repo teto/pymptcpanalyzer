@@ -63,24 +63,6 @@ class TcpOneWayDelay(plot.Matplotlib):
         # TODO a purer version would be best
         self.tshark_config.fields = []
         self.tshark_config.add_basic_fields();
-        # self.suffixes = ("_snd", "_rcv")
-        # self.suffixes = ("", "_rcv")
-        # self.columns = [
-        #     "owd",
-        #     "abstime" + self.suffixes[0],
-        #     "abstime" + self.suffixes[1],
-        #     "packetid" + self.suffixes[0],
-        #     "packetid" + self.suffixes[1],
-        #     "ipsrc" + self.suffixes[0],
-        #     "ipsrc" + self.suffixes[1],
-        #     "ipdst" + self.suffixes[0],
-        #     "ipdst" + self.suffixes[1],
-        #     "sport" + self.suffixes[0],
-        #     "sport" + self.suffixes[1],
-        #     "dport" + self.suffixes[0],
-        #     "dport" + self.suffixes[1],
-        #     "tcpseq"
-        # ]
 
 
     def default_parser(self, *args, **kwargs):
@@ -90,22 +72,21 @@ class TcpOneWayDelay(plot.Matplotlib):
         parser = super().default_parser(
             *args, parent_parsers=[parser], mptcpstream=False, **kwargs
         )
-        parser.add_argument("--explain", action="append",
-                default=[],
+        parser.add_argument("tcpstream1", action="store",
                 type=int,
-                help="List packets "
+                help="Stream from pcap 1"
         )
-
-        # parser.add_argument("--offset", action="store",
-        #         type=float,
-        #         help="A possible offset added to the time of"
-        # )
+        # TODO add an option to let the program find it
+        parser.add_argument("tcpstream2", action="store",
+                # nargs="?',
+                type=int,
+                help="Stream from pcap 2"
+        )
 
         return parser
 
 
-    def preprocess(self, mptcpstream=None,
-            **kwargs):
+    def preprocess(self, tcpstream1, tcpstream2, **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
         to compute OWDs.
@@ -116,11 +97,14 @@ class TcpOneWayDelay(plot.Matplotlib):
         directly this cache else we proceed as usual
 
         """
-        # h1, h2 = super().preprocess()
-        cacheid = CacheId("owd", [
+        # Need to add the stream ids too !
+        fd = load_merged_tcpstreams_into_pandas(
             kwargs.get("host1_pcap"),
-            kwargs.get("host2_pcap")
-            ], ".csv")
+            kwargs.get("host2_pcap"),
+            tcpstream1,
+            tcpstream2
+        )
+            
 
         # if we can't load that file from cache
         try:
