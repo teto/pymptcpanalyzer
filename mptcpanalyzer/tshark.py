@@ -53,7 +53,7 @@ class TsharkConfig:
     these options are meant to override a base profile
     """
 
-    def __init__(self, tshark_bin="wireshark", delimiter="|", profile=None):
+    def __init__(self, tshark_bin="tshark", delimiter="|", profile=None):
         """
         Args:
             profile: wireshark profiles will setup everything as it should
@@ -96,7 +96,10 @@ class TsharkConfig:
         It is helpful when working with a custom wireshark.
         """
         searches = fields
-        with subprocess.Popen([self.tshark_bin, "-G", "fields" ], stdout=subprocess.PIPE,
+        cmd = [self.tshark_bin, "-G", "fields" ]
+
+        log.info("Checking for fields %s" % (cmd))
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE,
                 universal_newlines=True, # opens in text mode
         ) as proc:
             matches: List[str] = [] 

@@ -13,18 +13,25 @@ Similar to config
 """
 cache = None  # type: Cache
 
+
+def getrealpath(input_file):
+    filename = os.path.expanduser(input_file)
+    filename = os.path.realpath(filename)
+    return filename
+
+
 class CacheId:
     def __init__(self, prefix: str,
-            deps: Collection=[Union[str, Path]],
+            filedeps: Collection=[Union[str, Path]],
             suffix: str="" ) -> None:
         """
         Builds a cache 'prefix_dep1_dep2_suffix'
         """
-        assert len(deps) > 0, "without dependency, why use cache ?"
+        assert len(filedeps) > 0, "without dependency, why use cache ?"
 
-        self.dependencies = list(map(os.path.abspath, deps))
+        self.dependencies = list(map(getrealpath, filedeps))
         log.debug("%r %r", prefix, suffix)
-        self.tpl = prefix + "_".join([os.path.basename(dep) for dep in deps]) + '%s' + str(suffix)
+        self.tpl = prefix + "_".join([os.path.basename(dep) for dep in filedeps]) + '%s' + str(suffix)
 
     @property
     def filename(self,):

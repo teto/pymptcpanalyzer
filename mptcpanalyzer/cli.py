@@ -22,7 +22,8 @@ import subprocess
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams
+import mptcpanalyzer.data as mpdata
+from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import mptcpanalyzer.cache as mc
@@ -441,6 +442,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
     @experimental
     # @with_category(CAT_REINJECTIONS)
+    # print tcp owd
     def do_print_owds(self, line):
         parser = argparse.ArgumentParser(
             description="This function tries merges a tcp stream from 2 pcaps"
@@ -449,8 +451,9 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         parser.add_argument("pcap1", action="store", help="first to load")
         parser.add_argument("pcap2", action="store", help="second pcap")
-        parser.add_argument("tcpstreamid", action="store", type=int, help="tcp.stream id visible in wireshark")
-        parser.add_argument("tcpstreamid2", action="store", type=int, help="tcp.stream id visible in wireshark")
+        parser.add_argument("streamid", action="store", type=int, help="tcp.stream id visible in wireshark")
+        parser.add_argument("streamid2", action="store", type=int, help="tcp.stream id visible in wireshark")
+        parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
         # give a choice "hash" / "stochastic"
         # parser.add_argument("--map-packets", action="store", type=int, help="tcp.stream id visible in wireshark")
         parser.add_argument(
@@ -460,23 +463,32 @@ class MpTcpAnalyzer(cmd2.Cmd):
         )
 
         args = parser.parse_args(shlex.split(line))
-        df = load_merged_tcpstreams_into_pandas(
+        df = load_merged_streams_into_pandas(
                 args.pcap1,
                 args.pcap2,
+                args.streamid,
+                args.streamid2,
+                False
         )
-        # df1 = load_into_pandas(args.pcap1, self.tshark_config)
-        # df2 = load_into_pandas(args.pcap2, self.tshark_config)
+        result = df
+        print(result[mpdata.DEBUG_FIELDS].head(20))
 
-        # main_connection = TcpConnection.build_from_dataframe(df1, args.tcpstreamid)
-        # other_connection = TcpConnection.build_from_dataframe(df2, args.tcpstreamid2)
-
-        # result = merge_tcp_dataframes_known_streams(
-        #         (df1, main_connection),
-        #         (df2, other_connection)
-        # )
         print("print_owds finished")
-        print("TODO display before doing plots")
-        # print(result.head(20))
+        # print("TODO display before doing plots")
+        # TODO display errors
+        print(result[["owd"]].head(20))
+        # print(result.columns)
+        mpdata.print_weird_owds(result)
+        # print(result[["owd"]].head(20))
+
+    def do_check_tshark(self, line):
+        """
+        """
+        print("Checking wireshark settings...")
+        print("TODO")
+        # print("Checking wireshark settings...")
+        # TsharkConfig config 
+        # config.check_fields
 
 
     @experimental

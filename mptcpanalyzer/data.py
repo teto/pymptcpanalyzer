@@ -6,7 +6,7 @@ from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 import mptcpanalyzer as mp
 from mptcpanalyzer import get_config, get_cache, Destination
-from typing import List, Any, Tuple, Dict, Callable, Collection
+from typing import List, Any, Tuple, Dict, Callable, Collection, Union
 import math
 import tempfile
 import pprint
@@ -16,12 +16,17 @@ log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
 
 
+# class MpTcpStreamId(int):
+#     class TcpStreamId(int):
+
 """
 Used when dealing with the merge of dataframes
 """
 SENDER_SUFFIX="_sender"
 RECEIVER_SUFFIX="_receiver"
 
+# to help
+DEBUG_FIELDS=['hash', 'packetid_sender', "packetid_receiver", "reltime_sender", "reltime_receiver", "abstime_sender"]
 
 def ignore(f1, f2):
     return 0
@@ -105,17 +110,21 @@ class PacketMappingMode(Enum):
     HASH = 1
     SCORE = 2
 
-# TODO we need a load_merged_datastreams ? with owd ?
-def load_merged_tcpstreams_into_pandas(
+
+
+def load_merged_streams_into_pandas(
     pcap1: str,
     pcap2: str,
-    streamid1: int,
+    streamid1: int, # Union[MpTcpStreamId, TcpStreamId],
     streamid2: int,
+    mptcp: bool, 
     mapping_mode: PacketMappingMode = PacketMappingMode.HASH,
     # config: TsharkConfig,
     **extra
     ):
     """
+    Arguments:
+        protocol: mptcp or tcp
     """
     log.debug("Asked to load merged tcp streams %d and %d from pcaps %s and %s" 
             % (streamid1, streamid2, pcap1, pcap2)
@@ -125,14 +134,14 @@ def load_merged_tcpstreams_into_pandas(
     # mp.get_config()
     tshark_config = TsharkConfig()
     cache = mp.get_cache()
+    protocolStr = "mptcp" if mptcp else "tcp"
 
     # merged_uid
-    cacheid = cache.cacheuid("owd", [
+    cacheid = cache.cacheuid("merged", [
         pcap1,
         pcap2,
-        streamid1,
-        streamid2
-        ], ".csv")
+        ], 
+        protocolStr + "_" + str(streamid1) + "_" + str(streamid2) + ".csv")
 
     # if we can't load that file from cache
     try:
@@ -145,17 +154,32 @@ def load_merged_tcpstreams_into_pandas(
             # generate h1/h2 cache
             # dataframes = super().preprocess(**kwargs)
             df1 = load_into_pandas(pcap1, tshark_config,)
-            df2 = load_into_pandas(pcap1, tshark_config,)
+            df2 = load_into_pandas(pcap2, tshark_config,)
 
-            main_connection = TcpConnection.build_from_dataframe(df1, streamid1)
-            other_connection = TcpConnection.build_from_dataframe(df2, streamid2)
+            main_connection  = None # type: Union[MpTcpConnection, TcpConnection]
+            other_connection = None # type: Union[MpTcpConnection, TcpConnection]
+            if mptcp:
+                main_connection = MpTcpConnection.build_from_dataframe(df1, streamid1)
+                other_connection = MpTcpConnection.build_from_dataframe(df2, streamid2)
 
-            # for now we use known streams exclusively
-            # might be interested to use merge_tcp_dataframes later
-            merged_df = merge_tcp_dataframes_known_streams(
-                (df1, main_connection),
-                (df2, other_connection)
-            )
+                # for now we use known streams exclusively
+                # might be interested to use merge_tcp_dataframes later
+                merged_df = merge_mptcp_dataframes_known_streams(
+                    (df1, main_connection),
+                    (df2, other_connection)
+                )
+
+            else:
+                main_connection = TcpConnection.build_from_dataframe(df1, streamid1)
+                other_connection = TcpConnection.build_from_dataframe(df2, streamid2)
+
+                # for now we use known streams exclusively
+                # might be interested to use merge_tcp_dataframes later
+                merged_df = merge_tcp_dataframes_known_streams(
+                    (df1, main_connection),
+                    (df2, other_connection)
+                )
+
             # TODO assert merged_df is not null
             # firstcols = [ 'packetid_sender', 'packetid_receiver', 'owd']
             # total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
@@ -203,10 +227,6 @@ def load_merged_tcpstreams_into_pandas(
         # raise e
 
 
-def getrealpath(input_file):
-    filename = os.path.expanduser(input_file)
-    filename = os.path.realpath(filename)
-    return filename
 
 def load_into_pandas(
     input_file: str,
@@ -227,7 +247,7 @@ def load_into_pandas(
     """
     log.debug("Asked to load simple pcap %s" % input_file)
 
-    filename = getrealpath(input_file)
+    filename = (input_file)
     cache = mp.get_cache()
 
     uid = cache.cacheuid(
@@ -390,14 +410,11 @@ def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[
 combo = Tuple[pd.DataFrame, TcpConnection]
 
 
-# TODO use named tuples ?
-# TODO use un mode hashed
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]
 ) -> pd.DataFrame:
     """
-
     Generates an intermediate file with the owds.
 
     1/ identify which dataframe is server's/client's
@@ -423,7 +440,7 @@ def merge_tcp_dataframes_known_streams(
 
     min_h1 = h1_df['abstime'].min()
     min_h2 = h2_df['abstime'].min()
-    # min
+    log.debug("Comparing %f (h1) with %f (h2)" % (min_h1, min_h2))
     if min_h1 < min_h2:
         log.debug("Looks like h1 is the client")
         client_con, server_con = con1, con2
@@ -432,15 +449,10 @@ def merge_tcp_dataframes_known_streams(
         client_con, server_con = con2, con1
 
 
-    print("Mapped connection %s to %s" % (mapped_connection, main_connection))
+    log.info("Trying to merge dataframes connection %s to %s" % (mapped_connection, main_connection))
     # print(h1_df[["packetid","hash", "reltime"]].head(5))
     # print(h2_df[["packetid","hash", "reltime"]].head(5))
 
-    # assert h1_df != h2_df, "pass different dataframes"
-
-    # print("Delimiter:", sep=cfg["mptcpanalyzer"]["delimiter"])
-
-    # filename = "merge_%d_%d.csv" % (tcpstreamid_host0, tcpstreamid_host1)
     # TODO reorder columns to have packet ids first !
 
     # columns = generate_columns([], [], suffixes)
@@ -464,46 +476,7 @@ def merge_tcp_dataframes_known_streams(
         res['tcpdest'] = dest.name
         total = pd.concat([res, total])
 
-<<<<<<< HEAD
-        # TODO remove in the future (and / or use specific export fct)
-        filename = "merge_%d_%s.csv" % (main_connection.tcpstreamid, dest)
-        res.to_csv(
-            filename,
-            columns=columns,
-            sep=cfg["mptcpanalyzer"]["delimiter"],
-            # index=True, # hide Index
-            header=True,
-        )
-||||||| merged common ancestors
-        # TODO remove in the future (and / or use specific export fct)
-        filename = "merge_%d_%s.csv" % (main_connection.tcpstreamid, dest)
-        res.to_csv(
-            filename, # output
-            columns=columns,
-            # how do we get the config
-            sep=cfg["mptcpanalyzer"]["delimiter"],
-            # index=True, # hide Index
-            header=True,  # add
-            # sep=main.config["DEFAULT"]["delimiter"],
-        )
-=======
-        # TODO move where needed in the future (and / or use specific export fct)
-        # put in the cache.put
-        # filename = "merge_%d_%s.csv" % (main_connection.tcpstreamid, dest)
-        # res.to_csv(
-        #     filename, # output
-        #     columns=columns,
-        #     # how do we get the config
-        #     sep=cfg["mptcpanalyzer"]["delimiter"],
-        #     # index=True, # hide Index
-        #     header=True,  # add
-        #     # sep=main.config["DEFAULT"]["delimiter"],
-        # )
->>>>>>> 1adf0fc9b21953e6d0fb65dcf961787f3cd93c88
-
-
     # TODO move elsewhere, to outer function
-    # firstcols = ['packetid_h1', 'packetid_h2', 'dest', 'owd']
     # total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
     # total.to_csv(
     #     cachename, # output
@@ -758,6 +731,19 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
     return scores
 
 
+def print_weird_owds(df):
+    """
+    Checks for negative owds
+    """
+    negative_owds = df[df.owd < 0]
+    print("Listing")
+    for row in negative_owds.itertuples():
+        # print(*row)
+        print("""row sender pktid={packetid_sender}/abstime={abstime_sender}
+                pktid={packetid_receiver}/abstime={abstime_receiver} owd={owd}"""
+                .format( **row._asdict()))
+
+
 def map_tcp_packets(
     sender_df, receiver_df,
     explain=[],
@@ -802,8 +788,7 @@ def map_tcp_packets_via_hash(
     # 
     # print(res.columns)
     print(hashing_fields)
-    l=['hash', 'packetid_sender', "packetid_receiver", "reltime_sender", "reltime_receiver", "abstime_sender"]
-    print(res[l].head(20))
+    print(res[DEBUG_FIELDS].head(20))
     return res
 
 
