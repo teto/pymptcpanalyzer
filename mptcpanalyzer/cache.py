@@ -14,14 +14,11 @@ Similar to config
 cache = None  # type: Cache
 
 
-def getrealpath(input_file):
-    filename = os.path.expanduser(input_file)
-    filename = os.path.realpath(filename)
-    return filename
 
 
 class CacheId:
     def __init__(self, prefix: str,
+            # accept
             filedeps: Collection=[Union[str, Path]],
             suffix: str="" ) -> None:
         """
@@ -29,7 +26,9 @@ class CacheId:
         """
         assert len(filedeps) > 0, "without dependency, why use cache ?"
 
-        self.dependencies = list(map(getrealpath, filedeps))
+        # TODO apply only to Path type
+        # TODO os.path.isabs()
+        self.dependencies = list(map(os.path.realpath, filedeps))
         log.debug("%r %r", prefix, suffix)
         self.tpl = prefix + "_".join([os.path.basename(dep) for dep in filedeps]) + '%s' + str(suffix)
 

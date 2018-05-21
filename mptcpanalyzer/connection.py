@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 from mptcpanalyzer import Destination, MpTcpException
 
+from typing import List, NamedTuple, Tuple
 from enum import Enum
 
 log = logging.getLogger(__name__)
@@ -56,20 +57,39 @@ class TcpConnection:
         q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
         return q
 
+    def sort_candidates(self, ):
+        """
+        Sort a list 
+        """
+        pass
+
+    def format_mapping(self, mapping: 'TcpMapping', verbose=False):
+        # res = "tcp stream {c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}".format(
+        res = "tcp stream {c1} mapped to {c2} with score={score}".format(
+                c1=self, c2=mapping[0], score=mapping[1])
+
+        # print(res)
+        return res
 
     def score(self, other):
         """
         If every parameter is equal, returns +oo else 0
+        TODO also match on isn in case ports got reused
         """
+        score = 0
         if (self.server_ip == other.server_ip and
                 self.client_ip == other.client_ip and
                 self.client_port == other.client_port and
                 self.server_port == other.server_port):
                 return float('inf')
 
-        # TODO also match on isn
+        score += 10  if self.server_ip == other.server_ip else 0
+        score += 10  if self.client_ip == other.client_ip else 0
+        score += 10  if self.client_port == other.client_port else 0
+        score += 10  if self.server_port == other.server_port else 0
+
         # TODO more granulary score
-        return 0
+        return score
 
     def __eq__(self, other):
         """
@@ -257,8 +277,7 @@ class MpTcpConnection:
         """
         Args:
         Filters a pandas dataset
-            :param data: a Pandas dataset
-            :param kwargs: Accepted keywords are
+             data: a Pandas dataset
 
         direction = client or server
         """
@@ -305,15 +324,12 @@ class MpTcpConnection:
         # TODO check there is at least the master
         # with nat, ips don't mean a thing ?
         for sf in self.subflows:
-            # TODO compute a score
-            # print("checking subflow %r" % sf)
-            # print("reversed subflow %r" % sf.reversed())
             if sf in other.subflows or sf.reversed() in other.subflows:
                 log.debug("Subflow %s in common" % sf)
                 score += 10
                 common_sf.append(sf)
             else:
-                log.debug("subflows don't match")
+                log.debug("subflows %s doesn't seem to exist in other " % (sf))
 
         # TODO compare start times supposing cloak are insync ?
         # print( " score of %r" % score)
@@ -325,17 +341,26 @@ class MpTcpConnection:
 
     def __repr__(self):
         res = """
-        Server key/token: {skey}/{stoken}
-        Client key/token: {ckey}/{ctoken}
-        """.format(
+    Server key/token: {skey}/{stoken}
+    Client key/token: {ckey}/{ctoken}
+    """.format(
             skey=self.server_key,
             stoken=self.server_token,
             ckey=self.client_key,
             ctoken=self.client_token,
         )
 
-        res += '\n'.join(map(str, self.subflows))
-        # for sf in self.subflows:
-        #     res += str(sf)
+        res += '\n    '.join(map(str, self.subflows))
 
         return res
+
+
+TcpMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
+
+
+MpTcpMapping = NamedTuple('TcpMapping', [('mapped', MpTcpConnection), ("score", float), 
+        ("subflow_mappings",  List[Tuple[TcpConnection,TcpMapping]])
+    ])
+
+# MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
+

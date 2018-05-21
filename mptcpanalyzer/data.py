@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig
-from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
+from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer as mp
 from mptcpanalyzer import get_config, get_cache, Destination
 from typing import List, Any, Tuple, Dict, Callable, Collection, Union
@@ -15,9 +15,6 @@ from enum import Enum
 log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
 
-
-# class MpTcpStreamId(int):
-#     class TcpStreamId(int):
 
 """
 Used when dealing with the merge of dataframes
@@ -42,6 +39,12 @@ def diff(f1, f2):
 
 def debug_convert(df):
     return df.head(20)
+
+
+def getrealpath(input_file):
+    filename = os.path.expanduser(input_file)
+    filename = os.path.realpath(filename)
+    return filename
 
 
 """
@@ -247,7 +250,7 @@ def load_into_pandas(
     """
     log.debug("Asked to load simple pcap %s" % input_file)
 
-    filename = (input_file)
+    filename = getrealpath(input_file)
     cache = mp.get_cache()
 
     uid = cache.cacheuid(
@@ -374,10 +377,10 @@ def merge_tcp_dataframes(
         return
 
     print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
-    mapped_connection, score = mappings[0]
+    mapped_connection = mappings[0].mapped
     print("Found mappings %s" % mappings)
-    for con, score in mappings:
-        print("Con: %s" % (con))
+    for mapping in mappings:
+        print("Con: %s" % (mapping.mapped))
 
     return merge_tcp_dataframes_known_streams(
         (df1, main_connection),
@@ -488,6 +491,7 @@ def merge_tcp_dataframes_known_streams(
     return total
 
 
+# TODO make it part of the api (aka no print)
 def merge_mptcp_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame,
     df1_mptcpstream: int
@@ -498,42 +502,16 @@ def merge_mptcp_dataframes(
     See:
         merge_mptcp_dataframes_known_streams
     """
-    # df1, df2 = dataframes
     main_connection = MpTcpConnection.build_from_dataframe(df1, df1_mptcpstream)
 
-    # du coup on a une liste
-    mappings = mptcp_match_connection(df2, main_connection)
+    mappings = map_mptcp_connection(df2, main_connection)
 
-    # print("Found mappings %s" % mappings)
-    # returned a dict
-    # if mptcpstream not in mappings:
-    #     print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
-    #     return
-    # print("Number of %d" % len(mappings[mptcpstream]))
-    # print("#mappings=" len(mappings):
     if len(mappings) <= 0:
         # TODO throw instead
         # raise Exception
         print("Could not find a match in the second pcap for mptcpstream %d" % df1_mptcpstream)
         return
 
-    # print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
-    # mappings
-    mapped_connection, score = mappings[0]
-
-
-    # try:
-    #     idx = mapped_connection.subflows.index(sf)
-    #     sf2 = mapped_connection.subflows[idx]
-    #     common_subflows.append((sf, sf2))
-
-    # except ValueError:
-    #     continue
-
-    # main_connection = TcpConnection.build_from_dataframe(df1, df1_mptcpstream)
-
-    # # du coup on a une liste
-    # mappings = map_tcp_stream(df2, main_connection)
 
     print("Found mappings %s" % mappings)
     if len(mappings) <= 0:
@@ -541,10 +519,10 @@ def merge_mptcp_dataframes(
         return
 
     print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
-    mapped_connection, score = mappings[0]
+    mapped_connection = mappings[0].mapped
     print("Found mappings %s" % mappings)
-    for con, score in mappings:
-        print("Con: %s" % (con))
+    for mapping in mappings:
+        print("Con: %s" % (mapping.mapped))
 
     return merge_mptcp_dataframes_known_streams(
         (df1, main_connection),
@@ -880,23 +858,25 @@ def map_tcp_packets_score_based(
     return df_final
 
 
-def mptcp_match_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
-    """
-    TODO remove ?
-    """
+# def map_mptcp_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
+#     """
+#     TODO remove ?
+#     """
 
-    mappings = {}
-    for mptcpstream1 in rawdf1["mptcpstream"].unique():
-        if idx and mptcpstream1 not in idx:
-            continue
+#     mappings = {}
+#     for mptcpstream1 in rawdf1["mptcpstream"].unique():
+#         if idx and mptcpstream1 not in idx:
+#             continue
 
-        main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
-        results = mptcp_match_connection(rawdf2, main)
-        mappings.update({main: results})
-    return mappings
+#         main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
+#         results = map_mptcp_connection(rawdf2, main)
+#         mappings.update({main: results})
+#     return mappings
 
 
-def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[Tuple[TcpConnection, int]]:
+# TODO return TcpMapping
+# def sort_tcp_(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]:
+def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]:
     """
     Returns:
         a sorted list of mappings (tcpconnection, score) with the first one being the most probable
@@ -907,17 +887,19 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[Tuple[TcpCo
         other = TcpConnection.build_from_dataframe(rawdf, tcpstream)
         score = main.score(other)
         if score > float('-inf'):
-            results.append((other, score))
+            mapping = TcpMapping(other, score)
+            results.append(mapping)
 
-    # sort based on the score
+    # decreasing sort based on the score
     results.sort(key=lambda x: x[1], reverse=True)
 
     return results
 
 
-def mptcp_match_connection(
+def map_mptcp_connection(
     rawdf2: pd.DataFrame, main: MpTcpConnection
-) -> List[Tuple[MpTcpConnection, float]]:
+    ) -> List[MpTcpMapping]:
+# List[Tuple[MpTcpConnection, float]]:
     """
     warn: Do not trust the results yet WIP !
 
@@ -929,21 +911,38 @@ def mptcp_match_connection(
     mapping score
     """
     log.warning("mapping between datasets is not considered trustable yet")
-    results = []  # type: List[Tuple[Any, float]]
+    results = []  # type: List[MpTcpMapping]
 
-    mappings = {}  # type: Dict[int,Tuple[Any, float]]
+    # mappings = {}  # type: Dict[int,Tuple[Any, float]]
 
     score = -1  # type: float
     results = []
 
-    print("%r" % main)
+    def _map_subflows(main: MpTcpConnection, mapped: MpTcpConnection):
+        """
+        """
+        mapped_subflows = []
+        for sf in main.subflows:
+
+            scores = list(map(lambda x: (x, sf.score(x)), mapped.subflows))
+            scores.sort(key=lambda x: x[1], reverse=True)
+            # print("sorted scores when mapping %s:\n %r" % (sf, scores))
+            mapped_subflows.append( (sf, scores[0]) )
+            # TODO might want to remove the selected subflow from the pool of candidates
+        
+        return mapped_subflows
+
+    # print("%r" % main)
     # print(rawdf2["mptcpstream"].unique().dropna())
 
     for mptcpstream2 in rawdf2["mptcpstream"].dropna().unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
         score = main.score(other)
         if score > float('-inf'):
-            results.append((other, score))
+            # (other, score)
+            mapped_subflows = _map_subflows(main, other)
+            mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
+            results.append(mapping)
 
     # sort based on the score
     results.sort(key=lambda x: x[1], reverse=True)

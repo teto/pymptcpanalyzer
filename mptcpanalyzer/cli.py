@@ -23,9 +23,9 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as mpdata
-from mptcpanalyzer.data import mptcp_match_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas
+from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas
 from mptcpanalyzer.metadata import Metadata
-from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
+from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer.cache as mc
 import mptcpanalyzer.statistics as stats
 import mptcpanalyzer as mp
@@ -53,6 +53,8 @@ log.addHandler(ch)
 # log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
+# def format_tcp_mapping(main: TcpConnection, mapped: TcpMapping):
+#     )
 
 histfile_size = 1000
 
@@ -329,14 +331,15 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         print("%d mapping(s) found" % len(mappings))
 
-        for match, score in mappings:
+        for match in mappings:
 
-            output = "{c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}"
-            formatted_output = output.format(
-                c1=main_connection,
-                c2=match,
-                score=score
-            )
+            formatted_output = main.format_mapping(match)
+            # output = "{c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}"
+            # formatted_output = output.format(
+            #     c1=main_connection,
+            #     c2=match,
+            #     score=score
+            # )
             print(formatted_output)
 
     @experimental
@@ -369,20 +372,41 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
 
         main_connection = MpTcpConnection.build_from_dataframe(df1, args.mptcpstreamid)
-        mappings = mptcp_match_connection(df2, main_connection)
+        mappings = map_mptcp_connection(df2, main_connection)
+
 
         print("%d mapping(s) found" % len(mappings))
-        for match, score in mappings:
+        for match in mappings:
+
+            winner_like = match.score == float('inf')
 
             # output = "{c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}"
             output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score} {extra}"
             formatted_output = output.format(
                 c1=main_connection,
-                c2=match,
-                score=score,
-                extra=self.color('red', " <-- should be a correct match") if score == float('inf') else ""
+                c2=match.mapped,
+                score=match.score,
+                # self.color('red',
+                extra= " <-- should be a correct match" if winner_like else ""
             )
-            
+
+            if winner_like:
+                # print("MAIN %r" % main_connection)
+                # print("MAPPED %r" % match.mapped)
+                # print("subflow_mappings %r" % match.subflow_mappings)
+                # print subflow mapping
+                # if the score is good we do more work to map subflows as well
+                # mapped_subflows = _map_subflows(main_connection, match.mapped)
+
+                # match = MpTcpMapping(match.mapped, match.score, mapped_subflows)
+                def _print_subflow(x):
+                    return "\n-" + x[0].format_mapping(x[1])
+                    
+                
+                formatted_output += ''.join( [ _print_subflow(x) for x in match.subflow_mappings])
+            else:
+                continue
+
             print(formatted_output)
         # TODO split into 
         # sauce = self.select('sweet salty', 'Sauce? ')
@@ -468,7 +492,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
                 args.pcap2,
                 args.streamid,
                 args.streamid2,
-                False
+                args.protocol == "mptcp"
         )
         result = df
         print(result[mpdata.DEBUG_FIELDS].head(20))
@@ -514,17 +538,26 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
 
         args = parser.parse_args(shlex.split(line))
-        df1 = load_into_pandas(args.pcap1, self.tshark_config)
-        df2 = load_into_pandas(args.pcap2, self.tshark_config)
 
-        con1 = MpTcpConnection.build_from_dataframe(df1, args.mptcpstream)
-        con2 = MpTcpConnection.build_from_dataframe(df2, args.mptcpstream2)
+        # TODO use 
+        df = load_merged_streams_into_pandas(
+            args.pcap1,
+            args.pcap2,
+            args.mptcpstream,
+            args.mptcpstream2,
+            mptcp=True
+            )
+        # df1 = load_into_pandas(args.pcap1, self.tshark_config)
+        # df2 = load_into_pandas(args.pcap2, self.tshark_config)
 
-        df_merged = merge_mptcp_dataframes_known_streams(
-            (df1, con1),
-            (df2, con2)
-        )
-        print(df_merged.head(30))
+        # con1 = MpTcpConnection.build_from_dataframe(df1, args.mptcpstream)
+        # con2 = MpTcpConnection.build_from_dataframe(df2, args.mptcpstream2)
+
+        # df_merged = merge_mptcp_dataframes_known_streams(
+        #     (df1, con1),
+        #     (df2, con2)
+        # )
+        # print(df_merged.head(30))
 
     #     Now the algorithm consists in :
     #     for each reinjection:
