@@ -163,7 +163,11 @@ def load_merged_streams_into_pandas(
             other_connection = None # type: Union[MpTcpConnection, TcpConnection]
             if mptcp:
                 main_connection = MpTcpConnection.build_from_dataframe(df1, streamid1)
-                other_connection = MpTcpConnection.build_from_dataframe(df2, streamid2)
+                mapping = map_mptcp_connection_from_known_streams(
+                # other_connection = MpTcpConnection.build_from_dataframe(df2, streamid2)
+
+                # TODO generate
+                map_mptcp_connection()
 
                 # for now we use known streams exclusively
                 # might be interested to use merge_tcp_dataframes later
@@ -532,7 +536,9 @@ def merge_mptcp_dataframes(
 
 def merge_mptcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, MpTcpConnection],
-    con2: Tuple[pd.DataFrame, MpTcpConnection]
+    con2: pd.DataFrame, 
+    mapping: MpTcpMapping
+    # TODO accept MpTcpMapping
 ) -> pd.DataFrame:
     """
     Useful for reinjections etc...
@@ -895,10 +901,25 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]
 
     return results
 
+def map_mptcp_connection_from_known_streams(
+    rawdf2: pd.DataFrame, main: MpTcpConnection
+    ) -> MpTcpMapping:
+    """
+    Attempts to map subflows only if score is high enough
+    """
+    other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
+    score = main.score(other)
+    if score > float('-inf'):
+        # (other, score)
+        mapped_subflows = _map_subflows(main, other)
+        mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
+        results.append(mapping)
+
+    return
 
 def map_mptcp_connection(
     rawdf2: pd.DataFrame, main: MpTcpConnection
-    ) -> List[MpTcpMapping]:
+    ) -> MpTcpMapping:
 # List[Tuple[MpTcpConnection, float]]:
     """
     warn: Do not trust the results yet WIP !

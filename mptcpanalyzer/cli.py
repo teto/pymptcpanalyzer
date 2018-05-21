@@ -547,6 +547,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
             args.mptcpstream2,
             mptcp=True
             )
+
         # df1 = load_into_pandas(args.pcap1, self.tshark_config)
         # df2 = load_into_pandas(args.pcap2, self.tshark_config)
 
@@ -558,6 +559,12 @@ class MpTcpAnalyzer(cmd2.Cmd):
         #     (df2, con2)
         # )
         # print(df_merged.head(30))
+
+        reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
+        total_nb_reinjections = 0
+        # todo we need to add 
+        # res['mptcpdest'] = dest.name
+        for row in reinjections.itertuples():
 
     #     Now the algorithm consists in :
     #     for each reinjection:
