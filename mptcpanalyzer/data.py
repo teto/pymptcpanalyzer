@@ -154,8 +154,6 @@ def load_merged_streams_into_pandas(
         log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
 
         if not valid:
-            # generate h1/h2 cache
-            # dataframes = super().preprocess(**kwargs)
             df1 = load_into_pandas(pcap1, tshark_config,)
             df2 = load_into_pandas(pcap2, tshark_config,)
 
@@ -163,11 +161,10 @@ def load_merged_streams_into_pandas(
             other_connection = None # type: Union[MpTcpConnection, TcpConnection]
             if mptcp:
                 main_connection = MpTcpConnection.build_from_dataframe(df1, streamid1)
-                mapping = map_mptcp_connection_from_known_streams(
-                # other_connection = MpTcpConnection.build_from_dataframe(df2, streamid2)
+                other_connection = MpTcpConnection.build_from_dataframe(df2, streamid2)
 
                 # TODO generate
-                map_mptcp_connection()
+                # map_mptcp_connection()
 
                 # for now we use known streams exclusively
                 # might be interested to use merge_tcp_dataframes later
@@ -420,6 +417,7 @@ combo = Tuple[pd.DataFrame, TcpConnection]
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]
+    # , dest: Destination
 ) -> pd.DataFrame:
     """
     Generates an intermediate file with the owds.
@@ -495,7 +493,7 @@ def merge_tcp_dataframes_known_streams(
     return total
 
 
-# TODO make it part of the api (aka no print)
+# TODO make it part of the api (aka no print) or remove it ?
 def merge_mptcp_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame,
     df1_mptcpstream: int
@@ -517,7 +515,7 @@ def merge_mptcp_dataframes(
         return
 
 
-    print("Found mappings %s" % mappings)
+    print("Found mappings %s" % (mappings,))
     if len(mappings) <= 0:
         print("Could not find a match in the second pcap for tcpstream %d" % df1_mptcpstream)
         return
@@ -536,52 +534,64 @@ def merge_mptcp_dataframes(
 
 def merge_mptcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, MpTcpConnection],
-    con2: pd.DataFrame, 
-    mapping: MpTcpMapping
-    # TODO accept MpTcpMapping
+    con2: Tuple[pd.DataFrame, MpTcpConnection]
 ) -> pd.DataFrame:
     """
     Useful for reinjections etc...
 
-    :see: .merge_mptcp_dataframes
+    See
+        merge_mptcp_dataframes
 
     Returns:
         Per-subflow dataframes
-        See .merge_tcp_dataframes_known_streams for in
 
         I want to see packets leave as
     """
     df1, main_connection  = con1
     df2, mapped_connection = con2
     # Keep subflows that are present in the two connections (useless anyway ?)
-    common_subflows = []
+    # common_subflows = []
     # print("%r"% main_connection)
-    for sf in main_connection.subflows:
-        print("%r" % sf)
-        # if sf2 in
-        for sf2 in mapped_connection.subflows:
-            if sf == sf2:
-                common_subflows.append((sf, sf2))
-                break
+    # for sf in main_connection.subflows:
+    #     print("%r" % sf)
+    #     # if sf2 in
+    #     for sf2 in mapped_connection.subflows:
+    #         if sf == sf2:
+    #             common_subflows.append((sf, sf2))
+    #             break
+    log.info("Merging %s with %s" % (main_connection, mapped_connection,))
 
-    log.info("Common subflows for the 2 MPTCP connections are")
-    log.info('\n'.join( map(str, common_subflows)))
+    mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
+
+    # log.info('\n'.join( map(str, common_subflows)))
 
     # TODO when looking into the cache, check for mptcpstream
     # prepare metadata
 
     # todo should be inplace
-    for sf1, sf2 in common_subflows:
+    df_total = None  # type: pd.DataFrame
+    for sf, mapped_sf in mapping.subflow_mappings:
         # print("%r" % sf1)
         # print("%r" % sf2)
-        merge_tcp_dataframes_known_streams(
-            (df1, sf1),
-            (df2, sf2)
+        df_temp = merge_tcp_dataframes_known_streams(
+            (df1, sf),
+            (df2, mapped_sf.mapped)
         )
+        # TODO add mptcp specific fields
+        # df_temp["mptcpdest"]
 
+        # TODO we should be able to add a field "mptcpdest"
+
+        df_total = pd.concat([df_temp, df_total])
+
+
+    # finally we set the mptcp destination to help with further processing
+    for sf in main_connection.subflows:
+        generate_direction_query
+        # 
     
     # TODO I need to return sthg
-    return 
+    return df_total
 
 
 
@@ -902,24 +912,41 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]
     return results
 
 def map_mptcp_connection_from_known_streams(
-    rawdf2: pd.DataFrame, main: MpTcpConnection
+    # rawdf2: pd.DataFrame, 
+    main: MpTcpConnection,
+    other: MpTcpConnection
     ) -> MpTcpMapping:
     """
     Attempts to map subflows only if score is high enough
     """
-    other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
+    # other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
+    def _map_subflows(main: MpTcpConnection, mapped: MpTcpConnection):
+        """
+        """
+        mapped_subflows = []
+        for sf in main.subflows:
+
+            scores = list(map(lambda x: (x, sf.score(x)), mapped.subflows))
+            scores.sort(key=lambda x: x[1], reverse=True)
+            # print("sorted scores when mapping %s:\n %r" % (sf, scores))
+            mapped_subflows.append( (sf, scores[0]) )
+            # TODO might want to remove the selected subflow from the pool of candidates
+        
+        return mapped_subflows
+
     score = main.score(other)
+    mapped_subflows = None
     if score > float('-inf'):
         # (other, score)
         mapped_subflows = _map_subflows(main, other)
-        mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
-        results.append(mapping)
 
-    return
+    mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
+    return mapping
+
 
 def map_mptcp_connection(
     rawdf2: pd.DataFrame, main: MpTcpConnection
-    ) -> MpTcpMapping:
+    ) -> List[MpTcpMapping]:
 # List[Tuple[MpTcpConnection, float]]:
     """
     warn: Do not trust the results yet WIP !
@@ -939,31 +966,19 @@ def map_mptcp_connection(
     score = -1  # type: float
     results = []
 
-    def _map_subflows(main: MpTcpConnection, mapped: MpTcpConnection):
-        """
-        """
-        mapped_subflows = []
-        for sf in main.subflows:
-
-            scores = list(map(lambda x: (x, sf.score(x)), mapped.subflows))
-            scores.sort(key=lambda x: x[1], reverse=True)
-            # print("sorted scores when mapping %s:\n %r" % (sf, scores))
-            mapped_subflows.append( (sf, scores[0]) )
-            # TODO might want to remove the selected subflow from the pool of candidates
-        
-        return mapped_subflows
 
     # print("%r" % main)
     # print(rawdf2["mptcpstream"].unique().dropna())
 
     for mptcpstream2 in rawdf2["mptcpstream"].dropna().unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
-        score = main.score(other)
-        if score > float('-inf'):
-            # (other, score)
-            mapped_subflows = _map_subflows(main, other)
-            mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
-            results.append(mapping)
+        mapping = map_mptcp_connection_from_known_streams(main, other)
+        # score = main.score(other)
+        # if score > float('-inf'):
+        #     # (other, score)
+        #     mapped_subflows = _map_subflows(main, other)
+        #     mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
+        results.append(mapping)
 
     # sort based on the score
     results.sort(key=lambda x: x[1], reverse=True)

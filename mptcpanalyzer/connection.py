@@ -155,6 +155,9 @@ class TcpConnection:
 
 
 class MpTcpSubflow(TcpConnection):
+    """
+    TODO could set mptcpdest too
+    """
 
     def __init__(self, *args, addrid=None):
         super().__init__(*args)

@@ -539,7 +539,6 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         args = parser.parse_args(shlex.split(line))
 
-        # TODO use 
         df = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
@@ -547,47 +546,67 @@ class MpTcpAnalyzer(cmd2.Cmd):
             args.mptcpstream2,
             mptcp=True
             )
+        # todo we need to add 
+        # res['mptcpdest'] = dest.name
 
         # df1 = load_into_pandas(args.pcap1, self.tshark_config)
         # df2 = load_into_pandas(args.pcap2, self.tshark_config)
-
         # con1 = MpTcpConnection.build_from_dataframe(df1, args.mptcpstream)
         # con2 = MpTcpConnection.build_from_dataframe(df2, args.mptcpstream2)
-
         # df_merged = merge_mptcp_dataframes_known_streams(
         #     (df1, con1),
         #     (df2, con2)
         # )
         # print(df_merged.head(30))
 
-        reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
+        # reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
+        reinjections = df[['tcpstream', "reinjected_in"]].dropna(axis=0, )
         total_nb_reinjections = 0
-        # todo we need to add 
-        # res['mptcpdest'] = dest.name
+        df["best_reinjection"] = np.nan  # or -1
         for row in reinjections.itertuples():
+            print("full row %r" % (row,))
+            print("%r" % (row.reinjected_in,))
+            # set it to the maximum possible value
+            min_rcvtime = sys.maxsize
 
-    #     Now the algorithm consists in :
-    #     for each reinjection:
-    #         look for the arrival time
-    #             compare with the arrival time of the original packet
-    #             if it arrived sooner:
-    #                 than it's a successful reinjection
-    #             else
-    #                 look for the first emitted dataack on each packet reception
-    #                 look for its reception by the sender
-    #     """
-    #     # df1 = raw_df1['tcpstream' == mptcpstream1]
-    #     # 1/ keep list of original packets that are reinjected
-    #     # i.e., "reinjected_in" not empty but reinjection_of empty
-    #     # query = "mptcprole == '%s'" % (Destination.Client)
-    #     # res = df_merged.query(query)
-    #     # isnull / notnull
-    #     # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
+            # packet id
+            successful_reinjection = row.packetid
+            for pktid in row.reinjected_in:
+                # look for the packet with lowest rcvtime
+                # mark it as the best reinjection
 
-    #     # filter packets to only keep the original packets that are reinjected
-    #     res2 = res[pd.isnull(res["reinjection_of"])]
-    #     res2 = res2[pd.notnull(res["reinjected_in"])]
-    #     print("filtering reinjected %d" % (len(res2)))
+                # mark 
+                rcvtime = df.loc[ pktid, ""].abstime_receiver
+                if rcvtime < min_rcvtime:
+                    min_rcvtime = rcvtime
+                    successful_reinjection = row.packetid
+
+                
+
+        # as an improvement one can mark how late the reinjection arrived
+
+        #     Now the algorithm consists in :
+        #     for each reinjection:
+        #         look for the arrival time
+        #             compare with the arrival time of the original packet
+        #             if it arrived sooner:
+        #                 than it's a successful reinjection
+        #             else
+        #                 look for the first emitted dataack on each packet reception
+        #                 look for its reception by the sender
+        #     """
+        #     # df1 = raw_df1['tcpstream' == mptcpstream1]
+        #     # 1/ keep list of original packets that are reinjected
+        #     # i.e., "reinjected_in" not empty but reinjection_of empty
+        #     # query = "mptcprole == '%s'" % (Destination.Client)
+        #     # res = df_merged.query(query)
+        #     # isnull / notnull
+        #     # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
+
+        #     # filter packets to only keep the original packets that are reinjected
+        #     res2 = res[pd.isnull(res["reinjection_of"])]
+        #     res2 = res2[pd.notnull(res["reinjected_in"])]
+        #     print("filtering reinjected %d" % (len(res2)))
 
     @custom_tshark
     @is_loaded
