@@ -7,6 +7,8 @@ log = logging.getLogger(__name__)
 """
 Global config initialized in cli.py.
 Singleton-like
+
+# TODO look at alot/flent
 """
 
 

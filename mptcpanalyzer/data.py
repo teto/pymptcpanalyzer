@@ -578,7 +578,6 @@ def merge_mptcp_dataframes_known_streams(
             (df2, mapped_sf.mapped)
         )
         # TODO add mptcp specific fields
-        # df_temp["mptcpdest"]
 
         # TODO we should be able to add a field "mptcpdest"
 
@@ -586,9 +585,12 @@ def merge_mptcp_dataframes_known_streams(
 
 
     # finally we set the mptcp destination to help with further processing
-    for sf in main_connection.subflows:
-        generate_direction_query
-        # 
+    # for sf in main_connection.subflows:
+    for destination in Destination:
+        q = con.generate_direction_query(destination)
+        df = df.query(q)
+        df.
+
     
     # TODO I need to return sthg
     return df_total

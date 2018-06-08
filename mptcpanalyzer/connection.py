@@ -32,26 +32,26 @@ class TcpConnection:
         **kwargs
     ):
         self.tcpstreamid = tcpstreamid # type: int
-        self.client_ip = clientip
-        self.server_ip = serverip
+        self.tcpclient_ip = clientip
+        self.tcpserver_ip = serverip
         self.server_port = sport # type: int
         self.client_port = cport # type: int
         self.isn = kwargs.get('isn')
 
 
-    def generate_direction_query(self, dest: Destination):
+    def generate_direction_query(self, tcpdest: Destination):
         """
-        Filter packets according to their destination
+        Filter packets according to the tcp notion of client/server destination
         """
         q = "tcpstream==%d " % self.tcpstreamid
-        if dest is None:
+        if tcpdest is None:
             return q
 
-        if dest == Destination.Client:
-            ipsrc = self.server_ip
+        if tcpdest == Destination.Client:
+            ipsrc = self.tcpserver_ip
             sport = self.server_port
         else:
-            ipsrc = self.client_ip
+            ipsrc = self.tcpclient_ip
             sport = self.client_port
 
         q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
@@ -77,14 +77,14 @@ class TcpConnection:
         TODO also match on isn in case ports got reused
         """
         score = 0
-        if (self.server_ip == other.server_ip and
-                self.client_ip == other.client_ip and
+        if (self.tcpserver_ip == other.tcpserver_ip and
+                self.tcpclient_ip == other.tcpclient_ip and
                 self.client_port == other.client_port and
                 self.server_port == other.server_port):
                 return float('inf')
 
-        score += 10  if self.server_ip == other.server_ip else 0
-        score += 10  if self.client_ip == other.client_ip else 0
+        score += 10  if self.tcpserver_ip == other.tcpserver_ip else 0
+        score += 10  if self.tcpclient_ip == other.tcpclient_ip else 0
         score += 10  if self.client_port == other.client_port else 0
         score += 10  if self.server_port == other.server_port else 0
 
@@ -100,14 +100,6 @@ class TcpConnection:
         # print("self=%r"% self)
         # print("other=%r"% other)
         return self.score(other) == float('inf')
-
-    @staticmethod
-    def create_subflow(tcpid, clientip, ipdst, cport, dport, **kwargs):
-        """
-        Args:
-        """
-        sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, **kwargs)
-        return sf
 
     @staticmethod
     def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: int) -> 'TcpConnection':
@@ -141,7 +133,7 @@ class TcpConnection:
 
     def reversed(self):
         return self.create_subflow(
-            self.tcpstreamid, self.server_ip, self.client_ip,
+            self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
         )
 
@@ -149,8 +141,8 @@ class TcpConnection:
         return self.__str__()
 
     def __str__(self):
-        line = ("tcp.stream {s.tcpstreamid}: {s.client_ip}:{s.client_port} "
-                " <-> {s.server_ip}:{s.server_port} ").format(s=self,)
+        line = ("tcp.stream {s.tcpstreamid}: {s.tcpclient_ip}:{s.client_port} "
+                " <-> {s.tcpserver_ip}:{s.server_port} ").format(s=self,)
         return line
 
 
@@ -159,17 +151,43 @@ class MpTcpSubflow(TcpConnection):
     TODO could set mptcpdest too
     """
 
-    def __init__(self, *args, addrid=None):
+    def __init__(self, *args, rcv_token, addrid=None):
         super().__init__(*args)
         self.addrid = addrid
 
+    @staticmethod
+    def create_subflow(tcpid, clientip, ipdst, cport, dport, **kwargs):
+        """
+        Args:
+        """
+        sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, **kwargs)
+        return sf
+
     def reversed(self):
         res = self.create_subflow(
-            self.tcpstreamid, self.server_ip, self.client_ip,
+            self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
         )
         res.addrid = self.addrid
+        throw Exception("check for rcv_token")
         return res
+
+    def generate_direction_query(self, mptcpdest: Destination):
+        """
+        Filter packets according to their MPTCP destination
+        """
+        q = "tcpstream==%d " % self.tcpstreamid
+
+        if dest == Destination.Client:
+            ipsrc = self.tcpserver_ip
+            sport = self.server_port
+        else:
+            ipsrc = self.tcpclient_ip
+            sport = self.client_port
+
+        q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
+        return q
+
 
 
 class MpTcpConnection:
@@ -177,16 +195,24 @@ class MpTcpConnection:
     Holds key characteristics of an MPTCP connection: keys, tokens, subflows
 
     This should be created via :member:`.build_from_dataframe`
+
+    subflows can be any order
     """
     def __init__(self, mptcpstreamid, client_key, client_token, server_key,
             server_token, subflows, **kwargs):
-
+        """
+        """
         self.mptcpstreamid = mptcpstreamid
         self._subflows = subflows
-        self.client_key = client_key
-        self.client_token = client_token
-        self.server_key = server_key
-        self.server_token = server_token
+        self.keys = {
+            Destination.Client: client_key,
+            Destination.Server: server_key,
+        }
+
+        self.tokens = {
+            Destination.Client: client_token,
+            Destination.Server: server_token,
+        }
 
     def __contains__(self, key: MpTcpSubflow):
         """
@@ -194,15 +220,24 @@ class MpTcpConnection:
         """
         return key in self.subflows or key.reversed() in self.subflows
 
-    def generate_direction_query(self, destination: Destination) -> str:
+    def generate_direction_query(self, mptcpdest: Destination) -> str:
         """
+        Filter packets according to the mptcp notion of client/server mptcpdest
+        this is a bit different of TcpConnection.generate_direction_query and means that
+        some subflows 
 
         Returns
             Query
         """
         queries = []
         for sf in self.subflows:
-            q = " (" + sf.generate_direction_query(destination) + ") "
+            # we need to check the tcp destination to match the mptcp one
+            tcpdest = mptcpdest
+            if sf.rcv_token != self.tokens[mptcpdest]:
+                # TODO tester ca in REPL ?
+                tcpdest = !(mptcpdest)
+
+            q = " (" + sf.generate_direction_query(mptcpdest) + ") "
             print(q)
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
@@ -210,8 +245,11 @@ class MpTcpConnection:
         print(result)
         return result
 
+    # TODO add a destination arg
     @property
-    def subflows(self):
+    def subflows(self, mptcpdest: Destination = Destination.Server):
+        # 
+        assert 0
         return self._subflows
 
     @staticmethod
@@ -243,10 +281,11 @@ class MpTcpConnection:
         master_id = ds["tcpstream"].iloc[0]
 
         subflows = []
+        # master subflow has implicit addrid 0
         master_sf = MpTcpSubflow.create_subflow(
             master_id, ds['ipsrc'].iloc[cid], ds['ipdst'].iloc[cid],
             ds['sport'].iloc[cid], ds['dport'].iloc[cid],
-            addrid="master", )
+            addrid=0, )
 
         subflows.append(master_sf)
         tcpstreams = ds.groupby('tcpstream')
@@ -262,10 +301,9 @@ class MpTcpConnection:
             subflow = MpTcpSubflow.create_subflow(tcpstreamid,
                 subflow_ds['ipsrc'].iloc[row], subflow_ds['ipdst'].iloc[row],
                 subflow_ds['sport'].iloc[row], subflow_ds['dport'].iloc[row],
-                addrid=None)
-
-            if (token == client_token):
-                subflow = subflow.reversed()
+                addrid=None,
+                rcv_token=token
+                )
 
             subflows.append(subflow)
 

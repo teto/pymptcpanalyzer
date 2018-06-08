@@ -488,11 +488,11 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         args = parser.parse_args(shlex.split(line))
         df = load_merged_streams_into_pandas(
-                args.pcap1,
-                args.pcap2,
-                args.streamid,
-                args.streamid2,
-                args.protocol == "mptcp"
+            args.pcap1,
+            args.pcap2,
+            args.streamid,
+            args.streamid2,
+            args.protocol == "mptcp"
         )
         result = df
         print(result[mpdata.DEBUG_FIELDS].head(20))
