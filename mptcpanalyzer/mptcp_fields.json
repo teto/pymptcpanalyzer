@@ -4,7 +4,7 @@
     "reltime": "frame.time_relative",
     "time_delta": "frame.time_delta",
     "ipsrc": "_ws.col.Source",
-    "ipdst": "_ws.col.Destination",
+    "ipdst": "_ws.col.ConnectionRoles",
     "tcpstream": "tcp.stream",
     "mptcpstream": "mptcp.stream",
     "sport": "tcp.srcport",

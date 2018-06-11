@@ -5,7 +5,7 @@ import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer as mp
-from mptcpanalyzer import get_config, get_cache, Destination
+from mptcpanalyzer import get_config, get_cache, ConnectionRoles
 from typing import List, Any, Tuple, Dict, Callable, Collection, Union
 import math
 import tempfile
@@ -417,7 +417,7 @@ combo = Tuple[pd.DataFrame, TcpConnection]
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]
-    # , dest: Destination
+    # , dest: ConnectionRoles
 ) -> pd.DataFrame:
     """
     Generates an intermediate file with the owds.
@@ -462,7 +462,7 @@ def merge_tcp_dataframes_known_streams(
 
     # columns = generate_columns([], [], suffixes)
     total = None  #  pd.DataFrame()
-    for dest in Destination:
+    for dest in ConnectionRoles:
 
         log.debug("Looking at destination %s" % dest)
         q = server_con[1].generate_direction_query(dest)
@@ -470,7 +470,7 @@ def merge_tcp_dataframes_known_streams(
         q = client_con[1].generate_direction_query(dest)
         client_unidirectional_df = client_con[0].query(q)
 
-        if dest == Destination.Client:
+        if dest == ConnectionRoles.Client:
             sender_df, receiver_df = server_unidirectional_df, client_unidirectional_df
         else:
             # destination is server
@@ -586,10 +586,11 @@ def merge_mptcp_dataframes_known_streams(
 
     # finally we set the mptcp destination to help with further processing
     # for sf in main_connection.subflows:
-    for destination in Destination:
+    for destination in ConnectionRoles:
         q = con.generate_direction_query(destination)
         df = df.query(q)
-        df.
+        # df.
+        raise Exception("TODO")
 
     
     # TODO I need to return sthg
@@ -926,9 +927,9 @@ def map_mptcp_connection_from_known_streams(
         """
         """
         mapped_subflows = []
-        for sf in main.subflows:
+        for sf in main.subflows():
 
-            scores = list(map(lambda x: (x, sf.score(x)), mapped.subflows))
+            scores = list(map(lambda x: (x, sf.score(x)), mapped.subflows()))
             scores.sort(key=lambda x: x[1], reverse=True)
             # print("sorted scores when mapping %s:\n %r" % (sf, scores))
             mapped_subflows.append( (sf, scores[0]) )

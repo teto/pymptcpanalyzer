@@ -124,15 +124,15 @@ class Plot:
                 # a bit hackish: we want the object to be of type class
                 # but we want to display the user readable version
                 # so we subclass list to convert the Enum to str value first.
-                # class CustomDestinationChoices(list):
+                # class CustomConnectionRolesChoices(list):
                 #     def __contains__(self, other):
                 #         return super().__contains__(other.name)
 
                 parser.add_argument(
                     'destination', action="store",
-                    choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
-                    # type=lambda x: mp.Destination.from_string(x),
-                    type=lambda x: mp.Destination[x],
+                    choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
+                    # type=lambda x: mp.ConnectionRoles.from_string(x),
+                    type=lambda x: mp.ConnectionRoles[x],
                     help='Filter flows according to their direction'
                     '(towards the client or the server)'
                     'Depends on mptcpstream')
@@ -175,7 +175,7 @@ class Plot:
 
     def filter_dataframe(
         self, rawdf, mptcpstream=None, skipped_subflows=[],
-        destination: mp.Destination=None,
+        destination: mp.ConnectionRoles=None,
         extra_query: str =None, **kwargs
     ):
         """
@@ -187,7 +187,7 @@ class Plot:
         Args:
             rawdf: Raw dataframe
             kwargs: expanded arguments returned by the parser
-            destination: Filters packets depending on their :enum:`.Destination`
+            destination: Filters packets depending on their :enum:`.ConnectionRoles`
             mptcpstream: keep only the packets related to mptcp.stream == mptcpstream
             skipped_subflows: list of skipped subflows
             extra_query: Add some more filters to the pandas query

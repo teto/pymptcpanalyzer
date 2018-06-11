@@ -1,6 +1,6 @@
 from typing import List, Any, Tuple, Dict, Callable
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
-from mptcpanalyzer import Destination
+from mptcpanalyzer import ConnectionRoles
 import math
 
 

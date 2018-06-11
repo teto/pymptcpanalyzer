@@ -1,6 +1,6 @@
 import pandas as pd
 import logging
-from mptcpanalyzer import Destination, MpTcpException
+from mptcpanalyzer import ConnectionRoles, MpTcpException
 
 from typing import List, NamedTuple, Tuple
 from enum import Enum
@@ -39,7 +39,7 @@ class TcpConnection:
         self.isn = kwargs.get('isn')
 
 
-    def generate_direction_query(self, tcpdest: Destination):
+    def generate_direction_query(self, tcpdest: ConnectionRoles):
         """
         Filter packets according to the tcp notion of client/server destination
         """
@@ -47,7 +47,7 @@ class TcpConnection:
         if tcpdest is None:
             return q
 
-        if tcpdest == Destination.Client:
+        if tcpdest == ConnectionRoles.Client:
             ipsrc = self.tcpserver_ip
             sport = self.server_port
         else:
@@ -151,34 +151,40 @@ class MpTcpSubflow(TcpConnection):
     TODO could set mptcpdest too
     """
 
-    def __init__(self, *args, rcv_token, addrid=None):
-        super().__init__(*args)
+    def __init__(self, mptcp_srcrole: ConnectionRoles
+            # , rcv_token
+            , *args,  addrid=None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.addrid = addrid
+        # self.rcv_token = rcv_token
+        self.mptcp_origin = mptcp_srcrole
 
     @staticmethod
-    def create_subflow(tcpid, clientip, ipdst, cport, dport, **kwargs):
+    def create_subflow(*args, **kwargs):
         """
         Args:
         """
-        sf = MpTcpSubflow(tcpid, clientip, ipdst, cport, dport, **kwargs)
+        sf = MpTcpSubflow(*args, **kwargs)
         return sf
 
     def reversed(self):
         res = self.create_subflow(
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
+            self.rcv_token
+
         )
         res.addrid = self.addrid
-        throw Exception("check for rcv_token")
+        # raise Exception("check for rcv_token")
         return res
 
-    def generate_direction_query(self, mptcpdest: Destination):
+    def generate_direction_query(self, mptcpdest: ConnectionRoles):
         """
         Filter packets according to their MPTCP destination
         """
         q = "tcpstream==%d " % self.tcpstreamid
 
-        if dest == Destination.Client:
+        if dest == ConnectionRoles.Client:
             ipsrc = self.tcpserver_ip
             sport = self.server_port
         else:
@@ -205,22 +211,22 @@ class MpTcpConnection:
         self.mptcpstreamid = mptcpstreamid
         self._subflows = subflows
         self.keys = {
-            Destination.Client: client_key,
-            Destination.Server: server_key,
+            ConnectionRoles.Client: client_key,
+            ConnectionRoles.Server: server_key,
         }
 
         self.tokens = {
-            Destination.Client: client_token,
-            Destination.Server: server_token,
+            ConnectionRoles.Client: client_token,
+            ConnectionRoles.Server: server_token,
         }
 
     def __contains__(self, key: MpTcpSubflow):
         """
         Mostly an approximation
         """
-        return key in self.subflows or key.reversed() in self.subflows
+        return key in self.subflows() or key.reversed() in self.subflows()
 
-    def generate_direction_query(self, mptcpdest: Destination) -> str:
+    def generate_direction_query(self, mptcpdest: ConnectionRoles) -> str:
         """
         Filter packets according to the mptcp notion of client/server mptcpdest
         this is a bit different of TcpConnection.generate_direction_query and means that
@@ -230,12 +236,12 @@ class MpTcpConnection:
             Query
         """
         queries = []
-        for sf in self.subflows:
+        for sf in self.subflows():
             # we need to check the tcp destination to match the mptcp one
             tcpdest = mptcpdest
             if sf.rcv_token != self.tokens[mptcpdest]:
                 # TODO tester ca in REPL ?
-                tcpdest = !(mptcpdest)
+                tcpdest = ConnectionRoles.Server if mptcpdest == ConnectionRoles.Server else ConnectionRoles.Client
 
             q = " (" + sf.generate_direction_query(mptcpdest) + ") "
             print(q)
@@ -246,8 +252,8 @@ class MpTcpConnection:
         return result
 
     # TODO add a destination arg
-    @property
-    def subflows(self, mptcpdest: Destination = Destination.Server):
+    # @property
+    def subflows(self, mptcpdest: ConnectionRoles = ConnectionRoles.Server):
         # 
         assert 0
         return self._subflows

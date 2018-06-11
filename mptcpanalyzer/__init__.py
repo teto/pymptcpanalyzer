@@ -50,7 +50,7 @@ class TcpFlags(Enum):
 
 
 # hopefully mypy will work with IntEnum's too
-class Destination(Enum):
+class ConnectionRoles(Enum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
     Parser should accept --destination Client --destination Server if you want both.
@@ -70,27 +70,27 @@ class Destination(Enum):
     @staticmethod
     def from_string(s):
         try:
-            return Destination[s]
+            return ConnectionRoles[s]
         except KeyError:
             raise ValueError()
 
-class CustomDestinationChoices(list):
+class CustomConnectionRolesChoices(list):
     def __contains__(self, other):
         # print("%r", other)
         return super().__contains__(other.name)
 
 
-def reverse_destination(dest: Destination):
+def reverse_destination(dest: ConnectionRoles):
 
-    if dest == Destination.Client:
-        return Destination.Server
-    elif dest == Destination.Server:
-        return Destination.Client
+    if dest == ConnectionRoles.Client:
+        return ConnectionRoles.Server
+    elif dest == ConnectionRoles.Server:
+        return ConnectionRoles.Client
 
     raise Exception()
     # else:
     #     # or assert .
-    #     return Destination.Both
+    #     return ConnectionRoles.Both
 
 class MpTcpException(Exception):
     """

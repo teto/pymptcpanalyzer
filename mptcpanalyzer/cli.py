@@ -290,7 +290,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         print("Description of mptcp.stream %d " % mptcpstreamid)
 
         print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
-        for sf in con.subflows:
+        for sf in con.subflows():
             print("\t%s" % sf)
 
     def help_list_subflows(self):
@@ -425,8 +425,8 @@ class MpTcpAnalyzer(cmd2.Cmd):
         parser.add_argument(
             'destination',
             action="store",
-            choices=mp.CustomDestinationChoices([e.name for e in mp.Destination]),
-            type=lambda x: mp.Destination[x],
+            choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
+            type=lambda x: mp.ConnectionRoles[x],
             help='Filter flows according to their direction'
             '(towards the client or the server)'
             'Depends on mptcpstream'
@@ -598,7 +598,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         #     # df1 = raw_df1['tcpstream' == mptcpstream1]
         #     # 1/ keep list of original packets that are reinjected
         #     # i.e., "reinjected_in" not empty but reinjection_of empty
-        #     # query = "mptcprole == '%s'" % (Destination.Client)
+        #     # query = "mptcprole == '%s'" % (ConnectionRoles.Client)
         #     # res = df_merged.query(query)
         #     # isnull / notnull
         #     # reinjections = df[["packetid", 'tcpstream', "reinjections"]].dropna(axis=0, )# subset="reinjections")
