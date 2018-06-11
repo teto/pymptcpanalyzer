@@ -13,9 +13,6 @@ Similar to config
 """
 cache = None  # type: Cache
 
-
-
-
 class CacheId:
     def __init__(self, prefix: str,
             # accept

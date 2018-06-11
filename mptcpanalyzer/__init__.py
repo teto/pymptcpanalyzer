@@ -74,6 +74,13 @@ class ConnectionRoles(Enum):
         except KeyError:
             raise ValueError()
 
+    def __next__(self):
+        # 
+        if self.value == 0:
+            return ConnectionRoles.Server
+        else:
+            return ConnectionRoles.Client
+
 class CustomConnectionRolesChoices(list):
     def __contains__(self, other):
         # print("%r", other)

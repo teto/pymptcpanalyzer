@@ -151,13 +151,14 @@ class MpTcpSubflow(TcpConnection):
     TODO could set mptcpdest too
     """
 
-    def __init__(self, mptcp_srcrole: ConnectionRoles
+    def __init__(self, mptcpdest: ConnectionRoles
             # , rcv_token
             , *args,  addrid=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.addrid = addrid
         # self.rcv_token = rcv_token
-        self.mptcp_origin = mptcp_srcrole
+        # token_owner ?
+        self.mptcpdest = mptcp_srcrole
 
     @staticmethod
     def create_subflow(*args, **kwargs):
@@ -169,9 +170,10 @@ class MpTcpSubflow(TcpConnection):
 
     def reversed(self):
         res = self.create_subflow(
+            ConnectionRoles.Server if self.mptcpdest == ConnectionRoles.Client else ConnectionRoles.Client,
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
-            self.rcv_token
+            # self.rcv_token
 
         )
         res.addrid = self.addrid
@@ -182,17 +184,26 @@ class MpTcpSubflow(TcpConnection):
         """
         Filter packets according to their MPTCP destination
         """
-        q = "tcpstream==%d " % self.tcpstreamid
 
-        if dest == ConnectionRoles.Client:
-            ipsrc = self.tcpserver_ip
-            sport = self.server_port
-        else:
-            ipsrc = self.tcpclient_ip
-            sport = self.client_port
+        tcp = self
+        tcpdest = mptcpdest
+        if self.mptcpdest != mptcpdest:
+            # t = self.reversed()
+            
 
-        q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
-        return q
+        return super(MpTcpSubflow, self).generate_direction_query()
+
+            # 
+            # return super(TcpConnection).generate_direction_query()
+        # if dest == ConnectionRoles.Client:
+        #     ipsrc = self.tcpserver_ip
+        #     sport = self.server_port
+        # else:
+        #     ipsrc = self.tcpclient_ip
+        #     sport = self.client_port
+
+        # q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
+        # return q
 
 
 
@@ -398,7 +409,6 @@ class MpTcpConnection:
         )
 
         res += '\n    '.join(map(str, self.subflows))
-
         return res
 
 
