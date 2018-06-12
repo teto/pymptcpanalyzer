@@ -578,7 +578,6 @@ def merge_mptcp_dataframes_known_streams(
             (df2, mapped_sf.mapped)
         )
         # TODO add mptcp specific fields
-
         # TODO we should be able to add a field "mptcpdest"
 
         df_total = pd.concat([df_temp, df_total])
@@ -586,6 +585,7 @@ def merge_mptcp_dataframes_known_streams(
 
     # finally we set the mptcp destination to help with further processing
     # for sf in main_connection.subflows:
+    # add suffix ?
     for destination in ConnectionRoles:
         q = con.generate_direction_query(destination)
         df = df.query(q)

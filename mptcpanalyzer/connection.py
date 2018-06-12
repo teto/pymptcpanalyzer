@@ -8,6 +8,14 @@ from enum import Enum
 log = logging.getLogger(__name__)
 
 
+def swap_role(role : ConnectionRoles):
+    """while waiting to get next to work with enum"""
+    if role == ConnectionRoles.Server:
+        return ConnectionRoles.Client
+    else:
+        return ConnectionRoles.Server
+
+
 class Filetype(Enum):
     unsupported = 0
     pcap = 1
@@ -158,7 +166,7 @@ class MpTcpSubflow(TcpConnection):
         self.addrid = addrid
         # self.rcv_token = rcv_token
         # token_owner ?
-        self.mptcpdest = mptcp_srcrole
+        self.mptcpdest = mptcpdest
 
     @staticmethod
     def create_subflow(*args, **kwargs):
@@ -170,11 +178,10 @@ class MpTcpSubflow(TcpConnection):
 
     def reversed(self):
         res = self.create_subflow(
-            ConnectionRoles.Server if self.mptcpdest == ConnectionRoles.Client else ConnectionRoles.Client,
+            swap_role(self.mptcpdest),
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
             # self.rcv_token
-
         )
         res.addrid = self.addrid
         # raise Exception("check for rcv_token")
@@ -189,9 +196,9 @@ class MpTcpSubflow(TcpConnection):
         tcpdest = mptcpdest
         if self.mptcpdest != mptcpdest:
             # t = self.reversed()
-            
+            tcpdest = swap_role(mptcpdest)
 
-        return super(MpTcpSubflow, self).generate_direction_query()
+        return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
 
             # 
             # return super(TcpConnection).generate_direction_query()
@@ -266,7 +273,8 @@ class MpTcpConnection:
     # @property
     def subflows(self, mptcpdest: ConnectionRoles = ConnectionRoles.Server):
         # 
-        assert 0
+        # TODO add a destination ?
+        # assert 0
         return self._subflows
 
     @staticmethod
@@ -368,21 +376,21 @@ class MpTcpConnection:
         """
 
         score = 0
-        if len(self.subflows) != len(other.subflows):
+        if len(self.subflows()) != len(other.subflows()):
             log.debug("FISHY: Datasets contain a different number of subflows (d vs d)" % ())
             score -= 5
 
         common_sf = []
 
-        if self.server_key == other.server_key and self.client_key == other.client_key:
+        if self.keys[ConnectionRoles.Server] == other.keys[ConnectionRoles.Server] and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]:
             log.debug("matching keys => same")
             return float('inf')
 
 
         # TODO check there is at least the master
         # with nat, ips don't mean a thing ?
-        for sf in self.subflows:
-            if sf in other.subflows or sf.reversed() in other.subflows:
+        for sf in self.subflows():
+            if sf in other.subflows() or sf.reversed() in other.subflows():
                 log.debug("Subflow %s in common" % sf)
                 score += 10
                 common_sf.append(sf)
