@@ -36,12 +36,12 @@ class TcpConnection:
     def __init__(
         self,
         tcpstreamid,
-        clientip, serverip, cport, sport,
+        tcpclientip, tcpserverip, cport, sport,
         **kwargs
     ):
         self.tcpstreamid = tcpstreamid # type: int
-        self.tcpclient_ip = clientip
-        self.tcpserver_ip = serverip
+        self.tcpclient_ip = tcpclientip
+        self.tcpserver_ip = tcpserverip
         self.server_port = sport # type: int
         self.client_port = cport # type: int
         self.isn = kwargs.get('isn')
@@ -159,31 +159,32 @@ class MpTcpSubflow(TcpConnection):
     TODO could set mptcpdest too
     """
 
-    def __init__(self, mptcpdest: ConnectionRoles
-            # , rcv_token
-            , *args,  addrid=None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, mptcpdest: ConnectionRoles, addrid=None, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.addrid = addrid
         # self.rcv_token = rcv_token
         # token_owner ?
         self.mptcpdest = mptcpdest
 
     @staticmethod
-    def create_subflow(*args, **kwargs):
+    def create_subflow(**kwargs):
         """
         Args:
         """
-        sf = MpTcpSubflow(*args, **kwargs)
+        sf = MpTcpSubflow(**kwargs)
         return sf
 
     def reversed(self):
         res = self.create_subflow(
             swap_role(self.mptcpdest),
-            self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
-            self.server_port, self.client_port,
+            tcpstreamid=self.tcpstreamid, 
+            tcpclientip=self.tcpserver_ip, 
+            tcpserverip=self.tcpclient_ip,
+            cport=self.server_port, sport=self.client_port,
             # self.rcv_token
         )
-        res.addrid = self.addrid
+        # we lose the addrid in opposite direction
+        # res.addrid = self.addrid
         # raise Exception("check for rcv_token")
         return res
 
@@ -306,13 +307,20 @@ class MpTcpConnection:
         master_id = ds["tcpstream"].iloc[0]
 
         subflows = []
-        # master subflow has implicit addrid 0
+
+        # we assume this is the first seen sendkey, thus it was sent to the mptcp server
         master_sf = MpTcpSubflow.create_subflow(
-            master_id, ds['ipsrc'].iloc[cid], ds['ipdst'].iloc[cid],
-            ds['sport'].iloc[cid], ds['dport'].iloc[cid],
-            addrid=0, )
+            mptcpdest = ConnectionRoles.Server,
+            tcpstreamid=master_id, 
+            tcpclientip=ds['ipsrc'].iloc[cid],
+            tcpserverip=ds['ipdst'].iloc[cid],
+            cport=ds['sport'].iloc[cid], 
+            sport=ds['dport'].iloc[cid],
+            addrid=0   # master subflow has implicit addrid 0
+        )
 
         subflows.append(master_sf)
+        # TODO could use "mptcp.analysis.subflows" instead
         tcpstreams = ds.groupby('tcpstream')
         for tcpstreamid, subflow_ds in tcpstreams:
             if tcpstreamid == master_id:
@@ -323,9 +331,13 @@ class MpTcpConnection:
             row = res[0]
             token = subflow_ds["recvtok"].iloc[row]
 
-            subflow = MpTcpSubflow.create_subflow(tcpstreamid,
-                subflow_ds['ipsrc'].iloc[row], subflow_ds['ipdst'].iloc[row],
-                subflow_ds['sport'].iloc[row], subflow_ds['dport'].iloc[row],
+            subflow = MpTcpSubflow.create_subflow(
+                mptcpdest = ConnectionRoles.Server if token == server_token else ConnectionRoles.Client,
+                tcpstreamid=tcpstreamid,
+                tcpclientip=subflow_ds['ipsrc'].iloc[row],
+                tcpserverip=subflow_ds['ipdst'].iloc[row],
+                sport=subflow_ds['sport'].iloc[row], 
+                cport=subflow_ds['dport'].iloc[row],
                 addrid=None,
                 rcv_token=token
                 )

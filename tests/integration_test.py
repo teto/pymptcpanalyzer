@@ -1,5 +1,5 @@
-#from unittest import TestCase
-#import unittest
+from unittest import TestCase
+import unittest
 
 #import mptcpanalyzer as mp
 #from mptcpanalyzer import load_into_pandas
@@ -32,21 +32,22 @@
 #    """
 #    return main(shlex.split(arguments_to_parse))
 
+ # @unittest.skipIf(mylib.__version__ < (1, 3),
+  # @unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")
+class IntegrationTest(TestCase):
+    """
+    Few reminders :
+        :w @unittest.expectedFailure
+    List of builtin exceptions
+    https://docs.python.org/3/library/exceptions.html
 
-#class IntegrationTest(TestCase):
-#    """
-#    Few reminders :
-#        :w @unittest.expectedFailure
-#    List of builtin exceptions
-#    https://docs.python.org/3/library/exceptions.html
+   one can use oneshot or 
+   z.onecmd()
 
-#    one can use oneshot or 
-#    z.onecmd()
-
-#    Attr:
-#        cache_folder:
-#        config:
-#    """
+   Attr:
+       cache_folder:
+       config:
+   """
 
 #    # def oneshot(self, arguments_to_parse: str):
 #    #     """
@@ -59,44 +60,44 @@
 
 
 
-#    @classmethod
-#    def setUpClass(cls):
-#        """
-#        Just called for the class
-#        """
-#        logger = logging.getLogger("mptcpanalyzer")
-#        logger.setLevel(level=loglevel)
-#        # logging.basicConfig(level=loglevel)
-#        cls.cache_folder = tempfile.mkdtemp()
-#        # we are responsible for destroying it 
-#        # print("cls.cache_folder=", cls.cache_folder)
+   @classmethod
+   def setUpClass(cls):
+       """
+       Just called for the class
+       """
+       logger = logging.getLogger("mptcpanalyzer")
+       logger.setLevel(level=loglevel)
+       # logging.basicConfig(level=loglevel)
+       cls.cache_folder = tempfile.mkdtemp()
+       # we are responsible for destroying it 
+       # print("cls.cache_folder=", cls.cache_folder)
 
 
-#    @classmethod
-#    def tearDownClass(cls):
-#        # TODO unlink cls.cache_folder 
-#        # shutil.rmtree(cls.cache_folder)
-#        print("cache=%s" % cls.cache_folder)
+   @classmethod
+   def tearDownClass(cls):
+       # TODO unlink cls.cache_folder 
+       # shutil.rmtree(cls.cache_folder)
+       print("cache=%s" % cls.cache_folder)
 
-#    def setUp(self):
-#        """ Run before each test"""
-#        # todo use a tempdir as cache
-#        # config["cache"] = 
-#        # config = MpTcpAnalyzerConfig("")
-#        # config["mptcpanalyzer"]["cache"] = self.__class__.cache_folder
-#        # self.m = MpTcpAnalyzer(config)
-#        # self.assertEqual(self.m.cache.folder, self.cache_folder)
-#        # print("folder cache %s" % self.m.cache.folder)
-#        pass
+   def setUp(self):
+       """ Run before each test"""
+       # todo use a tempdir as cache
+       # config["cache"] = 
+       # config = MpTcpAnalyzerConfig("")
+       # config["mptcpanalyzer"]["cache"] = self.__class__.cache_folder
+       # self.m = MpTcpAnalyzer(config)
+       # self.assertEqual(self.m.cache.folder, self.cache_folder)
+       # print("folder cache %s" % self.m.cache.folder)
+       pass
 
-#    def create_z(self, config=None):
+   def create_z(self, config=None):
 
-#        config = MpTcpAnalyzerConfig("") if config is None else config
-#        config["mptcpanalyzer"]["cache"] = self.__class__.cache_folder
-#        z = MpTcpAnalyzer(config)
-#        self.assertEqual(z.cache.folder, self.cache_folder)
-#        print("folder cache %s" % z.cache.folder)
-#        return z
+       config = MpTcpAnalyzerConfig("") if config is None else config
+       config["mptcpanalyzer"]["cache"] = self.__class__.cache_folder
+       z = MpTcpAnalyzer(config)
+       self.assertEqual(z.cache.folder, self.cache_folder)
+       print("folder cache %s" % z.cache.folder)
+       return z
 
 
 #    def setup_plot_mgr(self):
@@ -144,47 +145,6 @@
 #        ds1 = load_into_pandas("examples/node0.pcap")
 #        ds2 = load_into_pandas("examples/node1.pcap")
 
-#        # just looking to map mptcp.stream 0
-#        main_connection = MpTcpConnection.build_from_dataframe(ds1, 0)
-
-#        self.assertEqual(main_connection.client_key, 7214480005779690518)
-#        results = data.mptcp_match_connection(ds1, ds2, main_connection)
-#        self.assertGreaterEqual(len(results), 1, "There must be at least one result")
-#        mapped_connection = results[0][0]
-#        self.assertEqual(mapped_connection.client_key, main_connection.client_key)
-#        # if we try to map packets, 9 should be mapped to 9 first
-
-#        # need 2 TcpConnections, we can use a subflow common to 
-#        # 'main' and 'con' previously computed
-
-
-#        # some subflows may have been blocked by routing/firewall
-#        common_subflows = [] 
-#        for sf in main_connection.subflows:
-#            # if sf2 in 
-#            for sf2 in mapped_connection.subflows:
-#                if sf == sf2:
-#                    common_subflows.append((sf, sf2))
-#                    break
-
-#            # try:
-#            #     idx = mapped_connection.subflows.index(sf)
-#            #     sf2 = mapped_connection.subflows[idx]
-#            #     common_subflows.append((sf, sf2))
-
-#            # except ValueError:
-#            #     continue
-
-#        # common_subflows = set(mapped_connection.subflows, main_connection.subflows)
-#        print("common sf=%s", common_subflows)
-#        self.assertGreater( len(common_subflows), 0, "Should be at least one common sf")
-
-#        sf1, sf2 = common_subflows[0]
-#        results = data.map_tcp_packets(ds1, ds2, sf1, sf2)
-#        # TODO test index is ok
-
-#        # TODO test mapping sockets
-
 #    def test_plot_owd(self):
 #        # self.m.do_plot("plot owd 0")
 #        out_basename = "interarrival.png"
@@ -195,26 +155,6 @@
 #            server_pcap="examples/node1filtered.pcapng"
 #        )
 
-#        packets[mp.Destination.Server] = [
-#1,
-#3,
-#4,
-#5,
-#6,
-#7,
-#8,
-#9,
-#10,
-#11,
-#12
-#]
-#                ]
-#[
-#2
-#15
-#17
-#20
-#]
 #        pd.DataFrame()
 #        with tempfile.TemporaryDirectory() as tempdir:
 #            out_fullname = os.path.join(tempdir, out_basename)
@@ -224,31 +164,31 @@
 #            # hum in fact, tshark seems to filter the shitty traffic so it's more 1 <-> 1
 
 
-#    # def test_load_pcap(self):
-#    #     """
-#    #     Check that it can load a basic mptcp pcap, w/o regen
-#    #     check it takes into account the cache
-#    #     check it fails when file does not exist or is corrupted
-#    #     """
-#    #     # to test for errors
-#    #     # with self.assertRaises(ValueError):
-#    #     self.m.do_load("examples/iperf-mptcp-0-0.pcap --regen")
+   def test_load_pcap(self):
+       """
+       Check that it can load a basic mptcp pcap, w/o regen
+       check it takes into account the cache
+       check it fails when file does not exist or is corrupted
+       """
+       # to test for errors
+       # with self.assertRaises(ValueError):
+       self.m.do_load_pcap("examples/iperf-mptcp-0-0.pcap --regen")
 
 
 
-#    # @unittest.skip("")
-#    def testlist_subflows(self):
-#        """
-#        Test that it can list subflows
-#        """
-#        z = self.create_z()
-#        # self.m.do_ls("0")
-#        # fails because the file is not loaded yet
-#        with self.assertRaises(mp.MpTcpException):
-#            z.onecmd("ls 0")
+   # @unittest.skip("")
+   def test_list_subflows(self):
+       """
+       Test that it can list subflows
+       """
+       z = self.create_z()
+       # self.m.do_ls("0")
+       # fails because the file is not loaded yet
+       with self.assertRaises(mp.MpTcpException):
+           z.onecmd("ls 0")
 
-#        z.onecmd("load " + mptcp_pcap)
-#        z.onecmd("ls 0")
+       z.onecmd("load " + mptcp_pcap)
+       z.onecmd("ls 0")
 
 #        # fails because there are no packets with this id
 #        with self.assertRaises(mp.MpTcpException):

@@ -136,7 +136,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
 
         # cmd2 specific initialization
         self.abbrev = True;  #  when no ambiguities, run the command
-        self.allow_cli_args = False;
+        self.allow_cli_args = False;  # disable autoload of transcripts
         self.allow_redirection = True;  # allow pipes in commands
         self.default_to_shell = False;
         self.debug = True;  #  for now
@@ -287,11 +287,11 @@ class MpTcpAnalyzer(cmd2.Cmd):
     @is_loaded
     def list_subflows(self, mptcpstreamid: int):
         con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-        print("Description of mptcp.stream %d " % mptcpstreamid)
+        self.poutput("Description of mptcp.stream %d " % mptcpstreamid)
 
-        print("The connection has %d subflow(s) (client/server): " % (len(con.subflows)))
+        self.poutput("The connection has %d subflow(s) (client/server): " % (len(con.subflows())))
         for sf in con.subflows():
-            print("\t%s" % sf)
+            self.poutput("\t%s" % sf)
 
     def help_list_subflows(self):
         print("Use parser -h")
@@ -459,7 +459,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         List mptcp connections via their ids (mptcp.stream)
         """
         streams = self.data.groupby("mptcpstream")
-        print('%d mptcp connection(s)' % len(streams))
+        self.poutput('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
 
@@ -636,19 +636,20 @@ class MpTcpAnalyzer(cmd2.Cmd):
         df = self.data
         df = self.data[df.mptcpstream == args.mptcpstream]
         if df.empty:
-            print("No packet with mptcp.stream == %d" % args.mptcpstream)
+            self.poutput("No packet with mptcp.stream == %d" % args.mptcpstream)
             return
 
         # known : Set[int] = set()
         # print(df.columns)
 
         # TODO move to outer function ?
+        # TODO use ppaged
         reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
         total_nb_reinjections = 0
         for row in reinjections.itertuples():
             # if row.packetid not in known:
             # ','.join(map(str,row.reinjection_of)
-            print("packetid=%d (tcp.stream %d) is a reinjection of %d packets: " 
+            self.output("packetid=%d (tcp.stream %d) is a reinjection of %d packet(s): " 
                     % ( row.Index, row.tcpstream,
                         len(row.reinjection_of)
                         )
@@ -662,7 +663,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
                 entry = self.data.loc[ pktId ]
                 # entry = df.loc[ df.packetid == pktId]
                 # print("packetId %r" % entry)
-                print("- packet %d (tcp.stream %d)" % (entry.packetid, entry.tcpstream))
+                self.poutput("- packet %d (tcp.stream %d)" % (entry.packetid, entry.tcpstream))
             # known.update([row.packetid] + row.reinjection)
 
         reinjections = df["reinjection_of"].dropna(axis=0, )
@@ -765,7 +766,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
         cache =  mp.get_cache()
-        print("Cleaning cache [%s]" % cache.folder)
+        self.poutput("Cleaning cache [%s]" % cache.folder)
         cache.clean()
 
     def do_dump(self, args):
@@ -871,6 +872,9 @@ def main(arguments=None):
 
     args, unknown_args = parser.parse_known_args(arguments)
 
+    # Perform surgery on sys.argv to remove the arguments which have already been processed by argparse
+    sys.argv = sys.argv[:1] + unknown_args
+
     config = MpTcpAnalyzerConfig(args.config)
     if args.cachedir:
         config["mptcpanalyzer"]["cache"] = args.cachedir # type: ignore
@@ -892,17 +896,17 @@ def main(arguments=None):
         analyzer = MpTcpAnalyzer(config, **vars(args))
 
         if args.input_file:
-            log.info("Loading Input file %s" % args.input_file)
+            log.info("Loading input file %s" % args.input_file)
             cmd = args.input_file
-            analyzer.do_load(cmd)
+            analyzer.do_load_pcap(cmd)
 
         # if extra parameters passed via the cmd line, consider it is one command
-        elif unknown_args:
-            log.info("One-shot command(s) with unknown_args=  %s" % unknown_args)
+        # if unknown_args:
+        #     log.info("One-shot command(s) with unknown_args=  %s" % unknown_args)
 
-            for cmd in unknown_args:
-                analyzer.onecmd(cmd)
-        else:
+        #     for cmd in unknown_args:
+        #         analyzer.onecmd(cmd)
+        # else:
             log.info("Starting interactive mode")
             analyzer.cmdloop()
 
