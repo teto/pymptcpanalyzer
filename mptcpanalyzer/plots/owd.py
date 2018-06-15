@@ -98,13 +98,15 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         """
         # Need to add the stream ids too !
-        fd = load_merged_tcpstreams_into_pandas(
+        fd = woo.load_merged_streams_into_pandas(
             kwargs.get("host1_pcap"),
             kwargs.get("host2_pcap"),
             tcpstream1,
-            tcpstream2
+            tcpstream2,
+            mptcp=False,
         )
             
+        # TODO maybe we can get rid of the following depending on how OWD is computed
 
         # if we can't load that file from cache
         try:

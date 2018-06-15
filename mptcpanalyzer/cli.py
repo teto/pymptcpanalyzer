@@ -36,6 +36,7 @@ import traceback
 import pprint
 import textwrap
 import readline
+import numpy as np
 from typing import List, Any, Tuple, Dict, Callable, Set
 import cmd2
 
@@ -89,7 +90,7 @@ def experimental(f):
     return f
 
 
-class MpTcpAnalyzer(cmd2.Cmd):
+class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     """
     mptcpanalyzer can run into 3 modes:
 
@@ -210,7 +211,7 @@ class MpTcpAnalyzer(cmd2.Cmd):
                 try:
                     obj = getattr(ext.obj, prefix)
                     if obj:
-                        setattr(MpTcpAnalyzer, method_name, obj)
+                        setattr(MpTcpAnalyzerCmdApp, method_name, obj)
                 except AttributeError:
                     log.debug("Plugin does not provide %s" % method_name)
 
@@ -893,7 +894,7 @@ def main(arguments=None):
 
     try:
 
-        analyzer = MpTcpAnalyzer(config, **vars(args))
+        analyzer = MpTcpAnalyzerCmdApp(config, **vars(args))
 
         if args.input_file:
             log.info("Loading input file %s" % args.input_file)

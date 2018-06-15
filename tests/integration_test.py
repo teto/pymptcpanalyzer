@@ -1,5 +1,6 @@
 from unittest import TestCase
 import unittest
+import mptcpanalyzer
 
 #import mptcpanalyzer as mp
 #from mptcpanalyzer import load_into_pandas
@@ -25,6 +26,11 @@ import unittest
 #loglevel = logging.DEBUG
 
 
+@pytest.fixture
+def argparse_app():
+    app = mptcpanalyzer.()
+    app.stdout = StdOut()
+return app
 
 #def oneshot(arguments_to_parse: str):
 #    """
@@ -145,23 +151,20 @@ class IntegrationTest(TestCase):
 #        ds1 = load_into_pandas("examples/node0.pcap")
 #        ds2 = load_into_pandas("examples/node1.pcap")
 
-#    def test_plot_owd(self):
-#        # self.m.do_plot("plot owd 0")
-#        out_basename = "interarrival.png"
-#        # out_basename = "interarrival_with_title.png"
-#        tpl = "plot owd {client_pcap} {server_pcap} 0"
-#        cmd = tpl.format(
-#            client_pcap="examples/node0filtered.pcapng",
-#            server_pcap="examples/node1filtered.pcapng"
-#        )
-
-#        pd.DataFrame()
-#        with tempfile.TemporaryDirectory() as tempdir:
-#            out_fullname = os.path.join(tempdir, out_basename)
-#            self.check_plot_output(cmd, out_fullname)
-
-#            # TODO check that packet 9 is mapped to 9, 10 to 10 for instance
-#            # hum in fact, tshark seems to filter the shitty traffic so it's more 1 <-> 1
+   def test_plot_owd(self):
+       # self.m.do_plot("plot owd 0")
+       out_basename = "interarrival.png"
+       # out_basename = "interarrival_with_title.png"
+       tpl = "plot owd {client_pcap} {server_pcap} 0"
+       cmd = tpl.format(
+           client_pcap="examples/node0filtered.pcapng",
+           server_pcap="examples/node1filtered.pcapng"
+       )
+       # owd_tcp --display examples/server_2.pcap examples/client_2.pcap 0 0
+       # pd.DataFrame()
+       # with tempfile.TemporaryDirectory() as tempdir:
+       #     out_fullname = os.path.join(tempdir, out_basename)
+       #     self.check_plot_output(cmd, out_fullname)
 
 
    def test_load_pcap(self):

@@ -128,6 +128,9 @@ def load_merged_streams_into_pandas(
     """
     Arguments:
         protocol: mptcp or tcp
+
+    Returns
+        a dataframe with columns... owd ?
     """
     log.debug("Asked to load merged tcp streams %d and %d from pcaps %s and %s" 
             % (streamid1, streamid2, pcap1, pcap2)
