@@ -570,6 +570,15 @@ def merge_mptcp_dataframes_known_streams(
 
     # TODO when looking into the cache, check for mptcpstream
     # prepare metadata
+    # we should write mptcpdest before the column names change
+    # finally we set the mptcp destination to help with further processing
+    # for sf in main_connection.subflows:
+    # add suffix ?
+    for destination in ConnectionRoles:
+        q = main_connection.generate_direction_query(destination)
+        df = df.query(q)
+        df["mptcpdest"] = destination
+        # raise Exception("TODO")
 
     # todo should be inplace
     df_total = None  # type: pd.DataFrame
@@ -584,17 +593,6 @@ def merge_mptcp_dataframes_known_streams(
         # TODO we should be able to add a field "mptcpdest"
 
         df_total = pd.concat([df_temp, df_total])
-
-
-    # finally we set the mptcp destination to help with further processing
-    # for sf in main_connection.subflows:
-    # add suffix ?
-    for destination in ConnectionRoles:
-        q = con.generate_direction_query(destination)
-        df = df.query(q)
-        # df.
-        raise Exception("TODO")
-
     
     # TODO I need to return sthg
     return df_total

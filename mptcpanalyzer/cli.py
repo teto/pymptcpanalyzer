@@ -137,7 +137,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # cmd2 specific initialization
         self.abbrev = True;  #  when no ambiguities, run the command
-        self.allow_cli_args = False;  # disable autoload of transcripts
+        self.allow_cli_args = True;  # disable autoload of transcripts
         self.allow_redirection = True;  # allow pipes in commands
         self.default_to_shell = False;
         self.debug = True;  #  for now
@@ -287,12 +287,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     @is_loaded
     def list_subflows(self, mptcpstreamid: int):
-        con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-        self.poutput("Description of mptcp.stream %d " % mptcpstreamid)
 
-        self.poutput("The connection has %d subflow(s) (client/server): " % (len(con.subflows())))
-        for sf in con.subflows():
-            self.poutput("\t%s" % sf)
+        try:
+            con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
+            self.poutput("Description of mptcp.stream %d " % mptcpstreamid)
+
+            self.poutput("The connection has %d subflow(s) (client/server): " % (len(con.subflows())))
+            for sf in con.subflows():
+                self.poutput("\t%s" % sf)
+        except mp.MpTcpException as e:
+            self.poutput(e)
 
     def help_list_subflows(self):
         print("Use parser -h")
@@ -361,10 +365,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         parser.add_argument("pcap1", action="store", type=str, help="first to load")
         parser.add_argument("pcap2", action="store", type=str, help="second pcap")
         parser.add_argument("mptcpstreamid", action="store", type=int, help="to filter")
+        parser.add_argument("--trim", action="store", type=float, default=0, 
+                help="Remove mappings with a score below this threshold")
+        parser.add_argument("--limit", action="store", type=int, default=2,
+                help="Limit display to the --limit best mappings")
         parser.add_argument(
             '-v', '--verbose', dest="verbose", default=False,
             action="store_true",
-            help="how to display each connection"
+            help="display all candidates"
         )
 
         args = parser.parse_args(shlex.split(line))
@@ -376,8 +384,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mappings = map_mptcp_connection(df2, main_connection)
 
 
-        print("%d mapping(s) found" % len(mappings))
-        for match in mappings:
+        self.poutput("%d mapping(s) found" % len(mappings))
+        mappings.sort(key=lambda x: x.score, reverse=True)
+
+        for rank, match in enumerate(mappings):
+
+            if rank >= args.limit:
+                self.pfeedback("ignoring mappings left")
+                break
 
             winner_like = match.score == float('inf')
 
@@ -391,24 +405,25 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 extra= " <-- should be a correct match" if winner_like else ""
             )
 
-            if winner_like:
-                # print("MAIN %r" % main_connection)
-                # print("MAPPED %r" % match.mapped)
-                # print("subflow_mappings %r" % match.subflow_mappings)
-                # print subflow mapping
-                # if the score is good we do more work to map subflows as well
-                # mapped_subflows = _map_subflows(main_connection, match.mapped)
-
-                # match = MpTcpMapping(match.mapped, match.score, mapped_subflows)
-                def _print_subflow(x):
-                    return "\n-" + x[0].format_mapping(x[1])
-                    
-                
-                formatted_output += ''.join( [ _print_subflow(x) for x in match.subflow_mappings])
-            else:
+            # TODO restore 
+            if match.score < args.trim:
                 continue
+            # if True:
+            # print("MAIN %r" % main_connection)
+            # print("MAPPED %r" % match.mapped)
+            # print("subflow_mappings %r" % match.subflow_mappings)
+            # print subflow mapping
+            # if the score is good we do more work to map subflows as well
+            # mapped_subflows = _map_subflows(main_connection, match.mapped)
 
-            print(formatted_output)
+            # match = MpTcpMapping(match.mapped, match.score, mapped_subflows)
+            def _print_subflow(x):
+                return "\n-" + x[0].format_mapping(x[1])
+                
+            
+            formatted_output += ''.join( [ _print_subflow(x) for x in match.subflow_mappings])
+
+            self.poutput(formatted_output)
         # TODO split into 
         # sauce = self.select('sweet salty', 'Sauce? ')
 
@@ -446,10 +461,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             return
 
         total_transferred = ret["total_bytes"]
-        print("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
+        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
             subflow_load = sf_bytes/ret["total_bytes"]
-            print('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
+            self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
                 tcpstream, sf_bytes, total_transferred, subflow_load*100))
 
         # TODO check for reinjections etc...
@@ -908,8 +923,8 @@ def main(arguments=None):
         #     for cmd in unknown_args:
         #         analyzer.onecmd(cmd)
         # else:
-            log.info("Starting interactive mode")
-            analyzer.cmdloop()
+        log.info("Starting interactive mode")
+        analyzer.cmdloop()
 
     except Exception as e:
         print("An error happened:\n%s" % e)

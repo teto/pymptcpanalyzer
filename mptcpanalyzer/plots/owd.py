@@ -97,86 +97,89 @@ class TcpOneWayDelay(plot.Matplotlib):
         directly this cache else we proceed as usual
 
         """
-        # Need to add the stream ids too !
-        fd = woo.load_merged_streams_into_pandas(
-            kwargs.get("host1_pcap"),
-            kwargs.get("host2_pcap"),
-            tcpstream1,
-            tcpstream2,
-            mptcp=False,
-        )
             
         # TODO maybe we can get rid of the following depending on how OWD is computed
 
         # if we can't load that file from cache
         try:
-            cache = mp.get_cache()
 
-            valid, cachename = cache.get(cacheid)
-            log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
-            print(kwargs)
+            # Need to add the stream ids too !
+            df = woo.load_merged_streams_into_pandas(
+                kwargs.get("host1_pcap"),
+                kwargs.get("host2_pcap"),
+                tcpstream1,
+                tcpstream2,
+                mptcp=False,
+            )
+        #    cache = mp.get_cache()
 
-            if not valid:
-                # generate h1/h2 cache
-                dataframes = super().preprocess(**kwargs)
-                tcpstream = mptcpstream  # we kept mptcpstream as a convenience
-                print("FIX tcpstreamid AFTER DEBUG")
-                tcpstream = 0 # we kept mptcpstream as a convenience
+        #    valid, cachename = cache.get(cacheid)
+        #    log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
+        #    print(kwargs)
 
-                # we want to save results as a single file (easier to loader etc...)
-                # so we concat ?
-                # self.generate_owd_df(dataframes, cachename, **kwargs)
-                # print("len=%d" % len(dataframes))
-                assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
-                h1_df, h2_df = dataframes
+        #    if not valid:
+        #        # generate h1/h2 cache
+        #        dataframes = super().preprocess(**kwargs)
+        #        tcpstream = mptcpstream  # we kept mptcpstream as a convenience
+        #        print("FIX tcpstreamid AFTER DEBUG")
+        #        tcpstream = 0 # we kept mptcpstream as a convenience
 
-                total = woo.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
-                # 'packetid_h1', 'packetid_h2',
-                # 'dest',
-                firstcols = [ 'packetid_sender', 'packetid_receiver', 'owd']
-                total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
-                print("Saving into %s", cachename)
-                total.to_csv(
-                    cachename, # output
-                    # columns=columns,
-                    index=False,
-                    header=True,
-                    # sep=main.config["DEFAULT"]["delimiter"],
-                )
-                return total
+        #        # we want to save results as a single file (easier to loader etc...)
+        #        # so we concat ?
+        #        # self.generate_owd_df(dataframes, cachename, **kwargs)
+        #        # print("len=%d" % len(dataframes))
+        #        assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
+        #        h1_df, h2_df = dataframes
+
+        #        total = woo.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
+        #        # 'packetid_h1', 'packetid_h2',
+        #        # 'dest',
+        #        firstcols = [ 'packetid_sender', 'packetid_receiver', 'owd']
+        #        total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
+        #        print("Saving into %s", cachename)
+        #        total.to_csv(
+        #            cachename, # output
+        #            # columns=columns,
+        #            index=False,
+        #            header=True,
+        #            # sep=main.config["DEFAULT"]["delimiter"],
+        #        )
+        #        return total
 
 
-            else:
-                log.info("Loaded from cache %s" % cachename)
-                # pd.read_csv()
-                with open(cachename) as fd:
-                    # first line is metadata
-                    # TODO: creer classe metadata read/write ?
-                    # metadata = fd.readline()
+        #    else:
+        #        log.info("Loaded from cache %s" % cachename)
+        #        # pd.read_csv()
+        #        with open(cachename) as fd:
+        #            # first line is metadata
+        #            # TODO: creer classe metadata read/write ?
+        #            # metadata = fd.readline()
 
-                    data = pd.read_csv(
-                        fd,
-                        # skip_blank_lines=True,
-                        # hum not needed with comment='#'
-                        comment='#',
-                        # we don't need 'header' when metadata is with comment
-                        header=0, # read column names from row 2 (before, it's metadata)
-                        # skiprows
-                        # sep=self.tshark_config.delimiter,
-                        # dtype=dtypes,
-                        # converters={
-                        #     "tcp.flags": lambda x: int(x, 16),
-                        #     # reinjections, converts to list of integers
-                        #     # "mptcp.related_mapping": lambda x: x.split(','),
-                        # },
-                        # memory_map=True, # could speed up processing
-                    )
-                    # TODO:
-                    # No columns to parse from file
-                    # data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
-                    log.debug("Column names: %s", data.columns)
+        #            data = pd.read_csv(
+        #                fd,
+        #                # skip_blank_lines=True,
+        #                # hum not needed with comment='#'
+        #                comment='#',
+        #                # we don't need 'header' when metadata is with comment
+        #                header=0, # read column names from row 2 (before, it's metadata)
+        #                # skiprows
+        #                # sep=self.tshark_config.delimiter,
+        #                # dtype=dtypes,
+        #                # converters={
+        #                #     "tcp.flags": lambda x: int(x, 16),
+        #                #     # reinjections, converts to list of integers
+        #                #     # "mptcp.related_mapping": lambda x: x.split(','),
+        #                # },
+        #                # memory_map=True, # could speed up processing
+        #            )
+        #            # TODO:
+        #            # No columns to parse from file
+        #            # data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
+        #            log.debug("Column names: %s", data.columns)
 
-                return data
+        #        return data
+
+            return df
 
         except Exception as e:
             print("exception happened %s" % e )
@@ -233,13 +236,13 @@ class TcpOneWayDelay(plot.Matplotlib):
             print("df = ", df)
 
             # df = debug_convert(df)
-            pplot = grouped_by.plot.line(
+            pplot = df.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
                 legend=False,
                 x="abstime_sender",
                 y="owd",
-                label="toto", # seems to be a bug
+                label="TCP stream %s" % idx, # seems to be a bug
                 # style="-o",
                 # grid=True,
                 # xticks=tcpstreams["reltime"],
@@ -263,7 +266,10 @@ class TcpOneWayDelay(plot.Matplotlib):
             # # rot=45,
             # # lw=3
         # )
-        axes.legend(['toto', 'ta'])
+
+        # why are these so wrong !
+        # axes.legend(['toto', 'ta'])
+
         # handles, labels = axes.get_legend_handles_labels()
         # print("labels=", labels)
 

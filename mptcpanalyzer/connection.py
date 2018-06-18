@@ -35,15 +35,16 @@ class TcpConnection:
     """
     def __init__(
         self,
-        tcpstreamid,
-        tcpclientip, tcpserverip, cport, sport,
+        tcpstreamid: int,
+        tcpclientip, tcpserverip,
+        cport: int, sport: int,
         **kwargs
-    ):
-        self.tcpstreamid = tcpstreamid # type: int
+    ) -> None:
+        self.tcpstreamid = tcpstreamid 
         self.tcpclient_ip = tcpclientip
         self.tcpserver_ip = tcpserverip
-        self.server_port = sport # type: int
-        self.client_port = cport # type: int
+        self.server_port = sport
+        self.client_port = cport
         self.isn = kwargs.get('isn')
 
 
@@ -73,7 +74,7 @@ class TcpConnection:
 
     def format_mapping(self, mapping: 'TcpMapping', verbose=False):
         # res = "tcp stream {c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}".format(
-        res = "tcp stream {c1} mapped to {c2} with score={score}".format(
+        res = "{c1} mapped to {c2} with score={score}".format(
                 c1=self, c2=mapping[0], score=mapping[1])
 
         # print(res)
@@ -96,7 +97,7 @@ class TcpConnection:
         score += 10  if self.client_port == other.client_port else 0
         score += 10  if self.server_port == other.server_port else 0
 
-        # TODO more granulary score
+        # TODO more granular score
         return score
 
     def __eq__(self, other):
@@ -149,8 +150,12 @@ class TcpConnection:
         return self.__str__()
 
     def __str__(self):
-        line = ("tcp.stream {s.tcpstreamid}: {s.tcpclient_ip}:{s.client_port} "
-                " <-> {s.tcpserver_ip}:{s.server_port} ").format(s=self,)
+        # :>5d
+        # TODO should be converted to int instead, would spare some memory
+        line = ("tcp.stream {s.tcpstreamid:.0f}: {s.tcpclient_ip}:{s.client_port} "
+                " <-> {s.tcpserver_ip}:{s.server_port} ").format(s=self,
+                        # tcpstreamid=self.tcpstreamid
+                        )
         return line
 
 
@@ -176,7 +181,7 @@ class MpTcpSubflow(TcpConnection):
 
     def reversed(self):
         res = self.create_subflow(
-            swap_role(self.mptcpdest),
+            mptcpdest=swap_role(self.mptcpdest),
             tcpstreamid=self.tcpstreamid, 
             tcpclientip=self.tcpserver_ip, 
             tcpserverip=self.tcpclient_ip,
