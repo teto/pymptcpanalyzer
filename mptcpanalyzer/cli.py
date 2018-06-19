@@ -511,6 +511,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             args.protocol == "mptcp"
         )
         result = df
+        print("%r" % result)
         print(result[mpdata.DEBUG_FIELDS].head(20))
 
         print("print_owds finished")

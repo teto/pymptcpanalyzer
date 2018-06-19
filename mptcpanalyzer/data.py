@@ -566,7 +566,7 @@ def merge_mptcp_dataframes_known_streams(
 
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
 
-    # log.info('\n'.join( map(str, common_subflows)))
+    log.info("Mapping %r" % (mapping,))
 
     # TODO when looking into the cache, check for mptcpstream
     # prepare metadata
@@ -576,21 +576,28 @@ def merge_mptcp_dataframes_known_streams(
     # add suffix ?
     for destination in ConnectionRoles:
         q = main_connection.generate_direction_query(destination)
-        df = df.query(q)
+        df = df1.query(q)
+
+# /home/teto/mptcpanalyzer/mptcpanalyzer/data.py:580: SettingWithCopyWarning: 
+# A value is trying to be set on a copy of a slice from a DataFrame.
+# Try using .loc[row_indexer,col_indexer] = value instead
+
         df["mptcpdest"] = destination
         # raise Exception("TODO")
 
     # todo should be inplace
     df_total = None  # type: pd.DataFrame
     for sf, mapped_sf in mapping.subflow_mappings:
-        # print("%r" % sf1)
-        # print("%r" % sf2)
+
+        print("%r mapped to %r" % (sf, mapped_sf))
         df_temp = merge_tcp_dataframes_known_streams(
             (df1, sf),
             (df2, mapped_sf.mapped)
         )
         # TODO add mptcp specific fields
         # TODO we should be able to add a field "mptcpdest"
+
+        print("DF_TEMP= %r" % df_temp)
 
         df_total = pd.concat([df_temp, df_total])
     

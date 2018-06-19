@@ -152,8 +152,8 @@ class TcpConnection:
     def __str__(self):
         # :>5d
         # TODO should be converted to int instead, would spare some memory
-        line = ("tcp.stream {s.tcpstreamid:.0f}: {s.tcpclient_ip}:{s.client_port} "
-                " <-> {s.tcpserver_ip}:{s.server_port} ").format(s=self,
+        line = ("tcp.stream {s.tcpstreamid:.0f}: {s.tcpclient_ip}:{s.client_port:0>5.0f} "
+                " <-> {s.tcpserver_ip}:{s.server_port:0>5.0f} ").format(s=self,
                         # tcpstreamid=self.tcpstreamid
                         )
         return line
@@ -228,8 +228,10 @@ class MpTcpConnection:
 
     subflows can be any order
     """
-    def __init__(self, mptcpstreamid, client_key, client_token, server_key,
-            server_token, subflows, **kwargs):
+    def __init__(self,
+            mptcpstreamid: int,
+            client_key: int, client_token: int, server_key: int,
+            server_token, subflows, **kwargs) -> None:
         """
         """
         self.mptcpstreamid = mptcpstreamid
@@ -263,11 +265,11 @@ class MpTcpConnection:
         for sf in self.subflows():
             # we need to check the tcp destination to match the mptcp one
             tcpdest = mptcpdest
-            if sf.rcv_token != self.tokens[mptcpdest]:
+            if sf.mptcpdest != mptcpdest:
                 # TODO tester ca in REPL ?
-                tcpdest = ConnectionRoles.Server if mptcpdest == ConnectionRoles.Server else ConnectionRoles.Client
+                tcpdest = swap_role(mptcpdest)
 
-            q = " (" + sf.generate_direction_query(mptcpdest) + ") "
+            q = " (" + sf.generate_direction_query(tcpdest) + ") "
             print(q)
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
@@ -424,16 +426,16 @@ class MpTcpConnection:
 
     def __repr__(self):
         res = """
-    Server key/token: {skey}/{stoken}
+    Server key/token: {skey:>64.0f}/{stoken}
     Client key/token: {ckey}/{ctoken}
     """.format(
-            skey=self.server_key,
-            stoken=self.server_token,
-            ckey=self.client_key,
-            ctoken=self.client_token,
+            skey=self.keys[ConnectionRoles.Server],
+            stoken=self.tokens[ConnectionRoles.Server],
+            ckey=self.keys[ConnectionRoles.Client],
+            ctoken=self.tokens[ConnectionRoles.Client],
         )
 
-        res += '\n    '.join(map(str, self.subflows))
+        res += '\n    '.join(map(str, self.subflows()))
         return res
 
 
