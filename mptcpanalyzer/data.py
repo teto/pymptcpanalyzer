@@ -584,11 +584,15 @@ def merge_mptcp_dataframes_known_streams(
 
     df1['mptcpdest'] = np.nan;
     for destination in ConnectionRoles:
+        # TODO 
+        print("Selecting destination %s" % destination)
         q = main_connection.generate_direction_query(destination)
         # q = "(mptcpstream==0 and (tcpstream==0  and ipsrc=='10.0.0.1' and sport==(59482) ))"
         print("with query %s" % q )
-        df1.loc[df1.query(q).index, 'mptcpdest' ] = destination
-        # print("SELECTED %d" % len(df))
+        df = df1.query(q).index
+        df1.loc[df, 'mptcpdest' ] = destination
+        print("SELECTED %d" % len(df))
+        print(df)
         # df["mptcpdest"] = destination
         # print(df[TCP_DEBUG_FIELDS].head(20))
  

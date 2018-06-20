@@ -403,7 +403,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             formatted_output = output.format(
                 c1=main_connection,
                 c2=match.mapped,
-                score=match.score,
+                score=self.colorize(match.score, "red"),
                 # self.color('red',
                 extra= " <-- should be a correct match" if winner_like else ""
             )

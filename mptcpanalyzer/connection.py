@@ -206,7 +206,7 @@ class MpTcpSubflow(TcpConnection):
         tcpdest = ConnectionRoles.Server
         if self.mptcpdest != mptcpdest:
             # t = self.reversed()
-            tcpdest = swap_role(mptcpdest)
+            tcpdest = swap_role(tcpdest)
 
         return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
 
@@ -280,11 +280,11 @@ class MpTcpConnection:
             #     tcpdest = swap_role(mptcpdest)
 
             q = " (" + sf.generate_mptcp_direction_query(mptcpdest) + ") "
-            print(q)
+            # print(q)
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
 
-        print(result)
+        # print(result)
         return result
 
     # TODO add a destination arg
