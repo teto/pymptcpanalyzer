@@ -61,6 +61,9 @@ histfile_size = 1000
 
 CAT_REINJECTIONS = "Reinjections"
 
+# workaround to get
+DestinationChoice = mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles])
+
 def is_loaded(f):
     """
     Decorator checking that dataset has correct columns
@@ -441,7 +444,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         parser.add_argument(
             'destination',
             action="store",
-            choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
+            choices=DestinationChoice,
             type=lambda x: mp.ConnectionRoles[x],
             help='Filter flows according to their direction'
             '(towards the client or the server)'
@@ -494,6 +497,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         parser.add_argument("streamid", action="store", type=int, help="tcp.stream id visible in wireshark")
         parser.add_argument("streamid2", action="store", type=int, help="tcp.stream id visible in wireshark")
         parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
+        parser.add_argument("--destination", action="store", choices=DestinationChoice, help="tcp.stream id visible in wireshark")
         # give a choice "hash" / "stochastic"
         # parser.add_argument("--map-packets", action="store", type=int, help="tcp.stream id visible in wireshark")
         parser.add_argument(
@@ -503,6 +507,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         )
 
         args = parser.parse_args(shlex.split(line))
+        print("Loading merged streams")
         df = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
@@ -512,7 +517,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         )
         result = df
         print("%r" % result)
-        print(result[mpdata.DEBUG_FIELDS].head(20))
+        print(result[mpdata.TCP_DEBUG_FIELDS].head(20))
 
         print("print_owds finished")
         # print("TODO display before doing plots")
@@ -563,6 +568,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             args.mptcpstream2,
             mptcp=True
             )
+
+        print(" debugging ")
+        # print(df[mpdata.MPTCP_DEBUG_FIELDS].head(20))
+
+        # TODO for debug
         # todo we need to add 
         # res['mptcpdest'] = dest.name
 
@@ -893,11 +903,13 @@ def main(arguments=None):
     sys.argv = sys.argv[:1] + unknown_args
 
     config = MpTcpAnalyzerConfig(args.config)
+
+    # TODO use sthg better like flent/alot do (some update mechanism for instance)
     if args.cachedir:
-        config["mptcpanalyzer"]["cache"] = args.cachedir # type: ignore
+        config["mptcpanalyzer"]["cache"] = args.cachedir  # type: ignore
 
     # setup global variables
-    mp.__CACHE__ = mc.Cache(config.cachedir)
+    mp.__CACHE__ = mc.Cache(config.cachedir, disabled=args.no_cache)
     mp.__CONFIG__ = config
 
     level = logging.CRITICAL - min(args.debug, 4) * 10
@@ -917,13 +929,6 @@ def main(arguments=None):
             cmd = args.input_file
             analyzer.do_load_pcap(cmd)
 
-        # if extra parameters passed via the cmd line, consider it is one command
-        # if unknown_args:
-        #     log.info("One-shot command(s) with unknown_args=  %s" % unknown_args)
-
-        #     for cmd in unknown_args:
-        #         analyzer.onecmd(cmd)
-        # else:
         log.info("Starting interactive mode")
         analyzer.cmdloop()
 

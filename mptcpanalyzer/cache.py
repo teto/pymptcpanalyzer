@@ -1,5 +1,5 @@
 import os
-from typing import Collection, Union, Any
+from typing import Collection, Union, Any, Tuple
 import logging
 import shutil
 from pathlib import Path
@@ -51,16 +51,19 @@ class Cache:
     1/ generate an id via cacheuid
     2/ if get returns false, generate the file and use put
     """
-    def __init__(self, folder, disabled=False):
+    def __init__(self, folder, disabled=False) -> None:
         self.folder = folder
         os.makedirs(self.folder, exist_ok=True)
         self.disabled = disabled
 
-    def get(self, uid: CacheId):
+    def get(self, uid: CacheId) -> Tuple[bool,str]:
 
         is_cache_valid = False
         try:
             cachename = os.path.join(self.folder, uid.filename)
+            if self.disabled:
+                return False, None
+
             dependencies = uid.dependencies
 
             if os.path.isfile(cachename):
@@ -83,7 +86,7 @@ class Cache:
         except Exception as e:
             log.debug("Invalid cache: %s" % e)
             is_cache_valid = False
-            cachename = "invalid"
+            cachename = None
         finally:
             return is_cache_valid, cachename
 

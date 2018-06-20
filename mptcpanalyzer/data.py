@@ -19,11 +19,12 @@ slog = logging.getLogger(__name__)
 """
 Used when dealing with the merge of dataframes
 """
-SENDER_SUFFIX="_sender"
+SENDER_SUFFIX  ="_sender"
 RECEIVER_SUFFIX="_receiver"
 
-# to help
-DEBUG_FIELDS=['hash', 'packetid_sender', "packetid_receiver", "reltime_sender", "reltime_receiver", "abstime_sender"]
+# columns we usually display to debug dataframes
+TCP_DEBUG_FIELDS=['hash', 'packetid_sender', "packetid_receiver", "reltime_sender", "reltime_receiver", "abstime_sender"]
+MPTCP_DEBUG_FIELDS=TCP_DEBUG_FIELDS + ['tcpdest', 'mptcpdest']
 
 def ignore(f1, f2):
     return 0
@@ -198,11 +199,13 @@ def load_merged_streams_into_pandas(
                 header=True,
                 # sep=main.config["DEFAULT"]["delimiter"],
             )
+
+            print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
             return merged_df
 
 
         else:
-            log.info("Loaded from cache %s" % cachename)
+            log.info("Loading from cache %s" % cachename)
             with open(cachename) as fd:
 
                 data = pd.read_csv(
@@ -500,7 +503,7 @@ def merge_tcp_dataframes_known_streams(
 def merge_mptcp_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame,
     df1_mptcpstream: int
-) -> pd.DataFrame:
+    ) -> Tuple[pd.DataFrame, str]:
     """
     First looks in df2 for a stream matching df1_mptcpstream
 
@@ -509,19 +512,18 @@ def merge_mptcp_dataframes(
     """
     main_connection = MpTcpConnection.build_from_dataframe(df1, df1_mptcpstream)
 
+    # we map over df2
     mappings = map_mptcp_connection(df2, main_connection)
+
+    print("Found mappings %s" % (mappings,))
 
     if len(mappings) <= 0:
         # TODO throw instead
         # raise Exception
-        print("Could not find a match in the second pcap for mptcpstream %d" % df1_mptcpstream)
-        return
+        return None, "Could not find a match in the second pcap for mptcpstream %d" % df1_mptcpstream
 
-
-    print("Found mappings %s" % (mappings,))
     if len(mappings) <= 0:
-        print("Could not find a match in the second pcap for tcpstream %d" % df1_mptcpstream)
-        return
+        return None, "Could not find a match in the second pcap for tcpstream %d" % df1_mptcpstream
 
     print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
     mapped_connection = mappings[0].mapped
@@ -532,7 +534,7 @@ def merge_mptcp_dataframes(
     return merge_mptcp_dataframes_known_streams(
         (df1, main_connection),
         (df2, mapped_connection)
-    )
+    ), None
 
 
 def merge_mptcp_dataframes_known_streams(
@@ -566,7 +568,7 @@ def merge_mptcp_dataframes_known_streams(
 
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
 
-    log.info("Mapping %r" % (mapping,))
+    # log.info("Mapping %r" % (mapping,))
 
     # TODO when looking into the cache, check for mptcpstream
     # prepare metadata
@@ -574,22 +576,36 @@ def merge_mptcp_dataframes_known_streams(
     # finally we set the mptcp destination to help with further processing
     # for sf in main_connection.subflows:
     # add suffix ?
+
+    print("df1 %d" % len(df1))
+    print(df1[['ipsrc', 'sport', 'tcpstream', 'mptcpstream']])
+
+    print("df1 packets for mptcpstream 0: %d" % len(df1[df1.mptcpstream == 0 ]))
+
+    df1['mptcpdest'] = np.nan;
     for destination in ConnectionRoles:
         q = main_connection.generate_direction_query(destination)
-        df = df1.query(q)
+        # q = "(mptcpstream==0 and (tcpstream==0  and ipsrc=='10.0.0.1' and sport==(59482) ))"
+        print("with query %s" % q )
+        df = df1.query(q) #, inplace=True)
+        print("SELECTED %d" % len(df))
+        df["mptcpdest"] = destination
+        print(df[TCP_DEBUG_FIELDS].head(20))
+ 
 
 # /home/teto/mptcpanalyzer/mptcpanalyzer/data.py:580: SettingWithCopyWarning: 
 # A value is trying to be set on a copy of a slice from a DataFrame.
 # Try using .loc[row_indexer,col_indexer] = value instead
 
-        df["mptcpdest"] = destination
         # raise Exception("TODO")
 
     # todo should be inplace
     df_total = None  # type: pd.DataFrame
+    # print("TCP mapping" % TcpMapping)
     for sf, mapped_sf in mapping.subflow_mappings:
 
         print("%r mapped to %r" % (sf, mapped_sf))
+        print("test %r" % (mapped_sf.mapped))
         df_temp = merge_tcp_dataframes_known_streams(
             (df1, sf),
             (df2, mapped_sf.mapped)
@@ -793,7 +809,7 @@ def map_tcp_packets_via_hash(
     # 
     # print(res.columns)
     print(hashing_fields)
-    print(res[DEBUG_FIELDS].head(20))
+    print(res[TCP_DEBUG_FIELDS].head(20))
     return res
 
 
@@ -937,7 +953,8 @@ def map_mptcp_connection_from_known_streams(
         mapped_subflows = []
         for sf in main.subflows():
 
-            scores = list(map(lambda x: (x, sf.score(x)), mapped.subflows()))
+            # generates a list (subflow, score)
+            scores = list(map(lambda x: TcpMapping(x, sf.score(x)), mapped.subflows()))
             scores.sort(key=lambda x: x[1], reverse=True)
             # print("sorted scores when mapping %s:\n %r" % (sf, scores))
             mapped_subflows.append( (sf, scores[0]) )
@@ -945,13 +962,14 @@ def map_mptcp_connection_from_known_streams(
         
         return mapped_subflows
 
-    score = main.score(other)
+    mptcpscore = main.score(other)
     mapped_subflows = None
-    if score > float('-inf'):
+    if mptcpscore > float('-inf'):
         # (other, score)
         mapped_subflows = _map_subflows(main, other)
 
-    mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
+    mapping = MpTcpMapping(mapped=other, score=mptcpscore, subflow_mappings=mapped_subflows)
+    # print("mptcp mapping %s" % (mapping,))
     return mapping
 
 

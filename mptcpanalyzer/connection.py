@@ -2,7 +2,7 @@ import pandas as pd
 import logging
 from mptcpanalyzer import ConnectionRoles, MpTcpException
 
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple, Tuple, Dict
 from enum import Enum
 
 log = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ class TcpConnection:
     """
     def __init__(
         self,
+        # tcpdest: ConnectionRoles,
         tcpstreamid: int,
         tcpclientip, tcpserverip,
         cport: int, sport: int,
@@ -63,7 +64,8 @@ class TcpConnection:
             ipsrc = self.tcpclient_ip
             sport = self.client_port
 
-        q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
+        # sport used to be
+        q += " and ipsrc=='%s' and sport==%d " % (ipsrc, sport)
         return q
 
     def sort_candidates(self, ):
@@ -133,7 +135,8 @@ class TcpConnection:
         #     raise MpTcpException("No packet with this stream id")
 
         row = df.iloc[0,]
-        result = TcpConnection(tcpstreamid,
+        result = TcpConnection(
+            tcpstreamid,
             row['ipsrc'], row['ipdst'],
             row['sport'], row['dport']
         )
@@ -141,6 +144,7 @@ class TcpConnection:
         return result
 
     def reversed(self):
+        # doesn't make sense really ?
         return self.create_subflow(
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
@@ -193,19 +197,25 @@ class MpTcpSubflow(TcpConnection):
         # raise Exception("check for rcv_token")
         return res
 
-    def generate_direction_query(self, mptcpdest: ConnectionRoles):
+    def generate_mptcp_direction_query(self, mptcpdest: ConnectionRoles):
         """
         Filter packets according to their MPTCP destination
         """
-
-        tcp = self
-        tcpdest = mptcpdest
+        # for now we assume that TcpConnection are always created with the Server
+        # as destination
+        tcpdest = ConnectionRoles.Server
         if self.mptcpdest != mptcpdest:
             # t = self.reversed()
             tcpdest = swap_role(mptcpdest)
 
         return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
 
+
+    def __str__(self):
+        """ Plot destination on top of it """
+        res = super().__str__()
+        res += " (mptcpdest: %s)" % self.mptcpdest
+        return res
             # 
             # return super(TcpConnection).generate_direction_query()
         # if dest == ConnectionRoles.Client:
@@ -264,12 +274,12 @@ class MpTcpConnection:
         queries = []
         for sf in self.subflows():
             # we need to check the tcp destination to match the mptcp one
-            tcpdest = mptcpdest
-            if sf.mptcpdest != mptcpdest:
-                # TODO tester ca in REPL ?
-                tcpdest = swap_role(mptcpdest)
+            # tcpdest = mptcpdest
+            # if sf.mptcpdest != mptcpdest:
+            #     # TODO tester ca in REPL ?
+            #     tcpdest = swap_role(mptcpdest)
 
-            q = " (" + sf.generate_direction_query(tcpdest) + ") "
+            q = " (" + sf.generate_mptcp_direction_query(mptcpdest) + ") "
             print(q)
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
@@ -307,30 +317,29 @@ class MpTcpConnection:
             raise MpTcpException("Could not find the initial keys")
 
         cid = res[0]
-        client_key = ds["sendkey"].iloc[cid]
-        client_token = ds["expected_token"].iloc[cid]
-        server_key = ds["sendkey"].iloc[res[1]]
-        server_token = ds["expected_token"].iloc[res[1]]
-        master_id = ds["tcpstream"].iloc[0]
+        client_key       = ds["sendkey"].iloc[cid]
+        client_token     = ds["expected_token"].iloc[cid]
+        server_key       = ds["sendkey"].iloc[res[1]]
+        server_token     = ds["expected_token"].iloc[res[1]]
+        master_tcpstream = ds["tcpstream"].iloc[0]
 
         subflows = []
 
         # we assume this is the first seen sendkey, thus it was sent to the mptcp server
         master_sf = MpTcpSubflow.create_subflow(
-            mptcpdest = ConnectionRoles.Server,
-            tcpstreamid=master_id, 
-            tcpclientip=ds['ipsrc'].iloc[cid],
-            tcpserverip=ds['ipdst'].iloc[cid],
-            cport=ds['sport'].iloc[cid], 
-            sport=ds['dport'].iloc[cid],
-            addrid=0   # master subflow has implicit addrid 0
+            mptcpdest  = ConnectionRoles.Server,
+            tcpstreamid= master_tcpstream, 
+            tcpclientip= ds['ipsrc'].iloc[cid],
+            tcpserverip= ds['ipdst'].iloc[cid],
+            cport      = ds['sport'].iloc[cid], 
+            sport      = ds['dport'].iloc[cid],
+            addrid     = 0   # master subflow has implicit addrid 0
         )
 
         subflows.append(master_sf)
-        # TODO could use "mptcp.analysis.subflows" instead
         tcpstreams = ds.groupby('tcpstream')
         for tcpstreamid, subflow_ds in tcpstreams:
-            if tcpstreamid == master_id:
+            if tcpstreamid == master_tcpstream:
                 continue
             res = get_index_of_non_null_values(subflow_ds["recvtok"])
             if len(res) < 1:
@@ -339,7 +348,7 @@ class MpTcpConnection:
             token = subflow_ds["recvtok"].iloc[row]
 
             subflow = MpTcpSubflow.create_subflow(
-                mptcpdest = ConnectionRoles.Server if token == server_token else ConnectionRoles.Client,
+                mptcpdest = ConnectionRoles.Client if token == server_token else ConnectionRoles.Server,
                 tcpstreamid=tcpstreamid,
                 tcpclientip=subflow_ds['ipsrc'].iloc[row],
                 tcpserverip=subflow_ds['ipdst'].iloc[row],
@@ -353,7 +362,6 @@ class MpTcpConnection:
 
         result = MpTcpConnection(mptcpstreamid, client_key, client_token,
             server_key, server_token, subflows)
-        # log.debug("Creating connection %s", result)
         return result
 
 
@@ -442,8 +450,9 @@ class MpTcpConnection:
 TcpMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
 
 
-MpTcpMapping = NamedTuple('TcpMapping', [('mapped', MpTcpConnection), ("score", float), 
-        ("subflow_mappings",  List[Tuple[TcpConnection,TcpMapping]])
+MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float), 
+    # make it a dict rather
+        ("subflow_mappings", List[Tuple[MpTcpSubflow,TcpMapping]])
     ])
 
 # MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
