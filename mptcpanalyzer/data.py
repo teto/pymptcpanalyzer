@@ -19,12 +19,19 @@ slog = logging.getLogger(__name__)
 """
 Used when dealing with the merge of dataframes
 """
-SENDER_SUFFIX  ="_sender"
-RECEIVER_SUFFIX="_receiver"
+SENDER_SUFFIX  = "" # "_sender"
+RECEIVER_SUFFIX= "_receiver"
 
 # columns we usually display to debug dataframes
-TCP_DEBUG_FIELDS=['hash', 'packetid_sender', "packetid_receiver", "reltime_sender", "reltime_receiver", "abstime_sender"]
-MPTCP_DEBUG_FIELDS=TCP_DEBUG_FIELDS + ['tcpdest', 'mptcpdest']
+def _receiver(fields):
+    return list(map(lambda x: x + RECEIVER_SUFFIX, fields))
+
+def _sender(fields):
+    return list(map(lambda x: x + SENDER_SUFFIX, fields))
+
+TCP_DEBUG_FIELDS=['hash', 'packetid', "reltime", "abstime"]
+# 'tcpdest'
+MPTCP_DEBUG_FIELDS=TCP_DEBUG_FIELDS + [ 'mptcpdest']
 
 def ignore(f1, f2):
     return 0
@@ -591,11 +598,15 @@ def merge_mptcp_dataframes_known_streams(
         print("with query %s" % q )
         df = df1.query(q).index
         df1.loc[df, 'mptcpdest' ] = destination
-        print("SELECTED %d" % len(df))
+        print("SELECTED %d for direction %s" % (len(df), destination))
         print(df)
         # df["mptcpdest"] = destination
         # print(df[TCP_DEBUG_FIELDS].head(20))
- 
+        print(df1[MPTCP_DEBUG_FIELDS + ['ipsrc', 'ipdst'] ].head())
+
+    print(df1[MPTCP_DEBUG_FIELDS].head())
+    # import sys
+    # sys.exit(1)
 
 # /home/teto/mptcpanalyzer/mptcpanalyzer/data.py:580: SettingWithCopyWarning: 
 # A value is trying to be set on a copy of a slice from a DataFrame.
@@ -620,6 +631,8 @@ def merge_mptcp_dataframes_known_streams(
         print("DF_TEMP= %r" % df_temp)
 
         df_total = pd.concat([df_temp, df_total])
+
+    # TODO drop some columns, rename them like mptcpdest
     
     # TODO I need to return sthg
     return df_total
@@ -787,7 +800,7 @@ def map_tcp_packets_via_hash(
     **kwargs
     ):
     """
-
+    Merge on hash of different fields
     """
     log.info("mapping packets via hash")
     debug_cols = ["packetid","hash", "reltime"]

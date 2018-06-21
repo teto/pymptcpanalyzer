@@ -576,16 +576,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # todo we need to add 
         # res['mptcpdest'] = dest.name
 
-        # df1 = load_into_pandas(args.pcap1, self.tshark_config)
-        # df2 = load_into_pandas(args.pcap2, self.tshark_config)
-        # con1 = MpTcpConnection.build_from_dataframe(df1, args.mptcpstream)
-        # con2 = MpTcpConnection.build_from_dataframe(df2, args.mptcpstream2)
-        # df_merged = merge_mptcp_dataframes_known_streams(
-        #     (df1, con1),
-        #     (df2, con2)
-        # )
-        # print(df_merged.head(30))
-
         # reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
         reinjections = df[['tcpstream', "reinjected_in"]].dropna(axis=0, )
         total_nb_reinjections = 0
