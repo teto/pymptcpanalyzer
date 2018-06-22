@@ -314,7 +314,8 @@ class MpTcpConnection:
         # this returns the indexes where a sendkey is set :
         res = get_index_of_non_null_values(ds["sendkey"])
         if len(res) < 2:
-            raise MpTcpException("Could not find the initial keys")
+
+            raise MpTcpException("Could not find the initial keys (only found %r)" % (res,))
 
         cid = res[0]
         client_key       = ds["sendkey"].iloc[cid]

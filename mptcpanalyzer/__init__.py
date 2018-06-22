@@ -14,6 +14,11 @@ log = logging.getLogger(__name__)
 __CONFIG__ = None  # type: 'MpTcpAnalyzerConfig'
 __CACHE__ = None  # type: 'Cache'
 
+"""
+Used when dealing with the merge of dataframes
+"""
+SENDER_SUFFIX  = "" # "_sender"
+RECEIVER_SUFFIX= "_receiver"
 
 def get_cache() -> Cache:
     global __CACHE__  # add this line!
@@ -112,6 +117,7 @@ class MpTcpMissingPcap(MpTcpException):
 
 __all__ = [
         'log',
-        'List'
+        'List',
+        'RECEIVER_SUFFIX'
         ]
 

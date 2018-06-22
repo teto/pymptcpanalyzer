@@ -24,6 +24,7 @@ from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas
+from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer.cache as mc
@@ -341,14 +342,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         for match in mappings:
 
-            formatted_output = main.format_mapping(match)
+            # formatted_output = main.format_mapping(match)
             # output = "{c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}"
             # formatted_output = output.format(
             #     c1=main_connection,
             #     c2=match,
             #     score=score
             # )
-            print(formatted_output)
+            # print(formatted_output)
+            print(match)
 
     @experimental
     def do_map_mptcp_connection(self, line):
@@ -570,6 +572,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
 
         print(" debugging ")
+        print(df[['owd']].head())
+        # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
         # print(df[mpdata.MPTCP_DEBUG_FIELDS].head(20))
 
         # TODO for debug
@@ -577,26 +581,52 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # res['mptcpdest'] = dest.name
 
         # reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
-        reinjections = df[['tcpstream', "reinjected_in"]].dropna(axis=0, )
-        total_nb_reinjections = 0
-        df["best_reinjection"] = np.nan  # or -1
-        for row in reinjections.itertuples():
+        # reinjected_in_receiver
+        """
+        here the idea is to look at reinjections on the receiver side, see which one is first
+        packets with reinjected_in_receiver are (at least they should) be the first DSN arrived.
+        """
+        # reinjections = df[].dropna(axis=0, )
+        # total_nb_reinjections = 0
+        # df["best_reinjection"] = np.nan  # or -1
+
+        # mark the 
+        df["redundant"] = 0
+    
+        print(df[["reinjected_in"]])
+        successful_reinjections = df[["reinjected_in" + RECEIVER_SUFFIX]].dropna(axis=0, )
+
+        print("successful reinjections")
+        print(successful_reinjections.head())
+        for row in successful_reinjections.itertuples():
+
+
             print("full row %r" % (row,))
-            print("%r" % (row.reinjected_in,))
-            # set it to the maximum possible value
-            min_rcvtime = sys.maxsize
+            useless_reinjections = getattr(row, "reinjection_of" + RECEIVER_SUFFIX)
 
-            # packet id
-            successful_reinjection = row.packetid
-            for pktid in row.reinjected_in:
-                # look for the packet with lowest rcvtime
-                # mark it as the best reinjection
+            print("useless_reinjections %r" % (useless_reinjections,))
+            for receiver_pktid in useless_reinjections:
+                print("looking at receiver_pktid=", receiver_pktid)
+                df[ "packetid" + RECEIVER_SUFFIX == receiver_pktid]["redundant"] = 1
 
-                # mark 
-                rcvtime = df.loc[ pktid, ""].abstime_receiver
-                if rcvtime < min_rcvtime:
-                    min_rcvtime = rcvtime
-                    successful_reinjection = row.packetid
+
+        # for row in reinjections.itertuples():
+        #     print("full row %r" % (row,))
+        #     print("%r" % (row.reinjected_in,))
+        #     # set it to the maximum possible value
+        #     min_rcvtime = sys.maxsize
+
+        #     # packet id
+        #     successful_reinjection = row.packetid
+        #     for pktid in row.reinjected_in:
+        #         # look for the packet with lowest rcvtime
+        #         # mark it as the best reinjection
+
+        #         # mark 
+        #         rcvtime = df.loc[ pktid, ""].abstime_receiver
+        #         if rcvtime < min_rcvtime:
+        #             min_rcvtime = rcvtime
+        #             successful_reinjection = row.packetid
 
                 
 

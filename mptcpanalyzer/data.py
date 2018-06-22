@@ -5,6 +5,7 @@ import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer as mp
+from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX
 from mptcpanalyzer import get_config, get_cache, ConnectionRoles
 from typing import List, Any, Tuple, Dict, Callable, Collection, Union
 import math
@@ -16,11 +17,6 @@ log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
 
 
-"""
-Used when dealing with the merge of dataframes
-"""
-SENDER_SUFFIX  = "" # "_sender"
-RECEIVER_SUFFIX= "_receiver"
 
 # columns we usually display to debug dataframes
 def _receiver(fields):
@@ -207,7 +203,7 @@ def load_merged_streams_into_pandas(
                 # sep=main.config["DEFAULT"]["delimiter"],
             )
 
-            print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
+            # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
             return merged_df
 
 
@@ -633,6 +629,12 @@ def merge_mptcp_dataframes_known_streams(
         df_total = pd.concat([df_temp, df_total])
 
     # TODO drop some columns, rename them like mptcpdest
+    # we do it a posteriori so that we can still debug a dataframe with full info
+    cols2drop = [ 'tcpdest', 'mptcpdest' , 'tcpflags']
+
+    cols2drop = _receiver(cols2drop)
+
+    df_total.drop(labels=cols2drop)
     
     # TODO I need to return sthg
     return df_total
