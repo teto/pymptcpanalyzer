@@ -57,12 +57,16 @@ class Cache:
         self.disabled = disabled
 
     def get(self, uid: CacheId) -> Tuple[bool,str]:
+        """
+        Returns:
+            validity, outPath
+        """
 
         is_cache_valid = False
         try:
             cachename = os.path.join(self.folder, uid.filename)
             if self.disabled:
-                return False, None
+                return False, cachename
 
             dependencies = uid.dependencies
 
@@ -86,7 +90,7 @@ class Cache:
         except Exception as e:
             log.debug("Invalid cache: %s" % e)
             is_cache_valid = False
-            cachename = None
+            # cachename = None
         finally:
             return is_cache_valid, cachename
 
@@ -95,6 +99,10 @@ class Cache:
         Moves 'result' in the cache
         """
         dest = os.path.join(self.folder, uid.filename)
+
+        # if self.disabled:
+        #     return
+
         log.info("Moving file %s to %s" % (result, dest))
         shutil.move(result, dest)
 

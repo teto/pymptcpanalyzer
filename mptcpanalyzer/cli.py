@@ -572,6 +572,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
 
         print(" debugging ")
+
+        # print(df.columns)
         print(df[['owd']].head())
         # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
         # print(df[mpdata.MPTCP_DEBUG_FIELDS].head(20))
@@ -594,15 +596,20 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df["redundant"] = 0
     
         print(df[["reinjected_in"]])
-        successful_reinjections = df[["reinjected_in" + RECEIVER_SUFFIX]].dropna(axis=0, )
+        # drop where
+        # [["reinjected_in" + RECEIVER_SUFFIX]]
+        successful_reinjections = df.dropna(axis='index', subset=[ "reinjected_in" ])
 
+        print(df.columns)
         print("successful reinjections")
-        print(successful_reinjections.head())
+        # packetid=762, packetid_receiver=783
+        print(successful_reinjections[["packetid", "packetid_receiver", "reinjected_in" + RECEIVER_SUFFIX, "reinjection_of_receiver"]].head())
         for row in successful_reinjections.itertuples():
 
 
             print("full row %r" % (row,))
-            useless_reinjections = getattr(row, "reinjection_of" + RECEIVER_SUFFIX)
+            # reinjection_of_receiver
+            useless_reinjections = getattr(row, "reinjection_of" + RECEIVER_SUFFIX, [])
 
             print("useless_reinjections %r" % (useless_reinjections,))
             for receiver_pktid in useless_reinjections:

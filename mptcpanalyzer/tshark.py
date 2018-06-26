@@ -68,10 +68,12 @@ class TsharkConfig:
         self.tshark_bin = tshark_bin
         self.delimiter = delimiter
         self.profile = profile
-        self.filter = "mptcp or tcp"
+        # ICMP packets can be pretty confusing as they will
+        self.read_filter = "mptcp or tcp and not icmp"
         self.options = {
             "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
             # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
+            "tcp.analyze_sequence_numbers": True,  # without it, the rest fails
             "mptcp.analyze_mappings": True,
             "mptcp.relative_sequence_numbers": True,
             "mptcp.intersubflows_retransmission": True,
@@ -154,8 +156,8 @@ class TsharkConfig:
             # self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
             # it should be a list of integer
-            self.add_field("mptcp.reinjection", "reinjection_of", None, "Reinjection")
-            self.add_field("mptcp.reinjection_listing", "reinjected_in", None, "Reinjection list")
+            self.add_field("mptcp.reinjection", "reinjection_of", object, "Reinjection")
+            self.add_field("mptcp.reinjection_listing", "reinjected_in", object, "Reinjection list")
 
     def add_field(self, fullname, name, type, label):
         """
@@ -222,7 +224,7 @@ class TsharkConfig:
             self.tshark_bin,
             fields_to_export,
             input_filename,
-            self.filter,
+            self.read_filter,
             profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
@@ -253,7 +255,7 @@ class TsharkConfig:
             self.tshark_bin,
             self.get_fields('name'), # TODO convert to list
             "PLACEHOLDER",
-            self.filter,
+            self.read_filter,
             profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
