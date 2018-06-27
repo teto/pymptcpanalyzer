@@ -24,7 +24,7 @@ from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas
-from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX
+from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer.cache as mc
@@ -559,6 +559,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
         # TODO le rendre optionnel ?
         parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
+        # TODO filter per destination
 
 
         args = parser.parse_args(shlex.split(line))
@@ -572,6 +573,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
 
         print(" debugging ")
+        print(" dataframe size = %d" % len(df))
 
         # print(df.columns)
         print(df[['owd']].head())
@@ -593,29 +595,60 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # df["best_reinjection"] = np.nan  # or -1
 
         # mark the 
-        df["redundant"] = 0
+        df["redundant"] = False
     
-        print(df[["reinjected_in"]])
+        print(df[ df.reinjected_in.notna() ])
         # drop where
         # [["reinjected_in" + RECEIVER_SUFFIX]]
-        successful_reinjections = df.dropna(axis='index', subset=[ "reinjected_in" ])
 
-        print(df.columns)
+        # print("successful reinjections" % len(reinjected_in))
+        reinjected_packets = df.dropna(axis='index', subset=[ "reinjected_in" ])
+
+        # print(df.columns)
         print("successful reinjections")
         # packetid=762, packetid_receiver=783
-        print(successful_reinjections[["packetid", "packetid_receiver", "reinjected_in" + RECEIVER_SUFFIX, "reinjection_of_receiver"]].head())
-        for row in successful_reinjections.itertuples():
+        with pd.option_context('display.max_rows', None, 'display.max_columns', 3):
 
+            # print( "%r %r" % _receiver(["reinjected_in", "reinjection_of"]))
+
+            print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
+
+        for row in reinjected_packets.itertuples():
 
             print("full row %r" % (row,))
             # reinjection_of_receiver
-            useless_reinjections = getattr(row, "reinjection_of" + RECEIVER_SUFFIX, [])
+            useless_reinjections = getattr(row, "reinjected_in" + RECEIVER_SUFFIX, [])
 
-            print("useless_reinjections %r" % (useless_reinjections,))
+            print("useless_reinjections listing %r" % (useless_reinjections,))
             for receiver_pktid in useless_reinjections:
                 print("looking at receiver_pktid=", receiver_pktid)
-                df[ "packetid" + RECEIVER_SUFFIX == receiver_pktid]["redundant"] = 1
+                df.loc[ df[ "packetid" + RECEIVER_SUFFIX] == receiver_pktid, ["redundant"] ] = True
+                # print("found:", )
+                # redundant = 1
+                # print("result =", df["packetid" + RECEIVER_SUFFIX == receiver_pktid, "redundant"])
 
+
+        print("results: ", df[ df.redundant == True] )
+
+
+        # TODO we now need to display successful reinjections
+        reinjections = df[ pd.notnull( 
+                df[ _sender("reinjection_of") ] ) 
+                ]
+
+        print("=================================="
+              "=====       TESTING          ====="
+              "==================================")
+
+        print("reinjections")
+        print(reinjections[ _sender(["packetid", "reinjection_of"]) ])
+
+        successful_reinjections = reinjections[ reinjections.redundant == False ]
+
+        print("%d successful reinjections" % len(successful_reinjections))
+
+        # res2 = res2[pd.notnull(res["reinjected_in"])]
+        # df[ df.redundant == False] && df["reinjected_in" + RECEIVER_SUFFIX])
 
         # for row in reinjections.itertuples():
         #     print("full row %r" % (row,))

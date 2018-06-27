@@ -1,14 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import logging
 from enum import Enum, IntEnum
 from .config import MpTcpAnalyzerConfig
 from .cache import Cache
-
-
-log = logging.getLogger(__name__)
-# print("logger name from init", __name__)
+import collections
 
 
 __CONFIG__ = None  # type: 'MpTcpAnalyzerConfig'
@@ -19,6 +15,23 @@ Used when dealing with the merge of dataframes
 """
 SENDER_SUFFIX  = "" # "_sender"
 RECEIVER_SUFFIX= "_receiver"
+
+def suffix(suffix, fields):
+
+    f = lambda x: x + suffix
+    # if isinstance(fields, collections.Iterable):
+    if isinstance(fields, str):
+        return f(fields)
+
+    b = list(map(f, fields))
+    return b
+
+def _sender(fields):
+    return suffix(SENDER_SUFFIX, fields)
+
+def _receiver(fields):
+    return suffix(RECEIVER_SUFFIX, fields)
+
 
 def get_cache() -> Cache:
     global __CACHE__  # add this line!
@@ -116,7 +129,6 @@ class MpTcpMissingPcap(MpTcpException):
     pass
 
 __all__ = [
-        'log',
         'List',
         'RECEIVER_SUFFIX'
         ]

@@ -42,7 +42,8 @@ def diff(f1, f2):
 
 
 def debug_convert(df):
-    return df.head(20)
+    return df
+    # return df.head(20)
 
 
 def getrealpath(input_file):
@@ -155,6 +156,7 @@ def load_merged_streams_into_pandas(
     # if we can't load that file from cache
     try:
         cache = mp.get_cache()
+        merged_df = pd.DataFrame()
 
         valid, cachename = cache.get(cacheid)
         log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
@@ -204,14 +206,13 @@ def load_merged_streams_into_pandas(
             )
 
             # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
-            return merged_df
 
 
         else:
             log.info("Loading from cache %s" % cachename)
             with open(cachename) as fd:
 
-                data = pd.read_csv(
+                merged_df = pd.read_csv(
                     fd,
                     # skip_blank_lines=True,
                     # hum not needed with comment='#'
@@ -231,14 +232,15 @@ def load_merged_streams_into_pandas(
                 # TODO:
                 # No columns to parse from file
                 # data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
-                log.debug("Column names: %s", data.columns)
-
-            return data
 
     except Exception:
         log.exception("exception happened")
-        # raise e
 
+    finally:
+        log.debug("Column names: %s", merged_df.columns)
+        log.info("Finished loading. merged dataframe size: %d" % len(merged_df))
+
+        return merged_df
 
 
 def load_into_pandas(
@@ -307,7 +309,6 @@ def load_into_pandas(
             res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
             return res
 
-
         with open(csv_filename) as fd:
 
             import functools
@@ -355,7 +356,7 @@ def load_into_pandas(
         print("You may need to filter more your pcap to keep only mptcp packets")
         raise e
 
-    # TODO display loading time
+    log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
     # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
     return data
 
@@ -465,7 +466,9 @@ def merge_tcp_dataframes_known_streams(
         client_con, server_con = con2, con1
 
 
-    log.info("Trying to merge dataframes connection %s to %s" % (mapped_connection, main_connection))
+    log.info("Trying to merge dataframes connection {} to {} of respective sizes {} and {}".format(
+        mapped_connection, main_connection, len(h1_df), len(h2_df)
+    ))
     # print(h1_df[["packetid","hash", "reltime"]].head(5))
     # print(h2_df[["packetid","hash", "reltime"]].head(5))
 
@@ -487,7 +490,7 @@ def merge_tcp_dataframes_known_streams(
             # destination is server
             sender_df, receiver_df =  client_unidirectional_df, server_unidirectional_df
 
-        # TODO we don't necessaryly need to generate the OWDs
+        # TODO we don't necessarely need to generate the OWDs here, might be put out
         res = generate_tcp_directional_owd_df(sender_df, receiver_df, dest)
         res['tcpdest'] = dest.name
         total = pd.concat([res, total])
@@ -501,6 +504,11 @@ def merge_tcp_dataframes_known_streams(
     #     header=True,
     #     # sep=main.config["DEFAULT"]["delimiter"],
     # )
+    log.info("Resulting merged tcp dataframe of size {} (to compare with {} and {})".format(
+        len(total), len(h1_df), len(h2_df)
+    ))
+
+    
     return total
 
 
@@ -555,20 +563,10 @@ def merge_mptcp_dataframes_known_streams(
     Returns:
         Per-subflow dataframes
 
-        I want to see packets leave as
     """
     df1, main_connection  = con1
     df2, mapped_connection = con2
-    # Keep subflows that are present in the two connections (useless anyway ?)
-    # common_subflows = []
-    # print("%r"% main_connection)
-    # for sf in main_connection.subflows:
-    #     print("%r" % sf)
-    #     # if sf2 in
-    #     for sf2 in mapped_connection.subflows:
-    #         if sf == sf2:
-    #             common_subflows.append((sf, sf2))
-    #             break
+
     log.info("Merging %s with %s" % (main_connection, mapped_connection,))
 
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
@@ -582,10 +580,10 @@ def merge_mptcp_dataframes_known_streams(
     # for sf in main_connection.subflows:
     # add suffix ?
 
-    print("df1 %d" % len(df1))
+    # print("df1 %d" % len(df1))
     # print(df1[['ipsrc', 'sport', 'tcpstream', 'mptcpstream']])
 
-    print("df1 packets for mptcpstream 0: %d" % len(df1[df1.mptcpstream == 0 ]))
+    # print("df1 packets for mptcpstream 0: %d" % len(df1[df1.mptcpstream == 0 ]))
 
     df1['mptcpdest'] = np.nan;
     for destination in ConnectionRoles:
@@ -606,11 +604,11 @@ def merge_mptcp_dataframes_known_streams(
     # import sys
     # sys.exit(1)
 
-# /home/teto/mptcpanalyzer/mptcpanalyzer/data.py:580: SettingWithCopyWarning: 
-# A value is trying to be set on a copy of a slice from a DataFrame.
-# Try using .loc[row_indexer,col_indexer] = value instead
+    # /home/teto/mptcpanalyzer/mptcpanalyzer/data.py:580: SettingWithCopyWarning: 
+    # A value is trying to be set on a copy of a slice from a DataFrame.
+    # Try using .loc[row_indexer,col_indexer] = value instead
 
-        # raise Exception("TODO")
+            # raise Exception("TODO")
 
     # todo should be inplace
     df_total = None  # type: pd.DataFrame
@@ -637,7 +635,8 @@ def merge_mptcp_dataframes_known_streams(
     cols2drop = _receiver(cols2drop)
 
     df_total.drop(labels=cols2drop)
-    
+
+    log.info("Merging %s with %s" % (main_connection, mapped_connection,))
     # TODO I need to return sthg
     return df_total
 
@@ -646,7 +645,6 @@ def merge_mptcp_dataframes_known_streams(
 def generate_tcp_directional_owd_df(
     sender_df, receiver_df,
     dest,
-    # suffixes=('_sender', '_receiver'),
     **kwargs
 ):
     """
@@ -657,11 +655,6 @@ def generate_tcp_directional_owd_df(
 
     Returns
     """
-    log.info("Generating intermediary results")
-
-    # print("checking they are different")
-    # print(sender_df[["packetid","hash", "reltime"]].head(5))
-    # print(receiver_df[["packetid","hash", "reltime"]].head(5))
 
     mapped_df = map_tcp_packets(sender_df, receiver_df)
 
@@ -678,14 +671,11 @@ def generate_tcp_directional_owd_df(
     # print(mapped_df)
     # print("receiver df:")
     # print(receiver_df)
-
     # if mapped_df.rcv_pktid.is_unique is False:
     #     log.warn("There seems to be an error: some packets were mapped several times.")
-
     # # check for nan/ drop them
     # if mapped_df.rcv_pktid.is_unique is False:
     #     log.warn("There seems to be an error: some packets were mapped several times.")
-
     # res = pd.merge(
     #     mapped_df, receiver_df,
     #     left_on="rcv_pktid",
@@ -696,7 +686,6 @@ def generate_tcp_directional_owd_df(
     #     how="inner", #
     #     indicator=True # adds a "_merge" suffix
     # )
-
     # newcols = {
     #     'score' + suffixes[0]: 'score',
     # }

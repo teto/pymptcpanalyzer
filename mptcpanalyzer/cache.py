@@ -63,12 +63,12 @@ class Cache:
         """
 
         is_cache_valid = False
+        cachename = os.path.join(self.folder, uid.filename)
+        dependencies = uid.dependencies
+
         try:
-            cachename = os.path.join(self.folder, uid.filename)
             if self.disabled:
                 return False, cachename
-
-            dependencies = uid.dependencies
 
             if os.path.isfile(cachename):
                 log.info("A cache %s was found" % cachename)
