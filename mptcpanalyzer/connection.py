@@ -22,6 +22,15 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
+# only available with pandas 0.23
+# @pd.api.extensions.register_dataframe_accessor("tcp")
+# class TcpConnectionPandas:
+#     def __init__(self, df):
+#         self._df = df
+
+#     def stream(self, streamid):
+#         return self._df[self._df.tcpstream == streamid]
+
 
 class TcpConnection:
     """
@@ -38,14 +47,14 @@ class TcpConnection:
         # tcpdest: ConnectionRoles,
         tcpstreamid: int,
         tcpclientip, tcpserverip,
-        cport: int, sport: int,
+        client_port: int, server_port: int,
         **kwargs
     ) -> None:
         self.tcpstreamid = tcpstreamid 
         self.tcpclient_ip = tcpclientip
         self.tcpserver_ip = tcpserverip
-        self.server_port = sport
-        self.client_port = cport
+        self.server_port = server_port
+        self.client_port = client_port
         self.isn = kwargs.get('isn')
 
 
@@ -59,13 +68,13 @@ class TcpConnection:
 
         if tcpdest == ConnectionRoles.Client:
             ipsrc = self.tcpserver_ip
-            sport = self.server_port
+            server_port = self.server_port
         else:
             ipsrc = self.tcpclient_ip
-            sport = self.client_port
+            server_port = self.client_port
 
-        # sport used to be
-        q += " and ipsrc=='%s' and sport==%d " % (ipsrc, sport)
+        # server_port used to be
+        q += " and ipsrc=='%s' and sport==%d " % (ipsrc, server_port)
         return q
 
     def sort_candidates(self, ):
@@ -138,14 +147,14 @@ class TcpConnection:
         result = TcpConnection(
             tcpstreamid,
             row['ipsrc'], row['ipdst'],
-            row['sport'], row['dport']
+            client_port=row['sport'], server_port=row['dport']
         )
         log.debug("Created connection %s", result)
         return result
 
     def reversed(self):
         # doesn't make sense really ?
-        return self.create_subflow(
+        return TcpConnection(
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
         )
@@ -165,7 +174,7 @@ class TcpConnection:
 
 class MpTcpSubflow(TcpConnection):
     """
-    TODO could set mptcpdest too
+
     """
 
     def __init__(self, mptcpdest: ConnectionRoles, addrid=None, **kwargs) -> None:
@@ -173,6 +182,7 @@ class MpTcpSubflow(TcpConnection):
         self.addrid = addrid
         # self.rcv_token = rcv_token
         # token_owner ?
+        """ to which mptcp side belongs the tcp server"""
         self.mptcpdest = mptcpdest
 
     @staticmethod
@@ -189,7 +199,7 @@ class MpTcpSubflow(TcpConnection):
             tcpstreamid=self.tcpstreamid, 
             tcpclientip=self.tcpserver_ip, 
             tcpserverip=self.tcpclient_ip,
-            cport=self.server_port, sport=self.client_port,
+            client_port=self.server_port, server_port=self.client_port,
             # self.rcv_token
         )
         # we lose the addrid in opposite direction
@@ -220,12 +230,12 @@ class MpTcpSubflow(TcpConnection):
             # return super(TcpConnection).generate_direction_query()
         # if dest == ConnectionRoles.Client:
         #     ipsrc = self.tcpserver_ip
-        #     sport = self.server_port
+        #     server_port = self.server_port
         # else:
         #     ipsrc = self.tcpclient_ip
-        #     sport = self.client_port
+        #     server_port = self.client_port
 
-        # q += " and ipsrc=='%s' and sport==(%d) " % (ipsrc, sport)
+        # q += " and ipsrc=='%s' and server_port==(%d) " % (ipsrc, server_port)
         # return q
 
 
@@ -332,8 +342,8 @@ class MpTcpConnection:
             tcpstreamid= master_tcpstream, 
             tcpclientip= ds['ipsrc'].iloc[cid],
             tcpserverip= ds['ipdst'].iloc[cid],
-            cport      = ds['sport'].iloc[cid], 
-            sport      = ds['dport'].iloc[cid],
+            client_port      = ds['sport'].iloc[cid], 
+            server_port      = ds['dport'].iloc[cid],
             addrid     = 0   # master subflow has implicit addrid 0
         )
 
@@ -345,16 +355,19 @@ class MpTcpConnection:
             res = get_index_of_non_null_values(subflow_ds["recvtok"])
             if len(res) < 1:
                 raise MpTcpException("Missing MP_JOIN")
+
+            # assuming first packet is the initial SYN
             row = res[0]
             token = subflow_ds["recvtok"].iloc[row]
 
+            # if we see the token
             subflow = MpTcpSubflow.create_subflow(
                 mptcpdest = ConnectionRoles.Client if token == server_token else ConnectionRoles.Server,
                 tcpstreamid=tcpstreamid,
                 tcpclientip=subflow_ds['ipsrc'].iloc[row],
                 tcpserverip=subflow_ds['ipdst'].iloc[row],
-                sport=subflow_ds['sport'].iloc[row], 
-                cport=subflow_ds['dport'].iloc[row],
+                client_port=subflow_ds['sport'].iloc[row], 
+                server_port=subflow_ds['dport'].iloc[row],
                 addrid=None,
                 rcv_token=token
                 )

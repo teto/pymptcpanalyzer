@@ -434,7 +434,8 @@ def merge_tcp_dataframes_known_streams(
     """
     Generates an intermediate file with the owds.
 
-    1/ identify which dataframe is server's/client's
+    1/ clean up dataframe to keep
+    2/ identify which dataframe is server's/client's
     2/
 
     Args:
@@ -455,6 +456,10 @@ def merge_tcp_dataframes_known_streams(
     h1_df = debug_convert(h1_df)
     h2_df = debug_convert(h2_df)
 
+    # cleanup the dataframes to contain only the current stream packets
+    h1_df = h1_df[ h1_df.tcpstream == main_connection.tcpstreamid]
+    h2_df = h2_df[ h2_df.tcpstream == mapped_connection.tcpstreamid]
+
     min_h1 = h1_df['abstime'].min()
     min_h2 = h2_df['abstime'].min()
     log.debug("Comparing %f (h1) with %f (h2)" % (min_h1, min_h2))
@@ -466,7 +471,7 @@ def merge_tcp_dataframes_known_streams(
         client_con, server_con = con2, con1
 
 
-    log.info("Trying to merge dataframes connection {} to {} of respective sizes {} and {}".format(
+    log.info("Trying to merge connection {} to {} of respective sizes {} and {}".format(
         mapped_connection, main_connection, len(h1_df), len(h2_df)
     ))
     # print(h1_df[["packetid","hash", "reltime"]].head(5))
@@ -621,14 +626,10 @@ def merge_mptcp_dataframes_known_streams(
             (df1, sf),
             (df2, mapped_sf.mapped)
         )
-        # TODO add mptcp specific fields
-        # TODO we should be able to add a field "mptcpdest"
 
-        # print("DF_TEMP= %r" % df_temp)
 
         df_total = pd.concat([df_temp, df_total])
 
-    # TODO drop some columns, rename them like mptcpdest
     # we do it a posteriori so that we can still debug a dataframe with full info
     cols2drop = [ 'tcpdest', 'mptcpdest' , 'tcpflags']
 
@@ -795,7 +796,7 @@ def map_tcp_packets_via_hash(
     """
     Merge on hash of different fields
     """
-    log.info("mapping packets via hash")
+    log.info("Merging packets via hash")
     debug_cols = ["packetid","hash", "reltime"]
     # TODO do a join
     # df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan,)
@@ -820,6 +821,9 @@ def map_tcp_packets_via_hash(
     ## print(res.columns)
     #print(hashing_fields)
     #print(res[TCP_DEBUG_FIELDS].head(20))
+    log.info("Merged packets via hash. Resulting dataframe of size {} generated from {} and {}".format(
+        len(res), len(sender_df), len(receiver_df)
+    ))
     return res
 
 
