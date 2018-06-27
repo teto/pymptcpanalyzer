@@ -51,6 +51,21 @@ def getrealpath(input_file):
     filename = os.path.realpath(filename)
     return filename
 
+def _convert_flags(x):
+    return int(x, 16)
+
+def _convert_to_list(x, field="pass a field to debug"):
+    """
+    for instance functools.partial(_convert_to_list, field="reinjectionOf"),
+    returns np.nan instead of [] to allow for faster filtering
+    """
+    # pandas error message are not the best to understand why the convert failed
+    # so we use this instead of lambda for debug reasons
+    # print("converting field %s with value %r" % (field, x))
+    res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
+    return res
+
+
 
 """
 when trying to map packets from a pcap to another, we give a score to each mapping
@@ -210,6 +225,9 @@ def load_merged_streams_into_pandas(
 
         else:
             log.info("Loading from cache %s" % cachename)
+            temp = config.get_fields("fullname", "type")
+            dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
+
             with open(cachename) as fd:
 
                 merged_df = pd.read_csv(
@@ -228,6 +246,16 @@ def load_merged_streams_into_pandas(
                     #     # "mptcp.related_mapping": lambda x: x.split(','),
                     # },
                     # memory_map=True, # could speed up processing
+
+                    dtype=dtypes, # poping still generates
+                    converters={
+                        "tcp.flags": _convert_flags,
+                        # reinjections, converts to list of integers
+                        "mptcp.reinjection": functools.partial(_convert_to_list, field="reinjectionOf"),
+                        # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+                        "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+                        # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
+                    },
                 )
                 # TODO:
                 # No columns to parse from file
@@ -296,19 +324,6 @@ def load_into_pandas(
     pp = pprint.PrettyPrinter(indent=4)
 
     try:
-        def _convert_flags(x):
-            return int(x, 16)
-
-        def _convert_to_list(x, field="no desc"):
-            """
-            returns np.nan instead of [] to allow for faster filtering
-            """
-            # pandas error message are not the best to understand why the convert failed
-            # so we use this instead of lambda for debug reasons
-            # print("converting field %s with value %r" % (field, x))
-            res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
-            return res
-
         with open(csv_filename) as fd:
 
             import functools
@@ -353,7 +368,7 @@ def load_into_pandas(
                 data["hash"] = temp.apply(lambda x: hash(tuple(x)), axis = 1)
 
     except Exception as e:
-        print("You may need to filter more your pcap to keep only mptcp packets")
+        logging.error("You may need to filter more your pcap to keep only mptcp packets")
         raise e
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))

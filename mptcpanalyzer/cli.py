@@ -597,7 +597,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # mark the 
         df["redundant"] = False
     
-        print(df[ df.reinjected_in.notna() ])
+        print(df[ df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
         # drop where
         # [["reinjected_in" + RECEIVER_SUFFIX]]
 
@@ -605,7 +605,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         reinjected_packets = df.dropna(axis='index', subset=[ "reinjected_in" ])
 
         # print(df.columns)
-        print("successful reinjections")
+        print("%d reinjected packets" % len(reinjected_packets))
         # packetid=762, packetid_receiver=783
         with pd.option_context('display.max_rows', None, 'display.max_columns', 3):
 
@@ -621,8 +621,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             print("useless_reinjections listing %r" % (useless_reinjections,))
             for receiver_pktid in useless_reinjections:
-                print("looking at receiver_pktid=", receiver_pktid)
-                df.loc[ df[ "packetid" + RECEIVER_SUFFIX] == receiver_pktid, ["redundant"] ] = True
+                print("looking at receiver_pktid= %r %s" % (receiver_pktid, type(receiver_pktid)))
+                df.loc[ df[ "packetid" + RECEIVER_SUFFIX] == receiver_pktid  ]["redundant"] = True
                 # print("found:", )
                 # redundant = 1
                 # print("result =", df["packetid" + RECEIVER_SUFFIX == receiver_pktid, "redundant"])
