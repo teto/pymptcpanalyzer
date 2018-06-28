@@ -515,7 +515,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             args.pcap2,
             args.streamid,
             args.streamid2,
-            args.protocol == "mptcp"
+            args.protocol == "mptcp",
+            self.tshark_config
         )
         result = df
         print("%r" % result)
@@ -569,7 +570,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             args.pcap2,
             args.mptcpstream,
             args.mptcpstream2,
-            mptcp=True
+            mptcp=True,
+            self.tshark_config
             )
 
         print(" debugging ")
@@ -977,7 +979,8 @@ def main(arguments=None):
     print("Log level set to %s " % logging.getLevelName(level))
 
     log.debug("Starting in folder %s" % os.getcwd())
-    log.debug("Pandas version: %s" % pd.__version__)
+    log.debug("Pandas version: %s" % pd.show_versions())
+    # pd.__version__
     log.debug("cmd2 version: %s" % cmd2.__version__)
 
     try:

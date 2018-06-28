@@ -5,29 +5,37 @@ import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
 import mptcpanalyzer as mp
-from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX
+from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender, suffix_fields
 from mptcpanalyzer import get_config, get_cache, ConnectionRoles
 from typing import List, Any, Tuple, Dict, Callable, Collection, Union
 import math
 import tempfile
 import pprint
+import functools
 from enum import Enum
 
 log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
 
+pp = pprint.PrettyPrinter(indent=4)
+
+# ['b', 'a']
+dtype_role = pd.api.types.CategoricalDtype(categories=ConnectionRoles, ordered=True)
+# df1['mptcpdest'] = pd.Categorical(np.nan, ordered=False, categories=ConnectionRoles) ;
 
 
 # columns we usually display to debug dataframes
-def _receiver(fields):
-    return list(map(lambda x: x + RECEIVER_SUFFIX, fields))
+# def _receiver(fields):
+#     return list(map(lambda x: x + RECEIVER_SUFFIX, fields))
 
-def _sender(fields):
-    return list(map(lambda x: x + SENDER_SUFFIX, fields))
+# def _sender(fields):
+#     return list(map(lambda x: x + SENDER_SUFFIX, fields))
 
 TCP_DEBUG_FIELDS=['hash', 'packetid', "reltime", "abstime"]
 # 'tcpdest'
 MPTCP_DEBUG_FIELDS=TCP_DEBUG_FIELDS + [ 'mptcpdest']
+
+
 
 def ignore(f1, f2):
     return 0
@@ -141,8 +149,8 @@ def load_merged_streams_into_pandas(
     streamid1: int, # Union[MpTcpStreamId, TcpStreamId],
     streamid2: int,
     mptcp: bool, 
+    tshark_config: TsharkConfig,
     mapping_mode: PacketMappingMode = PacketMappingMode.HASH,
-    # config: TsharkConfig,
     **extra
     ):
     """
@@ -158,7 +166,7 @@ def load_merged_streams_into_pandas(
 
     
     # mp.get_config()
-    tshark_config = TsharkConfig()
+    # tshark_config = TsharkConfig()
     cache = mp.get_cache()
     protocolStr = "mptcp" if mptcp else "tcp"
     # merged_uid
@@ -217,7 +225,7 @@ def load_merged_streams_into_pandas(
                 # columns=columns,
                 index=False,
                 header=True,
-                # sep=main.config["DEFAULT"]["delimiter"],
+                sep=tshark_config.delimiter,
             )
 
             # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
@@ -225,8 +233,23 @@ def load_merged_streams_into_pandas(
 
         else:
             log.info("Loading from cache %s" % cachename)
-            temp = config.get_fields("fullname", "type")
-            dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
+            csv_fields = tshark_config.get_fields("name", "type")
+            # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
+            def _gen_dtypes(fields):
+
+
+                dtypes = {} # type: ignore
+                for suffix in [ SENDER_SUFFIX, RECEIVER_SUFFIX]:
+
+                    for k, v in fields.items():
+                        if v is not None or k not in ["tcpflags"]:
+                            dtypes.setdefault(suffix_fields(suffix, k), v)
+
+                dtypes.update({
+                    'mptcpdest': dtype_role,
+                    'tcpdest': dtype_role,
+                })
+                return dtypes
 
             with open(cachename) as fd:
 
@@ -238,25 +261,27 @@ def load_merged_streams_into_pandas(
                     # we don't need 'header' when metadata is with comment
                     header=0, # read column names from row 2 (before, it's metadata)
                     # skiprows
-                    # sep=self.tshark_config.delimiter,
-                    # dtype=dtypes,
+                    sep=tshark_config.delimiter,
                     # converters={
                     #     "tcp.flags": lambda x: int(x, 16),
                     #     # reinjections, converts to list of integers
                     #     # "mptcp.related_mapping": lambda x: x.split(','),
                     # },
                     # memory_map=True, # could speed up processing
-
-                    dtype=dtypes, # poping still generates
+# Categorical for TcpDest / mptcpdest
+                    dtype=_gen_dtypes(csv_fields), # poping still generates
                     converters={
-                        "tcp.flags": _convert_flags,
+                        "tcpflags": _convert_flags,
                         # reinjections, converts to list of integers
-                        "mptcp.reinjection": functools.partial(_convert_to_list, field="reinjectionOf"),
+                        # "mptcp.reinjection": functools.partial(_convert_to_list, field="reinjectionOf"),
                         # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
-                        "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+                        # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
                         # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                     },
                 )
+
+                # log.debug("Column names after loading from cache: %s", merged_df.columns)
+
                 # TODO:
                 # No columns to parse from file
                 # data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
@@ -266,6 +291,7 @@ def load_merged_streams_into_pandas(
 
     finally:
         log.debug("Column names: %s", merged_df.columns)
+        log.debug("Dtypes after load:%s\n" % pp.pformat(merged_df.dtypes))
         log.info("Finished loading. merged dataframe size: %d" % len(merged_df))
 
         return merged_df
@@ -321,12 +347,10 @@ def load_into_pandas(
     temp = config.get_fields("fullname", "type")
     dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
     log.debug("Loading a csv file %s" % csv_filename)
-    pp = pprint.PrettyPrinter(indent=4)
 
     try:
         with open(csv_filename) as fd:
 
-            import functools
 
             # TODO use packetid as Index
             data = pd.read_csv(
@@ -372,7 +396,6 @@ def load_into_pandas(
         raise e
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
-    # log.debug("Dtypes after load:%s\n" % pp.pformat(data.dtypes))
     return data
 
 
@@ -605,7 +628,9 @@ def merge_mptcp_dataframes_known_streams(
 
     # print("df1 packets for mptcpstream 0: %d" % len(df1[df1.mptcpstream == 0 ]))
 
-    df1['mptcpdest'] = np.nan;
+    # TODO test
+    # CategoricalDtype(categories=['b', 'a'], ordered=True)
+    df1['mptcpdest'] = pd.Series(np.nan, dtype=dtype_role)
     for destination in ConnectionRoles:
         # TODO 
         # print("Selecting destination %s" % destination)

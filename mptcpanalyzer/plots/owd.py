@@ -54,9 +54,9 @@ class TcpOneWayDelay(plot.Matplotlib):
             ("host2_pcap", plot.PreprocessingActions.Preload),
         ]
         super().__init__(
-               *args,
-               input_pcaps=expected_pcaps,
-               **kwargs
+            *args,
+            input_pcaps=expected_pcaps,
+            **kwargs
         )
 
         self.tshark_config.filter = "tcp";
@@ -109,7 +109,9 @@ class TcpOneWayDelay(plot.Matplotlib):
                 kwargs.get("host2_pcap"),
                 tcpstream1,
                 tcpstream2,
-                mptcp=False,
+                False,
+                # TODO how does it get the config
+                self.tshark_config,
             )
         #    cache = mp.get_cache()
 

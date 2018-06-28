@@ -152,7 +152,7 @@ class TsharkConfig:
         self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
 
         if advanced:
-            self.add_field("mptcp.related_mapping", "related_mappings", None, "DSS")
+            self.add_field("mptcp.related_mapping", "related_mappings", object, "DSS")
             # self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
             # it should be a list of integer

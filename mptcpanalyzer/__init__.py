@@ -16,7 +16,7 @@ Used when dealing with the merge of dataframes
 SENDER_SUFFIX  = "" # "_sender"
 RECEIVER_SUFFIX= "_receiver"
 
-def suffix(suffix, fields):
+def suffix_fields(suffix, fields):
 
     f = lambda x: x + suffix
     # if isinstance(fields, collections.Iterable):
@@ -27,10 +27,10 @@ def suffix(suffix, fields):
     return b
 
 def _sender(fields):
-    return suffix(SENDER_SUFFIX, fields)
+    return suffix_fields(SENDER_SUFFIX, fields)
 
 def _receiver(fields):
-    return suffix(RECEIVER_SUFFIX, fields)
+    return suffix_fields(RECEIVER_SUFFIX, fields)
 
 
 def get_cache() -> Cache:
