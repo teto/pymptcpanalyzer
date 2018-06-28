@@ -73,7 +73,10 @@ def _convert_to_list(x, field="pass a field to debug"):
     res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
     return res
 
-
+def _convert_list2str(serie):
+    """
+    """
+    return serie.astype(str,  copy=False).str.strip('[]').str.replace('\s+', '')
 
 """
 when trying to map packets from a pcap to another, we give a score to each mapping
@@ -220,11 +223,16 @@ def load_merged_streams_into_pandas(
             # total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
             assert cachename
             log.info("Saving into %s" % cachename)
+            # merged_df.A.astype(str).str.strip('[]').str.replace('\s+', '')
+            # trying to export lists correctly
+            _convert_list2str(merged_df.reinjected_of)
+            _convert_list2str(merged_df.reinjected_in)
             merged_df.to_csv(
                 cachename,
                 # columns=columns,
                 index=False,
                 header=True,
+
                 sep=tshark_config.delimiter,
             )
 
@@ -673,7 +681,7 @@ def merge_mptcp_dataframes_known_streams(
     # we do it a posteriori so that we can still debug a dataframe with full info
     cols2drop = [ 'tcpdest', 'mptcpdest' , 'tcpflags']
 
-    cols2drop = _receiver(cols2drop)
+    # cols2drop = _receiver(cols2drop)
 
     df_total.drop(labels=cols2drop)
 

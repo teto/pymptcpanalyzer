@@ -571,7 +571,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             args.mptcpstream,
             args.mptcpstream2,
             mptcp=True,
-            self.tshark_config
+            tshark_config=self.tshark_config
             )
 
         print(" debugging ")
