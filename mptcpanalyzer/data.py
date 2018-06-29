@@ -76,7 +76,8 @@ def _convert_to_list(x, field="pass a field to debug"):
 def _convert_list2str(serie):
     """
     """
-    return serie.astype(str,  copy=False).str.strip('[]').str.replace('\s+', '')
+    # copy=False
+    return serie.astype(str, ).str.strip('[]').str.replace('\s+', '')
 
 """
 when trying to map packets from a pcap to another, we give a score to each mapping
@@ -225,8 +226,10 @@ def load_merged_streams_into_pandas(
             log.info("Saving into %s" % cachename)
             # merged_df.A.astype(str).str.strip('[]').str.replace('\s+', '')
             # trying to export lists correctly
-            _convert_list2str(merged_df.reinjected_of)
-            _convert_list2str(merged_df.reinjected_in)
+            # merged_df.reinjected_of = _convert_list2str(merged_df.reinjected_of)
+            # merged_df.reinjected_in = _convert_list2str(merged_df.reinjected_in)
+            # print("REINJECTED_IN")
+            # print(merged_df.reinjected_in.dropna().head())
             merged_df.to_csv(
                 cachename,
                 # columns=columns,
@@ -260,7 +263,11 @@ def load_merged_streams_into_pandas(
                 return dtypes
 
             with open(cachename) as fd:
-
+                import ast
+                dtypes = _gen_dtypes(csv_fields)
+                pd.set_option('display.max_rows', 200)
+                pd.set_option('display.max_colwidth', -1)
+                print("dtypes=", dict(dtypes))
                 merged_df = pd.read_csv(
                     fd,
                     # skip_blank_lines=True,
@@ -277,13 +284,17 @@ def load_merged_streams_into_pandas(
                     # },
                     # memory_map=True, # could speed up processing
 # Categorical for TcpDest / mptcpdest
-                    dtype=_gen_dtypes(csv_fields), # poping still generates
+                    dtype=dtypes, # poping still generates
                     converters={
-                        "tcpflags": _convert_flags,
+                        _sender("tcpflags"): _convert_flags,
                         # reinjections, converts to list of integers
-                        # "mptcp.reinjection": functools.partial(_convert_to_list, field="reinjectionOf"),
+                        _sender("reinjection_of"): ast.literal_eval,
+                        _sender("reinjected_in"): ast.literal_eval,
+                        _receiver("reinjection_of"): ast.literal_eval,
+                        _receiver("reinjected_in"): ast.literal_eval,
+                        # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
                         # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
-                        # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+                        # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
                         # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                     },
                 )
@@ -299,7 +310,11 @@ def load_merged_streams_into_pandas(
 
     finally:
         log.debug("Column names: %s", merged_df.columns)
-        log.debug("Dtypes after load:%s\n" % pp.pformat(merged_df.dtypes))
+        # pd.set_option('display.max_rows', 200)
+        # pd.set_option('display.max_colwidth', -1)
+        # print("dtypes=", dict(dtypes))
+        # log.debug("Dtypes after load:%s\n" % pp.pformat(merged_df.dtypes))
+        log.debug("Dtypes after load:%s\n" % dict(merged_df.dtypes))
         log.info("Finished loading. merged dataframe size: %d" % len(merged_df))
 
         return merged_df
@@ -372,9 +387,9 @@ def load_into_pandas(
                 converters={
                     "tcp.flags": _convert_flags,
                     # reinjections, converts to list of integers
-                    "mptcp.reinjection": functools.partial(_convert_to_list, field="reinjectionOf"),
+                    "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
                     # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
-                    "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+                    "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
                     # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                 },
                 # nrows=10, # useful for debugging purpose
@@ -679,11 +694,10 @@ def merge_mptcp_dataframes_known_streams(
         df_total = pd.concat([df_temp, df_total])
 
     # we do it a posteriori so that we can still debug a dataframe with full info
-    cols2drop = [ 'tcpdest', 'mptcpdest' , 'tcpflags']
-
+    # print(df_total.columns)
+    # cols2drop = [ 'tcpflags']
     # cols2drop = _receiver(cols2drop)
-
-    df_total.drop(labels=cols2drop)
+    # df_total.drop(labels=cols2drop)
 
     log.info("Merging %s with %s" % (main_connection, mapped_connection,))
     # TODO I need to return sthg
@@ -831,9 +845,25 @@ def map_tcp_packets(
         # con1: TcpConnection, con2: TcpConnection
 ) -> pd.DataFrame:
     if mode == "hash":
-        return map_tcp_packets_via_hash(sender_df, receiver_df, explain)
+        res = map_tcp_packets_via_hash(sender_df, receiver_df, explain)
     else:
-        return map_tcp_packets_score_based(sender_df, receiver_df, explain)
+        res = map_tcp_packets_score_based(sender_df, receiver_df, explain)
+
+    log.info("Merged packets. Resulting dataframe of size {} generated from {} and {}".format(
+        len(res), len(sender_df), len(receiver_df)
+    ))
+    log.info("{} unmapped packets. ".format(
+        len(res[res._merge == "left_only"]) + len(res[res._merge == "right_only"])
+    ))
+
+    def _show_unmapped_pkts():
+        print(res[res._merge == "left_only"])
+        print(res[res._merge == "right_only"])
+
+    _show_unmapped_pkts()
+
+    return res
+
 
 
 def map_tcp_packets_via_hash(
@@ -845,33 +875,35 @@ def map_tcp_packets_via_hash(
     Merge on hash of different fields
     """
     log.info("Merging packets via hash")
-    debug_cols = ["packetid","hash", "reltime"]
+    debug_cols = ["packetid", "hash", "reltime"]
     # TODO do a join
     # df_final = sender_df.assign(rcv_pktid=np.nan, score=np.nan,)
     # print("SENDER")
     # print(sender_df[debug_cols].head(5))
     # print("RECEIVER")
     # print(receiver_df[debug_cols].head(5))
+
+    # todo we could now use merge_asof
     res = pd.merge(
         sender_df, receiver_df,
         on="hash",
         # right_index=True,
         # TODO en fait suffit d'inverser les suffixes, h1, h2
         suffixes=(SENDER_SUFFIX, RECEIVER_SUFFIX), #  columns suffixes (sender/receiver)
-        how="inner", #
-        # indicator=False # adds a "_merge" suffix, not needed
+        how="outer", # we want to keep packets from both
+        # we want to know how many packets were not mapped correctly, adds the _merge column
+        # can take values "left_only"/ "right_only" or both
+        indicator=True ,
+        validate="one_to_one",
     )
 
     #print("hash-based Map")
     ## print(sender_df[['hash', 'packetid']].head(20))
     ## print(receiver_df[['hash', 'packetid']].head(20))
     ## 
-    ## print(res.columns)
+    print(res.columns)
     #print(hashing_fields)
     #print(res[TCP_DEBUG_FIELDS].head(20))
-    log.info("Merged packets via hash. Resulting dataframe of size {} generated from {} and {}".format(
-        len(res), len(sender_df), len(receiver_df)
-    ))
     return res
 
 
@@ -962,21 +994,6 @@ def map_tcp_packets_score_based(
     # print("head=\n", df_final.head())
     return df_final
 
-
-# def map_mptcp_connections(rawdf1: pd.DataFrame, rawdf2: pd.DataFrame, idx: List[int]=None):
-#     """
-#     TODO remove ?
-#     """
-
-#     mappings = {}
-#     for mptcpstream1 in rawdf1["mptcpstream"].unique():
-#         if idx and mptcpstream1 not in idx:
-#             continue
-
-#         main = MpTcpConnection.build_from_dataframe(rawdf1, mptcpstream1)
-#         results = map_mptcp_connection(rawdf2, main)
-#         mappings.update({main: results})
-#     return mappings
 
 
 # TODO return TcpMapping

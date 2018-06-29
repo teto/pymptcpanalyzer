@@ -156,8 +156,8 @@ class TsharkConfig:
             # self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
             # it should be a list of integer
-            self.add_field("mptcp.reinjection", "reinjection_of", object, "Reinjection")
-            self.add_field("mptcp.reinjection_listing", "reinjected_in", object, "Reinjection list")
+            self.add_field("mptcp.reinjection_of", "reinjection_of", object, "Reinjection")
+            self.add_field("mptcp.reinjected_in", "reinjected_in", object, "Reinjection list")
 
     def add_field(self, fullname, name, type, label):
         """
