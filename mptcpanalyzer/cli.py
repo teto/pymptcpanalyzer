@@ -578,16 +578,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
 
         print("debugging ")
-        print(" dataframe size = %d" % len(df))
+        print("dataframe size = %d" % len(df))
 
         # print(df.columns)
-        print(df[['owd']].head())
+        # print(df[['owd']].head())
         # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
         # print(df[mpdata.MPTCP_DEBUG_FIELDS].head(20))
 
         # TODO for debug
         # todo we need to add 
         # res['mptcpdest'] = dest.name
+
+        # TODO keep only the ones with "merge_" : "both" ?
 
         # reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
         # reinjected_in_receiver
@@ -609,6 +611,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             receiver_df = df[ df.mptcpdest == destination]
             sender_df   = df[ df.mptcpdest == swap_role(destination)]
+            # sender_df   = df[ df.mptcpdest == swap_role(destination)]
 
             print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
 
@@ -699,6 +702,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     original_start      = original_packet[ _sender("abstime") ],
                     original_arrival    = original_packet[ _receiver("abstime") ] 
                 ))
+
+                if 
 
         #     # set it to the maximum possible value
         #     min_rcvtime = sys.maxsize
