@@ -19,9 +19,8 @@ slog = logging.getLogger(__name__)
 
 pp = pprint.PrettyPrinter(indent=4)
 
-# ['b', 'a']
-dtype_role = pd.api.types.CategoricalDtype(categories=ConnectionRoles, ordered=True)
-# df1['mptcpdest'] = pd.Categorical(np.nan, ordered=False, categories=ConnectionRoles) ;
+# dtype_role = pd.api.types.CategoricalDtype(categories=ConnectionRoles, ordered=True)
+dtype_role = pd.api.types.CategoricalDtype(categories=[ x.name for x in ConnectionRoles], ordered=True)
 
 
 # columns we usually display to debug dataframes
@@ -64,6 +63,7 @@ def _convert_flags(x):
 
 def _convert_to_list(x, field="pass a field to debug"):
     """
+    Loads x of the form "1,2,5" or None
     for instance functools.partial(_convert_to_list, field="reinjectionOf"),
     returns np.nan instead of [] to allow for faster filtering
     """
@@ -235,9 +235,10 @@ def load_merged_streams_into_pandas(
                 # columns=columns,
                 index=False,
                 header=True,
-
                 sep=tshark_config.delimiter,
             )
+
+            print("MATT=", dict(merged_df.dtypes))
 
             # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
 
@@ -247,8 +248,6 @@ def load_merged_streams_into_pandas(
             csv_fields = tshark_config.get_fields("name", "type")
             # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
             def _gen_dtypes(fields):
-
-
                 dtypes = {} # type: ignore
                 for suffix in [ SENDER_SUFFIX, RECEIVER_SUFFIX]:
 
@@ -257,24 +256,40 @@ def load_merged_streams_into_pandas(
                             dtypes.setdefault(suffix_fields(suffix, k), v)
 
                 dtypes.update({
+                    # during the merge, we join even unmapped packets so some entries
+                    # may be empty => float64
+                    _sender("packetid"): np.float64,
+                    _receiver("packetid"): np.float64,
+                    # there is a bug currently
+                    # https://github.com/pandas-dev/pandas/pull/20826
                     'mptcpdest': dtype_role,
                     'tcpdest': dtype_role,
+                    # '_merge': 
                 })
                 return dtypes
+
+            def _load_list(x, field="set field to debug"):
+                """
+                Contrary to _convert_to_list
+                """
+                res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
+                return res
 
             with open(cachename) as fd:
                 import ast
                 dtypes = _gen_dtypes(csv_fields)
-                pd.set_option('display.max_rows', 200)
-                pd.set_option('display.max_colwidth', -1)
+
+                # more recent versions can do without it
+                # pd.set_option('display.max_rows', 200)
+                # pd.set_option('display.max_colwidth', -1)
                 print("dtypes=", dict(dtypes))
                 merged_df = pd.read_csv(
                     fd,
-                    # skip_blank_lines=True,
+                    skip_blank_lines=True,
                     # hum not needed with comment='#'
                     comment='#',
                     # we don't need 'header' when metadata is with comment
-                    header=0, # read column names from row 2 (before, it's metadata)
+                    # header=0, # read column names from row 2 (before, it's metadata)
                     # skiprows
                     sep=tshark_config.delimiter,
                     # converters={
@@ -288,10 +303,15 @@ def load_merged_streams_into_pandas(
                     converters={
                         _sender("tcpflags"): _convert_flags,
                         # reinjections, converts to list of integers
-                        _sender("reinjection_of"): ast.literal_eval,
-                        _sender("reinjected_in"): ast.literal_eval,
-                        _receiver("reinjection_of"): ast.literal_eval,
-                        _receiver("reinjected_in"): ast.literal_eval,
+                        _sender("reinjection_of"): functools.partial(_load_list, field="reinjectedOfSender"),
+                        _sender("reinjected_in"): functools.partial(_load_list, field="reinjectedInSender"),
+                        _receiver("reinjection_of"): functools.partial(_load_list, field="reinjectedInReceiver"),
+                        _receiver("reinjected_in"): functools.partial(_load_list, field="reinjectedInReceiver"),
+
+                        # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
+                        # where the 
+                        "mptcpdest": lambda x: ConnectionRoles[x] if x else np.nan,
+
                         # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
                         # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
                         # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
@@ -374,8 +394,6 @@ def load_into_pandas(
     try:
         with open(csv_filename) as fd:
 
-
-            # TODO use packetid as Index
             data = pd.read_csv(
                 fd,
                 comment='#',
@@ -388,14 +406,13 @@ def load_into_pandas(
                     "tcp.flags": _convert_flags,
                     # reinjections, converts to list of integers
                     "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
-                    # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
                     "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
-                    # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
                 },
                 # nrows=10, # useful for debugging purpose
             )
             data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
             # we want packetid column to survive merges/dataframe transformation so keepit as a column
+            # TODO remove ? let other functions do it ?
             data.set_index("packetid", drop=False, inplace=True)
             log.debug("Column names: %s", data.columns)
 
@@ -887,8 +904,6 @@ def map_tcp_packets_via_hash(
     res = pd.merge(
         sender_df, receiver_df,
         on="hash",
-        # right_index=True,
-        # TODO en fait suffit d'inverser les suffixes, h1, h2
         suffixes=(SENDER_SUFFIX, RECEIVER_SUFFIX), #  columns suffixes (sender/receiver)
         how="outer", # we want to keep packets from both
         # we want to know how many packets were not mapped correctly, adds the _merge column

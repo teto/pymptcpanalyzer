@@ -580,9 +580,17 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # keep only those that matched both for now
 
         df_all["redundant"] = False
-        df = df_all[ df_all._merge == "both" ]
 
-        df.to_excel("temp.xls")
+        df = df_all[ df_all._merge == "both" ]
+        print("MATT %d df packets" % len(df))
+        
+
+        print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
+            _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
+            _receiver(["packetid", "reltime"])
+        ])
+        # to help debug
+        # df.to_excel("temp.xls")
 
         def _print_reinjection_comparison(original_packet, reinj):
             """
@@ -607,17 +615,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             if getattr(row, _receiver("abstime")) > original_packet[ _receiver("abstime") ]:
                 print("BUG: this is not a valid reinjection after all ?")
 
-        print("debugging ")
+        # print("debugging ")
         print("dataframe size = %d" % len(df))
-
-        # print(df.columns)
-        # print(df[['owd']].head())
-        # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
-        # print(df[mpdata.MPTCP_DEBUG_FIELDS].head(20))
-
-        # TODO for debug
-        # todo we need to add 
-        # res['mptcpdest'] = dest.name
 
         # TODO keep only the ones with "merge_" : "both" ?
 
@@ -638,12 +637,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         for destination in ConnectionRoles:
             self.poutput("looking for reinjections towards mptcp %s" % destination)
 
+            print(df["mptcpdest"])
             sender_df   = df[df.mptcpdest == destination]
 
             # print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
             # print("successful reinjections" % len(reinjected_in))
 
             # select only packets that have been reinjected
+
+            print("%d sender_df packets" % len(sender_df))
+            print(sender_df["reinjection_of"])
             reinjected_packets = sender_df.dropna(axis='index', subset=[ _sender("reinjection_of") ])
 
             print("%d reinjected packets" % len(reinjected_packets))
@@ -653,24 +656,24 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
 
 
-            for row in reinjected_packets.itertuples():
+            for reinjection in reinjected_packets.itertuples():
                 # here we look at all the reinjected packets
 
-                # print("full row %r" % (row,))
+                # print("full reinjection %r" % (reinjection,))
 
                 # if there are packets in _receiver(reinjected_in), it means the reinjections 
                 # arrived before other similar segments and thus these segments are useless
                 # it should work because 
-                # useless_reinjections = getattr(row, _receiver("reinjected_in"), [])
+                # useless_reinjections = getattr(reinjection, _receiver("reinjected_in"), [])
 
                 # if it was correctly mapped
-                # row._merge doesn't exist ?
-                if row._1 != "both":
+                # reinjection._merge doesn't exist ?
+                if reinjection._1 != "both":
                     # TODO count missed classifications ?
-                    log.debug("reinjection %d could not be mapped, giving up..." % (row.packetid))
+                    log.debug("reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
                     continue
 
-                initial_packetid = row.reinjection_of[0]
+                initial_packetid = reinjection.reinjection_of[0]
                 # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
                 # 
@@ -683,7 +686,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
                 orig_arrival  = getattr(original_packet, _receiver("reltime"))
-                reinj_arrival = getattr(row, _receiver("reltime"))
+                reinj_arrival = getattr(reinjection, _receiver("reltime"))
 
 
                 # print("useless_reinjections listing  %r" % (useless_reinjections,))
@@ -694,7 +697,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
                 if orig_arrival < reinj_arrival:
                     print("GOT A MATCH")
-                    sender_df.loc[ sender_df[ _sender("packetid")] == row.packetid, "redundant"] = True
+                    sender_df.loc[ sender_df[ _sender("packetid")] == reinjection.packetid, "redundant"] = True
+                    print("is this where it's wrong ?")
 
 
             print("results: ", df[ df.redundant == True] )
@@ -718,15 +722,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # df[ df.redundant == False] && df["reinjected_in" + RECEIVER_SUFFIX])
 
             for row in successful_reinjections.itertuples(index=False):
-                print("full row %r" % (row,))
+                # print("full row %r" % (row,))
 
                 # loc ? this is an array, sort it and take the first one ?
                 # initial_packetid = getattr(row, _sender("reinjection_of")),
                 initial_packetid = row.reinjection_of[0]
-                print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
+                # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
                 original_packet  = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
-                print("original packet = %r %s" % (original_packet, type(original_packet)))
+                # print("original packet = %r %s" % (original_packet, type(original_packet)))
 
                 _print_reinjection_comparison(original_packet, row)
 
