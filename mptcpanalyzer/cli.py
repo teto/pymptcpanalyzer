@@ -578,6 +578,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
 
         # keep only those that matched both for now
+
+        df_all["redundant"] = False
         df = df_all[ df_all._merge == "both" ]
 
         df.to_excel("temp.xls")
@@ -630,7 +632,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # df["best_reinjection"] = np.nan  # or -1
 
         # mark the 
-        df["redundant"] = False
     
         # print(df.columns)
 
@@ -643,7 +644,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # print("successful reinjections" % len(reinjected_in))
 
             # select only packets that have been reinjected
-            reinjected_packets = sender_df.dropna(axis='index', subset=[ _sender("reinjected_in") ])
+            reinjected_packets = sender_df.dropna(axis='index', subset=[ _sender("reinjection_of") ])
 
             print("%d reinjected packets" % len(reinjected_packets))
 
@@ -655,25 +656,45 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             for row in reinjected_packets.itertuples():
                 # here we look at all the reinjected packets
 
-                print("full row %r" % (row,))
+                # print("full row %r" % (row,))
 
                 # if there are packets in _receiver(reinjected_in), it means the reinjections 
                 # arrived before other similar segments and thus these segments are useless
                 # it should work because 
-                useless_reinjections = getattr(row, _receiver("reinjected_in"), [])
+                # useless_reinjections = getattr(row, _receiver("reinjected_in"), [])
 
-                print("useless_reinjections listing %r" % (useless_reinjections,))
-                try:
-                    useless_reinjections = [] if math.isnan(useless_reinjections) else useless_reinjections
-                except TypeError as e:
-                    # This value cannot be a list.
-                    pass
+                # if it was correctly mapped
+                # row._merge doesn't exist ?
+                if row._1 != "both":
+                    # TODO count missed classifications ?
+                    log.debug("reinjection %d could not be mapped, giving up..." % (row.packetid))
+                    continue
 
-                print("useless_reinjections listing  %r" % (useless_reinjections,))
+                initial_packetid = row.reinjection_of[0]
+                # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
-                for reinjection_pktid in useless_reinjections:
-                    print("looking at receiver_pktid= %r %s" % (reinjection_pktid, type(reinjection_pktid)))
-                    sender_df.loc[ sender_df[ _receiver("packetid")] == reinjection_pktid, "redundant"] = True
+                # 
+                original_packet = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
+
+                if original_packet._merge != "both":
+                    # TODO count missed classifications ?
+                    log.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
+                    continue
+
+
+                orig_arrival  = getattr(original_packet, _receiver("reltime"))
+                reinj_arrival = getattr(row, _receiver("reltime"))
+
+
+                # print("useless_reinjections listing  %r" % (useless_reinjections,))
+
+                # for reinjection_pktid in useless_reinjections:
+                    # print("looking at receiver_pktid= %r %s" % (reinjection_pktid, type(reinjection_pktid)))
+
+
+                if orig_arrival < reinj_arrival:
+                    print("GOT A MATCH")
+                    sender_df.loc[ sender_df[ _sender("packetid")] == row.packetid, "redundant"] = True
 
 
             print("results: ", df[ df.redundant == True] )
@@ -702,11 +723,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 # loc ? this is an array, sort it and take the first one ?
                 # initial_packetid = getattr(row, _sender("reinjection_of")),
                 initial_packetid = row.reinjection_of[0]
-                # getattr(row, _sender("reinjection_of")),
-                # print("initial_packetid = %r %s" % (row.reinjection_of, type(row.reinjection_of)))
                 print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
-                # print("initial_packetid = %r" % (initial_packetid[0]))
-# packet 892 is a successful_reinjection of 627. It arrived at 1529916731.5988212 to compare with Series([], Name: abstime_receiver, dtype: float64) while being transmitted at 1529916731.5480695 to compare with Series([], Name: abstime, dtype: float64)
 
                 original_packet  = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
                 print("original packet = %r %s" % (original_packet, type(original_packet)))
