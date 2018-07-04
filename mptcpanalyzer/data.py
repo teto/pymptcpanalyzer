@@ -275,6 +275,12 @@ def load_merged_streams_into_pandas(
                 res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
                 return res
 
+            def _convert_role(x):
+                """
+                Workaround https://github.com/pandas-dev/pandas/pull/20826
+                """
+                return ConnectionRoles[x] if x else np.nan
+
             with open(cachename) as fd:
                 import ast
                 dtypes = _gen_dtypes(csv_fields)
@@ -298,7 +304,7 @@ def load_merged_streams_into_pandas(
                     #     # "mptcp.related_mapping": lambda x: x.split(','),
                     # },
                     # memory_map=True, # could speed up processing
-# Categorical for TcpDest / mptcpdest
+                    # Categorical for TcpDest / mptcpdest
                     dtype=dtypes, # poping still generates
                     converters={
                         _sender("tcpflags"): _convert_flags,
@@ -310,7 +316,8 @@ def load_merged_streams_into_pandas(
 
                         # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
                         # where the 
-                        "mptcpdest": lambda x: ConnectionRoles[x] if x else np.nan,
+                        "mptcpdest": _convert_role,
+                        "tcpdest": _convert_role,
 
                         # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
                         # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
