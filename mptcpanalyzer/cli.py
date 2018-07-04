@@ -568,7 +568,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         args = parser.parse_args(shlex.split(line))
 
-        df = load_merged_streams_into_pandas(
+        df_all = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
             args.mptcpstream,
@@ -576,6 +576,34 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             mptcp=True,
             tshark_config=self.tshark_config
             )
+
+        # keep only those that matched both for now
+        df = df_all[ df_all._merge == "both" ]
+
+        df.to_excel("temp.xls")
+
+        def _print_reinjection_comparison(original_packet, reinj):
+            """
+            Expects tuples of original and reinjection packets
+            """
+            # original_packet  = sender_df.loc[ sender_df.packetid == initial_packetid, ].iloc[0]
+            row = reinj
+            # print(original_packet["packetid"])
+            print("packet {pktid} is a successful_reinjection of {initial_packetid}."
+                    " It arrived at {reinjection_arrival} to compare with {original_arrival}"
+                    " while being transmitted at {reinjection_start} to compare with {original_start}"
+                    .format(
+                pktid               = getattr(row, _sender("packetid")),
+                initial_packetid    = initial_packetid,
+                
+                reinjection_start   = getattr(row, _sender("abstime")),
+                reinjection_arrival = getattr(row, _receiver("abstime")),
+                original_start      = original_packet[ _sender("abstime") ],
+                original_arrival    = original_packet[ _receiver("abstime") ] 
+            ))
+
+            if getattr(row, _receiver("abstime")) > original_packet[ _receiver("abstime") ]:
+                print("BUG: this is not a valid reinjection after all ?")
 
         print("debugging ")
         print("dataframe size = %d" % len(df))
@@ -609,34 +637,29 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         for destination in ConnectionRoles:
             self.poutput("looking for reinjections towards mptcp %s" % destination)
 
-            receiver_df = df[ df.mptcpdest == destination]
-            sender_df   = df[ df.mptcpdest == swap_role(destination)]
-            # sender_df   = df[ df.mptcpdest == swap_role(destination)]
+            sender_df   = df[df.mptcpdest == destination]
 
-            print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
-
+            # print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
             # print("successful reinjections" % len(reinjected_in))
 
             # select only packets that have been reinjected
             reinjected_packets = sender_df.dropna(axis='index', subset=[ _sender("reinjected_in") ])
 
             print("%d reinjected packets" % len(reinjected_packets))
-            # packetid=762, packetid_receiver=783
-            with pd.option_context('display.max_rows', None, 'display.max_columns', 3):
 
-                # print( "%r %r" % _receiver(["reinjected_in", "reinjection_of"]))
+            with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
 
                 print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
 
 
             for row in reinjected_packets.itertuples():
                 # here we look at all the reinjected packets
-                #   
 
                 print("full row %r" % (row,))
 
                 # if there are packets in _receiver(reinjected_in), it means the reinjections 
                 # arrived before other similar segments and thus these segments are useless
+                # it should work because 
                 useless_reinjections = getattr(row, _receiver("reinjected_in"), [])
 
                 print("useless_reinjections listing %r" % (useless_reinjections,))
@@ -646,24 +669,17 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     # This value cannot be a list.
                     pass
 
-                print("useless_reinjections listing %r" % (useless_reinjections,))
+                print("useless_reinjections listing  %r" % (useless_reinjections,))
 
                 for reinjection_pktid in useless_reinjections:
-                    #  receiver_pktid
                     print("looking at receiver_pktid= %r %s" % (reinjection_pktid, type(reinjection_pktid)))
-                    sender_df.loc[ sender_df[ _sender("packetid")] == reinjection_pktid]["redundant"] = True
-                    # print("found:", )
-                    # redundant = 1
-                    # print("result =", df["packetid" + RECEIVER_SUFFIX == receiver_pktid, "redundant"])
+                    sender_df.loc[ sender_df[ _receiver("packetid")] == reinjection_pktid, "redundant"] = True
 
 
             print("results: ", df[ df.redundant == True] )
 
-
             # TODO we now need to display successful reinjections
-            reinjections = sender_df[ pd.notnull( 
-                    sender_df[ _sender("reinjection_of") ] 
-                    ) ]
+            reinjections = sender_df[ pd.notnull(sender_df[ _sender("reinjection_of") ]) ]
 
             print("=================================="
                 "=====       TESTING          ====="
@@ -675,6 +691,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             successful_reinjections = reinjections[ reinjections.redundant == False ]
 
             print("%d successful reinjections" % len(successful_reinjections))
+            print(successful_reinjections[ _sender(["packetid", "reinjection_of"]) + _receiver(["packetid"]) ])
 
             # res2 = res2[pd.notnull(res["reinjected_in"])]
             # df[ df.redundant == False] && df["reinjected_in" + RECEIVER_SUFFIX])
@@ -689,21 +706,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 # print("initial_packetid = %r %s" % (row.reinjection_of, type(row.reinjection_of)))
                 print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
                 # print("initial_packetid = %r" % (initial_packetid[0]))
-                original_packet  = sender_df.loc[ sender_df.packetid == initial_packetid, ].iloc[0]
-                print(original_packet["packetid"])
-                print("packet {pktid} is a successful_reinjection of {initial_packetid}."
-                        " It arrived at {reinjection_arrival} to compare with {original_arrival}"
-                        " while being transmitted at {reinjection_start} to compare with {original_start}"
-                        .format(
-                    pktid               = getattr(row, _sender("packetid")),
-                    initial_packetid    = initial_packetid,
-                    reinjection_start   = getattr(row, _sender("abstime")),
-                    reinjection_arrival = getattr(row, _receiver("abstime")),
-                    original_start      = original_packet[ _sender("abstime") ],
-                    original_arrival    = original_packet[ _receiver("abstime") ] 
-                ))
+# packet 892 is a successful_reinjection of 627. It arrived at 1529916731.5988212 to compare with Series([], Name: abstime_receiver, dtype: float64) while being transmitted at 1529916731.5480695 to compare with Series([], Name: abstime, dtype: float64)
 
-                if 
+                original_packet  = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
+                print("original packet = %r %s" % (original_packet, type(original_packet)))
+
+                _print_reinjection_comparison(original_packet, row)
 
         #     # set it to the maximum possible value
         #     min_rcvtime = sys.maxsize
