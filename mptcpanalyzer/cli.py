@@ -95,6 +95,36 @@ def experimental(f):
     return f
 
 
+def gen_bicap_parser(protocol, dest=False):
+    """
+    protocol in ["mptcp", "tcp"]
+    """
+    parser = argparse.ArgumentParser(
+        description="""
+        Empty description, please provide one
+        """
+    )
+    parser.add_argument("pcap1", type=str, help="Capture file 1")
+    parser.add_argument("pcap2", type=str, help="Capture file 2")
+    parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
+    # TODO le rendre optionnel ?
+    parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
+
+    if dest:
+        parser.add_argument(
+            '--destination',
+            action="store",
+            choices=DestinationChoice,
+            type=lambda x: mp.ConnectionRoles[x],
+            default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
+            help='Filter flows according to their direction'
+            '(towards the client or the server)'
+            'Depends on mptcpstream'
+        )
+
+    return parser
+
+
 class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     """
     mptcpanalyzer can run into 3 modes:
@@ -436,8 +466,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     @is_loaded
     def do_summary(self, line):
         """
-        Summarize contributions of each subflow
-        For now it is naive, does not look at retransmissions ?
+        Naive summary contributions of the mptcp connection
+        See summary_extended for more details
         """
         parser = argparse.ArgumentParser(
             description="Prints a summary of the mptcp connection"
@@ -474,6 +504,49 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 tcpstream, sf_bytes, total_transferred, subflow_load*100))
 
         # TODO check for reinjections etc...
+    @is_loaded
+    def do_summary_extended(self, line):
+        """
+        Summarize contributions of each subflow
+        For now it is naive, does not look at retransmissions ?
+        """
+        parser = gen_bicap_parser("mptcp", True)
+        parser.description = """
+            Look into more details of an mptcp connection
+            """
+
+        args = parser.parse_args(shlex.split(line))
+
+        mptcp_compute_throughput()
+
+        df = load_merged_streams_into_pandas(
+            args.pcap1,
+            args.pcap2,
+            args.streamid,
+            args.streamid2,
+            args.protocol == "mptcp",
+            self.tshark_config
+        )
+
+
+
+        success, ret = stats.mptcp_compute_throughput(
+                self.data, args.mptcpstream, args.destination
+
+                self.
+
+        )
+        if success is not True:
+            print("Throughput computation failed:")
+            print(ret)
+            return
+
+        total_transferred = ret["total_bytes"]
+        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
+        for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
+            subflow_load = sf_bytes/ret["total_bytes"]
+            self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
+                tcpstream, sf_bytes, total_transferred, subflow_load*100))
 
     @is_loaded
     def do_list_connections(self, *args):
@@ -490,15 +563,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # @with_category(CAT_REINJECTIONS)
     # print tcp owd
     def do_print_owds(self, line):
-        parser = argparse.ArgumentParser(
-            description="This function tries merges a tcp stream from 2 pcaps"
-                        "in an attempt to print owds. See map_tcp_connection first maybe."
-        )
 
-        parser.add_argument("pcap1", action="store", help="first to load")
-        parser.add_argument("pcap2", action="store", help="second pcap")
-        parser.add_argument("streamid", action="store", type=int, help="tcp.stream id visible in wireshark")
-        parser.add_argument("streamid2", action="store", type=int, help="tcp.stream id visible in wireshark")
+        parser = gen_bicap_parser("tcp")
+        parser.description = """This function tries merges a tcp stream from 2 pcaps
+                            in an attempt to print owds. See map_tcp_connection first maybe."""
+
         parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
         parser.add_argument("--destination", action="store", choices=DestinationChoice, help="tcp.stream id visible in wireshark")
         # give a choice "hash" / "stochastic"
@@ -551,31 +620,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         TODO move the code into a proper function
         """
-        parser = argparse.ArgumentParser(
-            description="""
+        parser = gen_bicap_parser("mptcp")
+        parser.description = """
             Qualify reinjections of the connection.
             You might want to run map_mptcp_connection first to find out 
             what map to which
             """
-        )
-        parser.add_argument("pcap1", type=str, help="Capture file 1")
-        parser.add_argument("pcap2", type=str, help="Capture file 2")
-        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-        # TODO le rendre optionnel ?
-        parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
-        # parser.add_argument("--destination", type=int, help="mptcp.stream id")
-        # TODO filter per destination
-        parser.add_argument(
-            '--destination',
-            action="store",
-            choices=DestinationChoice,
-            type=lambda x: mp.ConnectionRoles[x],
-            default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
-            help='Filter flows according to their direction'
-            '(towards the client or the server)'
-            'Depends on mptcpstream'
-        )
-
 
         args = parser.parse_args(shlex.split(line))
 

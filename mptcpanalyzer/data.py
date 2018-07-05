@@ -260,10 +260,11 @@ def load_merged_streams_into_pandas(
                     # may be empty => float64
                     _sender("packetid"): np.float64,
                     _receiver("packetid"): np.float64,
-                    # there is a bug currently
+                    # there is a bug 
                     # https://github.com/pandas-dev/pandas/pull/20826
-                    'mptcpdest': dtype_role,
-                    'tcpdest': dtype_role,
+                    # i.e., CategoricalDtype is based on strings so it's not practical yet
+                    # 'mptcpdest': dtype_role,
+                    # 'tcpdest': dtype_role,
                     # '_merge': 
                 })
                 return dtypes
@@ -582,7 +583,7 @@ def merge_tcp_dataframes_known_streams(
 
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res = generate_tcp_directional_owd_df(sender_df, receiver_df, dest)
-        res['tcpdest'] = dest.name
+        res['tcpdest'] = dest
         total = pd.concat([res, total])
 
     # TODO move elsewhere, to outer function
@@ -675,9 +676,8 @@ def merge_mptcp_dataframes_known_streams(
 
     # print("df1 packets for mptcpstream 0: %d" % len(df1[df1.mptcpstream == 0 ]))
 
-    # TODO test
-    # CategoricalDtype(categories=['b', 'a'], ordered=True)
-    df1['mptcpdest'] = pd.Series(np.nan, dtype=dtype_role)
+    # df1['mptcpdest'] = pd.Series(np.nan, dtype=dtype_role)
+    df1['mptcpdest'] = np.nan
     for destination in ConnectionRoles:
         # TODO 
         # print("Selecting destination %s" % destination)

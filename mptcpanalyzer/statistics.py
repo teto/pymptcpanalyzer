@@ -1,17 +1,23 @@
 from typing import List, Any, Tuple, Dict, Callable
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from mptcpanalyzer import ConnectionRoles
+from mptcpanalyzer.data import classify_reinjections
 import math
+import logging
 
 
-def mptcp_compute_throughput(rawdf, mptcpstreamid, destination):
+def mptcp_compute_throughput(
+    rawdf, mptcpstreamid, destination, 
+    # mptcpstreamid2=None
+) -> Tuple[bool, str]:
     """
     Very raw computation: substract highest dsn from lowest by the elapsed time
 
     Returns:
         a tuple (True/false, dict)
     """
-    df = rawdf[rawdf.mptcpstream == mptcpstreamid]
+
+    df = rawdf[ rawdf.mptcpstream == mptcpstreamid]
     if df.empty:
         return False, "No packet with mptcp.stream == %d" % mptcpstreamid
 
@@ -40,3 +46,17 @@ def mptcp_compute_throughput(rawdf, mptcpstreamid, destination):
         'total_bytes': sum( map(lambda x: x['bytes'], subflow_stats)),
         'subflow_stats': subflow_stats,
     }
+
+
+def mptcp_compute_throughput_extended(
+    df, mptcpstreamid, destination, 
+    # mptcpstreamid2=None
+) -> Tuple[bool, str]:
+    """
+    df expects an extended dataframe
+    """
+    df = classify_reinjections(df)
+
+
+
+    return 
