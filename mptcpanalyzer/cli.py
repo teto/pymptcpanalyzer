@@ -23,7 +23,7 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as mpdata
-from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas
+from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas, classify_reinjections
 from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, ConnectionRoles, swap_role
@@ -563,7 +563,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
         # TODO le rendre optionnel ?
         parser.add_argument("mptcpstream2", type=int, help="mptcp.stream id")
+        # parser.add_argument("--destination", type=int, help="mptcp.stream id")
         # TODO filter per destination
+        parser.add_argument(
+            '--destination',
+            action="store",
+            choices=DestinationChoice,
+            type=lambda x: mp.ConnectionRoles[x],
+            default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
+            help='Filter flows according to their direction'
+            '(towards the client or the server)'
+            'Depends on mptcpstream'
+        )
 
 
         args = parser.parse_args(shlex.split(line))
@@ -577,18 +588,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             tshark_config=self.tshark_config
             )
 
+
+        # adds a redundant column
+        df = classify_reinjections(df_all)
+
         # keep only those that matched both for now
-
-        df_all["redundant"] = False
-
-        df = df_all[ df_all._merge == "both" ]
         print("MATT %d df packets" % len(df))
         
+        # print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
+        #     _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
+        #     _receiver(["packetid", "reltime"])
+        # ])
 
-        print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
-            _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
-            _receiver(["packetid", "reltime"])
-        ])
         # to help debug
         # df.to_excel("temp.xls")
 
@@ -618,90 +629,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # print("debugging ")
         print("dataframe size = %d" % len(df))
 
-        # TODO keep only the ones with "merge_" : "both" ?
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
+        #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
 
-        # reinjections = df[['tcpstream', "reinjection_of"]].dropna(axis=0, )
-        # reinjected_in_receiver
-        """
-        here the idea is to look at reinjections on the receiver side, see which one is first
-        packets with reinjected_in_receiver are (at least they should) be the first DSN arrived.
-        """
-        # reinjections = df[].dropna(axis=0, )
-        # total_nb_reinjections = 0
-        # df["best_reinjection"] = np.nan  # or -1
-
-        # mark the 
-    
-        # print(df.columns)
 
         for destination in ConnectionRoles:
             self.poutput("looking for reinjections towards mptcp %s" % destination)
-
-            print(df["mptcpdest"])
-            sender_df   = df[df.mptcpdest == destination]
-
-            # print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
-            # print("successful reinjections" % len(reinjected_in))
-
-            # select only packets that have been reinjected
-
-            print("%d sender_df packets" % len(sender_df))
-            print(sender_df["reinjection_of"])
-            reinjected_packets = sender_df.dropna(axis='index', subset=[ _sender("reinjection_of") ])
-
-            print("%d reinjected packets" % len(reinjected_packets))
-
-            with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
-
-                print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
-
-
-            for reinjection in reinjected_packets.itertuples():
-                # here we look at all the reinjected packets
-
-                # print("full reinjection %r" % (reinjection,))
-
-                # if there are packets in _receiver(reinjected_in), it means the reinjections 
-                # arrived before other similar segments and thus these segments are useless
-                # it should work because 
-                # useless_reinjections = getattr(reinjection, _receiver("reinjected_in"), [])
-
-                # if it was correctly mapped
-                # reinjection._merge doesn't exist ?
-                if reinjection._1 != "both":
-                    # TODO count missed classifications ?
-                    log.debug("reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
-                    continue
-
-                initial_packetid = reinjection.reinjection_of[0]
-                # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
-
-                # 
-                original_packet = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
-
-                if original_packet._merge != "both":
-                    # TODO count missed classifications ?
-                    log.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
-                    continue
-
-
-                orig_arrival  = getattr(original_packet, _receiver("reltime"))
-                reinj_arrival = getattr(reinjection, _receiver("reltime"))
-
-
-                # print("useless_reinjections listing  %r" % (useless_reinjections,))
-
-                # for reinjection_pktid in useless_reinjections:
-                    # print("looking at receiver_pktid= %r %s" % (reinjection_pktid, type(reinjection_pktid)))
-
-
-                if orig_arrival < reinj_arrival:
-                    print("GOT A MATCH")
-                    sender_df.loc[ sender_df[ _sender("packetid")] == reinjection.packetid, "redundant"] = True
-                    print("is this where it's wrong ?")
-
-
-            print("results: ", df[ df.redundant == True] )
+            sender_df = df[ df.mptcpdest == destination]
 
             # TODO we now need to display successful reinjections
             reinjections = sender_df[ pd.notnull(sender_df[ _sender("reinjection_of") ]) ]
@@ -715,11 +649,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             successful_reinjections = reinjections[ reinjections.redundant == False ]
 
-            print("%d successful reinjections" % len(successful_reinjections))
+            self.poutput("%d successful reinjections" % len(successful_reinjections))
             print(successful_reinjections[ _sender(["packetid", "reinjection_of"]) + _receiver(["packetid"]) ])
-
-            # res2 = res2[pd.notnull(res["reinjected_in"])]
-            # df[ df.redundant == False] && df["reinjected_in" + RECEIVER_SUFFIX])
 
             for row in successful_reinjections.itertuples(index=False):
                 # print("full row %r" % (row,))
@@ -734,23 +665,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
                 _print_reinjection_comparison(original_packet, row)
 
-        #     # set it to the maximum possible value
-        #     min_rcvtime = sys.maxsize
-
-        #     # packet id
-        #     successful_reinjection = row.packetid
-        #     for pktid in row.reinjected_in:
-        #         # look for the packet with lowest rcvtime
-        #         # mark it as the best reinjection
-
-        #         # mark 
-        #         rcvtime = df.loc[ pktid, ""].abstime_receiver
-        #         if rcvtime < min_rcvtime:
-        #             min_rcvtime = rcvtime
-        #             successful_reinjection = row.packetid
-
                 
-
 
     @custom_tshark
     @is_loaded

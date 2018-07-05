@@ -1114,3 +1114,81 @@ def map_mptcp_connection(
     results.sort(key=lambda x: x[1], reverse=True)
 
     return results
+
+
+def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
+    """
+    here the idea is to look at reinjections on the receiver side, see which one is first
+    packets with reinjected_in_receiver are (at least they should) be the first DSN arrived.
+
+    Returns
+        a new dataframe with an added column "redundant"
+    """
+
+    df_all["redundant"] = False
+
+    df = df_all[ df_all._merge == "both" ]
+    
+
+    # print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
+    #     _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
+    #     _receiver(["packetid", "reltime"])
+    # ])
+
+
+    for destination in ConnectionRoles:
+
+        sender_df = df[df.mptcpdest == destination]
+
+        # print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
+        # print("successful reinjections" % len(reinjected_in))
+
+        # select only packets that have been reinjected
+
+        # print("%d sender_df packets" % len(sender_df))
+        # print(sender_df["reinjection_of"])
+        reinjected_packets = sender_df.dropna(axis='index', subset=[ _sender("reinjection_of") ])
+
+        # print("%d reinjected packets" % len(reinjected_packets))
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
+        #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
+
+
+        for reinjection in reinjected_packets.itertuples():
+            # here we look at all the reinjected packets
+
+            # print("full reinjection %r" % (reinjection,))
+
+            # if there are packets in _receiver(reinjected_in), it means the reinjections 
+            # arrived before other similar segments and thus these segments are useless
+            # it should work because 
+            # useless_reinjections = getattr(reinjection, _receiver("reinjected_in"), [])
+
+            # if it was correctly mapped
+            # TODO why reinjection._merge doesn't exist ?
+            if reinjection._1 != "both":
+                # TODO count missed classifications ?
+                log.debug("reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
+                continue
+
+            initial_packetid = reinjection.reinjection_of[0]
+            # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
+
+            # 
+            original_packet = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
+
+            if original_packet._merge != "both":
+                # TODO count missed classifications ?
+                log.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
+                continue
+
+
+            orig_arrival  = getattr(original_packet, _receiver("reltime"))
+            reinj_arrival = getattr(reinjection, _receiver("reltime"))
+
+
+            if orig_arrival < reinj_arrival:
+                # print("GOT A MATCH")
+                df_all.loc[ df_all[ _sender("packetid")] == reinjection.packetid, "redundant"] = True
+
+    return df_all
