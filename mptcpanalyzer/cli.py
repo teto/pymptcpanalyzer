@@ -517,7 +517,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         args = parser.parse_args(shlex.split(line))
 
-        mptcp_compute_throughput()
+        basic_stats = mptcp_compute_throughput(args.pcap1, args.streamid)
 
         df = load_merged_streams_into_pandas(
             args.pcap1,
@@ -530,9 +530,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
 
-        success, ret = stats.mptcp_compute_throughput(
-                self.data, args.mptcpstream, args.destination
-
+        success, ret = stats.mptcp_compute_throughput_extended(
+                # self.data, args.mptcpstream, args.destination
+                basic_stats
                 self.
 
         )
