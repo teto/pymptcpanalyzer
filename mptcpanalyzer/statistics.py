@@ -6,6 +6,15 @@ from mptcpanalyzer import _sender, _receiver
 import math
 import logging
 
+"""
+Considerations:
+- tcp.analysis.retransmission
+- tcp.analysis.lost_segment
+- tcp.analysis.fast_retransmission
+
+https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
+"""
+
 
 def mptcp_compute_throughput(
         rawdf, mptcpstreamid, destination: ConnectionRoles
@@ -43,10 +52,11 @@ def mptcp_compute_throughput(
 
     return True, {
         'mptcpstreamid': mptcpstreamid,
-        'total_goodput': total_transferred,
-        'total_bytes': sum( map(lambda x: x['bytes'], subflow_stats)),
+        'mptcp_goodput': total_transferred,
+        'mptcp_bytes': sum( map(lambda x: x['bytes'], subflow_stats)),
         'subflow_stats': subflow_stats,
     }
+
 
 
 def mptcp_compute_throughput_extended(
@@ -75,12 +85,23 @@ def mptcp_compute_throughput_extended(
         print("for tcpstream %d" % sf["tcpstreamid"])
         df_stream = df[  _sender("tcpstream") == sf["tcpstreamid"] ]
         
-        effective = [ df.redundant == False, "redundant"].sum()
+        # TODO eliminate retransmissions too
+        # sum( map(lambda x: x['bytes'], subflow_stats)),
+        effective = df[ df.redundant == False, "bytes"].sum()
+
+        # won
+        seq_min = df.tcpseq.min()
+        seq_max = df.tcpseq.max()
+
+        goodput = seq_max - seq_min
+
         sf.update( {
-            "goodput": effective
-            "effective_ratio": effective
+            "tcp_goodput": goodput,
+            "mptcp_goodput": goodput,
+            "effective_ratio": effective,
             "ratio": 
-            })
+            "mptcp_contribution": 
+        })
 
     # for every subflow 
     # for tcpstream, group in df.groupby( _sender("tcpstream")):

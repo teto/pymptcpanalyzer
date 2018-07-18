@@ -496,12 +496,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             print(ret)
             return
 
-        total_transferred = ret["total_bytes"]
-        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
+        mptcp_transferred = ret["mptcp_bytes"]
+        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
-            subflow_load = sf_bytes/ret["total_bytes"]
+            subflow_load = sf_bytes/ret["mptcp_bytes"]
             self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
-                tcpstream, sf_bytes, total_transferred, subflow_load*100))
+                tcpstream, sf_bytes, mptcp_transferred, subflow_load*100))
 
         # TODO check for reinjections etc...
     @is_loaded
@@ -532,8 +532,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         success, ret = stats.mptcp_compute_throughput_extended(
                 # self.data, args.mptcpstream, args.destination
-                basic_stats
-                self.
+                df,
+                basic_stats,
+                args.destination
 
         )
         if success is not True:
