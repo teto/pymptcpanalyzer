@@ -75,8 +75,6 @@ def mptcp_compute_throughput_extended(
 
     df = df_both[ df_both.mptcpdest == destination ]
 
-    # df.sum 
-
     for sf in stats["subflow_stats"]:
         # subflow_stats.append({
         #     'tcpstreamid': tcpstream,
@@ -87,20 +85,31 @@ def mptcp_compute_throughput_extended(
         
         # TODO eliminate retransmissions too
         # sum( map(lambda x: x['bytes'], subflow_stats)),
-        effective = df[ df.redundant == False, "bytes"].sum()
+
+        # inexact, we should drop lost packets
+        tcp_throughput = df["bytes"].sum()
+        mptcp_goodput = df[ df.redundant == False, "bytes"].sum()
 
         # won
         seq_min = df.tcpseq.min()
         seq_max = df.tcpseq.max()
 
-        goodput = seq_max - seq_min
+        tcp_goodput = seq_max - seq_min
+        mptcp_goodput = df[ df.redundant == False, "bytes"].sum()
+        mptcp_throughput = tcp_throughput
 
-        sf.update( {
-            "tcp_goodput": goodput,
-            "mptcp_goodput": goodput,
-            "effective_ratio": effective,
-            "ratio": 
-            "mptcp_contribution": 
+        sf.update({
+            # "tcp_througput": tcp_goodput,
+            "tcp_goodput": tcp_goodput,
+
+            # cumulative sum of nonredundant dsn packets
+            "mptcp_goodput": mptcp_goodput,
+
+            # can be > 1 in case of redundant packets
+            "mptcp_throughput_contribution": mptcp_throughput/stats["mptcp_throughput"],
+
+            # 
+            "mptcp_goodput_contribution": mptcp_goodput/stats["mptcp_goodput"],
         })
 
     # for every subflow 
