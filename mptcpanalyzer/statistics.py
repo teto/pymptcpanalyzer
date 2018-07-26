@@ -117,4 +117,4 @@ def mptcp_compute_throughput_extended(
     #     print("for tcpstream %d" % tcpstream)
     #     group[ df.redundant == False, "redundant"].sum()
 
-    return  True, {}
+    return  True, stats

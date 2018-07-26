@@ -668,22 +668,9 @@ def merge_mptcp_dataframes_known_streams(
     # prepare metadata
     # we should write mptcpdest before the column names change
     # finally we set the mptcp destination to help with further processing
-    # for sf in main_connection.subflows:
-    # add suffix ?
-
-    # print("df1 %d" % len(df1))
-    # print(df1[['ipsrc', 'sport', 'tcpstream', 'mptcpstream']])
-
-    # print("df1 packets for mptcpstream 0: %d" % len(df1[df1.mptcpstream == 0 ]))
-
-    # df1['mptcpdest'] = pd.Series(np.nan, dtype=dtype_role)
     df1['mptcpdest'] = np.nan
     for destination in ConnectionRoles:
-        # TODO 
-        # print("Selecting destination %s" % destination)
         q = main_connection.generate_direction_query(destination)
-        # q = "(mptcpstream==0 and (tcpstream==0  and ipsrc=='10.0.0.1' and sport==(59482) ))"
-        # print("with query %s" % q )
         df = df1.query(q).index
         df1.loc[df, 'mptcpdest' ] = destination
         # print("SELECTED %d for direction %s" % (len(df), destination))
@@ -699,8 +686,6 @@ def merge_mptcp_dataframes_known_streams(
     # /home/teto/mptcpanalyzer/mptcpanalyzer/data.py:580: SettingWithCopyWarning: 
     # A value is trying to be set on a copy of a slice from a DataFrame.
     # Try using .loc[row_indexer,col_indexer] = value instead
-
-            # raise Exception("TODO")
 
     # todo should be inplace
     df_total = None  # type: pd.DataFrame
@@ -724,7 +709,6 @@ def merge_mptcp_dataframes_known_streams(
     # df_total.drop(labels=cols2drop)
 
     log.info("Merging %s with %s" % (main_connection, mapped_connection,))
-    # TODO I need to return sthg
     return df_total
 
 
@@ -779,9 +763,8 @@ def generate_tcp_directional_owd_df(
     # res.rename(columns=newcols, inplace=True)
 
     res = mapped_df
-    res['owd'] = res['abstime' + RECEIVER_SUFFIX] - res['abstime' + SENDER_SUFFIX]
+    res['owd'] = res[ _receiver('abstime') ] - res[ _sender('abstime')]
 
-    # print("unidirectional results\n", res[["owd"]].head())
     return res
 
 

@@ -23,7 +23,7 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 import mptcpanalyzer.data as mpdata
-from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas, classify_reinjections
+from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas, classify_reinjections, pandas_to_csv
 from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
 from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, ConnectionRoles, swap_role
@@ -503,7 +503,55 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
                 tcpstream, sf_bytes, mptcp_transferred, subflow_load*100))
 
+    @is_loaded
+    def do_tocsv(self, line):
+        """
+        Selects tcp/mptcp/udp connection and exports it to csv
+        """
         # TODO check for reinjections etc...
+        parser = argparse.ArgumentParser(
+            description="Export connection(s) to CSV"
+        )
+        parser.add_argument("output", action="store", help="Output filename")
+        # parser.add_argument("--stream", action="store", )
+        # )
+
+        group = parser.add_mutually_exclusive_group(required=False)
+        group.add_argument('--tcpstream', action= 'store', type=int)
+        group.add_argument('--mptcpstream', action= 'store', type=int)
+        # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
+        parser.add_argument("--destination", action="store", choices=DestinationChoice, help="tcp.stream id visible in wireshark")
+        parser.add_argument("--drop-syn", action="store_true", default=False,
+                help="Helper just for my very own specific usecase")
+
+        args = parser.parse_args(shlex.split(line))
+
+        df = self.data
+        if args.tcpstream:
+            # df = df[ df.tcpstream == args.tcpstream]
+
+            self.poutput("Filtering tcpstream")
+            con = TcpConnection.build_from_dataframe(df, args.tcpstream)
+            if args.destination:
+                self.poutput("Filtering destination")
+                q = con.generate_direction_query(args.destination)
+                df = df.query(q)
+
+        elif args.mptcpstream:
+            self.poutput("Unsupported yet")
+            # df = df[ df.mptcpstream == args.mptcpstream]
+
+        if args.drop_syn:
+            self.poutput("Unsupported yet")
+        #     df = df[ df.flags ]
+        # if args.destination:
+        #     if args.tcpstream:
+                # TODO we should filter destination
+                # df.
+        self.poutput("Writing to %s" % args.output)
+        pandas_to_csv(df, args.output)
+
+
     @is_loaded
     def do_summary_extended(self, line):
         """
@@ -517,7 +565,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         args = parser.parse_args(shlex.split(line))
 
-        basic_stats = mptcp_compute_throughput(args.pcap1, args.streamid)
+        basic_stats = stats.mptcp_compute_throughput(args.pcap1, args.streamid)
 
         df = load_merged_streams_into_pandas(
             args.pcap1,
@@ -538,8 +586,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         )
         if success is not True:
-            print("Throughput computation failed:")
-            print(ret)
+            self.perror("Throughput computation failed:")
+            self.perror(ret)
             return
 
         total_transferred = ret["total_bytes"]

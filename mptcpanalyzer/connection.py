@@ -58,7 +58,7 @@ class TcpConnection:
         self.isn = kwargs.get('isn')
 
 
-    def generate_direction_query(self, tcpdest: ConnectionRoles):
+    def generate_direction_query(self, tcpdest: ConnectionRoles) -> str:
         """
         Filter packets according to the tcp notion of client/server destination
         """
