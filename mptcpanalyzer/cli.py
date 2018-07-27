@@ -541,8 +541,20 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput("Unsupported yet")
             # df = df[ df.mptcpstream == args.mptcpstream]
 
-        if args.drop_syn:
-            self.poutput("Unsupported yet")
+
+        # need to compute the destinations before dropping syn from the dataframe
+        df['tcpdest'] = np.nan;
+        for streamid, subdf in df.groupby("tcpstream"):
+            con = TcpConnection.build_from_dataframe(df, streamid)
+            df = mpdata.tcpdest_from_connections(df, con)
+
+            if args.drop_syn:
+                # use subdf ?
+                self.poutput("drop-syn Unsupported yet")
+                df.drop(subdf.head(3).index, inplace=True)
+                # drop 3 first packets of each connection ?
+                # this should be a filter
+                syns = df[df.tcpflags == mp.TcpFlags.SYN]
         #     df = df[ df.flags ]
         # if args.destination:
         #     if args.tcpstream:
@@ -856,7 +868,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         Plot DSN vs time
         """
-        self.plot_mptcpstream(args)
+        self.plot_stream(args)
 
     def help_plot(self):
         self.do_plot("-h")
@@ -879,7 +891,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def pcap_loaded(self):
         return isinstance(self.data, pd.DataFrame)
 
-    def plot_mptcpstream(self, cli_args, ):
+    def plot_stream(self, cli_args, ):
         """
         global member used by others do_plot members *
         Loads required dataframes when necessary

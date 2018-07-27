@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
 import pandas as pd
@@ -16,7 +15,7 @@ class SubflowThroughput(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ]
+        pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream), ]
         super().__init__(
             *args,
             input_pcaps=pcaps,
@@ -28,15 +27,12 @@ class SubflowThroughput(plot.Matplotlib):
         parent = argparse.ArgumentParser(
             description="Helps plotting Data sequence numbers"
         )
-        # parent.add_argument("pcap", action="store", help="Input pcap")
         parser = super().default_parser(
             *args, parent_parsers=[parent],
-            mptcpstream=True,
+            filterstream=True,
             direction=True,
             skip_subflows=True,
             **kwargs)
-        # parser.add_argument('field', choices=self.mptcp_attributes.keys(),
-            # help="Choose an mptcp attribute to plot")
         return parser
 
     def plot(self, dat, mptcpstream, destination, **kwargs):

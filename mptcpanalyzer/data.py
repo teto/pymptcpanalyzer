@@ -512,6 +512,22 @@ def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[
 combo = Tuple[pd.DataFrame, TcpConnection]
 
 
+def tcpdest_from_connections(df, con: TcpConnection):
+
+    for dest in ConnectionRoles:
+
+        log.debug("Looking at destination %s" % dest)
+        q = con.generate_direction_query(dest)
+        df_dest = df.query(q)
+        df.loc[df_dest.index, 'tcpdest'] = dest
+
+    # print("df", 
+    # len(serie.notnull())
+    # )
+    # assert df['tcpdest'].notnull() == , "every packet should have tcpdest set"
+    return df
+
+
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]

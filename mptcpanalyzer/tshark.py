@@ -7,7 +7,7 @@ from collections import namedtuple
 from typing import List
 from enum import Enum
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 
 
 class Filetype(Enum):
@@ -89,7 +89,7 @@ class TsharkConfig:
         try:
             matches = self.check_fields([ "mptcp.related_mapping" ])
         except subprocess.CalledProcessError as e:
-            log.warn("Could not check fields ")
+            logging.warn("Could not check fields ")
             pass
 
     def check_fields(self, fields: List[str]):
@@ -100,7 +100,7 @@ class TsharkConfig:
         searches = fields
         cmd = [self.tshark_bin, "-G", "fields" ]
 
-        log.info("Checking for fields %s" % (cmd))
+        logging.info("Checking for fields %s" % (cmd))
         with subprocess.Popen(cmd, stdout=subprocess.PIPE,
                 universal_newlines=True, # opens in text mode
         ) as proc:
@@ -212,7 +212,7 @@ class TsharkConfig:
 
         Returns exit code, stderr
         """
-        log.info("Converting pcap [{pcap}] ".format(
+        logging.info("Converting pcap [{pcap}] ".format(
             pcap=input_filename,
             )
         )
@@ -233,7 +233,6 @@ class TsharkConfig:
         print(cmd_str)
 
         try:
-            # TODO serialize wireshark options in header
             fd = output_csv
             fd.write("# metadata: %s\n" % (cmd_str))
             fd.flush()  # need to flush else order gets messed up
@@ -245,7 +244,7 @@ class TsharkConfig:
                 return proc.returncode, stderr
 
         except subprocess.CalledProcessError as e:
-            log.error(str(e))
+            logging.error(str(e))
             print("ERROR")
             print(e.cmd)
             return e.returncode, e.stderr

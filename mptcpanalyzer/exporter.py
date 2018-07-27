@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 ###########################################################
 # Copyright 2015-2016 Université Pierre et Marie Curie
-# author: Matthieu coudron , matthieu.coudron@lip6.fr
+# author: Matthieu coudron , coudron@lip6.fr
 
 import argparse
 import os

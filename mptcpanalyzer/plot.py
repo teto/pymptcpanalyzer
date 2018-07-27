@@ -6,7 +6,7 @@ import mptcpanalyzer as mp
 import pandas as pd
 from mptcpanalyzer.data import load_into_pandas
 from mptcpanalyzer.tshark import TsharkConfig
-from enum import IntEnum
+import enum
 from mptcpanalyzer.connection import MpTcpConnection
 from typing import List, Tuple, Collection
 import copy
@@ -16,35 +16,15 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class PreprocessingActions(IntEnum):
+class PreprocessingActions(enum.Flag):
     """
     What to do with pcaps on the command line
     """
-    DoNothing = 0
-    Preload = 1
-    FilterMpTcpStream = 2
-
-
-def gen_ip_filter(mptcpstream, ipsrc=None, ipdst=None):
-    """
-    filter mainset from ips
-    filter to only account for one direction (departure or arrival)
-    """
-    query = " mptcpstream == %d " % mptcpstream
-
-    if ipsrc:
-        query += " and ("
-        query_ipdst = map(lambda x: "ipsrc == '%s'" % x, ipsrc)
-        query += ' or '.join(query_ipdst)
-        query += ")"
-
-    if ipdst:
-        query += " and ("
-        query_ipdst = map(lambda x: "ipdst == '%s'" % x, ipdst)
-        query += ' or '.join(query_ipdst)
-        query += ")"
-
-    return query
+    DoNothing                = enum.auto()
+    Preload                  = enum.auto()
+    FilterTcpStream          = enum.auto()
+    FilterMpTcpStream        = enum.auto()
+    FilterStream             = FilterMpTcpStream | FilterTcpStream
 
 
 class Plot:
@@ -76,15 +56,16 @@ class Plot:
         self.input_pcaps = input_pcaps
         # python shallow copies objects by default
         self.tshark_config = copy.deepcopy(exporter)
-        self.tshark_config.filter="mptcp and not icmp"
+        self.protocol = kwargs.get("protocol", "mptcp")
+        # self.tshark_config.read_filter = protocol + " and not icmp"
 
 
     def default_parser(
         self,
         parent_parsers=[],
-        mptcpstream: bool = False,
+        filterstream: bool = False,
         direction: bool = False, skip_subflows: bool = True,
-        dst_host: bool=False
+        dst_host: bool=False,
     ):
         """
         Generates a parser with common options.
@@ -107,48 +88,42 @@ class Plot:
         )
 
         for name, bitfield in self.input_pcaps:
-            parser.add_argument(
-                name,
-                action="store",
-                type=str,
-                help='Pcap file (or its associated csv)'
-            )
+            parser.add_argument(name, action="store", type=str, help='Pcap file (or its associated csv)')
 
-        if mptcpstream:
-            parser.add_argument(
-                'mptcpstream', action="store", type=int,
-                help='mptcp.stream id, you may find using the'
-                '"list_connections" command')
-
-            if direction:
-                # a bit hackish: we want the object to be of type class
-                # but we want to display the user readable version
-                # so we subclass list to convert the Enum to str value first.
-                # class CustomConnectionRolesChoices(list):
-                #     def __contains__(self, other):
-                #         return super().__contains__(other.name)
-
+            if bitfield & PreprocessingActions.FilterStream:
+                # TODO generate metavar
+                protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
                 parser.add_argument(
-                    'destination', action="store",
-                    choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
-                    # type=lambda x: mp.ConnectionRoles.from_string(x),
-                    type=lambda x: mp.ConnectionRoles[x],
-                    help='Filter flows according to their direction'
-                    '(towards the client or the server)'
-                    'Depends on mptcpstream')
+                    protocol + 'stream', action="store", type=int,
+                    help= protocol + '.stream id')
 
-        if dst_host:
-            parser.add_argument(
-                'ipdst_host', action="store",
-                help='Filter flows according to the destination hostnames')
+                if direction:
+                    # a bit hackish: we want the object to be of type class
+                    # but we want to display the user readable version
+                    # so we subclass list to convert the Enum to str value first.
+                    parser.add_argument(
+                        'destination', action="store",
+                        choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
+                        # type=lambda x: mp.ConnectionRoles.from_string(x),
+                        type=lambda x: mp.ConnectionRoles[x],
+                        help='Filter flows according to their direction'
+                        '(towards the client or the server)'
+                        'Depends on mptcpstream')
 
-        if skip_subflows:
-            parser.add_argument(
-                '--skip', dest="skipped_subflows", type=int,
-                action="append", default=[],
-                help=("You can type here the tcp.stream of a subflow "
-                    "not to take into account (because"
-                    "it was filtered by iptables or else)"))
+                if protocol == "mptcp" and skip_subflows:
+                    parser.add_argument(
+                        '--skip', dest="skipped_subflows", type=int,
+                        action="append", default=[],
+                        help=("You can type here the tcp.stream of a subflow "
+                            "not to take into account (because"
+                            "it was filtered by iptables or else)"))
+
+        # not implemented yet
+        # if dst_host:
+        #     parser.add_argument(
+        #         'ipdst_host', action="store",
+        #         help='Filter flows according to the destination hostnames')
+
 
         parser.add_argument('-o', '--out', action="store", default=None,
             help='Name of the output plot')
@@ -174,9 +149,9 @@ class Plot:
         pass
 
     def filter_dataframe(
-        self, rawdf, mptcpstream=None, skipped_subflows=[],
+        self, rawdf, filterstream=None, skipped_subflows=[],
         destination: mp.ConnectionRoles=None,
-        extra_query: str =None, **kwargs
+        extra_query: str=None, **kwargs
     ):
         """
         Can filter a single dataframe beforehand
@@ -205,19 +180,19 @@ class Plot:
         queries = []
         dataframe = rawdf
 
-        if mptcpstream is not None:
-            log.debug("Filtering mptcpstream")
-            queries.append("mptcpstream==%d" % mptcpstream)
-            if destination is not None:
-                log.debug("Filtering destination")
-                # Generate a filter for the connection
-                con = MpTcpConnection.build_from_dataframe(dataframe, mptcpstream)
-                q = con.generate_direction_query(destination)
-                queries.append(q)
-
         for skipped_subflow in skipped_subflows:
             log.debug("Skipping subflow %d" % skipped_subflow)
             queries.append(" tcpstream!=%d " % skipped_subflow)
+
+        if filterstream is not None:
+            log.debug("Filtering %s stream ." % self.protocol)
+            queries.append(self.protocol + "stream==%d" % filterstream)
+            if destination is not None:
+                log.debug("Filtering destination")
+                # Generate a filter for the connection
+                con = MpTcpConnection.build_from_dataframe(dataframe, filterstream)
+                q = con.generate_direction_query(destination)
+                queries.append(q)
 
         if extra_query:
             log.debug("Appending extra_query=%s" % extra_query)
@@ -245,11 +220,14 @@ class Plot:
         kwargs should contain arguments with the pcap names passed to self.input_pcaps
         """
         dataframes = []
-        for pcap_name, action in self.input_pcaps:
+        for pcap_name, actions in self.input_pcaps:
             log.info("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
-            if action >= PreprocessingActions.Preload:
+            if actions & PreprocessingActions.Preload:
                 filename = kwargs.get(pcap_name)
                 df = load_into_pandas(filename, self.tshark_config,)
+                if actions & PreprocessingActions.FilterStream:
+                    df = self.filter_dataframe(df, **kwargs)
+
                 dataframes.append(df)
 
         return dataframes

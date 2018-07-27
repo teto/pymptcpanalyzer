@@ -65,7 +65,7 @@ class DSSOverTime(plot.Matplotlib):
         )
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, mptcpstream=True,
+        parser = super().default_parser(*args, filterstream=True,
                 direction=True, **kwargs)
         parser.add_argument('--dack', action="store_true", default=False,
                 help="Adds data acks to the graph")

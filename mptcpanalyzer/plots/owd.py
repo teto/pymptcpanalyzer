@@ -70,7 +70,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             description="Helps plotting One Way Delays between tcp connections"
         )
         parser = super().default_parser(
-            *args, parent_parsers=[parser], mptcpstream=False, **kwargs
+            *args, parent_parsers=[parser], filterstream=False, **kwargs
         )
         parser.add_argument("tcpstream1", action="store",
                 type=int,

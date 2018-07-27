@@ -20,10 +20,11 @@ It accepts as input a capture file (\*.pcap) and from there generates a CSV file
 (via a call to tshark, the terminal version of wireshark) with MPTCP fields for external processing.
 From there you can:
 
-- list the MPTCP connections in the pcap
-- display some statistics on a specific MPTCP connection (list of subflows etc...)
+- list MPTCP connections
+- compute statistics on a specific MPTCP connection (list of subflows,
+		reinjections, subflow actual contributions...)
 It accepts as input a capture file (\*.pcap) and depending on from there can :
-- generate a CSV file with MPTCP fields
+- export a CSV file with MPTCP fields
 - plot data sequence numbers for all subflows
 - plot DSN interarrival times
 - See [Features](#Features) for more

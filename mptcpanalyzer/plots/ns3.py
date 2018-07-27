@@ -72,7 +72,7 @@ class PlotTraceSources(plot.Matplotlib):
     """
     def __init__(self, *args, **kwargs):
         pcaps = [
-            # ("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream),
+            # ("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream),
             # | plot.PreprocessingActions.SkipSubflow
         ]
         super().__init__(input_pcaps=pcaps, *args, **kwargs)
