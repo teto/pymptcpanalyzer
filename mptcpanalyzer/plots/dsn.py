@@ -54,7 +54,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
             )
 
         axes.set_xlabel("Time (s)")
-        axes.set_ylabel(self.mptcp_attributes[field])
+        axes.set_ylabel(self._attributes[field])
 
         handles, labels = axes.get_legend_handles_labels()
 
@@ -92,37 +92,41 @@ class PlotTcpAttribute(PlotSubflowAttribute):
     #     #     help="Choose an mptcp attribute to plot")
     #     return parser
 
-    def plot(self, dat, tcpstream, field=None, **kwargs):
+    def plot(self, df, tcpstream, field=None, **kwargs):
         """
         getcallargs
         """
         fig = plt.figure()
         # tcpstreams = dat.groupby('tcpstream')
 
-        print("%d streams in the MPTCP flow" % len(tcpstream))
+        # print("%d streams in the MPTCP flow" % len(tcpstream))
         print("Plotting field %s" % field)
 
         axes = fig.gca()
 
         # for idx, (streamid, ds) in enumerate(tcpstreams):
-            ds[field].plot.line(
-                ax=axes,
-                # use_index=False,
-                legend=False,
-                grid=True,
-            )
+        tcpdf = df[df.tcpstream == tcpstream]
+
+        # TODO le .iloc permet d'eliminer les syn/ack
+        tcpdf[field].iloc[3:].plot.line(
+            ax=axes,
+            # use_index=False,
+            legend=False,
+            grid=True,
+        )
 
         axes.set_xlabel("Time (s)")
-        axes.set_ylabel(self.attributes[field])
+        axes.set_ylabel(self._attributes[field])
 
         handles, labels = axes.get_legend_handles_labels()
 
+        print(tcpdf[field].iloc[3:])
         # Generate "subflow X" labels
         # location: 3 => bottom left, 4 => bottom right
-        axes.legend(
-            handles,
-            ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
-            loc=4
-        )
+        # axes.legend(
+        #     handles,
+        #     ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
+        #     loc=4
+        # )
 
         return fig
