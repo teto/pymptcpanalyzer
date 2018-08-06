@@ -307,7 +307,7 @@ class Matplotlib(Plot):
 
         if display:
             if out is None:
-                with tempfile.NamedTemporaryFile() as tmpfile:
+                with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
                     print("No output file set, using tempfile=%s" % tmpfile)
                     r = self.savefig(v, tmpfile.name)
                     log.debug("returned %r" % r)
