@@ -816,12 +816,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # TODO use ppaged
         reinjections = df.dropna(axis=0, subset=["reinjection_of"] )
         total_nb_reinjections = 0
+        output = ""
         for row in reinjections.itertuples():
             # if row.packetid not in known:
             # ','.join(map(str,row.reinjection_of)
-            self.poutput("packetid=%d (tcp.stream %d) is a reinjection of %d packet(s): " 
-                    % ( row.packetid, row.tcpstream, len(row.reinjection_of))
-            )
+            output += ("packetid=%d (tcp.stream %d) is a reinjection of %d packet(s): " %
+                (row.packetid, row.tcpstream, len(row.reinjection_of)))
 
             # print("reinjOf=", row.reinjection_of)
             # assuming packetid is the index
@@ -831,9 +831,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 entry = self.data.loc[ pktId ]
                 # entry = df.loc[ df.packetid == pktId]
                 # print("packetId %r" % entry)
-                self.poutput("- packet %d (tcp.stream %d)" % (entry.packetid, entry.tcpstream))
+                output += ("- packet %d (tcp.stream %d)" % (entry.packetid, entry.tcpstream))
             # known.update([row.packetid] + row.reinjection)
 
+        self.ppaged(output)
         # reinjections = df["reinjection_of"].dropna(axis=0, )
         # print("number of reinjections of ")
 
