@@ -12,7 +12,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ]
+        pcaps = kwargs.get("input_pcaps", [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ])
         super().__init__(*args, input_pcaps=pcaps, **kwargs)
 
         self._attributes = self.tshark_config.get_fields('name', 'label')
@@ -69,7 +69,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
         return fig
 
 
-class PlotTcpAttribute(PlotSubflowAttribute):
+class PlotTcpAttribute(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
@@ -77,20 +77,21 @@ class PlotTcpAttribute(PlotSubflowAttribute):
         super(plot.Matplotlib, self).__init__(*args, input_pcaps=pcaps, **kwargs)
         self._attributes = self.tshark_config.get_fields('name', 'label')
 
-    # def default_parser(self, *args, **kwargs):
+    def default_parser(self, *args, **kwargs):
 
-    #     parent = argparse.ArgumentParser(
-    #         description="Plot tcp attributes over time"
-    #     )
-    #     parser = super(PlotSubflowAttribute,self).default_parser(
-    #         *args, parent_parsers=[parent],
-    #         filterstream=True,
-    #         direction=True,
-    #         skip_subflows=True,
-    #         **kwargs)
-    #     # parser.add_argument('field', choices=self.mptcp_attributes.keys(),
-    #     #     help="Choose an mptcp attribute to plot")
-    #     return parser
+        parent = argparse.ArgumentParser(
+            description="Plot tcp attributes over time"
+        )
+        parser = super().default_parser(
+            *args, parent_parsers=[parent],
+            filterstream=True,
+            direction=True,
+            skip_subflows=True,
+            **kwargs)
+        parser.add_argument('field', choices=self._attributes.keys(),
+            help="Choose an mptcp attribute to plot")
+        return parser
+
 
     def plot(self, df, tcpstream, field=None, **kwargs):
         """

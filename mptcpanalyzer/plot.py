@@ -7,7 +7,7 @@ import pandas as pd
 from mptcpanalyzer.data import load_into_pandas
 from mptcpanalyzer.tshark import TsharkConfig
 import enum
-from mptcpanalyzer.connection import MpTcpConnection
+from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 from typing import List, Tuple, Collection
 import copy
 import abc
@@ -56,9 +56,8 @@ class Plot:
         self.input_pcaps = input_pcaps
         # python shallow copies objects by default
         self.tshark_config = copy.deepcopy(exporter)
-        self.protocol = kwargs.get("protocol", "mptcp")
         # self.tshark_config.read_filter = protocol + " and not icmp"
-
+        
 
     def default_parser(
         self,
@@ -91,10 +90,11 @@ class Plot:
             parser.add_argument(name, action="store", type=str, help='Pcap file (or its associated csv)')
 
             if bitfield & PreprocessingActions.FilterStream:
-                # TODO generate metavar
+                # difficult to change the varname here => change it everywhere
                 protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
+                print("PROTOCOL", protocol)
                 parser.add_argument(
-                    protocol + 'stream', action="store", type=int,
+                    protocol + 'stream', metavar= protocol + "stream", action="store", type=int,
                     help= protocol + '.stream id')
 
                 if direction:
@@ -117,13 +117,6 @@ class Plot:
                         help=("You can type here the tcp.stream of a subflow "
                             "not to take into account (because"
                             "it was filtered by iptables or else)"))
-
-        # not implemented yet
-        # if dst_host:
-        #     parser.add_argument(
-        #         'ipdst_host', action="store",
-        #         help='Filter flows according to the destination hostnames')
-
 
         parser.add_argument('-o', '--out', action="store", default=None,
             help='Name of the output plot')
@@ -149,7 +142,7 @@ class Plot:
         pass
 
     def filter_dataframe(
-        self, rawdf, filterstream=None, skipped_subflows=[],
+        self, rawdf, tcpstream=None, mptcpstream=None, skipped_subflows=[],
         destination: mp.ConnectionRoles=None,
         extra_query: str=None, **kwargs
     ):
@@ -163,7 +156,7 @@ class Plot:
             rawdf: Raw dataframe
             kwargs: expanded arguments returned by the parser
             destination: Filters packets depending on their :enum:`.ConnectionRoles`
-            mptcpstream: keep only the packets related to mptcp.stream == mptcpstream
+            stream: keep only the packets related to mptcp.stream == mptcpstream
             skipped_subflows: list of skipped subflows
             extra_query: Add some more filters to the pandas query
 
@@ -178,21 +171,30 @@ class Plot:
         """
         log.debug("Preprocessing dataframe with extra args %s" % kwargs)
         queries = []
+        print("tcp.stream", tcpstream, "mptcp:", mptcpstream)
+        stream = tcpstream if tcpstream is not None else mptcpstream
         dataframe = rawdf
 
         for skipped_subflow in skipped_subflows:
             log.debug("Skipping subflow %d" % skipped_subflow)
             queries.append(" tcpstream!=%d " % skipped_subflow)
 
-        if filterstream is not None:
-            log.debug("Filtering %s stream ." % self.protocol)
-            queries.append(self.protocol + "stream==%d" % filterstream)
+        if stream is not None:
+            protocol = "mptcp" if mptcpstream is not None else "tcp"
+            log.debug("Filtering %s stream #%d." % (protocol, stream))
+            queries.append(protocol + "stream==%d" % stream)
             if destination is not None:
                 log.debug("Filtering destination")
+
                 # Generate a filter for the connection
-                con = MpTcpConnection.build_from_dataframe(dataframe, filterstream)
-                q = con.generate_direction_query(destination)
-                queries.append(q)
+                if protocol == "mptcp":
+                    con = MpTcpConnection.build_from_dataframe(dataframe, stream)
+                    q = con.generate_direction_query(destination)
+                    queries.append(q)
+                else:
+                    con2 = TcpConnection.build_from_dataframe(dataframe, stream)
+                    q = con2.generate_direction_query(destination)
+                    queries.append(q)
 
         if extra_query:
             log.debug("Appending extra_query=%s" % extra_query)
@@ -221,7 +223,7 @@ class Plot:
         """
         dataframes = []
         for pcap_name, actions in self.input_pcaps:
-            log.info("pcap_name=", pcap_name, "value=", kwargs.get(pcap_name))
+            log.info("pcap_name=%s value=%r" % (pcap_name, kwargs.get(pcap_name)))
             if actions & PreprocessingActions.Preload:
                 filename = kwargs.get(pcap_name)
                 df = load_into_pandas(filename, self.tshark_config,)
@@ -348,7 +350,7 @@ class Matplotlib(Plot):
             kwargs: Forwarded to :member:`matplotlib.Figure.savefig`.
             You can set *dpi* for instance  (80 by default ?)
         """
-        print("Saving into %s" % (filename))
+        logging.info("Saving into %s" % (filename))
         # most settings (dpi for instance) can be set from resource config
         fig.savefig(filename, format="png", **kwargs)
         return filename
