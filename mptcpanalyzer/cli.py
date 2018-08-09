@@ -41,6 +41,9 @@ import numpy as np
 from typing import List, Any, Tuple, Dict, Callable, Set
 import cmd2
 import math
+from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category
+from enum import Enum, auto
+
 
 from stevedore import extension
 
@@ -56,15 +59,23 @@ log.addHandler(ch)
 # log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
-# def format_tcp_mapping(main: TcpConnection, mapped: TcpMapping):
-#     )
 
 histfile_size = 1000
 
-CAT_REINJECTIONS = "Reinjections"
 
 # workaround to get
 DestinationChoice = mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles])
+
+
+# class Categories(Enum):
+    # CAT_TCP = auto()
+    # CAT_MPTCP = auto()
+    # CAT_GENERAL = auto()
+
+CAT_TCP = "TCP related"
+CAT_MPTCP = "MPTCP related"
+CAT_GENERAL = "Tool"
+# CAT_REINJECTIONS = "Reinjections"
 
 def is_loaded(f):
     """
@@ -503,28 +514,28 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
                 tcpstream, sf_bytes, mptcp_transferred, subflow_load*100))
 
+
+    # TODO check for reinjections etc...
+    parser = argparse.ArgumentParser(
+        description="Export connection(s) to CSV"
+    )
+    parser.add_argument("output", action="store", help="Output filename")
+    # parser.add_argument("--stream", action="store", )
+    # )
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--tcpstream', action= 'store', type=int)
+    group.add_argument('--mptcpstream', action= 'store', type=int)
+    # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
+    parser.add_argument("--destination", action="store", choices=DestinationChoice, help="tcp.stream id visible in wireshark")
+    parser.add_argument("--drop-syn", action="store_true", default=False,
+            help="Helper just for my very own specific usecase")
     @is_loaded
-    def do_tocsv(self, line):
+    @with_argparser(parser)
+    def do_tocsv(self, args):
         """
         Selects tcp/mptcp/udp connection and exports it to csv
         """
-        # TODO check for reinjections etc...
-        parser = argparse.ArgumentParser(
-            description="Export connection(s) to CSV"
-        )
-        parser.add_argument("output", action="store", help="Output filename")
-        # parser.add_argument("--stream", action="store", )
-        # )
-
-        group = parser.add_mutually_exclusive_group(required=False)
-        group.add_argument('--tcpstream', action= 'store', type=int)
-        group.add_argument('--mptcpstream', action= 'store', type=int)
-        # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
-        parser.add_argument("--destination", action="store", choices=DestinationChoice, help="tcp.stream id visible in wireshark")
-        parser.add_argument("--drop-syn", action="store_true", default=False,
-                help="Helper just for my very own specific usecase")
-
-        args = parser.parse_args(shlex.split(line))
 
         df = self.data
         if args.tcpstream:
@@ -588,8 +599,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.tshark_config
         )
 
-
-
         success, ret = stats.mptcp_compute_throughput_extended(
                 # self.data, args.mptcpstream, args.destination
                 df,
@@ -615,6 +624,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         List mptcp connections via their ids (mptcp.stream)
         """
         streams = self.data.groupby("mptcpstream")
+        # TODO use ppaged instead ?
         self.poutput('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
@@ -778,6 +788,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
                 
 
+    @with_category(CAT_TCP)
     @custom_tshark
     @is_loaded
     def do_list_reinjections(self, line):
@@ -922,13 +933,17 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # Allocate plot object
         plotter = self.plot_mgr[args.plot_type].obj
 
-        dargs = vars(args)  # 'converts' the namespace to a dict
+        dargs = vars(args)  # 'converts' the namespace to for the syntax defin a dict
 
+        # print(dargs)
+
+        dargs.update(destinations= dargs.get("destinations") or mp.ConnectionRoles)
         dataframes = plotter.preprocess(**dargs)
         assert dataframes is not None, "Preprocess must return a list"
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
 
+    @with_category(CAT_GENERAL)
     def do_clean_cache(self, line):
         """
         mptcpanalyzer saves pcap to csv converted files in a cache folder, (most likely

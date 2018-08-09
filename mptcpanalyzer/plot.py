@@ -4,7 +4,7 @@ import tempfile
 import matplotlib.pyplot as plt
 import mptcpanalyzer as mp
 import pandas as pd
-from mptcpanalyzer.data import load_into_pandas
+from mptcpanalyzer.data import load_into_pandas, tcpdest_from_connections
 from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -92,20 +92,23 @@ class Plot:
             if bitfield & PreprocessingActions.FilterStream:
                 # difficult to change the varname here => change it everywhere
                 protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
-                print("PROTOCOL", protocol)
                 parser.add_argument(
                     protocol + 'stream', metavar= protocol + "stream", action="store", type=int,
                     help= protocol + '.stream id')
 
                 if direction:
-                    # a bit hackish: we want the object to be of type class
+                    # this one is full of tricks: we want the object to be of the Enum type
                     # but we want to display the user readable version
                     # so we subclass list to convert the Enum to str value first.
                     parser.add_argument(
-                        'destination', action="store",
+                        '--dest', metavar="destination", dest="destinations",
+                        # see preprocess functions to see how destinations is handled when empty
+                        default=None,
+                        action="append",
                         choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
-                        # type=lambda x: mp.ConnectionRoles.from_string(x),
-                        type=lambda x: mp.ConnectionRoles[x],
+                        # type parameter is a function/callable
+                        type=lambda x: mp.ConnectionRoles.from_string(x),
+                        # type=lambda x: mp.ConnectionRoles[x],
                         help='Filter flows according to their direction'
                         '(towards the client or the server)'
                         'Depends on mptcpstream')
@@ -143,7 +146,7 @@ class Plot:
 
     def filter_dataframe(
         self, rawdf, tcpstream=None, mptcpstream=None, skipped_subflows=[],
-        destination: mp.ConnectionRoles=None,
+        destinations: list=None,
         extra_query: str=None, **kwargs
     ):
         """
@@ -183,18 +186,26 @@ class Plot:
             protocol = "mptcp" if mptcpstream is not None else "tcp"
             log.debug("Filtering %s stream #%d." % (protocol, stream))
             queries.append(protocol + "stream==%d" % stream)
-            if destination is not None:
-                log.debug("Filtering destination")
 
-                # Generate a filter for the connection
-                if protocol == "mptcp":
-                    con = MpTcpConnection.build_from_dataframe(dataframe, stream)
-                    q = con.generate_direction_query(destination)
-                    queries.append(q)
-                else:
-                    con2 = TcpConnection.build_from_dataframe(dataframe, stream)
-                    q = con2.generate_direction_query(destination)
-                    queries.append(q)
+
+            if protocol == "tcp":
+                # generates the "tcpdest" component of the dataframe
+                con2 = TcpConnection.build_from_dataframe(dataframe, stream)
+                dataframe = tcpdest_from_connections(dataframe, con2)
+                # trust plots to do the filtering
+                # if destinations is not []:
+                #     queries.append(protocol + "dest==%d" % stream)
+            else:
+                # todo shall do the same for mptcp destinations
+                # if protocol == "mptcp":
+                if destinations is not None:
+                    raise Exception("destination filtering is not ready yet for mptcp")
+
+                    log.debug("Filtering destination")
+                    # Generate a filter for the connection
+                    # con = MpTcpConnection.build_from_dataframe(dataframe, stream)
+                    # q = con.generate_direction_query(destination)
+                    # queries.append(q)
 
         if extra_query:
             log.debug("Appending extra_query=%s" % extra_query)
@@ -205,7 +216,7 @@ class Plot:
         # throws when querying with an empty query
         if len(query) > 0:
             log.info("Running query:\n%s\n" % query)
-            dataframe = rawdf.query(query)
+            dataframe.query(query, inplace=True)
 
         return dataframe
 

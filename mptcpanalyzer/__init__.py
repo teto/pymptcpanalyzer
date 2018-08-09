@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import logging
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, Flag, auto
 from .config import MpTcpAnalyzerConfig
 from .cache import Cache
 import collections
@@ -55,7 +54,7 @@ def get_config() -> MpTcpAnalyzerConfig:
 # METADATA_ROWS = 2
 
 
-class TcpFlags(Enum):
+class TcpFlags(Flag):
     NONE = 0
     FIN = 1
     SYN = 2
@@ -68,23 +67,20 @@ class TcpFlags(Enum):
 
 
 # hopefully mypy will work with IntEnum's too
-class ConnectionRoles(Enum):
+class ConnectionRoles(IntEnum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
     Parser should accept --destination Client --destination Server if you want both.
 
     TODO: convert back to enum, that was done for bad reasons
     """
-    # Client = "client"
-    # Server = "server"
-    Client = 0
-    Server = 1
+    Client = auto()
+    Server = auto()
 
     def __str__(self):
         # Note that defining __str__ is required to get ArgumentParser's help output to include the human readable (values) of Color
         return self.name
-    # def __getitem__(cls, name):
-    #     return cls._member_map_[name]
+
     @staticmethod
     def from_string(s):
         try:

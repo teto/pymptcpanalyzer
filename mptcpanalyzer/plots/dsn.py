@@ -1,8 +1,10 @@
+import mptcpanalyzer as mp
 import mptcpanalyzer.plot as plot
 import pandas as pd
 import logging
 import argparse
 import matplotlib.pyplot as plt
+from typing import List, Any, Tuple, Dict, Callable, Set
 
 
 class PlotSubflowAttribute(plot.Matplotlib):
@@ -88,12 +90,18 @@ class PlotTcpAttribute(plot.Matplotlib):
             direction=True,
             skip_subflows=True,
             **kwargs)
-        parser.add_argument('field', choices=self._attributes.keys(),
+
+        parser.add_argument('--syndrop', action="store_true",
+            help="Will drop first 3 packets of the dataframe assuming they are syn")
+        
+        parser.add_argument('fields', nargs='+', 
+            # action="append",
+            choices=self._attributes.keys(),
             help="Choose an mptcp attribute to plot")
         return parser
 
 
-    def plot(self, df, tcpstream, field=None, **kwargs):
+    def plot(self, df, tcpstream, fields, destinations, **kwargs):
         """
         getcallargs
         """
@@ -101,33 +109,56 @@ class PlotTcpAttribute(plot.Matplotlib):
         # tcpstreams = dat.groupby('tcpstream')
 
         # print("%d streams in the MPTCP flow" % len(tcpstream))
-        print("Plotting field %s" % field)
+        print("Plotting field(s) %s" % fields)
 
         axes = fig.gca()
 
         # for idx, (streamid, ds) in enumerate(tcpstreams):
-        tcpdf = df[df.tcpstream == tcpstream]
+        tcpdf = df
+        # [df.tcpstream == tcpstream]
+
+        # if dropsyn
+        # tcpdf[field].iloc[3:]
+
+        labels = [] # type: List[str]
 
         # TODO le .iloc permet d'eliminer les syn/ack
-        tcpdf[field].iloc[3:].plot.line(
-            ax=axes,
-            # use_index=False,
-            legend=False,
-            grid=True,
-        )
+        print("DTYPES")
+        print(tcpdf.dtypes)
+        for dest, ddf in tcpdf.groupby("tcpdest"):
+            print("dest %r in %r" %( dest , destinations))
+            if dest in destinations:
+
+                for field in fields:
+                    print("dest", dest, " in " , destinations)
+
+                    tcpdf[field].plot.line(
+                        ax=axes,
+                        # use_index=False,
+                        legend=False,
+                        grid=True,
+                    )
+                    labels.append("%s towards %s" % (self._attributes[field], dest))
 
         axes.set_xlabel("Time (s)")
-        axes.set_ylabel(self._attributes[field])
+        if len(fields) == 1:
+            y_label = self._attributes[fields[0]]
+        else:
+            y_label = "/".join(fields)
+        axes.set_ylabel(y_label)
 
-        handles, labels = axes.get_legend_handles_labels()
+        handles, _labels = axes.get_legend_handles_labels()
 
-        print(tcpdf[field].iloc[3:])
+        # TODO generate correct labels ?
+
+        # print(tcpdf[field].iloc[3:])
         # Generate "subflow X" labels
         # location: 3 => bottom left, 4 => bottom right
-        # axes.legend(
-        #     handles,
+        axes.legend(
+            handles,
+            labels
         #     ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
         #     loc=4
-        # )
+        )
 
         return fig

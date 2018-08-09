@@ -37,7 +37,7 @@ def find_type(filename):
 fullname: wireshark name
 name: shortname used in mptcpanalyzer
 type: python type pandas should convert this field to be careful that pandas integers
-can't be NA, which is why we use floats mot of the time, which is a waste
+can't be NA, which is why we use floats mot of the time, which is a waste.
 label: used when plotting
 """
 Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ])
@@ -80,7 +80,7 @@ class TsharkConfig:
             # Disable DSS checks which consume quite a lot
             "mptcp.analyze_mptcp": True,
         }
-        self.fields = []  # type: List[Field]
+        self._tshark_fields = []  # type: List[Field]
 
         # the split between option is to potentially allow for tcp-only wireshark inspection
         # (much faster)
@@ -180,7 +180,7 @@ class TsharkConfig:
 
         """
         # TODO check for duplicates
-        self.fields.append(
+        self._tshark_fields.append(
             Field(fullname, name, type, label)
         )
 
@@ -194,7 +194,7 @@ class TsharkConfig:
         Returns:
             a dict( field values: field2 values)
         """
-        l = self.fields
+        l = self._tshark_fields
         keys = map(lambda x: getattr(x, field), l)
         if field2 is None:
             return keys
@@ -249,10 +249,14 @@ class TsharkConfig:
             print(e.cmd)
             return e.returncode, e.stderr
 
-    def hash(self,):
+    # def pseudocommand(self,):
+    def __hash__(self,):
+        """
+        Used to generate hash
+        """
         cmd = self.generate_command(
             self.tshark_bin,
-            self.get_fields('name'), # TODO convert to list
+            self.get_fields('name'),
             "PLACEHOLDER",
             self.read_filter,
             profile=self.profile,
