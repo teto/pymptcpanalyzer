@@ -41,15 +41,13 @@ You can reference mptcpanalyzer via the following Digital Object Identifier:
 
 # How to install ?
 
-First of all you will need a wireshark version that supports MPTCP dissection,
-i.e., wireshark > 2.1.0. If you are on ubuntu, there are dev builds on
-https://launchpad.net/~dreibh/+archive/ubuntu/ppa/ .
+First of all you will need a wireshark version that supports my MPTCP patches.
+See the next section to check for requirements.
 
 Once wireshark is installed you can install mptcpanalyzer via pip:
+`$ python3 -mpip install mptcpanalyzer --user`
 
-`$ python3.6 -mpip install mptcpanalyzer --user`
-
-python3.5+ is mandatory since we rely on its type hinting features.
+python3.6 is mandatory since we rely on its type hinting features.
 Dependancies are (some will be made optional in the future):
 
 - [stevedore](http://docs.openstack.org/developer/stevedore/) to handle the
@@ -58,7 +56,16 @@ Dependancies are (some will be made optional in the future):
 - lnumexpr to run specific queries in pandas
 - [matplotlib](http://matplotlib) to plot graphs
 - [cmd2](https://github.com/python-cmd2/cmd2) to generate the command line
-- [mypy](https://github.com/python-cmd2/cmd2) for static analysis
+
+
+# Required wireshark version
+
+- [My wireshark patches](https://code.wireshark.org/review/gitweb?p=wireshark.git&a=search&h=HEAD&st=author&s=Coudron)
+
+None pending \o/
+
+You will need a wireshark version that contains:
+- [Correctly find reinjections (19 june 2018)](https://code.wireshark.org/review/gitweb?p=wireshark.git;a=commit;h=dac91db65e756a3198616da8cca11d66a5db6db7)
 
 # How to use ?
 

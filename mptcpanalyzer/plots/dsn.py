@@ -124,14 +124,14 @@ class PlotTcpAttribute(plot.Matplotlib):
         labels = [] # type: List[str]
 
         # TODO le .iloc permet d'eliminer les syn/ack
-        print("DTYPES")
-        print(tcpdf.dtypes)
+        # print("DTYPES")
+        # print(tcpdf.dtypes)
         for dest, ddf in tcpdf.groupby("tcpdest"):
-            print("dest %r in %r" %( dest , destinations))
+            # print("dest %r in %r" %( dest , destinations))
             if dest in destinations:
 
                 for field in fields:
-                    print("dest", dest, " in " , destinations)
+                    # print("dest", dest, " in " , destinations)
 
                     ddf[field].plot.line(
                         x="abstime",

@@ -27,7 +27,7 @@ def mptcp_compute_throughput(
         a tuple (True/false, dict)
     """
 
-    df = rawdf[ rawdf.mptcpstream == mptcpstreamid]
+    df = rawdf[rawdf.mptcpstream == mptcpstreamid]
     if df.empty:
         return False, "No packet with mptcp.stream == %d" % mptcpstreamid
 
@@ -60,12 +60,12 @@ def mptcp_compute_throughput(
 
 
 def mptcp_compute_throughput_extended(
-    rawdf, 
+    rawdf,  # need the rawdf to classify_reinjections
     stats, # result of mptcp_compute_throughput
     # mptcpstreamid,
     destination : ConnectionRoles, 
     # mptcpstreamid2=None
-) -> Tuple[bool, str]:
+) -> Tuple[bool, Any]:
     """
     df expects an extended dataframe
 

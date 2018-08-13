@@ -90,20 +90,16 @@ def is_loaded(f):
     return wrapped
 
 
-def custom_tshark(f):
 
-    print("WARNING: May requires a custom wireshark (until upstreaming):\n"
-        "Check out https://github.com/teto/wireshark/tree/reinject_stable"
-    )
-    return f
 
 def experimental(f):
     """
     Decorator checking that dataset has correct columns
     """
-    print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
-    print("Please read the help.")
-    return f
+    def wrapped(self, *args, **kwargs):
+        print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
+        return f(*args, **kwargs)
+    return wrapped
 
 
 def gen_bicap_parser(protocol, dest=False):
@@ -225,6 +221,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         use for input and output. If not specified, they will default to
         sys.stdin and sys.stdout.
         """
+        print("WARNING: mptcpanalyzer may require a custom wireshark. "
+                "Check github for mptcp patches streaming.")
 
 
     @property
@@ -474,28 +472,29 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # TODO split into 
         # sauce = self.select('sweet salty', 'Sauce? ')
 
+
+    parser = argparse.ArgumentParser(
+        description="Prints a summary of the mptcp connection"
+    )
+    parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+
+    parser.add_argument(
+        'destination',
+        action="store",
+        choices=DestinationChoice,
+        type=lambda x: mp.ConnectionRoles[x],
+        help='Filter flows according to their direction'
+        '(towards the client or the server)'
+        'Depends on mptcpstream'
+    )
+    @with_argparser(parser)
     @is_loaded
-    def do_summary(self, line):
+    def do_summary(self, args):
         """
         Naive summary contributions of the mptcp connection
         See summary_extended for more details
         """
-        parser = argparse.ArgumentParser(
-            description="Prints a summary of the mptcp connection"
-        )
-        parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
 
-        parser.add_argument(
-            'destination',
-            action="store",
-            choices=DestinationChoice,
-            type=lambda x: mp.ConnectionRoles[x],
-            help='Filter flows according to their direction'
-            '(towards the client or the server)'
-            'Depends on mptcpstream'
-        )
-
-        args = parser.parse_args(shlex.split(line))
         df = self.data
         mptcpstream = args.mptcpstream
 
@@ -588,7 +587,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         args = parser.parse_args(shlex.split(line))
 
-        basic_stats = stats.mptcp_compute_throughput(args.pcap1, args.streamid)
+        basic_stats = stats.mptcp_compute_throughput(
+            args.pcap1, args.streamid,
+            args.dest
+        )
 
         df = load_merged_streams_into_pandas(
             args.pcap1,
@@ -611,10 +613,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.perror(ret)
             return
 
-        total_transferred = ret["total_bytes"]
-        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["total_bytes"]))
+        total_transferred = ret["mptcp_bytes"]
+        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
-            subflow_load = sf_bytes/ret["total_bytes"]
+            subflow_load = sf_bytes/ret["mptcp_bytes"]
             self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
                 tcpstream, sf_bytes, total_transferred, subflow_load*100))
 
@@ -671,14 +673,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mpdata.print_weird_owds(result)
         # print(result[["owd"]].head(20))
 
-    def do_check_tshark(self, line):
-        """
-        """
-        print("Checking wireshark settings...")
-        print("TODO")
-        # print("Checking wireshark settings...")
-        # TsharkConfig config 
-        # config.check_fields
+    # def do_check_tshark(self, line):
+    #     """
+    #     """
+    #     print("Checking wireshark settings...")
+    #     print("TODO")
 
 
     @experimental
@@ -789,7 +788,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 
 
     @with_category(CAT_TCP)
-    @custom_tshark
     @is_loaded
     def do_list_reinjections(self, line):
         """
