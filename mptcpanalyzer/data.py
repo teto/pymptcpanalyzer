@@ -20,7 +20,10 @@ slog = logging.getLogger(__name__)
 pp = pprint.PrettyPrinter(indent=4)
 
 # dtype_role = pd.api.types.CategoricalDtype(categories=ConnectionRoles, ordered=True)
-dtype_role = pd.api.types.CategoricalDtype(categories=[ x.name for x in ConnectionRoles], ordered=True)
+# dtype_role = pd.api.types.CategoricalDtype(categories=[ x.name for x in ConnectionRoles], ordered=True)
+
+# TODO might need a converter when saving/loading
+dtype_role = pd.api.types.CategoricalDtype(categories=list(ConnectionRoles), ordered=True)
 
 
 # columns we usually display to debug dataframes
@@ -476,13 +479,22 @@ def load_into_pandas(
 
 
     # TODO here I should assign the type
-    new = pd.DataFrame(dtype= {
-        "tcpdest": dtype_role
-        })
-    data = pd.concat([ data, new ],
+    # new = pd.DataFrame(dtype= {
+    #     "tcpdest": dtype_role
+    #     })
+    data = data.assign(tcpdest=np.nan, mptcpdest=np.nan)
+    column_names = set(data.columns)
+    # TODO automate that afterwards
+    print("column_names", column_names)
+    data = data.astype(dtype = {
+        "tcpdest": dtype_role,
+        "mptcpdest": dtype_role,
+    }, copy=False)
+    # data["tcpdest"] = np.
+    # data = pd.concat([ data, new ],
             # ignore_index=False,
            # copy=False,
-           )
+           # )
 
     # for missing_field in names - column_names:
     #     print("missing field", missing_field)
@@ -564,6 +576,7 @@ combo = Tuple[pd.DataFrame, TcpConnection]
 
 def tcpdest_from_connections(df, con: TcpConnection):
 
+    print(df.dtypes.tcpdest)
     for dest in ConnectionRoles:
 
         log.debug("Looking at destination %s" % dest)
@@ -572,6 +585,7 @@ def tcpdest_from_connections(df, con: TcpConnection):
         print("tcpdest %r" % dest)
         df.loc[df_dest.index, 'tcpdest'] = dest
 
+    print(df.tcpdest.head())
     # print("df", 
     # len(serie.notnull())
     # )

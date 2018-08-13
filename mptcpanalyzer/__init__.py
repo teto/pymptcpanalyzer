@@ -67,7 +67,7 @@ class TcpFlags(Flag):
 
 
 # hopefully mypy will work with IntEnum's too
-class ConnectionRoles(IntEnum):
+class ConnectionRoles(Enum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
     Parser should accept --destination Client --destination Server if you want both.

@@ -49,6 +49,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
 
         for idx, (streamid, ds) in enumerate(tcpstreams):
             ds[field].plot.line(
+                x="abstime",
                 ax=axes,
                 # use_index=False,
                 legend=False,
@@ -132,7 +133,8 @@ class PlotTcpAttribute(plot.Matplotlib):
                 for field in fields:
                     print("dest", dest, " in " , destinations)
 
-                    tcpdf[field].plot.line(
+                    ddf[field].plot.line(
+                        x="abstime",
                         ax=axes,
                         # use_index=False,
                         legend=False,
