@@ -19,22 +19,12 @@ slog = logging.getLogger(__name__)
 
 pp = pprint.PrettyPrinter(indent=4)
 
-# dtype_role = pd.api.types.CategoricalDtype(categories=ConnectionRoles, ordered=True)
-# dtype_role = pd.api.types.CategoricalDtype(categories=[ x.name for x in ConnectionRoles], ordered=True)
 
 # TODO might need a converter when saving/loading
 dtype_role = pd.api.types.CategoricalDtype(categories=list(ConnectionRoles), ordered=True)
 
 
-# columns we usually display to debug dataframes
-# def _receiver(fields):
-#     return list(map(lambda x: x + RECEIVER_SUFFIX, fields))
-
-# def _sender(fields):
-#     return list(map(lambda x: x + SENDER_SUFFIX, fields))
-
 TCP_DEBUG_FIELDS=['hash', 'packetid', "reltime", "abstime"]
-# 'tcpdest'
 MPTCP_DEBUG_FIELDS=TCP_DEBUG_FIELDS + [ 'mptcpdest']
 
 
@@ -179,6 +169,8 @@ def load_merged_streams_into_pandas(
     Arguments:
         protocol: mptcp or tcp
 
+        mapping_mode: Only HASH works for now
+
     Returns
         a dataframe with columns... owd ?
     """
@@ -186,12 +178,8 @@ def load_merged_streams_into_pandas(
             % (streamid1, streamid2, pcap1, pcap2)
     )
 
-    
-    # mp.get_config()
-    # tshark_config = TsharkConfig()
     cache = mp.get_cache()
     protocolStr = "mptcp" if mptcp else "tcp"
-    # merged_uid
     cacheid = cache.cacheuid("merged", [
         getrealpath(pcap1),
         getrealpath(pcap2),
@@ -256,7 +244,7 @@ def load_merged_streams_into_pandas(
                 sep=tshark_config.delimiter,
             )
 
-            print("MATT=", dict(merged_df.dtypes))
+            print("DEBUG=", dict(merged_df.dtypes))
 
             # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
 
@@ -267,11 +255,15 @@ def load_merged_streams_into_pandas(
             # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
             def _gen_dtypes(fields):
                 dtypes = {} # type: ignore
-                for suffix in [ SENDER_SUFFIX, RECEIVER_SUFFIX]:
+                # for suffix in [ SENDER_SUFFIX, RECEIVER_SUFFIX]:
+                for _rename in [ _sender, _receiver ]:
 
                     for k, v in fields.items():
                         if v is not None or k not in ["tcpflags"]:
-                            dtypes.setdefault(suffix_fields(suffix, k), v)
+                            dtypes.setdefault(_rename(k), v)
+
+                    # add generated field dtypes
+                    dtypes.update({ _rename(f.fullname): f.type for f in artificial_fields })
 
                 dtypes.update({
                     # during the merge, we join even unmapped packets so some entries
@@ -285,7 +277,37 @@ def load_merged_streams_into_pandas(
                     # 'tcpdest': dtype_role,
                     # '_merge': 
                 })
+
                 return dtypes
+
+            def _gen_converters():
+                # converters={
+                #     "tcp.flags": lambda x: int(x, 16),
+                #     # reinjections, converts to list of integers
+                #     # "mptcp.related_mapping": lambda x: x.split(','),
+                # },
+
+                source = {
+                    "tcpflags": _convert_flags,
+                    # reinjections, converts to list of integers
+                    "reinjection_of": functools.partial(_load_list, field="reinjectedOfSender"),
+                    "reinjected_in": functools.partial(_load_list, field="reinjectedInSender"),
+
+                    # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
+                    "mptcpdest": _convert_role,
+                    "tcpdest": _convert_role,
+
+                    # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
+                    # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+                    # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
+                    # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
+                }
+                converters = {}   # type: Dict[str, Any]
+                for name, converter in source.items():
+                    converters.update({ _sender(name):converter, _receiver(name): converter})
+                    
+                return converters
+
 
             def _load_list(x, field="set field to debug"):
                 """
@@ -298,46 +320,21 @@ def load_merged_streams_into_pandas(
             with open(cachename) as fd:
                 import ast
                 dtypes = _gen_dtypes(csv_fields)
-
+                converters = _gen_converters(), 
                 # more recent versions can do without it
                 # pd.set_option('display.max_rows', 200)
                 # pd.set_option('display.max_colwidth', -1)
                 print("dtypes=", dict(dtypes))
+                print("converters=", dict(converters))
                 merged_df = pd.read_csv(
                     fd,
                     skip_blank_lines=True,
-                    # hum not needed with comment='#'
                     comment='#',
                     # we don't need 'header' when metadata is with comment
-                    # header=0, # read column names from row 2 (before, it's metadata)
-                    # skiprows
                     sep=tshark_config.delimiter,
-                    # converters={
-                    #     "tcp.flags": lambda x: int(x, 16),
-                    #     # reinjections, converts to list of integers
-                    #     # "mptcp.related_mapping": lambda x: x.split(','),
-                    # },
                     # memory_map=True, # could speed up processing
-                    # Categorical for TcpDest / mptcpdest
-                    dtype=dtypes, # poping still generates
-                    converters={
-                        _sender("tcpflags"): _convert_flags,
-                        # reinjections, converts to list of integers
-                        _sender("reinjection_of"): functools.partial(_load_list, field="reinjectedOfSender"),
-                        _sender("reinjected_in"): functools.partial(_load_list, field="reinjectedInSender"),
-                        _receiver("reinjection_of"): functools.partial(_load_list, field="reinjectedInReceiver"),
-                        _receiver("reinjected_in"): functools.partial(_load_list, field="reinjectedInReceiver"),
-
-                        # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
-                        # where the 
-                        "mptcpdest": _convert_role,
-                        "tcpdest": _convert_role,
-
-                        # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
-                        # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
-                        # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
-                        # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
-                    },
+                    dtype=dtypes,  # poping still generates
+                    converters=converters,
                 )
 
                 # log.debug("Column names after loading from cache: %s", merged_df.columns)
@@ -418,8 +415,6 @@ def load_into_pandas(
             else:
                 raise Exception(stderr)
 
-    print("ARTIFICAL_DTYPES:", artifical_dtypes)
- 
 
     log.debug("Loading a csv file %s" % csv_filename)
 
@@ -472,24 +467,23 @@ def load_into_pandas(
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
     
-    names = set([ field.name for field in artificial_fields ])
-    print("NAMES", names)
-    column_names = set(data.columns)
-    print("column_names", column_names)
+    # names = set([ field.name for field in artificial_fields ])
+    # print("NAMES", names)
+    # column_names = set(data.columns)
+    # print("column_names", column_names)
 
 
-    # TODO here I should assign the type
-    # new = pd.DataFrame(dtype= {
-    #     "tcpdest": dtype_role
-    #     })
-    data = data.assign(tcpdest=np.nan, mptcpdest=np.nan)
+    data = data.assign({ f.fullname: np.nan for f in artificial_fields })
+        # tcpdest=np.nan, mptcpdest=np.nan)
     column_names = set(data.columns)
     # TODO automate that afterwards
     print("column_names", column_names)
-    data = data.astype(dtype = {
-        "tcpdest": dtype_role,
-        "mptcpdest": dtype_role,
-    }, copy=False)
+    data = data.astype(dtype = artifical_dtypes
+            # {
+        # "tcpdest": dtype_role,
+        # "mptcpdest": dtype_role,
+    # }
+    , copy=False)
     # data["tcpdest"] = np.
     # data = pd.concat([ data, new ],
             # ignore_index=False,

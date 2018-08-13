@@ -242,7 +242,8 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
                 legend=False,
-                x="abstime_sender",
+                # TODO should depend from 
+                x=_sender("abstime"),
                 y="owd",
                 label="TCP stream %s" % idx, # seems to be a bug
                 # style="-o",

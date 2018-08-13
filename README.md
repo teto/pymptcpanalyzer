@@ -14,10 +14,11 @@ Presentation
 ===
 
 Mptcpanalyzer is a python (>=3.6) tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
-It works on linux only.
+It is tested on linux only.
 
-It accepts as input a capture file (\*.pcap) and from there generates a CSV file 
-(via a call to tshark, the terminal version of wireshark) with MPTCP fields for external processing.
+It accepts as input a capture file (.pcap or .pcapng) and from there generates a CSV file 
+(thanks to tshark, the terminal version of wireshark) with the MPTCP fields
+required for analysis.
 From there you can:
 
 - list MPTCP connections
@@ -42,7 +43,7 @@ You can reference mptcpanalyzer via the following Digital Object Identifier:
 # How to install ?
 
 First of all you will need a wireshark version that supports my MPTCP patches.
-See the next section to check for requirements.
+See the [next section](#Required-wireshark-version) to check for requirements.
 
 Once wireshark is installed you can install mptcpanalyzer via pip:
 `$ python3 -mpip install mptcpanalyzer --user`
@@ -88,15 +89,19 @@ Then you have a command line: you can type `?` to list available commands. You h
 `help ls` will return the syntax of the command, i.e. `ls [mptcp.stream]` where mptcp.stream is one of the number appearing 
 in `lc` output.
 
-It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
+Look at [Examples](#Examples)
+
+# Examples
+
+Plot One Way Delays from a connection 
+plot owd_tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0
 
 # How to contribute
 
-See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html)
-
-If you have issues with mypy, you can suffix with `# type: ignore`
+See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
 
 # TODO 
+
 - use configobj to load config defaults/validation ?
 - as in mptcpplot plot some events (e.g., MP\_JOIN) differently ?
 - choose colors of subflows

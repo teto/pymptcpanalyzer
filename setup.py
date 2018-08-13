@@ -53,7 +53,7 @@ setup(name="mptcpanalyzer",
         version=version,
         description="Analyze mptcp traces (.pcap)",
         long_description=open('README.md').read(),
-        url="http://github.com/lip6-mptcp/mptcpanalyzer",
+        url="http://github.com/teto/mptcpanalyzer",
         license="GPL",
         author="Matthieu Coudron",
         author_email="coudron@iij.ad.jp",
@@ -68,16 +68,6 @@ setup(name="mptcpanalyzer",
             ],
         keywords=["mptcp analysis pcap"],
         packages=find_packages(),
-        # [
-        # # "mptcpanalyzer", "mptcpanalyzer/plots",
-        # ],
-        # data files allows to install files outside the package
-        # see package_data to add files within pkg
-        # package_data=['
-        package_data={
-            '': ['*.md', "*.json"],
-            "mptcpanalyzer": ["toto/mptcp_fields.json"],
-            },
         entry_points={
             "console_scripts": [
                 'mptcpanalyzer = mptcpanalyzer.cli:main',
@@ -108,7 +98,7 @@ setup(name="mptcpanalyzer",
         install_requires=[
                 'stevedore',  # to implement a plugin mechanism
                 'matplotlib',  # for plotting
-                'pandas>=0.17.1',  # to load and process csv files
+                'pandas>=0.20.1',  # to load and process csv files
                 'cmd2>=0.9',  # to improve cmd capabilities
                 # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
                 ],

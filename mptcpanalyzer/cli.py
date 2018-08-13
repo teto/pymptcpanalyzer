@@ -301,6 +301,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         return True if stop is True else False
 
+
+    @with_category(CAT_MPTCP)
     @is_loaded
     def do_list_subflows(self, args):
         """
@@ -387,6 +389,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # print(formatted_output)
             print(match)
 
+    @with_category(CAT_MPTCP)
     @experimental
     def do_map_mptcp_connection(self, line):
         """
@@ -435,26 +438,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             winner_like = match.score == float('inf')
 
-            # output = "{c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}"
             output = "{c1.mptcpstreamid} <-> {c2.mptcpstreamid} with score={score} {extra}"
             formatted_output = output.format(
                 c1=main_connection,
                 c2=match.mapped,
                 score=self.colorize(match.score, "red"),
-                # self.color('red',
                 extra= " <-- should be a correct match" if winner_like else ""
             )
 
-            # TODO restore 
             if match.score < args.trim:
                 continue
-            # if True:
-            # print("MAIN %r" % main_connection)
-            # print("MAPPED %r" % match.mapped)
-            # print("subflow_mappings %r" % match.subflow_mappings)
-            # print subflow mapping
-            # if the score is good we do more work to map subflows as well
-            # mapped_subflows = _map_subflows(main_connection, match.mapped)
 
             # match = MpTcpMapping(match.mapped, match.score, mapped_subflows)
             def _print_subflow(x):
@@ -464,8 +457,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             formatted_output += ''.join( [ _print_subflow(x) for x in match.subflow_mappings])
 
             self.poutput(formatted_output)
-        # TODO split into 
-        # sauce = self.select('sweet salty', 'Sauce? ')
 
 
     parser = argparse.ArgumentParser(
