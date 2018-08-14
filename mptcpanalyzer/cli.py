@@ -19,6 +19,7 @@ import argparse
 import logging
 import os
 import subprocess
+import functools
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
@@ -90,6 +91,7 @@ def experimental(f):
     """
     Decorator checking that dataset has correct columns
     """
+    # @functools.wraps(f)
     def wrapped(self, *args, **kwargs):
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         return f(self, *args, **kwargs)
@@ -889,17 +891,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # def help_plot(self):
     #     self.do_plot("-h")
 
+    # @with_argparser_and_unknown_args(parser)
     def do_plot(self, cli_args, ):
         """
         global member used by others do_plot members *
         Loads required dataframes when necessary
         """
+        self.plot_parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
 
-        parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
-
-        subparsers = parser.add_subparsers(dest="plot_type", title="Subparsers",
+        subparsers = self.plot_parser.add_subparsers(dest="plot_type", title="Subparsers",
             help='sub-command help',)
         subparsers.required = True  # type: ignore
+
 
         def register_plots(ext, subparsers):
             """Adds a parser per plot"""
@@ -912,7 +915,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
         cli_args = shlex.split(cli_args)
-        args, unknown_args = parser.parse_known_args(cli_args)
+        args, unknown_args = self.plot_parser.parse_known_args(cli_args)
         # Allocate plot object
         plotter = self.plot_mgr[args.plot_type].obj
 
@@ -928,6 +931,24 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # pass unknown_args too ?
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
+    
+    def complete_plot(self, text, line, begidx, endidx):
+
+        print("complete plot")
+        
+        # look at https://github.com/python-cmd2/cmd2/blob/master/examples/tab_autocompletion.py#L528
+        library_subcommand_groups = {'plot_type': None}
+
+
+        completer = argparse_completer.AutoCompleter(self.plot_parser,
+                )
+        # subcmd_args_lookup=library_subcommand_groups)
+        tokens, _ = self.tokens_for_completion(line, begidx, endidx)
+        print("tokens", tokens)
+        results = completer.complete_command(tokens, text, line, begidx, endidx)
+        return results
+
+
 
     @with_category(CAT_GENERAL)
     def do_clean_cache(self, line):

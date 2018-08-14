@@ -66,7 +66,7 @@ class Plot:
         filterstream: bool = False,
         direction: bool = False, skip_subflows: bool = True,
         dst_host: bool=False,
-    ):
+    ) -> argparse_completer.ACArgumentParser:
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
