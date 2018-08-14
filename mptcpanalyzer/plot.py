@@ -9,6 +9,7 @@ from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 from typing import List, Tuple, Collection
+from cmd2 import argparse_completer
 import copy
 import abc
 import logging
@@ -81,7 +82,7 @@ class Plot:
             An argparse.ArgumentParser
 
         """
-        parser = argparse.ArgumentParser(
+        parser = argparse_completer.ACArgumentParser(
             parents=parent_parsers,
             add_help=False if len(parent_parsers) else True,
         )

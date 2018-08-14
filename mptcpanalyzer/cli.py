@@ -41,7 +41,7 @@ import numpy as np
 from typing import List, Any, Tuple, Dict, Callable, Set
 import cmd2
 import math
-from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category
+from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category, argparse_completer
 from enum import Enum, auto
 
 
@@ -67,15 +67,9 @@ histfile_size = 1000
 DestinationChoice = mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles])
 
 
-# class Categories(Enum):
-    # CAT_TCP = auto()
-    # CAT_MPTCP = auto()
-    # CAT_GENERAL = auto()
-
 CAT_TCP = "TCP related"
 CAT_MPTCP = "MPTCP related"
 CAT_GENERAL = "Tool"
-# CAT_REINJECTIONS = "Reinjections"
 
 def is_loaded(f):
     """
@@ -106,7 +100,7 @@ def gen_bicap_parser(protocol, dest=False):
     """
     protocol in ["mptcp", "tcp"]
     """
-    parser = argparse.ArgumentParser(
+    parser = argparse_completer.ACArgumentParser(
         description="""
         Empty description, please provide one
         """
@@ -114,11 +108,10 @@ def gen_bicap_parser(protocol, dest=False):
     parser.add_argument("pcap1", type=str, help="Capture file 1")
     parser.add_argument("pcap2", type=str, help="Capture file 2")
     parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
-    # TODO le rendre optionnel ?
     parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
 
     if dest:
-        parser.add_argument(
+        dest_action = parser.add_argument(
             '--destination',
             action="store",
             choices=DestinationChoice,
@@ -129,6 +122,8 @@ def gen_bicap_parser(protocol, dest=False):
             'Depends on mptcpstream'
         )
 
+        # tag the action objects with completion providers. This can be a collection or a callable
+        setattr(dest_action, argparse_completer.ACTION_ARG_CHOICES, static_list_directors)
     return parser
 
 
@@ -633,8 +628,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
     @experimental
-    # @with_category(CAT_REINJECTIONS)
-    # print tcp owd
     def do_print_owds(self, line):
 
         parser = gen_bicap_parser("tcp")
@@ -680,6 +673,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     #     print("TODO")
 
 
+    @with_category(CAT_MPTCP)
     @experimental
     # put when cmd2 gets bumped to 0.8.5
     # @with_category(CAT_REINJECTIONS)
@@ -787,7 +781,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
                 
 
-    @with_category(CAT_TCP)
+    @with_category(CAT_MPTCP)
     @is_loaded
     def do_list_reinjections(self, line):
         """
@@ -854,25 +848,28 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.prompt = "%s> " % os.path.basename(filename)
 
 
+    parser = argparse_completer.ACArgumentParser(
+    # parser = argparse.ArgumentParser(
+        description='Generate MPTCP stats & plots'
+    )
+    parser.add_argument(
+        "input_file", action="store",
+        help="Either a pcap or a csv file (in good format)."
+        "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
+        "If it can't find one (or with the flag --regen), it will generate a "
+        "csv from the pcap with the external tshark program.")
+    parser.add_argument(
+        "--regen", "-r", action="store_true",
+        help="Force the regeneration of the cached CSV file from the pcap input")
+    @with_argparser(parser)
     def do_load_pcap(self, args):
         """
         Load the file as the current one
         """
-        parser = argparse.ArgumentParser(
-            description='Generate MPTCP stats & plots'
-        )
-        parser.add_argument(
-            "input_file", action="store",
-            help="Either a pcap or a csv file (in good format)."
-            "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
-            "If it can't find one (or with the flag --regen), it will generate a "
-            "csv from the pcap with the external tshark program.")
-        parser.add_argument(
-            "--regen", "-r", action="store_true",
-            help="Force the regeneration of the cached CSV file from the pcap input")
-
-        args = parser.parse_args(shlex.split(args))
+        # args = parser.parse_args(shlex.split(args))
         self.load(args.input_file, args.regen)
+
+    complete_load_pcap = cmd2.Cmd.path_complete
 
     def do_plot(self, args, mgr=None):
         """
@@ -883,10 +880,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def help_plot(self):
         self.do_plot("-h")
 
-    def complete_plot(self, text, line, begidx, endidx):
-        types = self._get_available_plots()
-        l = [x for x in types if x.startswith(text)]
-        return l
+    # def complete_plot(self, text, line, begidx, endidx):
+    #     print("complete_plot")
+    #     print("text:", text)
+    #     types = self._get_available_plots()
+    #     l = [x for x in types if x.startswith(text)]
+    #     # return self.path_complete(text, line, begidx, endidx, dir_only=True)
+    #     # then we delegate to the plot complete function 
+    #     # complete_load_pcap = cmd2.Cmd.path_complete
+    #     return l
 
     def do_list_available_plots(self, args):
         """
@@ -907,7 +909,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         Loads required dataframes when necessary
         """
 
-        parser = argparse.ArgumentParser(
+        parser = argparse_completer.ACArgumentParser(
             description='Generate MPTCP stats & plots')
 
         subparsers = parser.add_subparsers(
@@ -931,13 +933,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # Allocate plot object
         plotter = self.plot_mgr[args.plot_type].obj
 
-        dargs = vars(args)  # 'converts' the namespace to for the syntax defin a dict
+        # 'converts' the namespace to for the syntax defin a dict
+        dargs = vars(args)  
 
-        # print(dargs)
-
+        # workaround argparse limitations to set as default both directions
         dargs.update(destinations= dargs.get("destinations") or mp.ConnectionRoles)
         dataframes = plotter.preprocess(**dargs)
         assert dataframes is not None, "Preprocess must return a list"
+        # pass unknown_args too ?
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
 
