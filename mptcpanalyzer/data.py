@@ -13,6 +13,7 @@ import tempfile
 import pprint
 import functools
 from enum import Enum, auto
+import ast
 
 log = logging.getLogger(__name__)
 slog = logging.getLogger(__name__)
@@ -33,6 +34,14 @@ def _convert_role(x):
     Workaround https://github.com/pandas-dev/pandas/pull/20826
     """
     return ConnectionRoles[x] if x else np.nan
+
+def _load_list(x, field="set field to debug"):
+    """
+    Contrary to _convert_to_list
+    """
+    res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
+    return res
+
 
 
 def ignore(f1, f2):
@@ -141,6 +150,23 @@ artificial_fields = [
     Field("mptcpdest", "mptcpdest", dtype_role, "MPTCP destination"),
     Field("tcpdest", "tcpdest", dtype_role, "TCP destination")
 ]
+
+# could be generated from the fields
+default_converters = {
+    "tcpflags": _convert_flags,
+    # reinjections, converts to list of integers
+    "reinjection_of": functools.partial(_load_list, field="reinjectedOfSender"),
+    "reinjected_in": functools.partial(_load_list, field="reinjectedInSender"),
+
+    # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
+    "mptcpdest": _convert_role,
+    "tcpdest": _convert_role,
+
+    # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
+    # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
+    # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
+    # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
+}
 
 class PacketMappingMode(Enum):
     """
@@ -253,7 +279,8 @@ def load_merged_streams_into_pandas(
             log.info("Loading from cache %s" % cachename)
             csv_fields = tshark_config.get_fields("name", "type")
             # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
-            def _gen_dtypes(fields):
+
+            def _gen_dtypes(fields) -> Dict[str, Any]:
                 dtypes = {} # type: ignore
                 # for suffix in [ SENDER_SUFFIX, RECEIVER_SUFFIX]:
                 for _rename in [ _sender, _receiver ]:
@@ -265,67 +292,35 @@ def load_merged_streams_into_pandas(
                     # add generated field dtypes
                     dtypes.update({ _rename(f.fullname): f.type for f in artificial_fields })
 
+                
+                # these are overrides from the generated dtypes
                 dtypes.update({
                     # during the merge, we join even unmapped packets so some entries
                     # may be empty => float64
                     _sender("packetid"): np.float64,
                     _receiver("packetid"): np.float64,
-                    # there is a bug 
-                    # https://github.com/pandas-dev/pandas/pull/20826
-                    # i.e., CategoricalDtype is based on strings so it's not practical yet
-                    # 'mptcpdest': dtype_role,
-                    # 'tcpdest': dtype_role,
-                    # '_merge': 
                 })
 
                 return dtypes
 
-            def _gen_converters():
-                # converters={
-                #     "tcp.flags": lambda x: int(x, 16),
-                #     # reinjections, converts to list of integers
-                #     # "mptcp.related_mapping": lambda x: x.split(','),
-                # },
+            def _gen_converters() -> Dict[str, Callable]:
 
-                source = {
-                    "tcpflags": _convert_flags,
-                    # reinjections, converts to list of integers
-                    "reinjection_of": functools.partial(_load_list, field="reinjectedOfSender"),
-                    "reinjected_in": functools.partial(_load_list, field="reinjectedInSender"),
-
-                    # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
-                    "mptcpdest": _convert_role,
-                    "tcpdest": _convert_role,
-
-                    # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
-                    # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
-                    # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
-                    # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
-                }
                 converters = {}   # type: Dict[str, Any]
-                for name, converter in source.items():
+                for name, converter in default_converters.items():
                     converters.update({ _sender(name):converter, _receiver(name): converter})
                     
                 return converters
 
 
-            def _load_list(x, field="set field to debug"):
-                """
-                Contrary to _convert_to_list
-                """
-                res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
-                return res
-
 
             with open(cachename) as fd:
-                import ast
                 dtypes = _gen_dtypes(csv_fields)
                 converters = _gen_converters(), 
                 # more recent versions can do without it
                 # pd.set_option('display.max_rows', 200)
                 # pd.set_option('display.max_colwidth', -1)
-                print("dtypes=", dict(dtypes))
-                print("converters=", dict(converters))
+                print("dtypes=", dtypes)
+                print("converters=", converters)
                 merged_df = pd.read_csv(
                     fd,
                     skip_blank_lines=True,
@@ -644,6 +639,8 @@ def merge_tcp_dataframes_known_streams(
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res = generate_tcp_directional_owd_df(sender_df, receiver_df, dest)
         res['tcpdest'] = dest
+
+        # TODO here we should 
         total = pd.concat([res, total])
 
     # TODO move elsewhere, to outer function
@@ -721,7 +718,7 @@ def merge_mptcp_dataframes_known_streams(
     # prepare metadata
     # we should write mptcpdest before the column names change
     # finally we set the mptcp destination to help with further processing
-    df1['mptcpdest'] = np.nan
+    # df1['mptcpdest'] = np.nan
     for destination in ConnectionRoles:
         q = main_connection.generate_direction_query(destination)
         df = df1.query(q).index

@@ -544,7 +544,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
         # need to compute the destinations before dropping syn from the dataframe
-        df['tcpdest'] = np.nan;
+        # df['tcpdest'] = np.nan;
         for streamid, subdf in df.groupby("tcpstream"):
             con = TcpConnection.build_from_dataframe(df, streamid)
             df = mpdata.tcpdest_from_connections(df, con)
