@@ -93,8 +93,34 @@ Look at [Examples](#Examples)
 
 # Examples
 
-Plot One Way Delays from a connection 
-plot owd_tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0
+Plot One Way Delays from a connection:
+`plot owd_tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0`
+
+Plot tcp sequence numbers in both directions:
+`plot tcp_attr`
+
+Get a summary of an mptcp connection
+```
+> load_pcap examples/server_2_filtered.pcapng
+> summary 0
+```
+
+
+Map tcp.stream between server and client pcaps:
+```
+> map_mptcp_connection examples/client_2_filtered.pcapng examples/client_2_filtered.pcapng 0
+2 mapping(s) found
+0 <-> 0.0 with score=inf  <-- should be a correct match
+-tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=inf
+-tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=inf
+-tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=inf
+-tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=inf
+0 <-> 1.0 with score=0 
+-tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 1: 10.0.0.1:33784  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=30
+-tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 3: 10.0.0.1:57491  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=30
+-tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 5: 11.0.0.1:50077  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=30
+-tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 7: 11.0.0.1:50007  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=30
+```
 
 # How to contribute
 

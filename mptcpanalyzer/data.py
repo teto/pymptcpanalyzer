@@ -429,6 +429,7 @@ def load_into_pandas(
                 # so we pop tcp.flags
                 # dtype=dtypes.pop("tcp.flags"),
                 dtype=dtypes,
+                # TODO factorize with the other one
                 converters={
                     "tcp.flags": _convert_flags,
                     # reinjections, converts to list of integers
@@ -458,7 +459,6 @@ def load_into_pandas(
 
                 # won't work because it passes a Serie (mutable)_
                 temp = pd.DataFrame(data, columns=hashing_fields)
-                        # [['expected_token', 'sport', 'dport', 'rwnd', 'sendkey',  'tcpflags', 'dss_dsn', 'dss_rawack', 'dss_ssn', 'tcpseq', 'tcplen' ]]
                 data["hash"] = temp.apply(lambda x: hash(tuple(x)), axis = 1)
 
     except Exception as e:
@@ -472,28 +472,13 @@ def load_into_pandas(
     # column_names = set(data.columns)
     # print("column_names", column_names)
 
-
-    data = data.assign({ f.fullname: np.nan for f in artificial_fields })
-        # tcpdest=np.nan, mptcpdest=np.nan)
+    data = data.assign(**{ f.fullname: np.nan for f in artificial_fields })
     column_names = set(data.columns)
-    # TODO automate that afterwards
     print("column_names", column_names)
-    data = data.astype(dtype = artifical_dtypes
-            # {
-        # "tcpdest": dtype_role,
-        # "mptcpdest": dtype_role,
-    # }
-    , copy=False)
-    # data["tcpdest"] = np.
-    # data = pd.concat([ data, new ],
-            # ignore_index=False,
-           # copy=False,
-           # )
-
+    data = data.astype(dtype = artifical_dtypes, copy=False)
     # for missing_field in names - column_names:
     #     print("missing field", missing_field)
     #     data[missing_field] = np.nan
-
     # data.astype({ })
     # data.assign( { missing_field: np.nan for missing_field in (names - column_names) } )
 
@@ -513,7 +498,7 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
     )
 
 
-# TODO should be made more programmatic
+# TODO make more programmatic
 def merge_tcp_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame,
     df1_tcpstream: int
