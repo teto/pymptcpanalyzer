@@ -118,7 +118,7 @@ def gen_bicap_parser(protocol, dest=False):
             action="store",
             choices=DestinationChoice,
             type=lambda x: mp.ConnectionRoles[x],
-            default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
+            # default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
             help='Filter flows according to their direction'
             '(towards the client or the server)'
             'Depends on mptcpstream'
@@ -891,18 +891,37 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # def help_plot(self):
     #     self.do_plot("-h")
 
-    # @with_argparser_and_unknown_args(parser)
+
+    # fake_parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
+
+    # load_pcap1 = fake_parser.add_argument("pcap1", action="store", help="first to load")
+    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+
+    # @with_argparser_and_unknown_args(fake_parser)
+    # def do_plot(self, cli_args, unknown):
     def do_plot(self, cli_args, ):
         """
         global member used by others do_plot members *
         Loads required dataframes when necessary
         """
-        self.plot_parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
+        # self.plot_parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
+        self.plot_parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
 
         subparsers = self.plot_parser.add_subparsers(dest="plot_type", title="Subparsers",
             help='sub-command help',)
         subparsers.required = True  # type: ignore
 
+        # self.plot_parser.add_argument(
+        #     'destination',
+        #     action="store",
+        #     choices=DestinationChoice,
+        #     type=lambda x: mp.ConnectionRoles[x],
+        #     help='Filter flows according to their direction'
+        #     '(towards the client or the server)'
+        #     'Depends on mptcpstream'
+        # )
+
+        # setattr(self.do_plot.cmd_wrapper, 'argparse', self.plot_parser)
 
         def register_plots(ext, subparsers):
             """Adds a parser per plot"""
@@ -932,21 +951,22 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
     
-    def complete_plot(self, text, line, begidx, endidx):
 
-        print("complete plot")
+    # def complete_plot(self, text, line, begidx, endidx):
+
+    #     print("complete plot")
         
-        # look at https://github.com/python-cmd2/cmd2/blob/master/examples/tab_autocompletion.py#L528
-        library_subcommand_groups = {'plot_type': None}
+    #     # look at https://github.com/python-cmd2/cmd2/blob/master/examples/tab_autocompletion.py#L528
+    #     library_subcommand_groups = {'plot_type': None}
 
 
-        completer = argparse_completer.AutoCompleter(self.plot_parser,
-                )
-        # subcmd_args_lookup=library_subcommand_groups)
-        tokens, _ = self.tokens_for_completion(line, begidx, endidx)
-        print("tokens", tokens)
-        results = completer.complete_command(tokens, text, line, begidx, endidx)
-        return results
+    #     completer = argparse_completer.AutoCompleter(self.plot_parser,
+    #             )
+    #     # subcmd_args_lookup=library_subcommand_groups)
+    #     tokens, _ = self.tokens_for_completion(line, begidx, endidx)
+    #     print("tokens", tokens)
+    #     results = completer.complete_command(tokens, text, line, begidx, endidx)
+    #     return results
 
 
 

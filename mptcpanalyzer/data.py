@@ -162,10 +162,6 @@ default_converters = {
     "mptcpdest": _convert_role,
     "tcpdest": _convert_role,
 
-    # "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
-    # "mptcp.reinjection_listing": functools.partial(_convert_to_list, field="reinjectedIn"),
-    # "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
-    # "mptcp.duplicated_dsn": lambda x: list(map(int, x.split(','))) if x is not None else np.nan,
 }
 
 class PacketMappingMode(Enum):
@@ -179,6 +175,17 @@ class PacketMappingMode(Enum):
     """
     HASH = auto()
     SCORE = auto()
+
+
+def drop_syn(df: pd.DataFrame, mptcp: bool=True) -> pd.DataFrame:
+    """
+    for mptcp it's as easy as removing packets with MP_CAPABLE or MP_JOIN
+    """
+
+    # syns = df[df.tcpflags == mp.TcpFlags.SYN]
+
+    df.tcpflags.filter()
+    df.tcpflags.filter()
 
 
 def load_merged_streams_into_pandas(
@@ -270,6 +277,7 @@ def load_merged_streams_into_pandas(
                 sep=tshark_config.delimiter,
             )
 
+            # la on a perdu tcpdest est devenu object
             print("DEBUG=", dict(merged_df.dtypes))
 
             # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
@@ -425,15 +433,7 @@ def load_into_pandas(
                 # dtype=dtypes.pop("tcp.flags"),
                 dtype=dtypes,
                 # TODO factorize with the other one
-                converters={
-                    "tcp.flags": _convert_flags,
-                    # reinjections, converts to list of integers
-                    "mptcp.reinjection_of": functools.partial(_convert_to_list, field="reinjectionOf"),
-                    "mptcp.reinjected_in": functools.partial(_convert_to_list, field="reinjectedIn"),
-
-                    "mptcpdest": _convert_role,
-                    "tcpdest": _convert_role,
-                },
+                converters=default_converters,
                 # nrows=10, # useful for debugging purpose
             )
             data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
@@ -621,7 +621,8 @@ def merge_tcp_dataframes_known_streams(
     # TODO reorder columns to have packet ids first !
 
     # columns = generate_columns([], [], suffixes)
-    total = None  #  pd.DataFrame()
+    total = pd.DataFrame()
+
     for dest in ConnectionRoles:
 
         log.debug("Looking at destination %s" % dest)
@@ -638,8 +639,18 @@ def merge_tcp_dataframes_known_streams(
 
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res = generate_tcp_directional_owd_df(sender_df, receiver_df, dest)
-        res['tcpdest'] = dest
 
+
+        print("res dtype before setting tcpdest=", res.dtypes.tcpdest)
+        print("dest type %r" % dest)
+        # here we have yet ANOTHER PANDAS BUG !
+        # just assigning res['tcpdest'] = dest changes the dtype of the column
+        res['tcpdest'] = dest
+        res['tcpdest'] = res['tcpdest'].astype(dtype_role, copy=False)
+
+        # la c un object
+        print("res dtype=", res.dtypes.tcpdest)
+        print("total dtype=", total.dtypes)
         # TODO here we should 
         total = pd.concat([res, total])
 
@@ -779,39 +790,6 @@ def generate_tcp_directional_owd_df(
 
     mapped_df = map_tcp_packets(sender_df, receiver_df)
 
-    # on sender_id = receiver_mapped_packetid
-
-    # this is the stochastic part
-    # print("== DEBUG START ===")
-    # print("Mapped index:")
-    # print(mapped_df[["rcv_pktid", "packetid"]].head())
-    # # print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
-    # # print(mapped_df[["abstime", "tcpseq", "sendkey"]].head())
-    # print("== DEBUG END ===")
-    # print("Mapped df:")
-    # print(mapped_df)
-    # print("receiver df:")
-    # print(receiver_df)
-    # if mapped_df.rcv_pktid.is_unique is False:
-    #     log.warn("There seems to be an error: some packets were mapped several times.")
-    # # check for nan/ drop them
-    # if mapped_df.rcv_pktid.is_unique is False:
-    #     log.warn("There seems to be an error: some packets were mapped several times.")
-    # res = pd.merge(
-    #     mapped_df, receiver_df,
-    #     left_on="rcv_pktid",
-    #     right_on="packetid",
-    #     # right_index=True,
-    #     # TODO en fait suffit d'inverser les suffixes, h1, h2
-    #     suffixes=suffixes, # how to suffix columns (sender/receiver)
-    #     how="inner", #
-    #     indicator=True # adds a "_merge" suffix
-    # )
-    # newcols = {
-    #     'score' + suffixes[0]: 'score',
-    # }
-    # res.rename(columns=newcols, inplace=True)
-
     res = mapped_df
     res['owd'] = res[ _receiver('abstime') ] - res[ _sender('abstime')]
 
@@ -925,8 +903,7 @@ def map_tcp_packets(
 
 def map_tcp_packets_via_hash(
     sender_df, receiver_df, 
-    *kargs,
-    **kwargs
+    *kargs, **kwargs
     ):
     """
     Merge on hash of different fields
@@ -939,6 +916,8 @@ def map_tcp_packets_via_hash(
     # print(sender_df[debug_cols].head(5))
     # print("RECEIVER")
     # print(receiver_df[debug_cols].head(5))
+    print("sender_df dtype=", sender_df.dtypes.tcpdest)
+    print("receiver_df dtype=", receiver_df.dtypes.tcpdest)
 
     # todo we could now use merge_asof
     res = pd.merge(
@@ -949,13 +928,14 @@ def map_tcp_packets_via_hash(
         # we want to know how many packets were not mapped correctly, adds the _merge column
         # can take values "left_only"/ "right_only" or both
         indicator=True ,
-        validate="one_to_one",
+        validate="one_to_one", # can slow process
     )
 
     #print("hash-based Map")
     ## print(sender_df[['hash', 'packetid']].head(20))
     ## print(receiver_df[['hash', 'packetid']].head(20))
-    ## 
+
+    print("res AFTER MERGE dtype=", res.dtypes.tcpdest)
     print(res.columns)
     #print(hashing_fields)
     #print(res[TCP_DEBUG_FIELDS].head(20))

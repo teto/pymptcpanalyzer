@@ -94,7 +94,7 @@ Look at [Examples](#Examples)
 # Examples
 
 Plot One Way Delays from a connection:
-`plot owd_tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0`
+`plot owd_tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0 --display`
 
 Plot tcp sequence numbers in both directions:
 `plot tcp_attr`

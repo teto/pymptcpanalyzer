@@ -1,4 +1,5 @@
 import mptcpanalyzer as mp
+from mptcpanalyzer import _receiver, _sender
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer.data as woo
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -98,8 +99,6 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         """
             
-        # TODO maybe we can get rid of the following depending on how OWD is computed
-
         # if we can't load that file from cache
         try:
 
@@ -113,73 +112,6 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # TODO how does it get the config
                 self.tshark_config,
             )
-        #    cache = mp.get_cache()
-
-        #    valid, cachename = cache.get(cacheid)
-        #    log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
-        #    print(kwargs)
-
-        #    if not valid:
-        #        # generate h1/h2 cache
-        #        dataframes = super().preprocess(**kwargs)
-        #        tcpstream = mptcpstream  # we kept mptcpstream as a convenience
-        #        print("FIX tcpstreamid AFTER DEBUG")
-        #        tcpstream = 0 # we kept mptcpstream as a convenience
-
-        #        # we want to save results as a single file (easier to loader etc...)
-        #        # so we concat ?
-        #        # self.generate_owd_df(dataframes, cachename, **kwargs)
-        #        # print("len=%d" % len(dataframes))
-        #        assert len(dataframes) == 2, "Preprocess host1 and host2 pcaps"
-        #        h1_df, h2_df = dataframes
-
-        #        total = woo.merge_tcp_dataframes(h1_df, h2_df, tcpstream)
-        #        # 'packetid_h1', 'packetid_h2',
-        #        # 'dest',
-        #        firstcols = [ 'packetid_sender', 'packetid_receiver', 'owd']
-        #        total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
-        #        print("Saving into %s", cachename)
-        #        total.to_csv(
-        #            cachename, # output
-        #            # columns=columns,
-        #            index=False,
-        #            header=True,
-        #            # sep=main.config["DEFAULT"]["delimiter"],
-        #        )
-        #        return total
-
-
-        #    else:
-        #        log.info("Loaded from cache %s" % cachename)
-        #        # pd.read_csv()
-        #        with open(cachename) as fd:
-        #            # first line is metadata
-        #            # TODO: creer classe metadata read/write ?
-        #            # metadata = fd.readline()
-
-        #            data = pd.read_csv(
-        #                fd,
-        #                # skip_blank_lines=True,
-        #                # hum not needed with comment='#'
-        #                comment='#',
-        #                # we don't need 'header' when metadata is with comment
-        #                header=0, # read column names from row 2 (before, it's metadata)
-        #                # skiprows
-        #                # sep=self.tshark_config.delimiter,
-        #                # dtype=dtypes,
-        #                # converters={
-        #                #     "tcp.flags": lambda x: int(x, 16),
-        #                #     # reinjections, converts to list of integers
-        #                #     # "mptcp.related_mapping": lambda x: x.split(','),
-        #                # },
-        #                # memory_map=True, # could speed up processing
-        #            )
-        #            # TODO:
-        #            # No columns to parse from file
-        #            # data.rename(inplace=True, columns=config.get_fields("fullname", "name"))
-        #            log.debug("Column names: %s", data.columns)
-
-        #        return data
 
             return df
 
@@ -189,7 +121,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             # log.debug("Could not load cached results %s" % cachename)
 
 
-    def plot(self, df_results, mptcpstream=None, **kwargs):
+    def plot(self, res, mptcpstream=None, **kwargs):
         """
         Ideally it should be mapped automatically
         For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
@@ -202,7 +134,6 @@ class TcpOneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
 
-        res = df_results
         print("columns", res.columns)
         print("info", res.info())
 
@@ -219,7 +150,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         # exit(1)
 
         # print(res["tcpdest"].head())
-        cols = "tcpdest"
+        # cols = "tcpdest"
         # cols = ["tcpstream_h1", "tcpstream_h2", ]
         # print(res)
         # print(res.columns)
@@ -227,13 +158,13 @@ class TcpOneWayDelay(plot.Matplotlib):
 # df.reset_index(drop=True)
         # grouped_by = res.groupby(by=cols, sort=False)
         # print(res.head())
-        print(res[['tcpdest']])
+        # print(res[['tcpdest']])
         # print(res[:,'tcpdest'])
-        grouped_by = res.groupby(by=cols, )
-        print(grouped_by.head())
-        print(len(grouped_by)) # len of 2 which is good, but why
+        # grouped_by = res.groupby(by=cols, )
+        # print(grouped_by.head())
+        # print(len(grouped_by)) # len of 2 which is good, but why
 
-        for idx, df in grouped_by:
+        for idx, df in res.groupby(_sender("tcpdest")):
             print("ID=" , idx)
             print("df = ", df)
 
@@ -278,7 +209,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # TODO add units
         axes.set_xlabel("Time (s)")
-        axes.set_ylabel("One Way Delay (s)")
+        axes.set_ylabel("One Way Delay")
         return fig
 
 

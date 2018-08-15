@@ -65,6 +65,20 @@ class TcpFlags(Flag):
     ECE = 64
     CWR = 128
 
+class MpTcpOptions(IntEnum):
+    """
+    Real value of the options.
+    Useful to filter the dataframe
+    """
+
+    MP_CAPABLE = 0
+    MP_JOIN    = 1
+    MP_DSS =  2
+    MP_ADD_ADDR =  3
+    MP_REMOVE_ADDR = 4 
+    MP_PRIO = 5
+    MP_FAIL = 6
+    MP_FASTCLOSE = 7
 
 # hopefully mypy will work with IntEnum's too
 class ConnectionRoles(Enum):

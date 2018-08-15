@@ -127,6 +127,8 @@ class TsharkConfig:
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", np.float64, True)
         self.add_field("tcp.flags", "tcpflags", str, False)
+        # should be a list
+        self.add_field("tcp.option_kind", "tcpoptions", None, False)
         self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number")
         self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
         self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment")
