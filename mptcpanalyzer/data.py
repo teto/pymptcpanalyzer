@@ -157,6 +157,7 @@ default_converters = {
     # reinjections, converts to list of integers
     "reinjection_of": functools.partial(_load_list, field="reinjectedOfSender"),
     "reinjected_in": functools.partial(_load_list, field="reinjectedInSender"),
+    "tcpoptions": functools.partial(_load_list, field="tcpOptions"),
 
     # there is a bug in pandas see https://github.com/pandas-dev/pandas/pull/20826
     "mptcpdest": _convert_role,
@@ -184,8 +185,9 @@ def drop_syn(df: pd.DataFrame, mptcp: bool=True) -> pd.DataFrame:
 
     # syns = df[df.tcpflags == mp.TcpFlags.SYN]
 
-    df.tcpflags.filter()
-    df.tcpflags.filter()
+    syn_index = df.tcpflags.where(lambda x: x & mp.TcpFlags.SYN).dropna()
+
+    return df.drop(syn_index.Index)
 
 
 def load_merged_streams_into_pandas(
@@ -643,10 +645,10 @@ def merge_tcp_dataframes_known_streams(
 
         print("res dtype before setting tcpdest=", res.dtypes.tcpdest)
         print("dest type %r" % dest)
-        # here we have yet ANOTHER PANDAS BUG !
-        # just assigning res['tcpdest'] = dest changes the dtype of the column
-        res['tcpdest'] = dest
-        res['tcpdest'] = res['tcpdest'].astype(dtype_role, copy=False)
+        # pandas trick to avoid losing dtype 
+        # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
+        res['tcpdest'][:] = dest
+        # res['tcpdest'] = res['tcpdest'].astype(dtype_role, copy=False)
 
         # la c un object
         print("res dtype=", res.dtypes.tcpdest)
