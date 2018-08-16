@@ -88,7 +88,7 @@ class Plot:
         )
 
         for name, bitfield in self.input_pcaps:
-            load_pcap = parser.add_argument(name, action="store", type=str, help='Pcap file (or its associated csv)')
+            load_pcap = parser.add_argument(name, action="store", type=str, help='Pcap file')
             setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
 
             if bitfield & PreprocessingActions.FilterStream:

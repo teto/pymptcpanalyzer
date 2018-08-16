@@ -107,8 +107,10 @@ def gen_bicap_parser(protocol, dest=False):
         Empty description, please provide one
         """
     )
-    parser.add_argument("pcap1", type=str, help="Capture file 1")
-    parser.add_argument("pcap2", type=str, help="Capture file 2")
+    load_pcap1 = parser.add_argument("pcap1", type=str, help="Capture file 1")
+    load_pcap2 = parser.add_argument("pcap2", type=str, help="Capture file 2")
+    for action in [load_pcap1, load_pcap2]:
+        setattr(action, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
     parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
     parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
 
@@ -672,23 +674,24 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print("you need a wireshark > 19 June 2018 with commit dac91db65e756a3198616da8cca11d66a5db6db7...")
 
 
+    parser = gen_bicap_parser("mptcp")
+    parser.description = """
+        Qualify reinjections of the connection.
+        You might want to run map_mptcp_connection first to find out 
+        what map to which
+        """
+    @with_argparser_and_unknown_args(parser)
     @with_category(CAT_MPTCP)
     @experimental
-    def do_qualify_reinjections(self, line):
+    def do_qualify_reinjections(self, args, unknown):
         """
         test with:
             mp qualify_reinjections 0
 
         TODO move the code into a proper function
         """
-        parser = gen_bicap_parser("mptcp")
-        parser.description = """
-            Qualify reinjections of the connection.
-            You might want to run map_mptcp_connection first to find out 
-            what map to which
-            """
 
-        args = parser.parse_args(shlex.split(line))
+        # args = parser.parse_args(shlex.split(line))
 
         df_all = load_merged_streams_into_pandas(
             args.pcap1,
