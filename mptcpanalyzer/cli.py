@@ -184,7 +184,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.debug = True;  #  for now
         self.set_posix_shlex = True  # need cmd2 >= 0.8
 
-        # LOAD PLOTS
+        ###  Load Plots
         ######################
         # you can  list available plots under the namespace
         # https://pypi.python.org/pypi/entry_point_inspector
@@ -206,8 +206,25 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             on_load_failure_callback=self.stevedore_error_handler
         )
 
-        # if loading commands from a file, we disable prompt not to pollute
-        # output
+        ###  do_plot parser
+        ######################
+        # not my first choice but to accomodate cmd2 constraints
+        # see https://github.com/python-cmd2/cmd2/issues/498
+        subparsers = MpTcpAnalyzerCmdApp.plot_parser.add_subparsers(dest="plot_type",
+                title="Subparsers", help='sub-command help',)
+        subparsers.required = True  # type: ignore
+
+        def register_plots(ext, subparsers):
+            """Adds a parser per plot"""
+            # check if dat is loaded
+            parser = ext.obj.default_parser()
+            assert parser, "Forgot to return parser"
+            subparsers.add_parser(ext.name, parents=[parser], add_help=False)
+
+        self.plot_mgr.map(register_plots, subparsers)
+
+
+        # if loading commands from a file, we disable prompt not to pollute output
         if stdin != sys.stdin:
             log.info("Disabling prompt because reading from stdin")
             self.use_rawinput = False
@@ -895,49 +912,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     #     self.do_plot("-h")
 
 
-    # fake_parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
-
-    # load_pcap1 = fake_parser.add_argument("pcap1", action="store", help="first to load")
-    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-
-    # @with_argparser_and_unknown_args(fake_parser)
-    # def do_plot(self, cli_args, unknown):
-    def do_plot(self, cli_args, ):
+    plot_parser = argparse_completer.ACArgumentParser(prog='plot', description='Generate MPTCP stats & plots')
+    @with_argparser_and_unknown_args(plot_parser)
+    def do_plot(self, args, unknown):
         """
         global member used by others do_plot members *
         Loads required dataframes when necessary
         """
-        # self.plot_parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
-        self.plot_parser = argparse.ArgumentParser(description='Generate MPTCP stats & plots')
 
-        subparsers = self.plot_parser.add_subparsers(dest="plot_type", title="Subparsers",
-            help='sub-command help',)
-        subparsers.required = True  # type: ignore
-
-        # self.plot_parser.add_argument(
-        #     'destination',
-        #     action="store",
-        #     choices=DestinationChoice,
-        #     type=lambda x: mp.ConnectionRoles[x],
-        #     help='Filter flows according to their direction'
-        #     '(towards the client or the server)'
-        #     'Depends on mptcpstream'
-        # )
-
-        # setattr(self.do_plot.cmd_wrapper, 'argparse', self.plot_parser)
-
-        def register_plots(ext, subparsers):
-            """Adds a parser per plot"""
-            # check if dat is loaded
-            parser = ext.obj.default_parser()
-            assert parser, "Forgot to return parser"
-            subparsers.add_parser(ext.name, parents=[parser], add_help=False)
-
-        self.plot_mgr.map(register_plots, subparsers)
-
-
-        cli_args = shlex.split(cli_args)
-        args, unknown_args = self.plot_parser.parse_known_args(cli_args)
         # Allocate plot object
         plotter = self.plot_mgr[args.plot_type].obj
 
@@ -954,25 +936,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
     
-
-    # def complete_plot(self, text, line, begidx, endidx):
-
-    #     print("complete plot")
-        
-    #     # look at https://github.com/python-cmd2/cmd2/blob/master/examples/tab_autocompletion.py#L528
-    #     library_subcommand_groups = {'plot_type': None}
-
-
-    #     completer = argparse_completer.AutoCompleter(self.plot_parser,
-    #             )
-    #     # subcmd_args_lookup=library_subcommand_groups)
-    #     tokens, _ = self.tokens_for_completion(line, begidx, endidx)
-    #     print("tokens", tokens)
-    #     results = completer.complete_command(tokens, text, line, begidx, endidx)
-    #     return results
-
-
-
     @with_category(CAT_GENERAL)
     def do_clean_cache(self, line):
         """
