@@ -400,6 +400,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         mappings = map_tcp_stream(df2, main_connection)
 
+        self.poutput("Trying to map %s" % (main_connection,))
         self.poutput("%d mapping(s) found" % len(mappings))
 
         for match in mappings:

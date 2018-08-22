@@ -4,7 +4,7 @@ import os
 import tempfile
 import numpy as np
 from collections import namedtuple
-from typing import List
+from typing import List, Dict
 from enum import Enum
 
 # log = logging.getLogger(__name__)
@@ -39,8 +39,10 @@ name: shortname used in mptcpanalyzer
 type: python type pandas should convert this field to be careful that pandas integers
 can't be NA, which is why we use floats mot of the time, which is a waste.
 label: used when plotting
+
+hash: take this hash into account ?
 """
-Field = namedtuple('Field', ['fullname', 'name', 'type', 'label', ])
+Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash' ])
 
 
 class TsharkConfig:
@@ -80,7 +82,8 @@ class TsharkConfig:
             # Disable DSS checks which consume quite a lot
             "mptcp.analyze_mptcp": True,
         }
-        self._tshark_fields = []  # type: List[Field]
+        # self._tshark_fields = []  # type: List[Field]
+        self._tshark_fields = {}  # type: Dict[str, Field]
 
         # the split between option is to potentially allow for tcp-only wireshark inspection
         # (much faster)
@@ -112,56 +115,58 @@ class TsharkConfig:
 
 
     def add_basic_fields(self):
-        self.add_field("frame.number", "packetid", np.int64, False, )
-        self.add_field("frame.time_relative", "reltime", None, False, )
-        self.add_field("frame.time_delta", "time_delta", None, False, )
-        self.add_field("frame.time_epoch", "abstime", None, False, )
-        self.add_field("_ws.col.ipsrc", "ipsrc", str, False, )
-        self.add_field("_ws.col.ipdst", "ipdst", str, False, )
-        self.add_field("ip.src_host", "ipsrc_host", str, False)
-        self.add_field("ip.dst_host", "ipdst_host", str, False)
-        self.add_field("tcp.stream", "tcpstream", np.float64, False)
-        self.add_field("tcp.srcport", "sport", np.float, False)
-        self.add_field("tcp.dstport", "dport", np.float, False)
+        self.add_field("frame.number", "packetid", np.int64, False, False)
+        self.add_field("frame.time_relative", "reltime", None, False, False)
+        self.add_field("frame.time_delta", "time_delta", None, False, False)
+        self.add_field("frame.time_epoch", "abstime", None, False, False)
+        self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
+        self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
+        self.add_field("ip.src_host", "ipsrc_host", str, False, False)
+        self.add_field("ip.dst_host", "ipdst_host", str, False, False)
+        self.add_field("tcp.stream", "tcpstream", np.float64, False, False)
+        self.add_field("tcp.srcport", "sport", np.float, False, False)
+        self.add_field("tcp.dstport", "dport", np.float, False, False)
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
-        self.add_field("tcp.window_size", "rwnd", np.float64, True)
-        self.add_field("tcp.flags", "tcpflags", str, False)
-        # should be a list
-        self.add_field("tcp.option_kind", "tcpoptions", None, False)
-        self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number")
-        self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length")
-        self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment")
-        self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64, "TCP timestamp tsval")
-        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64, "TCP timestamp tsecr")
+        self.add_field("tcp.window_size", "rwnd", np.float64, True, True)
+        self.add_field("tcp.flags", "tcpflags", str, False, True)
+        # should be a list, TODO set hash to true
+        self.add_field("tcp.option_kind", "tcpoptions", object, False, False)
+        self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number", True)
+        self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length", True)
+        self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment", True)
+        self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64, "TCP timestamp tsval", True)
+        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64, "TCP timestamp tsecr", True)
 
     def add_mptcp_fields(self, advanced=True):
         # remove this one ?
-        self.add_field("mptcp.expected_token", "expected_token", str, False)
-        self.add_field("mptcp.stream", "mptcpstream", np.float, False)
-        self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False)
-        self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False)
-        self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False)
-        self.add_field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False)
-        self.add_field("tcp.options.mptcp.subtype", "subtype", str, False) # can contain "2,4"
-        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64, "DSS Sequence Number")
-        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64, "DSS raw ack")
-        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number")
-        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length")
-        self.add_field("tcp.options.mptcp.addrid", "addrid", None, False)
-        self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number")
-        self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack")
-        self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number")
+        self.add_field("mptcp.expected_token", "expected_token", str, False, False)
+        self.add_field("mptcp.stream", "mptcpstream", np.float, False, False)
+        self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False, True)
+        self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False, True)
+        self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False, True)
+        self.add_field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False, True)
+        # this is a list really; can contain "2,4"
+        self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)
+        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64, "DSS Sequence Number", True)
+        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64, "DSS raw ack", True)
+        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number", True)
+        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length", True)
+        self.add_field("tcp.options.mptcp.addrid", "addrid", None, False, True)
+        self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number", False)
+        self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack", False)
+        self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number", False)
 
         if advanced:
-            self.add_field("mptcp.related_mapping", "related_mappings", object, "DSS")
+            self.add_field("mptcp.related_mapping", "related_mappings", object, "DSS", False)
             # self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
             # it should be a list of integer
-            self.add_field("mptcp.reinjection_of", "reinjection_of", object, "Reinjection")
-            self.add_field("mptcp.reinjected_in", "reinjected_in", object, "Reinjection list")
+            self.add_field("mptcp.reinjection_of", "reinjection_of", object, "Reinjection", False)
+            self.add_field("mptcp.reinjected_in", "reinjected_in", object, "Reinjection list", False)
 
-    def add_field(self, fullname, name, type, label):
+
+    def add_field(self, fullname: str, name: str, _type, label, _hash: bool):
         """
         It's kinda scary to use float everywhere but when using integers, pandas
         asserts at the first NaN
@@ -182,26 +187,29 @@ class TsharkConfig:
 
         """
         # TODO check for duplicates
-        self._tshark_fields.append(
-            Field(fullname, name, type, label)
-        )
+        # TODO record as a dict instead
+        if self._tshark_fields.get(name):
+            raise Exception("Field %s already registered" % name)
+        self._tshark_fields.update(name=Field(fullname,  _type, label, _hash))
 
-    def get_fields(self, field, field2=None):
-        """
-        TODO maybe we can use groupby instead
-        Args:
-            field: should be a string in Field
-            field2: If field2 is None, returns a list with the field asked, else
+    # def get_fields(self, field):
+    #     """
+    #     TODO maybe we can use groupby instead
+    #     Args:
+    #         field: should be a string in Field
+    #         field2: If field2 is None, returns a list with the field asked, else
 
-        Returns:
-            a dict( field values: field2 values)
-        """
-        l = self._tshark_fields
-        keys = map(lambda x: getattr(x, field), l)
-        if field2 is None:
-            return keys
+    #     Returns:
+    #         a dict( field values: field2 values)
+    #     """
+    #     l = self._tshark_fields
+    #     if field is None:
+    #         return l
+    #     values = map(lambda x: getattr(x, field), l.values())
+    #     # if field2 is None:
+    #     #     return keys
 
-        return dict(zip(keys, map(lambda x: getattr(x, field2), l)))
+    #     return dict(zip(l.keys(), values))
 
 
     def export_to_csv(
@@ -251,6 +259,10 @@ class TsharkConfig:
             print(e.cmd)
             return e.returncode, e.stderr
 
+    @property
+    def fields(self):
+        return self._tshark_fields
+
     # def pseudocommand(self,):
     def __hash__(self,):
         """
@@ -258,7 +270,7 @@ class TsharkConfig:
         """
         cmd = self.generate_command(
             self.tshark_bin,
-            self.get_fields('name'),
+            self._tshark_fields.keys(),
             "PLACEHOLDER",
             self.read_filter,
             profile=self.profile,

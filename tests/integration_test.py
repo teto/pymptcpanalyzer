@@ -132,16 +132,6 @@ class IntegrationTest(TestCase):
 #        oneshot(cmd)
 #        # self.assertEqual(ret, 0)
 
-#    # def test_regen(self):
-#    #     """
-#    #     Test that with regen we update the file
-#    #     """
-#    #     dat = pd.DataFrame(columns=mp.get_fields("fullname"))
-#    #     prefix = "examples/node0.pcap"
-#    #     dat.to_csv( prefix + ".csv", sep=self.m.config["DEFAULT"]["delimiter"])
-#    #     # with fopen("examples/node0.csv", "r+"):
-#    #     self.assertEqual()
-
 #    @unittest.skip("todo + Not sure pcap are valid yet")
 #    def test_mapping_connections(self):
 #        """

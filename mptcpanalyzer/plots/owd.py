@@ -166,7 +166,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         for idx, df in res.groupby(_sender("tcpdest")):
             print("ID=" , idx)
-            print("df = ", df)
+            # print("df = ", df)
 
             # df = debug_convert(df)
             pplot = df.plot.line(

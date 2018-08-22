@@ -17,7 +17,8 @@ class PlotSubflowAttribute(plot.Matplotlib):
         pcaps = kwargs.get("input_pcaps", [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ])
         super().__init__(*args, input_pcaps=pcaps, **kwargs)
 
-        self._attributes = self.tshark_config.get_fields('name', 'label')
+        # TODO filter the ones who have plot name
+        self._attributes = [ name for name, field in self.tshark_config.fields() if field.label ]
 
 
     def default_parser(self, *args, **kwargs):
@@ -78,7 +79,7 @@ class PlotTcpAttribute(plot.Matplotlib):
 
         pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream), ]
         super(plot.Matplotlib, self).__init__(*args, input_pcaps=pcaps, **kwargs)
-        self._attributes = self.tshark_config.get_fields('name', 'label')
+        self._attributes = [ name for name, field in self.tshark_config.fields() if field.label ]
 
     def default_parser(self, *args, **kwargs):
 
