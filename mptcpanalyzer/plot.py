@@ -349,7 +349,7 @@ class Matplotlib(Plot):
             dataframes = dataframes[0]
 
         with plt.style.context(styles):
-            print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
+            # print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
             fig = self.plot(dataframes, styles=styles, **kwargs)
 
         return fig

@@ -86,7 +86,6 @@ def is_loaded(f):
 
 
 
-
 def experimental(f):
     """
     Decorator checking that dataset has correct columns
@@ -195,6 +194,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             invoke_on_load=True,
             verify_requirements=True,
             invoke_args=(self.tshark_config,),
+            # invoke_kwds
+            propagate_map_exceptions=True,
+            on_load_failure_callback=self.stevedore_error_handler
         )
 
         self.cmd_mgr = extension.ExtensionManager(
@@ -647,13 +649,20 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     @experimental
     def do_print_owds(self, line):
+        """
+        TODO options to diagnose errors:
+        - print unmapped packets 
+        - print abnormal OWDs (negative etc)
+        """
 
         parser = gen_bicap_parser("tcp")
         parser.description = """This function tries merges a tcp stream from 2 pcaps
                             in an attempt to print owds. See map_tcp_connection first maybe."""
 
-        parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
-        parser.add_argument("--destination", action="store", choices=DestinationChoice, help="tcp.stream id visible in wireshark")
+        parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"],
+            help="tcp.stream id visible in wireshark")
+        parser.add_argument("--destination", action="store", choices=DestinationChoice,
+                help="tcp.stream id visible in wireshark")
         # give a choice "hash" / "stochastic"
         # parser.add_argument("--map-packets", action="store", type=int, help="tcp.stream id visible in wireshark")
         parser.add_argument(
@@ -676,6 +685,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print("%r" % result)
         print(result[mpdata.TCP_DEBUG_FIELDS].head(20))
 
+        # print unmapped packets
         print("print_owds finished")
         # print("TODO display before doing plots")
         # TODO display errors
@@ -860,21 +870,24 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # print("number of reinjections of ")
 
 
-    def load(self, filename, regen: bool=False):
+    def load(self, filename,):
 
-        self.data = load_into_pandas(filename, self.tshark_config, regen)
+        self.data = load_into_pandas(filename, self.tshark_config, )
         self.prompt = "%s> " % os.path.basename(filename)
 
 
-    parser = argparse_completer.ACArgumentParser(description='Generate MPTCP stats & plots')
+    parser = argparse_completer.ACArgumentParser(
+        description='Generate MPTCP stats & plots'
+    )
+    # TODO try with an argparse filetype ?
     parser.add_argument("input_file", action="store",
         help="Either a pcap or a csv file (in good format)."
         "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
         "If it can't find one (or with the flag --regen), it will generate a "
         "csv from the pcap with the external tshark program.")
-    parser.add_argument(
-        "--regen", "-r", action="store_true",
-        help="Force the regeneration of the cached CSV file from the pcap input")
+    # parser.add_argument(
+    #     "--regen", "-r", action="store_true",
+    #     help="Force the regeneration of the cached CSV file from the pcap input")
     @with_argparser(parser)
     def do_load_pcap(self, args):
         """
@@ -1036,7 +1049,7 @@ def main(arguments=None):
         " verbose such as '-dddd'"
     )
     parser.add_argument(
-        "--no-cache", "-r", action="store_true", default=False,
+        "--no-cache", "--regen", "-r", action="store_true", default=False,
         help="mptcpanalyzer creates a cache of files in the folder "
         "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
         "Force the regeneration of the cached CSV file from the pcap input"

@@ -5,13 +5,9 @@ import shutil
 from pathlib import Path
 
 
-log = logging.getLogger(__name__)
-
-
 """
 Similar to config
 """
-cache = None  # type: Cache
 
 class CacheId:
     def __init__(self, prefix: str,
@@ -26,7 +22,7 @@ class CacheId:
         # TODO apply only to Path type
         # TODO os.path.isabs()
         self.dependencies = list(map(os.path.realpath, filedeps))
-        log.debug("%r %r", prefix, suffix)
+        logging.debug("%r %r", prefix, suffix)
         self.tpl = prefix + "_".join([os.path.basename(dep) for dep in filedeps]) + '%s' + str(suffix)
 
     @property
@@ -37,7 +33,7 @@ class CacheId:
         dependencies should be filename
         """
         dependencies = self.dependencies
-        log.debug("Computing uid from dependencies %r" % dependencies)
+        logging.debug("Computing uid from dependencies %r" % dependencies)
         temp = ""
         for dep in dependencies:
             mtime_dep = os.path.getmtime(dep)
@@ -68,10 +64,11 @@ class Cache:
 
         try:
             if self.disabled:
+                logging.debug("Cache disabled")
                 return False, cachename
 
             if os.path.isfile(cachename):
-                log.info("A cache %s was found" % cachename)
+                logging.debug("A cache %s was found" % cachename)
                 ctime_cached = os.path.getctime(cachename)
                 is_cache_valid = True
                 for dependency in dependencies:
@@ -79,16 +76,16 @@ class Cache:
                     mtime_dep = os.path.getmtime(dependency) # type: ignore
 
                     if ctime_cached >= mtime_dep:
-                        log.debug("Cache dependency %s ctime (%s) is valid (>= %s)"
+                        logging.debug("Cache dependency %s ctime (%s) is valid (>= %s)"
                             % (dependency, mtime_dep, ctime_cached))
                     else:
-                        log.debug("Cache outdated by dependency %s" % dependency)
+                        logging.debug("Cache outdated by dependency %s" % dependency)
                         is_cache_valid = False
                         break
             else:
-                log.debug("No cache %s found" % cachename)
+                logging.debug("No cache %s found" % cachename)
         except Exception as e:
-            log.debug("Invalid cache: %s" % e)
+            logging.debug("Invalid cache: %s" % e)
             is_cache_valid = False
             # cachename = None
         finally:
@@ -100,10 +97,7 @@ class Cache:
         """
         dest = os.path.join(self.folder, uid.filename)
 
-        # if self.disabled:
-        #     return
-
-        log.info("Moving file %s to %s" % (result, dest))
+        logging.info("Moving file %s to %s" % (result, dest))
         shutil.move(result, dest)
 
     @staticmethod
@@ -111,9 +105,9 @@ class Cache:
         return CacheId(prefix, dependencies, suffix)
 
     def clean(self):
-        log.info("Cleaning cache [%s]" % self.folder)
+        logging.info("Cleaning cache [%s]" % self.folder)
         for cached_csv in os.scandir(self.folder):
-            log.info("Removing " + cached_csv.path)
+            logging.info("Removing " + cached_csv.path)
             os.unlink(cached_csv.path)
 
 

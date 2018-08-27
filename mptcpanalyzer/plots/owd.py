@@ -22,6 +22,7 @@ slog = logging.getLogger("owd")
 # debug variables
 # limit = 20
 
+TCP_DEBUG_FIELDS = ['hash', 'ipsrc', 'ipdst', 'tcpstream', 'packetid', "reltime", "abstime", "tcpdest"]
 
 class TcpOneWayDelay(plot.Matplotlib):
     """
@@ -61,9 +62,10 @@ class TcpOneWayDelay(plot.Matplotlib):
         )
 
         self.tshark_config.filter = "tcp";
+        # print("owd tcp", self.tshark_config.fields)
         # TODO a purer version would be best
-        self.tshark_config.fields = []
-        self.tshark_config.add_basic_fields();
+        # self.tshark_config.fields = []
+        # self.tshark_config.add_basic_fields();
 
 
     def default_parser(self, *args, **kwargs):
@@ -134,6 +136,11 @@ class TcpOneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
 
+        # 
+        debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + [ "owd" ]
+        print(res.loc[res._merge == "both", debug_fields ])
+
+        # print(res.loc[res._merge == "both", 
         print("columns", res.columns)
         print("info", res.info())
 

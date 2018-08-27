@@ -4,7 +4,8 @@ from enum import Enum, IntEnum, Flag, auto
 from .config import MpTcpAnalyzerConfig
 from .cache import Cache
 import collections
-
+import numpy as np
+import ast
 
 __CONFIG__ = None  # type: 'MpTcpAnalyzerConfig'
 __CACHE__ = None  # type: 'Cache'
@@ -42,7 +43,6 @@ def get_cache() -> Cache:
 
 def get_config() -> MpTcpAnalyzerConfig:
     global __CONFIG__  # add this line!
-    print("config STATE=", __CONFIG__)
     if __CONFIG__ is None:  # see notes below; explicit test for None
         raise RuntimeError("Config has not been set yet.")
     return __CONFIG__
@@ -52,6 +52,28 @@ def get_config() -> MpTcpAnalyzerConfig:
 # tshark options etc...)
 # """
 # METADATA_ROWS = 2
+
+
+# def convert_to_list(x, field="pass a field to debug"):
+#     """
+#     Loads x of the form "1,2,5" or None
+#     for instance functools.partial(_convert_to_list, field="reinjectionOf"),
+#     returns np.nan instead of [] to allow for faster filtering
+#     """
+#     # pandas error message are not the best to understand why the convert failed
+#     # so we use this instead of lambda for debug reasons
+#     # print("converting field %s with value %r" % (field, x))
+#     res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
+#     return res
+
+def _load_list(x, field="set field to debug"):
+    """
+    Contrary to _convert_to_list
+    """
+    res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
+
+    # print("res", res)
+    return res
 
 
 class TcpFlags(Flag):

@@ -3,11 +3,11 @@ import subprocess
 import os
 import tempfile
 import numpy as np
+from mptcpanalyzer import _load_list
 from collections import namedtuple
-from typing import List, Dict
+from typing import List, Dict, Union, Optional, Callable, Any
 from enum import Enum
-
-# log = logging.getLogger(__name__)
+import functools
 
 
 class Filetype(Enum):
@@ -40,10 +40,14 @@ type: python type pandas should convert this field to be careful that pandas int
 can't be NA, which is why we use floats mot of the time, which is a waste.
 label: used when plotting
 
+when a converter is specified, dtype will be set to object or str
+
 hash: take this hash into account ?
 """
-Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash' ])
+Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter' ])
 
+def _convert_flags(x):
+    return int(x, 16)
 
 class TsharkConfig:
     """
@@ -82,7 +86,6 @@ class TsharkConfig:
             # Disable DSS checks which consume quite a lot
             "mptcp.analyze_mptcp": True,
         }
-        # self._tshark_fields = []  # type: List[Field]
         self._tshark_fields = {}  # type: Dict[str, Field]
 
         # the split between option is to potentially allow for tcp-only wireshark inspection
@@ -129,9 +132,10 @@ class TsharkConfig:
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", np.float64, True, True)
-        self.add_field("tcp.flags", "tcpflags", str, False, True)
+        self.add_field("tcp.flags", "tcpflags", object, False, True, _convert_flags)
         # should be a list, TODO set hash to true
-        self.add_field("tcp.option_kind", "tcpoptions", object, False, False)
+        self.add_field("tcp.option_kind", "tcpoptions", object, False, False,
+                functools.partial(_load_list, field="option_kind"), )
         self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number", True)
         self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length", True)
         self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment", True)
@@ -162,11 +166,17 @@ class TsharkConfig:
             # self.add_field("mptcp.duplicated_dsn", "reinjections", str, "Reinjections")
             # TODO use new names
             # it should be a list of integer
-            self.add_field("mptcp.reinjection_of", "reinjection_of", object, "Reinjection", False)
-            self.add_field("mptcp.reinjected_in", "reinjected_in", object, "Reinjection list", False)
+            self.add_field("mptcp.reinjection_of", "reinjection_of", object, "Reinjection", False,
+                functools.partial(_load_list, field="reinjectedOfSender"),)
+            self.add_field("mptcp.reinjected_in", "reinjected_in", object, "Reinjection list", False,
+                functools.partial(_load_list, field="reinjectedInSender"), )
 
 
-    def add_field(self, fullname: str, name: str, _type, label, _hash: bool):
+    def add_field(self, fullname: str, name: str, _type,
+            label: Optional[str] = None,
+            _hash: bool = False,
+            converter: Optional[Callable] = None
+        ):
         """
         It's kinda scary to use float everywhere but when using integers, pandas
         asserts at the first NaN
@@ -190,26 +200,17 @@ class TsharkConfig:
         # TODO record as a dict instead
         if self._tshark_fields.get(name):
             raise Exception("Field %s already registered" % name)
-        self._tshark_fields.update(name=Field(fullname,  _type, label, _hash))
 
-    # def get_fields(self, field):
-    #     """
-    #     TODO maybe we can use groupby instead
-    #     Args:
-    #         field: should be a string in Field
-    #         field2: If field2 is None, returns a list with the field asked, else
+        # converter = None
+        # _type = type_or_converter
+        # if inspect.isfunction(type_or_converter):
+        #     converter = type_or_converter
+        #     _type = None
+            
+        self._tshark_fields.setdefault(name,
+            Field(fullname,  _type, label, _hash, converter))
+        # print("updating fields", self._tshark_fields)
 
-    #     Returns:
-    #         a dict( field values: field2 values)
-    #     """
-    #     l = self._tshark_fields
-    #     if field is None:
-    #         return l
-    #     values = map(lambda x: getattr(x, field), l.values())
-    #     # if field2 is None:
-    #     #     return keys
-
-    #     return dict(zip(l.keys(), values))
 
 
     def export_to_csv(
@@ -222,10 +223,7 @@ class TsharkConfig:
 
         Returns exit code, stderr
         """
-        logging.info("Converting pcap [{pcap}] ".format(
-            pcap=input_filename,
-            )
-        )
+        logging.info("Converting pcap [{pcap}] ".format(pcap=input_filename,))
 
         if find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")

@@ -7,18 +7,22 @@ import matplotlib.pyplot as plt
 from typing import List, Any, Tuple, Dict, Callable, Set
 
 
+def attributes(fields):
+    return { name: field.label for name, field in fields.items() if field.label }
+
 class PlotSubflowAttribute(plot.Matplotlib):
     """
-    Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
+Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
     This should be the most straightforward plot.
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = kwargs.get("input_pcaps", [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream), ])
+        pcaps = kwargs.get("input_pcaps", [("pcap", plot.PreprocessingActions.Preload |
+            plot.PreprocessingActions.FilterMpTcpStream), ])
         super().__init__(*args, input_pcaps=pcaps, **kwargs)
 
         # TODO filter the ones who have plot name
-        self._attributes = [ name for name, field in self.tshark_config.fields() if field.label ]
+        self._attributes = attributes(self.tshark_config.fields)
 
 
     def default_parser(self, *args, **kwargs):
@@ -79,7 +83,7 @@ class PlotTcpAttribute(plot.Matplotlib):
 
         pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream), ]
         super(plot.Matplotlib, self).__init__(*args, input_pcaps=pcaps, **kwargs)
-        self._attributes = [ name for name, field in self.tshark_config.fields() if field.label ]
+        self._attributes = attributes(self.tshark_config.fields)
 
     def default_parser(self, *args, **kwargs):
 
