@@ -88,8 +88,15 @@ class Plot:
         )
 
         for name, bitfield in self.input_pcaps:
+
+            def _metavar():
+                pass
+
             load_pcap = parser.add_argument(name, action="store", type=str, help='Pcap file')
-            setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+            setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES,
+                ('path_complete', [False, False]))
+            parser.add_argument("--clock-offset", action="store", type=int,
+                help='Offset compared to epoch (in nanoseconds)')
 
             if bitfield & PreprocessingActions.FilterStream:
                 # difficult to change the varname here => change it everywhere

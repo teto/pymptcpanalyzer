@@ -144,6 +144,8 @@ def load_merged_streams_into_pandas(
     streamid2: int,
     mptcp: bool, 
     tshark_config: TsharkConfig,
+    clock_offset1: int = 0,
+    clock_offset2: int = 0,
     mapping_mode: PacketMappingMode = PacketMappingMode.HASH,
     **extra
     ):
@@ -298,6 +300,12 @@ def load_merged_streams_into_pandas(
         log.exception("exception happened")
 
     finally:
+        log.debug("Applying offsets")
+
+        log.debug("Computing owds")
+
+
+
         log.debug("Column names: %s", merged_df.columns)
         # pd.set_option('display.max_rows', 200)
         # pd.set_option('display.max_colwidth', -1)
@@ -372,7 +380,6 @@ def load_into_pandas(
     try:
         with open(csv_filename) as fd:
 
-            # converters = {}
             converters = { f.fullname: f.converter for _, f in config.fields.items() if f.converter }
             converters.update({ name: f.converter for name, f in artificial_fields.items() if f.converter})
             print("converters\n", converters)
@@ -398,17 +405,13 @@ def load_into_pandas(
             data.set_index("packetid", drop=False, inplace=True)
             log.debug("Column names: %s", data.columns)
 
-            # if gen_hash:
-            if True:
-                        
-                # TODO override 
-                hashing_fields = [ name for name, field in config.fields.items() if field.hash ]
-                log.debug("Hashing over fields %s" % hashing_fields)
+            hashing_fields = [ name for name, field in config.fields.items() if field.hash ]
+            log.debug("Hashing over fields %s" % hashing_fields)
 
-                # won't work because it passes a Serie (mutable)_
-                # TODO generate hashing fields from Fields
-                temp = pd.DataFrame(data, columns=hashing_fields)
-                data["hash"] = temp.apply(lambda x: hash(tuple(x)), axis = 1)
+            # won't work because it passes a Serie (mutable)_
+            # TODO generate hashing fields from Fields
+            temp = pd.DataFrame(data, columns=hashing_fields)
+            data["hash"] = temp.apply(lambda x: hash(tuple(x)), axis = 1)
 
     except Exception as e:
         logging.error("You may need to filter more your pcap to keep only mptcp packets")
@@ -416,19 +419,8 @@ def load_into_pandas(
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
     
-    # names = set([ field.name for field in artificial_fields ])
-    # print("NAMES", names)
-    # column_names = set(data.columns)
-    # print("column_names", column_names)
-
-    # for missing_field in names - column_names:
-    #     print("missing field", missing_field)
-    #     data[missing_field] = np.nan
-    # data.astype({ })
-    # data.assign( { missing_field: np.nan for missing_field in (names - column_names) } )
-
-    print("FINAL_DTYPES")
-    print(data.dtypes)
+    # print("FINAL_DTYPES")
+    # print(data.dtypes)
     # print(data.tcpdest.head(10))
     return data
 
@@ -585,9 +577,9 @@ def merge_tcp_dataframes_known_streams(
             # destination is server
             sender_df, receiver_df =  client_unidirectional_df, server_unidirectional_df
 
-        # TODO we don't necessarely need to generate the OWDs here, might be put out
-        # TODO map_tcp_packets should return mapped and unmapped packets ?
         res = map_tcp_packets(sender_df, receiver_df)
+
+        # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[ _receiver('abstime') ] - res[ _sender('abstime')]
 
 
@@ -837,7 +829,6 @@ def map_tcp_packets_via_hash(
     log.info("Merging packets via hash")
     debug_cols = ["packetid", "hash", "reltime"]
     print(sender_df[debug_cols].head(20))
-    # print("RECEIVER")
     print(receiver_df[debug_cols].head(20))
     # print("sender_df dtype=", sender_df.dtypes.tcpdest)
     # print("receiver_df dtype=", receiver_df.dtypes.tcpdest)

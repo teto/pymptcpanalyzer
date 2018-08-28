@@ -121,7 +121,8 @@ class TsharkConfig:
         self.add_field("frame.number", "packetid", np.int64, False, False)
         self.add_field("frame.time_relative", "reltime", None, False, False)
         self.add_field("frame.time_delta", "time_delta", None, False, False)
-        self.add_field("frame.time_epoch", "abstime", None, False, False)
+        self.add_field("frame.time_epoch", "abstime", "Nanoseconds time since epoch",
+            False, False)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
