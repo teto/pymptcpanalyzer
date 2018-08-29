@@ -164,10 +164,7 @@ def load_merged_streams_into_pandas(
 
     cache = mp.get_cache()
     protocolStr = "mptcp" if mptcp else "tcp"
-    cacheid = cache.cacheuid("merged", [
-        getrealpath(pcap1),
-        getrealpath(pcap2),
-        ], 
+    cacheid = cache.cacheuid("merged", [ getrealpath(pcap1), getrealpath(pcap2), ], 
         protocolStr + "_" + str(streamid1) + "_" + str(streamid2) + ".csv")
 
     # if we can't load that file from cache
@@ -233,8 +230,7 @@ def load_merged_streams_into_pandas(
             # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
 
             def _gen_dtypes(fields) -> Dict[str, Any]:
-                dtypes = {} # type: ignore
-                # for suffix in [ SENDER_SUFFIX, RECEIVER_SUFFIX]:
+                dtypes = {}  # type: ignore
                 for _rename in [ _sender, _receiver ]:
 
                     # TODO this could be simplified
@@ -646,14 +642,12 @@ def merge_mptcp_dataframes_known_streams(
     # prepare metadata
     # we should write mptcpdest before the column names change
     # finally we set the mptcp destination to help with further processing
-    # df1['mptcpdest'] = np.nan
     for destination in ConnectionRoles:
         q = main_connection.generate_direction_query(destination)
         df = df1.query(q).index
         df1.loc[df, 'mptcpdest' ] = destination
         # print("SELECTED %d for direction %s" % (len(df), destination))
         # print(df)
-        # df["mptcpdest"] = destination
         # print(df[TCP_DEBUG_FIELDS].head(20))
         # print(df1[MPTCP_DEBUG_FIELDS + ['ipsrc', 'ipdst'] ].head())
 
