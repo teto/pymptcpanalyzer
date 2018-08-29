@@ -10,7 +10,7 @@ import os
 import argparse
 import collections
 from mptcpanalyzer.cache import CacheId
-
+from cmd2 import argparse_completer
 from typing import Iterable, List #, Any, Tuple, Dict, Callable
 
 # global log and specific log
@@ -69,22 +69,18 @@ class TcpOneWayDelay(plot.Matplotlib):
 
 
     def default_parser(self, *args, **kwargs):
-        parser = argparse.ArgumentParser(
+        parser = argparse_completer.ACArgumentParser(
             description="Helps plotting One Way Delays between tcp connections"
         )
         parser = super().default_parser(
             *args, parent_parsers=[parser], filterstream=False, **kwargs
         )
         parser.add_argument("tcpstream1", action="store",
-                type=int,
-                help="Stream from pcap 1"
-        )
-        # TODO add an option to let the program find it
+                type=int, help="Stream from pcap 1")
         parser.add_argument("tcpstream2", action="store",
-                # nargs="?',
-                type=int,
-                help="Stream from pcap 2"
-        )
+                type=int, help="Stream from pcap 2")
+        parser.add_argument("--clock-offset", action="store",
+                type=int, help="Stream from pcap 1")
 
         return parser
 
@@ -122,6 +118,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             raise e
             # log.debug("Could not load cached results %s" % cachename)
 
+        # here we recompute the OWDs
 
     def plot(self, res, mptcpstream=None, **kwargs):
         """
@@ -136,7 +133,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
 
-        # 
+        # TODO here we should rewrite
         debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + [ "owd" ]
         print(res.loc[res._merge == "both", debug_fields ])
 

@@ -209,7 +209,6 @@ def load_merged_streams_into_pandas(
                 )
 
             # TODO assert merged_df is not null
-            # firstcols = [ 'packetid_sender', 'packetid_receiver', 'owd']
             # total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
             assert cachename
             log.info("Saving into %s" % cachename)
@@ -465,34 +464,9 @@ def merge_tcp_dataframes(
     )
 
 
-def generate_columns(to_add: List[str], to_delete: List[str], suffixes) -> List[str]:
-    """
-    Generate column names
-    """
-    return [
-        "owd",
-        "abstime" + suffixes[0],
-        "abstime" + suffixes[1],
-        "packetid" + suffixes[0],
-        "packetid" + suffixes[1],
-        "ipsrc" + suffixes[0],
-        "ipsrc" + suffixes[1],
-        "ipdst" + suffixes[0],
-        "ipdst" + suffixes[1],
-        "sport" + suffixes[0],
-        "sport" + suffixes[1],
-        "dport" + suffixes[0],
-        "dport" + suffixes[1],
-        "tcpseq"
-    ]
-
-
-combo = Tuple[pd.DataFrame, TcpConnection]
-
 
 def tcpdest_from_connections(df, con: TcpConnection):
 
-    print(df.dtypes.tcpdest)
     for dest in ConnectionRoles:
 
         log.debug("Looking at destination %s" % dest)
@@ -501,10 +475,7 @@ def tcpdest_from_connections(df, con: TcpConnection):
         print("tcpdest %r" % dest)
         df.loc[df_dest.index, 'tcpdest'] = dest
 
-    print(df.tcpdest.head())
-    # print("df", 
-    # len(serie.notnull())
-    # )
+    # print(df.tcpdest.head())
     # assert df['tcpdest'].notnull() == , "every packet should have tcpdest set"
     return df
 
