@@ -95,7 +95,7 @@ class Plot:
             load_pcap = parser.add_argument(name, action="store", type=str, help='Pcap file')
             setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES,
                 ('path_complete', [False, False]))
-            parser.add_argument("--clock-offset", action="store", type=int,
+            parser.add_argument("--clock-offset" + name, action="store", type=int,
                 help='Offset compared to epoch (in nanoseconds)')
 
             if bitfield & PreprocessingActions.FilterStream:

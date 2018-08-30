@@ -315,7 +315,7 @@ def load_merged_streams_into_pandas(
 def load_into_pandas(
     input_file: str,
     config: TsharkConfig,
-    # gen_hash: bool=True,
+    clock_offset: int = 0,
     **extra
 ) -> pd.DataFrame:
     """
@@ -326,7 +326,6 @@ def load_into_pandas(
         config: Hard, keep changing
         load_cb: callback to use if cache not available
         extra: extra arguments to forward to load_cb
-        regen: Ignore the cache and regenerate any cached csv file from the input pcap
     """
     log.debug("Asked to load simple pcap %s" % input_file)
 
@@ -414,6 +413,7 @@ def load_into_pandas(
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
     
+    data["abstime"] += clock_offset
     # print("FINAL_DTYPES")
     # print(data.dtypes)
     # print(data.tcpdest.head(10))

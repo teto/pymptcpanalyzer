@@ -120,9 +120,9 @@ class TsharkConfig:
     def add_basic_fields(self):
         self.add_field("frame.number", "packetid", np.int64, False, False)
         self.add_field("frame.time_relative", "reltime", None, False, False)
-        self.add_field("frame.time_delta", "time_delta", None, False, False)
-        self.add_field("frame.time_epoch", "abstime", "Nanoseconds time since epoch",
-            False, False)
+        self.add_field("frame.time_delta", "time_delta", np.int64, False, False)
+        self.add_field("frame.time_epoch", "abstime", np.int64,
+            "Nanoseconds time since epoch", False)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
@@ -136,12 +136,14 @@ class TsharkConfig:
         self.add_field("tcp.flags", "tcpflags", object, False, True, _convert_flags)
         # should be a list, TODO set hash to true
         self.add_field("tcp.option_kind", "tcpoptions", object, False, False,
-                functools.partial(_load_list, field="option_kind"), )
+            functools.partial(_load_list, field="option_kind"), )
         self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number", True)
         self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length", True)
         self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment", True)
-        self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64, "TCP timestamp tsval", True)
-        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64, "TCP timestamp tsecr", True)
+        self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64,
+            "TCP timestamp tsval", True)
+        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64,
+            "TCP timestamp tsecr", True)
 
     def add_mptcp_fields(self, advanced=True):
         # remove this one ?
@@ -153,10 +155,14 @@ class TsharkConfig:
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False, True)
         # this is a list really; can contain "2,4"
         self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)
-        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64, "DSS Sequence Number", True)
-        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64, "DSS raw ack", True)
-        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, "DSS Subflow Sequence Number", True)
-        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64, "DSS length", True)
+        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64,
+            "DSS Sequence Number", True)
+        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64,
+            "DSS raw ack", True)
+        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, 
+            "DSS Subflow Sequence Number", True)
+        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64,
+            "DSS length", True)
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False, True)
         self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number", False)
         self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack", False)

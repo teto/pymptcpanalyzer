@@ -40,6 +40,10 @@ Then you have an interpreter with autocompletion that can generate & display plo
 You can reference mptcpanalyzer via the following Digital Object Identifier:
 [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
 
+# Table of Contents 
+[How to install](#How-to-install)
+[Faq](#FAQ)
+
 # How to install ?
 
 First of all you will need a wireshark version that supports my MPTCP patches.
@@ -131,6 +135,15 @@ See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
 - use configobj to load config defaults/validation ?
 - as in mptcpplot plot some events (e.g., MP\_JOIN) differently ?
 - choose colors of subflows
+
+# FAQ
+
+1. Why packets ids don't match the frame.number from my pcap ?
+mptcpanalyzer 
+
+
+
+
 
 # Similar tools
 
