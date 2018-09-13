@@ -52,7 +52,7 @@ if sys.argv[-1] == 'publish':
 setup(name="mptcpanalyzer",
         version=version,
         description="Analyze mptcp traces (.pcap)",
-        long_description=open('README.md').read(),
+        long_description=open('README.md', 'r', encoding='utf-8').read(),
         url="http://github.com/teto/mptcpanalyzer",
         license="GPL",
         author="Matthieu Coudron",
