@@ -10,16 +10,24 @@ rst:
 	cat README.md | pandoc -f markdown -t rst > README.rst
 
 
-test:
-	# Add -b to print standard output
-	python3 -munittest tests/cache_test.py -b 
-	python3.5 setup.py test
+# 
+publish:
+	python setup.py sdist upload
+	python setup.py bdist_wheel upload
+	echo "You probably want to also tag the version now:"
+	echo "  git tag -a VERSION -m 'version X'"
+	echo "  git push --tags"
 
-install:
-	python3.5 setup.py develop --user
+tests:
+	# Add -b to print standard output
+	# python -munittest tests/cache_test.py -b
+	tests/run_transcripts.sh
+
+develop:
+	python setup.py develop --user
 
 uninstall:
-	python3.5 setup.py develop --user --uninstall
+	python setup.py develop --user --uninstall
 
 man:
 	# wrong name for the program but can't override :/
@@ -27,4 +35,4 @@ man:
 	help2man -n "mptcpanalyzer - a multipath tcp pcap analysis tool" -o docs/mptcpanalyzer.man mptcpanalyzer
 
 
-.PHONY: doc
+.PHONY: doc tests

@@ -1,0 +1,7 @@
+client_2.pcap> load_pcap examples/client_2.pcap
+client_2.pcap> summary 0 Client
+mptcpstream 0 transferred 309
+tcpstream 0 transferred 2 out of 309, accounting for 0.647249%
+tcpstream 1 transferred 0 out of 309, accounting for 0.000000%
+tcpstream 2 transferred 307 out of 309, accounting for 99.352751%
+tcpstream 6 transferred 0 out of 309, accounting for 0.000000%

@@ -875,15 +875,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.data = load_into_pandas(filename, self.tshark_config, )
         self.prompt = "%s> " % os.path.basename(filename)
 
-
     parser = argparse_completer.ACArgumentParser(
-        description='Generate MPTCP stats & plots'
+        description="Loads a pcap to analyze"
     )
     # TODO try with an argparse filetype ?
     parser.add_argument("input_file", action="store",
-        help="Either a pcap or a csv file (in good format)."
-        "When a pcap is passed, mptcpanalyzer will look for a its cached csv."
-        "If it can't find one (or with the flag --regen), it will generate a "
+        help="Either a pcap or a csv file."
+        "When a pcap is passed, mptcpanalyzer looks for a cached csv"
+        "else it generates a "
         "csv from the pcap with the external tshark program.")
     # parser.add_argument(
     #     "--regen", "-r", action="store_true",
@@ -893,21 +892,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         Load the file as the current one
         """
+
+        self.poutput("Loading input file %s" % args.input_file)
         self.load(args.input_file, )
 
     complete_load_pcap = cmd2.Cmd.path_complete
-
-
-    # def complete_plot(self, text, line, begidx, endidx):
-    #     # print("available plots", self.list_available_plots())
-    #     index_dict = \
-    #         {
-    #             1: self.list_available_plots(),  # Tab-complete food items at index 1 in command line
-    #             2: self.list_available_plots(),  # Tab-complete food items at index 1 in command line
-    #             # 2: sport_item_strs,  # Tab-complete sport items at index 2 in command line
-    #             # 3: self.path_complete,  # Tab-complete using path_complete function at index 3 in command line
-    #         }
-    #     return self.index_based_complete(text, line, begidx, endidx, index_dict=index_dict)
 
     def do_list_available_plots(self, args):
         """
@@ -922,11 +911,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def pcap_loaded(self):
         return isinstance(self.data, pd.DataFrame)
 
-    # def help_plot(self):
-    #     self.do_plot("-h")
+    plot_parser = argparse_completer.ACArgumentParser(prog='plot', description='Generate plots')
 
-
-    plot_parser = argparse_completer.ACArgumentParser(prog='plot', description='Generate MPTCP stats & plots')
     @with_argparser_and_unknown_args(plot_parser)
     def do_plot(self, args, unknown):
         """
@@ -940,16 +926,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # TODO reparse with the definitive parser ?
 
         # 'converts' the namespace to for the syntax define a dict
-        dargs = vars(args)  
+        dargs = vars(args)
 
         # workaround argparse limitations to set as default both directions
-        dargs.update(destinations= dargs.get("destinations") or mp.ConnectionRoles)
+        dargs.update(destinations=dargs.get("destinations") or mp.ConnectionRoles)
         dataframes = plotter.preprocess(**dargs)
         assert dataframes is not None, "Preprocess must return a list"
         # pass unknown_args too ?
         result = plotter.run(dataframes, **dargs)
         plotter.postprocess(result, **dargs)
-    
+ 
     @with_category(CAT_GENERAL)
     def do_clean_cache(self, line):
         """
@@ -1089,10 +1075,9 @@ def main(arguments=None):
 
         analyzer = MpTcpAnalyzerCmdApp(config, **vars(args))
 
+        # could be moved to the class ?
         if args.input_file:
-            log.info("Loading input file %s" % args.input_file)
-            cmd = args.input_file
-            analyzer.do_load_pcap(cmd)
+            analyzer.onecmd("load_pcap %s" % args.input_file)
 
         log.info("Starting interactive mode")
         analyzer.cmdloop()
