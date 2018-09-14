@@ -48,7 +48,9 @@ def main():
     )
     pcap_parser.add_argument('inputPcap', action="store", help="Input pcap")
 
-    subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers", help='sub-command help')
+    subparsers = parser.add_subparsers(dest="subparser_name", title="Subparsers",
+        help='sub-command help')
+
 
     subparser_csv = subparsers.add_parser('pcap2csv', parents=[pcap_parser], help='Converts pcap to a csv file')
     # subparser_csv.add_argument('inputPcap', action="store", help="Input pcap")
