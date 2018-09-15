@@ -892,8 +892,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         Load the file as the current one
         """
-
-        self.poutput("Loading input file %s" % args.input_file)
+        self.poutput("Loading %s" % args.input_file)
         self.load(args.input_file, )
 
     complete_load_pcap = cmd2.Cmd.path_complete
