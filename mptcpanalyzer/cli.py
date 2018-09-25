@@ -496,13 +496,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     parser.add_argument(
         'destination',
-        action="store",
-        choices=DestinationChoice,
-        type=lambda x: mp.ConnectionRoles[x],
+        action="store", choices=DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
         help='Filter flows according to their direction'
         '(towards the client or the server)'
         'Depends on mptcpstream'
     )
+    parser.add_argument("--json", action="store_true", default=False,
+        help="Machine readable summary.")
     @with_argparser(parser)
     @is_loaded
     def do_summary(self, args):
@@ -522,8 +522,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             print(ret)
             return
 
+        if args.json:
+            import json
+            # TODO use self.poutput
+            # or use a stream, it must just be testable
+            json.dumps(ret, fp=self.stdout)
+            return
+
         mptcp_transferred = ret["mptcp_bytes"]
-        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
+        self.poutput("mptcpstream %d transferred %d bytes." % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
             subflow_load = sf_bytes/ret["mptcp_bytes"]
             self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
