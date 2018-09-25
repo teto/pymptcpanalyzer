@@ -526,7 +526,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             import json
             # TODO use self.poutput
             # or use a stream, it must just be testable
-            json.dumps(ret, fp=self.stdout)
+            val = json.dumps(ret, ensure_ascii=False)
+            self.poutput(val)
             return
 
         mptcp_transferred = ret["mptcp_bytes"]

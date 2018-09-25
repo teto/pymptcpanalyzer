@@ -174,9 +174,10 @@ def load_merged_streams_into_pandas(
         valid, cachename = cache.get(cacheid)
         log.info("Cache validity=%s and cachename=%s" % (valid, cachename))
 
+        # TODO disable when clock_offset is set
         if not valid:
-            df1 = load_into_pandas(pcap1, tshark_config,)
-            df2 = load_into_pandas(pcap2, tshark_config,)
+            df1 = load_into_pandas(pcap1, tshark_config, clock_offset=clock_offset1)
+            df2 = load_into_pandas(pcap2, tshark_config, clock_offset=clock_offset2)
 
             main_connection  = None # type: Union[MpTcpConnection, TcpConnection]
             other_connection = None # type: Union[MpTcpConnection, TcpConnection]
@@ -412,8 +413,10 @@ def load_into_pandas(
         raise e
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
-    
+
+    # some postprocessing steps 
     data["abstime"] += clock_offset
+
     # print("FINAL_DTYPES")
     # print(data.dtypes)
     # print(data.tcpdest.head(10))

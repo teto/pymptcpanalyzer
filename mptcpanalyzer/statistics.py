@@ -44,10 +44,9 @@ def mptcp_compute_throughput(
         # TODO drop retransmitted
         subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
         subflow_load = subflow_load if not math.isnan(subflow_load) else 0
-        print('subflow_load', subflow_load)
         subflow_stats.append({
             'tcpstreamid': tcpstream,
-            'bytes': subflow_load
+            'bytes': int(subflow_load)
         })
 
     return True, {

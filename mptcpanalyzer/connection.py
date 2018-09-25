@@ -22,16 +22,7 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
-# only available with pandas 0.23
-# @pd.api.extensions.register_dataframe_accessor("tcp")
-# class TcpConnectionPandas:
-#     def __init__(self, df):
-#         self._df = df
-
-#     def stream(self, streamid):
-#         return self._df[self._df.tcpstream == streamid]
-
-
+@pd.api.extensions.register_dataframe_accessor("tcp")
 class TcpConnection:
     """
     Everything capable of identifying a connection

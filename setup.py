@@ -131,7 +131,7 @@ setup(name="mptcpanalyzer",
         install_requires=[
                 'stevedore',  # to implement a plugin mechanism
                 'matplotlib',  # for plotting
-                'pandas>=0.20.1',  # to load and process csv files
+                'pandas>=0.23',  # because of accessors
                 'cmd2>=0.9',  # to improve cmd capabilities
                 # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
                 ],
