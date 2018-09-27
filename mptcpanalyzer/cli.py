@@ -387,6 +387,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
 
     parser.add_argument("tcpstreamid", action="store", type=int, help="tcp.stream id visible in wireshark")
+    parser.add_argument("--json", action="store_true", default=False,
+        help="Machine readable summary.")
     parser.add_argument( '-v', '--verbose', dest="verbose", default=False, action="store_true",
         help="how to display each connection")
 
@@ -416,6 +418,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # )
             # print(formatted_output)
             self.poutput(match)
+
 
 
     parser = argparse.ArgumentParser(
@@ -716,6 +719,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         You might want to run map_mptcp_connection first to find out 
         what map to which
         """
+    parser.add_argument("--json", action="store_true", default=False,
+        help="Machine readable summary.")
     @with_argparser_and_unknown_args(parser)
     @with_category(CAT_MPTCP)
     @experimental

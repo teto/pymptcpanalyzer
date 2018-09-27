@@ -22,7 +22,7 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
-@pd.api.extensions.register_dataframe_accessor("tcp")
+# @pd.api.extensions.register_dataframe_accessor("tcp")
 class TcpConnection:
     """
     Everything capable of identifying a connection
