@@ -235,7 +235,7 @@ class TsharkConfig:
         if find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
 
-        cmd = self.generate_command(
+        cmd = self.generate_csv_command(
             self.tshark_bin,
             fields_to_export,
             input_filename,
@@ -245,13 +245,26 @@ class TsharkConfig:
             options=self.options,
         )
         cmd_str = ' '.join(cmd)
-        print(cmd_str)
+        fd = output_csv
+        fd.write("# metadata: %s\n" % (cmd_str))
+        fd.flush()  # need to flush else order gets messed up
+        return self.run_tshark(cmd, fd)
+
+
+
+    def filter_pcap(self, pcap, stdout):
+        cmd = [ self.tshark_bin ]
+        cmd.extend(['-r', self.read_filter])
+        return self.run_tshark(cmd, subprocess.STDERR)
+
+
+    @staticmethod
+    def run_tshark(cmd, stdout):
+        cmd_str = ' '.join(cmd)
+        logging.info(cmd_str)
 
         try:
-            fd = output_csv
-            fd.write("# metadata: %s\n" % (cmd_str))
-            fd.flush()  # need to flush else order gets messed up
-            with subprocess.Popen(cmd, stdout=fd, stderr=subprocess.PIPE) as proc:
+            with subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.PIPE) as proc:
                 out, stderr = proc.communicate()
                 stderr = stderr.decode("UTF-8")
                 print("ran cmd", proc.args)
@@ -259,8 +272,7 @@ class TsharkConfig:
                 return proc.returncode, stderr
 
         except subprocess.CalledProcessError as e:
-            logging.error(str(e))
-            print("ERROR")
+            logging.exception("An error happened while running tshark")
             print(e.cmd)
             return e.returncode, e.stderr
 
@@ -285,9 +297,9 @@ class TsharkConfig:
         # because lists are unhashable
         return hash(' '.join(cmd))
 
-    @staticmethod
-    def generate_command(
-        tshark_exe,
+    # @staticmethod
+    def generate_csv_command(
+        self,
         fields_to_export: List[str],
         inputFilename,
         read_filter=None,
@@ -296,7 +308,7 @@ class TsharkConfig:
         options={},
     ):
         """
-        Generate tshark command
+        Generate tshark csv export command
         """
 
         # for some unknown reasons, -Y does not work so I use -2 -R instead
@@ -304,7 +316,7 @@ class TsharkConfig:
         # single-quotes, n no quotes (the default).
         # the -2 is important, else some mptcp parameters are not exported
         cmd = [
-            tshark_exe,
+            self.tshark,
             "-E", "header=y", "-2",
             "-r", inputFilename,
             "-E", "separator=" + csv_delimiter,
@@ -316,7 +328,7 @@ class TsharkConfig:
             cmd.extend( [ '-o', option + ":" + str(value) ])
 
         if read_filter:
-            cmd.extend(['-R', read_filter])
+            cmd.extend(['-r', read_filter])
 
         cmd.extend(['-T', 'fields'])
         for f in fields_to_export:

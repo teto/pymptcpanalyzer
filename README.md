@@ -111,6 +111,14 @@ Get a summary of an mptcp connection
 
 
 Map tcp.stream between server and client pcaps:
+
+```
+>map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
+TODO
+>print_owds examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap 0 0
+```
+
+Map tcp.stream between server and client pcaps:
 ```
 > map_mptcp_connection examples/client_2_filtered.pcapng examples/client_2_filtered.pcapng 0
 2 mapping(s) found

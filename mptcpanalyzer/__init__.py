@@ -16,6 +16,10 @@ Used when dealing with the merge of dataframes
 SENDER_SUFFIX  = "" # "_sender"
 RECEIVER_SUFFIX= "_receiver"
 
+# we can't let it empty else we can't rename fields
+HOST1_SUFFIX  = "_h1"
+HOST2_SUFFIX  = "_h2"
+
 def suffix_fields(suffix, fields):
 
     f = lambda x: x + suffix
@@ -25,6 +29,12 @@ def suffix_fields(suffix, fields):
 
     b = list(map(f, fields))
     return b
+
+def _first(fields):
+    return suffix_fields(HOST1_SUFFIX, fields)
+
+def _second(fields):
+    return suffix_fields(HOST2_SUFFIX, fields)
 
 def _sender(fields):
     return suffix_fields(SENDER_SUFFIX, fields)
