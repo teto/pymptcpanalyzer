@@ -513,7 +513,7 @@ def convert_to_sender_receiver(
     # min_h1 = df.iloc[0, subdf.columns.get_loc(_first('abstime'))]
     # min_h2 = df.iloc[0, subdf.columns.get_loc(_second('abstime'))]
 
-    for key, subdf in df.groupby(_first("tcpstream")):
+    for tcpstream, subdf in df.groupby(_first("tcpstream")):
         # compare 
         # assume packets are in chronological order, else we would have to use min
         # min_h1 = h1_df['abstime'].min()
@@ -526,31 +526,20 @@ def convert_to_sender_receiver(
         print("min_h1 = %r" % min_h1)
         print("min_h1 float = %f" % min_h1)
 
-        def _rename_columns(h1_role: ConnectionRoles):
-            """
-client_suffix, server_suffix
-            Params:
-                client_suffix must be one of HOST1_SUFFIX or HOST2_SUFFIX
-                server_suffix can be deduced
-            """
-            def _rename_column(col_name, suffixes) -> str:
+#         def _rename_columns(h1_role: ConnectionRoles):
+#             """
+# client_suffix, server_suffix
+#             Params:
+#                 client_suffix must be one of HOST1_SUFFIX or HOST2_SUFFIX
+#                 server_suffix can be deduced
+#             """
+        def _rename_column(col_name, suffixes) -> str:
 
-                for suffix_to_replace, new_suffix in suffixes.items():
-                    if col_name.endswith(suffix_to_replace):
-                        return col_name.replace(suffix_to_replace, new_suffix)
-                return col_name
+            for suffix_to_replace, new_suffix in suffixes.items():
+                if col_name.endswith(suffix_to_replace):
+                    return col_name.replace(suffix_to_replace, new_suffix)
+            return col_name
 
-            for tcpdest, tdf in subdf.groupby(_first("tcpdest")):
-                if tcpdest == h1_role:
-                    suffixes = { HOST2_SUFFIX: SENDER_SUFFIX, HOST1_SUFFIX: RECEIVER_SUFFIX }
-                else:
-                    suffixes = { HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX }
-
-                rename_func = functools.partial(_rename_column, suffixes=suffixes)
-                print("renaming inplace")
-                    
-                tdf.rename(columns=rename_func, inplace=True)
-                print("finished")
 
             # total = pd.concat([total, subdf], ignore_index=True)
 
@@ -560,20 +549,33 @@ client_suffix, server_suffix
         if min_h1 < min_h2:
             logging.debug("Looks like h1 is the client")
             # suffixes = { HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX }
-            role = ConnectionRoles.Client
+            h1_role = ConnectionRoles.Client
 
         else:
             logging.debug("Looks like h2 is the client")
             # suffixes = { HOST2_SUFFIX: SENDER_SUFFIX, HOST1_SUFFIX: RECEIVER_SUFFIX }
-            role = (ConnectionRoles.Server)
+            h1_role = (ConnectionRoles.Server)
 
         print("renaming")
-        _rename_columns(role)
+        # _rename_columns(role)
+        for tcpdest, tdf in subdf.groupby(_first("tcpdest")):
+            if tcpdest == h1_role:
+                suffixes = { HOST2_SUFFIX: SENDER_SUFFIX, HOST1_SUFFIX: RECEIVER_SUFFIX }
+            else:
+                suffixes = { HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX }
+
+            rename_func = functools.partial(_rename_column, suffixes=suffixes)
+            print("renaming inplace")
+                
+            tdf.rename(columns=rename_func, inplace=True)
+                # print("finished")
+            total = pd.concat([total, tdf], ignore_index=True)
 
         # subdf[ _first("tcpdest") == ConnectionRole.Client] .rename(columns=_rename_cols, inplace=True)
         print(subdf.columns)
+        print(total.columns)
 
-        total = pd.concat([total, subdf], ignore_index=True)
+
 
     logging.debug("Converting to sender/receiver format")
     return total
