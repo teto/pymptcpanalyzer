@@ -168,7 +168,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             'lr': 'list_reinjections'
         })
         super().__init__(completekey='tab', stdin=stdin)
-        self.prompt = self.colorize("Ready>" , "blue")
+        self.prompt = self.colorize("Ready>", "blue")
         self.data = None  # type: pd.DataFrame
         self.config = cfg
         self.tshark_config = TsharkConfig(
@@ -178,14 +178,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         )
 
         # cmd2 specific initialization
-        self.abbrev = True;  #  when no ambiguities, run the command
-        self.allow_cli_args = True;  # disable autoload of transcripts
-        self.allow_redirection = True;  # allow pipes in commands
-        self.default_to_shell = False;
-        self.debug = True;  #  for now
+        self.abbrev = True  # when no ambiguities, run the command
+        self.allow_cli_args = True  # disable autoload of transcripts
+        self.allow_redirection = True  # allow pipes in commands
+        self.default_to_shell = False
+        self.debug = True  # for now
         self.set_posix_shlex = True  # need cmd2 >= 0.8
 
-        ###  Load Plots
+        #  Load Plots
         ######################
         # you can  list available plots under the namespace
         # https://pypi.python.org/pypi/entry_point_inspector
@@ -210,12 +210,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             on_load_failure_callback=self.stevedore_error_handler
         )
 
-        ###  do_plot parser
+        #  do_plot parser
         ######################
         # not my first choice but to accomodate cmd2 constraints
         # see https://github.com/python-cmd2/cmd2/issues/498
         subparsers = MpTcpAnalyzerCmdApp.plot_parser.add_subparsers(dest="plot_type",
-                title="Subparsers", help='sub-command help',)
+            title="Subparsers", help='sub-command help',)
         subparsers.required = True  # type: ignore
 
         def register_plots(ext, subparsers):
@@ -226,7 +226,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             subparsers.add_parser(ext.name, parents=[parser], add_help=False)
 
         self.plot_mgr.map(register_plots, subparsers)
-
 
         # if loading commands from a file, we disable prompt not to pollute output
         if stdin != sys.stdin:
@@ -242,8 +241,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         sys.stdin and sys.stdout.
         """
         print("WARNING: mptcpanalyzer may require a custom wireshark. "
-                "Check github for mptcp patches streaming.")
-
+            "Check github for mptcp patches streaming.")
 
     @property
     def plot_manager(self):
@@ -325,7 +323,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         log.debug("postcmd result for line [%s] => %r", line, stop)
 
         return True if stop is True else False
-
 
     parser = argparse_completer.ACArgumentParser(description="List subflows of an MPTCP connection")
     filter_stream = parser.add_argument("mptcpstream", action="store", type=int,
@@ -661,25 +658,27 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.list_subflows(mptcpstream)
 
 
-
     parser = argparse_completer.ACArgumentParser(
         description="""
         Mptcpanalyzer filters pcaps to keep only tcp packets.
-        This may explain why printed packet ids dont map 
+        This may explain why printed packet ids dont map
 
         """
     )
     load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
     setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-    parser.add_argument("exported_pcap", type=str, help="Cleand up file")
+    parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
+
     @with_argparser(parser)
     def do_clean_pcap(self, args):
         """
         toto
         """
-        cfg = mp.get_config()
+        # cfg = mp.get_config()
+        self.poutput("Exporting a clean version of {} in {}".format(
+            args.imported_pcap, args.exported_pcap))
 
-        cfg.run_tshark()
+        self.tshark_config.filter_pcap(args.imported_pcap, args.exported_pcap)
 
     parser = gen_bicap_parser("tcp")
     parser.description = """This function tries merges a tcp stream from 2 pcaps
@@ -689,7 +688,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"],
     #     help="tcp.stream id visible in wireshark")
     parser.add_argument("--destination", action="store", choices=DestinationChoice,
-            help="tcp.stream id visible in wireshark")
+        help="tcp.stream id visible in wireshark")
     # give a choice "hash" / "stochastic"
     # parser.add_argument("--map-packets", action="store", type=int, help="tcp.stream id visible in wireshark")
     parser.add_argument(
@@ -698,16 +697,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         help="how to display each connection"
     )
 
-
     @with_argparser(parser)
     @experimental
     def do_print_owds(self, args):
         """
         TODO options to diagnose errors:
-        - print unmapped packets 
+        - print unmapped packets
         - print abnormal OWDs (negative etc)
         """
-
 
         # args = parser.parse_args(shlex.split(line))
         self.poutput("Loading merged streams")
@@ -750,11 +747,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser = gen_bicap_parser("mptcp")
     parser.description = """
         Qualify reinjections of the connection.
-        You might want to run map_mptcp_connection first to find out 
+        You might want to run map_mptcp_connection first to find out
         what map to which
         """
     parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
+
     @with_argparser_and_unknown_args(parser)
     @with_category(CAT_MPTCP)
     @experimental
@@ -777,13 +775,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             tshark_config=self.tshark_config
             )
 
-
         # adds a redundant column
         df = classify_reinjections(df_all)
 
         # keep only those that matched both for now
         print("MATT %d df packets" % len(df))
-        
+ 
         # print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
         #     _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
         #     _receiver(["packetid", "reltime"])

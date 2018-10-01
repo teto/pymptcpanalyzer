@@ -33,6 +33,7 @@ def find_type(filename):
     else:
         return Filetype.unsupported
 
+
 """
 fullname: wireshark name
 name: shortname used in mptcpanalyzer
@@ -44,7 +45,7 @@ when a converter is specified, dtype will be set to object or str
 
 hash: take this hash into account ?
 """
-Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter' ])
+Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter'])
 
 def _convert_flags(x):
     return int(x, 16)
@@ -200,7 +201,9 @@ class TsharkConfig:
 
         .. note:
 
-            tshark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol -e col.Length -e col.Info
+            tshark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime
+                -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol
+                -e col.Length -e col.Info
 
         """
         # TODO check for duplicates
@@ -236,11 +239,11 @@ class TsharkConfig:
             raise Exception("Input filename not a capture file")
 
         cmd = self.generate_csv_command(
-            self.tshark_bin,
+            # self.tshark_bin,
             fields_to_export,
             input_filename,
             self.read_filter,
-            profile=self.profile,
+            # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
         )
@@ -251,12 +254,16 @@ class TsharkConfig:
         return self.run_tshark(cmd, fd)
 
 
+    def filter_pcap(self, pcap_in, pcap_out):
+        # cmd = [self.tshark_bin]
+        cmd = [
+            self.tshark_bin,
+            "-r", pcap_in
+        ]
+        cmd.extend(["-2", '-R', self.read_filter])
+        cmd.extend(['-w', pcap_out])
 
-    def filter_pcap(self, pcap, stdout):
-        cmd = [ self.tshark_bin ]
-        cmd.extend(['-r', self.read_filter])
-        return self.run_tshark(cmd, subprocess.STDERR)
-
+        return self.run_tshark(cmd, None)
 
     @staticmethod
     def run_tshark(cmd, stdout):
@@ -285,12 +292,12 @@ class TsharkConfig:
         """
         Used to generate hash
         """
-        cmd = self.generate_command(
-            self.tshark_bin,
+        cmd = self.generate_csv_command(
+            # self.tshark_bin,
             self._tshark_fields.keys(),
             "PLACEHOLDER",
             self.read_filter,
-            profile=self.profile,
+            # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
             )
@@ -303,7 +310,7 @@ class TsharkConfig:
         fields_to_export: List[str],
         inputFilename,
         read_filter=None,
-        profile=None,
+        # profile=None,
         csv_delimiter='|',
         options={},
     ):
@@ -316,21 +323,21 @@ class TsharkConfig:
         # single-quotes, n no quotes (the default).
         # the -2 is important, else some mptcp parameters are not exported
         cmd = [
-            self.tshark,
-            "-E", "header=y", "-2",
+            self.tshark_bin,
+            "-E", "header=y",
             "-r", inputFilename,
             "-E", "separator=" + csv_delimiter,
         ]
-        if profile:
-            cmd.extend([ '-C', profile ])
+        if self.profile:
+            cmd.extend(['-C', self.profile])
 
         for option, value in options.items():
-            cmd.extend( [ '-o', option + ":" + str(value) ])
+            cmd.extend(['-o', option + ":" + str(value)])
 
         if read_filter:
-            cmd.extend(['-r', read_filter])
+            cmd.extend(['-2', '-R', read_filter])
 
         cmd.extend(['-T', 'fields'])
         for f in fields_to_export:
-            cmd.extend([ '-e', f])
+            cmd.extend(['-e', f])
         return cmd

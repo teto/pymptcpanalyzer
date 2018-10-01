@@ -211,8 +211,6 @@ def load_merged_streams_into_pandas(
                     (df2, other_connection)
                 )
 
-            # TODO assert merged_df is not null
-            # total = total.reindex(columns=firstcols + list(filter(lambda x: x not in firstcols, total.columns.tolist())))
             assert cachename
             log.info("Saving into %s" % cachename)
             # trying to export lists correctly
@@ -227,9 +225,7 @@ def load_merged_streams_into_pandas(
 
             # la on a perdu tcpdest est devenu object
             print("saving with dtypes=", dict(merged_df.dtypes))
-
             # print("MERGED_DF", merged_df[TCP_DEBUG_FIELDS].head(20))
-
 
         else:
             log.info("Loading from cache %s" % cachename)
@@ -237,7 +233,7 @@ def load_merged_streams_into_pandas(
 
             def _gen_dtypes(fields) -> Dict[str, Any]:
                 dtypes = {}  # type: ignore
-                for _rename in [ _sender, _receiver ]:
+                for _rename in [_sender, _receiver]:
 
                     # TODO this could be simplified
                     for k, v in fields.items():
@@ -245,9 +241,8 @@ def load_merged_streams_into_pandas(
                             dtypes.setdefault(_rename(k), v)
 
                     # add generated field dtypes
-                    dtypes.update({ _rename(f.fullname): f.type for f in artificial_fields.values() })
+                    dtypes.update({_rename(f.fullname): f.type for f in artificial_fields.values()})
 
-                
                 # these are overrides from the generated dtypes
                 dtypes.update({
                     # during the merge, we join even unmapped packets so some entries
@@ -263,19 +258,16 @@ def load_merged_streams_into_pandas(
                 # converters = {}   # type: Dict[str, Any]
                 fields = dict(tshark_config.fields)
                 fields.update(artificial_fields)
-                default_converters = { name: f.converter for name, f in fields.items() if f.converter }
+                default_converters = {name: f.converter for name, f in fields.items() if f.converter}
                 # converters.update({ name: f.converter for name, f in artificial_fields.items() if f.converter})
-                # converters = { 
                 for name, converter in default_converters.items():
-                    converters.update({ _sender(name):converter, _receiver(name): converter})
-                    
+                    converters.update({_sender(name): converter, _receiver(name): converter})
+
                 return converters
 
-
-
             with open(cachename) as fd:
-                dtypes = _gen_dtypes({ name: field.type for name, field in tshark_config.fields })
-                converters = _gen_converters(), 
+                dtypes = _gen_dtypes({name: field.type for name, field in tshark_config.fields})
+                converters = _gen_converters(),
                 # more recent versions can do without it
                 # pd.set_option('display.max_rows', 200)
                 # pd.set_option('display.max_colwidth', -1)
@@ -297,13 +289,11 @@ def load_merged_streams_into_pandas(
                 # TODO:
                 # No columns to parse from file
 
-
         # we fix the clocks a posteriori so that the cache is still usable
 
         logging.debug("Postprocessing clock if needed")
-        merged_df[ _first('abstime') ] += clock_offset1
-        merged_df[ _second('abstime') ] += clock_offset2
-
+        merged_df[_first('abstime')] += clock_offset1
+        merged_df[_second('abstime')] += clock_offset2
 
         logging.debug("Converting dataframes to be sender/receiver based...")
         # in both cases
@@ -318,23 +308,18 @@ def load_merged_streams_into_pandas(
             # c la ou ou corrige les temps
             # on rename les colonnes host1 ou host2 par _sender ou bien _receiver ?!
             res = convert_to_sender_receiver(merged_df)
-            
+
             # don't do it here else we might repeat it
             # data["abstime"] += clock_offset
 
         logging.debug("Computing owds")
         print("res=")
         # TODO we don't necessarely need to generate the OWDs here, might be put out
-        res['owd'] = res[ _receiver('abstime') ] - res[ _sender('abstime')]
-        print(res[ _sender(["ipsrc", "ipdst", "abstime"]) + [_receiver("abstime")] + TCP_DEBUG_FIELDS + ["owd"] ].head(40))
-
-        # 
-        # res = merged_df.
-            
+        res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
+        print(res[_sender(["ipsrc", "ipdst", "abstime"]) + [_receiver("abstime")] + TCP_DEBUG_FIELDS + ["owd"] ].head(40))
 
     except Exception:
         logging.exception("exception happened while merging")
-
 
     log.debug("Column names: %s", res.columns)
     # pd.set_option('display.max_rows', 200)
@@ -368,11 +353,9 @@ def load_into_pandas(
     cache = mp.get_cache()
 
     # TODO list dtypes then remove the ones that have a convert ?!
-    tshark_dtypes = {fullname: field.type for fullname, field in config.fields.items()
-            # if field.type is not None
-            }
+    tshark_dtypes = {fullname: field.type for fullname, field in config.fields.items()}
 
-    artifical_dtypes = { name: field.type for name, field in artificial_fields.items() }
+    artifical_dtypes = {name: field.type for name, field in artificial_fields.items()}
     # print("artifical_dtypes", artifical_dtypes)
     dtypes = dict(tshark_dtypes, **artifical_dtypes)
     # print("dtypes", dtypes)
@@ -382,8 +365,8 @@ def load_into_pandas(
     pseudohash = hash(config) + hash(frozenset(dtypes.items()))
     uid = cache.cacheuid(
         '',  # prefix (might want to shorten it a bit)
-        [ filename ], # dependencies
-        str(pseudohash)  + '.csv'
+        [filename], # dependencies
+        str(pseudohash) + '.csv'
     )
 
     is_cache_valid, csv_filename = cache.get(uid)
@@ -393,8 +376,8 @@ def load_into_pandas(
         log.info("Cache invalid .. Converting %s " % (filename,))
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
-            tshark_fields = [ field.fullname for _, field in config.fields.items() ]
-            retcode, stderr = config.export_to_csv( filename, out, tshark_fields)
+            tshark_fields = [field.fullname for _, field in config.fields.items()]
+            retcode, stderr = config.export_to_csv(filename, out, tshark_fields)
             log.info("exporter exited with code=%d", retcode)
             if retcode is 0:
                 out.close()
@@ -402,18 +385,17 @@ def load_into_pandas(
             else:
                 raise Exception(stderr)
 
-
     log.debug("Loading a csv file %s" % csv_filename)
 
     try:
         with open(csv_filename) as fd:
 
-            converters = { f.fullname: f.converter for _, f in config.fields.items() if f.converter }
-            converters.update({ name: f.converter for name, f in artificial_fields.items() if f.converter})
+            converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
+            converters.update({name: f.converter for name, f in artificial_fields.items() if f.converter})
             # print("converters\n", converters)
             data = pd.read_csv(
                 fd,
-                comment='#', 
+                comment='#',
                 sep=config.delimiter,
                 dtype=dtypes,
                 converters=converters,
@@ -735,8 +717,6 @@ def merge_mptcp_dataframes_known_streams(
 
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
 
-
-
     # todo should be inplace
     df_total = None  # type: pd.DataFrame
     # print("TCP mapping" % TcpMapping)
@@ -749,7 +729,6 @@ def merge_mptcp_dataframes_known_streams(
             (df2, mapped_sf.mapped)
         )
 
-
         df_total = pd.concat([df_temp, df_total])
 
     # we do it a posteriori so that we can still debug a dataframe with full info
@@ -760,7 +739,6 @@ def merge_mptcp_dataframes_known_streams(
 
     log.info("Merging %s with %s" % (main_connection, mapped_connection,))
     return df_total
-
 
 
 def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
@@ -777,7 +755,7 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
 
     def _get_pktid(row) -> int:
         return row.packetid
-    # used to be row.Index when df.set_index("packetid") was in use
+    # used to be row.Index when df.set_index("packetid") was in use
 
     def _cmp_packets(p1, p2) -> float:
         """
@@ -808,7 +786,7 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
         # score -= abs(p2.abstime - p1.abstime)
         return score
 
-    scores = [] # type: List[Any]
+    scores = []  # type: List[Any]
 
     for row in df.itertuples():
 
@@ -832,11 +810,11 @@ def print_weird_owds(df):
     """
     negative_owds = df[df.owd < 0]
     print("Listing")
+    temp = ("row sender pktid={packetid" + SENDER_SUFFIX + "}/abstime={abstime" + SENDER_SUFFIX + "}"
+            " pktid={packetid_receiver}/abstime={abstime_receiver} owd={owd}")
+
     for row in negative_owds.itertuples():
-        # print(*row)
-        print("""row sender pktid={packetid_sender}/abstime={abstime_sender}
-                pktid={packetid_receiver}/abstime={abstime_receiver} owd={owd}"""
-                .format( **row._asdict()))
+        print(temp.format(**row._asdict()))
 
 
 def map_tcp_packets(
@@ -866,10 +844,9 @@ def map_tcp_packets(
     return res
 
 
-
 def map_tcp_packets_via_hash(
     # TODO rename, these are not sender/receiver anymore
-    sender_df, receiver_df, 
+    sender_df, receiver_df,
     *kargs, **kwargs
     ):
     """
@@ -888,12 +865,12 @@ def map_tcp_packets_via_hash(
         sender_df, receiver_df,
         on="hash",
         # suffixes=(SENDER_SUFFIX, RECEIVER_SUFFIX), #  columns suffixes (sender/receiver)
-        suffixes=(HOST1_SUFFIX, HOST2_SUFFIX), #  columns suffixes (sender/receiver)
+        suffixes=(HOST1_SUFFIX, HOST2_SUFFIX),  # columns suffixes (sender/receiver)
         how="outer", # we want to keep packets from both
         # we want to know how many packets were not mapped correctly, adds the _merge column
         # can take values "left_only"/ "right_only" or both
-        indicator=True ,
-        validate="one_to_one", # can slow process
+        indicator=True,
+        validate="one_to_one",  # can slow process
     )
 
     #print("hash-based Map")
@@ -902,8 +879,7 @@ def map_tcp_packets_via_hash(
 
     print("Just after hash")
     print(res.columns)
-    #print(hashing_fields)
-    #print(res[TCP_DEBUG_FIELDS].head(20))
+    # print(res[TCP_DEBUG_FIELDS].head(20))
     return res
 
 
@@ -995,7 +971,6 @@ def map_tcp_packets_score_based(
     return df_final
 
 
-
 # TODO return TcpMapping
 # def sort_tcp_(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]:
 def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]:
@@ -1018,7 +993,7 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]
     return results
 
 def map_mptcp_connection_from_known_streams(
-    # rawdf2: pd.DataFrame, 
+    # rawdf2: pd.DataFrame,
     main: MpTcpConnection,
     other: MpTcpConnection
     ) -> MpTcpMapping:
@@ -1036,9 +1011,8 @@ def map_mptcp_connection_from_known_streams(
             scores = list(map(lambda x: TcpMapping(x, sf.score(x)), mapped.subflows()))
             scores.sort(key=lambda x: x[1], reverse=True)
             # print("sorted scores when mapping %s:\n %r" % (sf, scores))
-            mapped_subflows.append( (sf, scores[0]) )
+            mapped_subflows.append((sf, scores[0]))
             # TODO might want to remove the selected subflow from the pool of candidates
-        
         return mapped_subflows
 
     mptcpscore = main.score(other)
@@ -1055,7 +1029,6 @@ def map_mptcp_connection_from_known_streams(
 def map_mptcp_connection(
     rawdf2: pd.DataFrame, main: MpTcpConnection
     ) -> List[MpTcpMapping]:
-# List[Tuple[MpTcpConnection, float]]:
     """
     warn: Do not trust the results yet WIP !
 
@@ -1063,7 +1036,7 @@ def map_mptcp_connection(
         List of (connection, score) with the best mapping first
 
     This function tries to map a mptcp.stream from a dataframe (aka pcap) to mptcp.stream
-    in another dataframe. For now it just looks at IP level stuff without considering subflow 
+    in another dataframe. For now it just looks at IP level stuff without considering subflow
     mapping score
     """
     log.warning("mapping between datasets is not considered trustable yet")
@@ -1073,7 +1046,6 @@ def map_mptcp_connection(
 
     score = -1  # type: float
     results = []
-
 
     # print("%r" % main)
     # print(rawdf2["mptcpstream"].unique().dropna())
