@@ -83,62 +83,62 @@ class RunTests(Command):
 
 
 setup(name="mptcpanalyzer",
-        version=version,
-        description="Analyze mptcp traces (.pcap)",
-        long_description=open('README.md', 'r', encoding='utf-8').read(),
-        url="http://github.com/teto/mptcpanalyzer",
-        license="GPL",
-        author="Matthieu Coudron",
-        author_email="coudron@iij.ad.jp",
-        classifiers=[
-            'Development Status :: 3 - Alpha',
-            'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-            'Intended Audience :: System Administrators',
-            'Intended Audience :: Science/Research',
-            'Intended Audience :: Telecommunications Industry',
-            'Environment :: Console',
-            'Programming Language :: Python :: 3.5',
+    version=version,
+    description="Analyze mptcp traces (.pcap)",
+    long_description=open('README.md', 'r', encoding='utf-8').read(),
+    url="http://github.com/teto/mptcpanalyzer",
+    license="GPL",
+    author="Matthieu Coudron",
+    author_email="coudron@iij.ad.jp",
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Intended Audience :: System Administrators',
+        'Intended Audience :: Science/Research',
+        'Intended Audience :: Telecommunications Industry',
+        'Environment :: Console',
+        'Programming Language :: Python :: 3.5',
+    ],
+    keywords=["mptcp analysis pcap"],
+    packages=find_packages(),
+    entry_points={
+        "console_scripts": [
+            'mptcpanalyzer = mptcpanalyzer.cli:main',
+        ],
+        # Each item in the list should be a string with
+        # name = module:importable where name is the user-visible name for
+        # the plugin, module is the Python import reference for the module,
+        # and importable is the name of something that can be imported from
+        # inside the module.
+        'mptcpanalyzer.plots': [
+            'mptcp_attr = mptcpanalyzer.plots.dsn:PlotSubflowAttribute',
+            'tcp_attr = mptcpanalyzer.plots.dsn:PlotTcpAttribute',
+            # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
+            # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
+            # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
+            'dss = mptcpanalyzer.plots.dss:DSSOverTime',
+            'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
+            # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
+            # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
+            # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
+            'mptcp_throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
             ],
-        keywords=["mptcp analysis pcap"],
-        packages=find_packages(),
-        entry_points={
-            "console_scripts": [
-                'mptcpanalyzer = mptcpanalyzer.cli:main',
-            ],
-            # Each item in the list should be a string with
-            # name = module:importable where name is the user-visible name for
-            # the plugin, module is the Python import reference for the module,
-            # and importable is the name of something that can be imported from
-            # inside the module.
-            'mptcpanalyzer.plots': [
-                'mptcp_attr = mptcpanalyzer.plots.dsn:PlotSubflowAttribute',
-                'tcp_attr = mptcpanalyzer.plots.dsn:PlotTcpAttribute',
-                # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
-                # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
-                # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
-                'dss = mptcpanalyzer.plots.dss:DSSOverTime',
-                'owd_tcp = mptcpanalyzer.plots.owd:TcpOneWayDelay',
-                # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
-                # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
-                # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
-                'mptcp_throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
-                ],
-            # namespace for plugins that monkey patch the main Cmd class
-            'mptcpanalyzer.cmds': [
-                'stats = mptcpanalyzer.command_example:CommandExample',
-                ]
-            },
-        install_requires=[
-                'stevedore',  # to implement a plugin mechanism
-                'matplotlib',  # for plotting
-                'pandas>=0.23',  # because of accessors
-                'cmd2>=0.9',  # to improve cmd capabilities
-                # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
-                ],
-        # test_suite="tests",
-      cmdclass={
-        "test": RunTests,
-        # 'publish': 
-      },
-      zip_safe=False,
-      )
+        # namespace for plugins that monkey patch the main Cmd class
+        'mptcpanalyzer.cmds': [
+            'stats = mptcpanalyzer.command_example:CommandExample',
+            ]
+        },
+    install_requires=[
+        'stevedore',  # to implement a plugin mechanism
+        'matplotlib',  # for plotting
+        'pandas>=0.23',  # because of accessors
+        'cmd2>=0.9',  # to improve cmd capabilities
+        # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
+    ],
+    # test_suite="tests",
+    cmdclass={
+    "test": RunTests,
+    # 'publish': 
+    },
+    zip_safe=False,
+    )
