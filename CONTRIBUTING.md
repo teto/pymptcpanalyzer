@@ -32,8 +32,8 @@ mptcpanalyzer will load all plugins residing in these two namespaces:
 regardless of their package.
 
 In order to test while modifying mptcpanalyzer, you should install it like this: 
-$ python3.5 setup.py develop --user
+$ python setup.py develop --user
 
 # How to upload it to pypy (for the forgetful maintainer)
-python3.5 setup.py sdist upload
+python setup.py sdist upload
 (test first the package locally pip install /path/toarchive.gz)

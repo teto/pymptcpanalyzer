@@ -11,9 +11,8 @@ Similar to config
 
 class CacheId:
     def __init__(self, prefix: str,
-            # accept
-            filedeps: Collection=[Union[str, Path]],
-            suffix: str="" ) -> None:
+        filedeps: Collection = [Union[str, Path]],
+        suffix: str = "") -> None:
         """
         Builds a cache 'prefix_dep1_dep2_suffix'
         """
@@ -52,7 +51,7 @@ class Cache:
         os.makedirs(self.folder, exist_ok=True)
         self.disabled = disabled
 
-    def get(self, uid: CacheId) -> Tuple[bool,str]:
+    def get(self, uid: CacheId) -> Tuple[bool, str]:
         """
         Returns:
             validity, outPath
@@ -73,7 +72,7 @@ class Cache:
                 is_cache_valid = True
                 for dependency in dependencies:
 
-                    mtime_dep = os.path.getmtime(dependency) # type: ignore
+                    mtime_dep = os.path.getmtime(dependency)  # type: ignore
 
                     if ctime_cached >= mtime_dep:
                         logging.debug("Cache dependency %s ctime (%s) is valid (>= %s)"
@@ -101,7 +100,7 @@ class Cache:
         shutil.move(result, dest)
 
     @staticmethod
-    def cacheuid(prefix: str, dependencies: Collection=[], suffix: str=""):
+    def cacheuid(prefix: str, dependencies: Collection = [], suffix: str = ""):
         return CacheId(prefix, dependencies, suffix)
 
     def clean(self):
@@ -110,8 +109,7 @@ class Cache:
             logging.info("Removing " + cached_csv.path)
             os.unlink(cached_csv.path)
 
-
     # helpers to generate specific uids
     @staticmethod
     def merged_uid(pcap1, pcap2, stream1, stream2, suffix):
-        return CacheId("owd", [ pcap1, pcap2, stream1, stream2], suffix)
+        return CacheId("owd", [pcap1, pcap2, stream1, stream2], suffix)

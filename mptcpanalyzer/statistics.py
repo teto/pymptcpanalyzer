@@ -17,7 +17,7 @@ https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
 
 
 def mptcp_compute_throughput(
-        rawdf, mptcpstreamid, destination: ConnectionRoles
+    rawdf, mptcpstreamid, destination: ConnectionRoles
     # mptcpstreamid2=None
 ) -> Tuple[bool, Any]:
     """
@@ -39,30 +39,30 @@ def mptcp_compute_throughput(
     dsn_max = df.dss_dsn.max()
     total_transferred = dsn_max - dsn_min
     d = df.groupby('tcpstream')
-    subflow_stats : List[Any] = []
+    subflow_stats: List[Any] = []
     for tcpstream, group in d:
         # TODO drop retransmitted
         subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
         subflow_load = subflow_load if not math.isnan(subflow_load) else 0
         subflow_stats.append({
             'tcpstreamid': tcpstream,
-            'bytes': int(subflow_load)
+            'throughput_bytes': int(subflow_load)
         })
 
     return True, {
         'mptcpstreamid': mptcpstreamid,
+        # TODO append bytes
         'mptcp_goodput': total_transferred,
-        'mptcp_bytes': sum( map(lambda x: x['bytes'], subflow_stats)),
+        'mptcp_throughput_bytes': sum(map(lambda x: x['bytes'], subflow_stats)),
         'subflow_stats': subflow_stats,
     }
 
 
-
 def mptcp_compute_throughput_extended(
     rawdf,  # need the rawdf to classify_reinjections
-    stats, # result of mptcp_compute_throughput
+    stats,  # result of mptcp_compute_throughput
     # mptcpstreamid,
-    destination : ConnectionRoles, 
+    destination: ConnectionRoles,
     # mptcpstreamid2=None
 ) -> Tuple[bool, Any]:
     """
@@ -72,7 +72,7 @@ def mptcp_compute_throughput_extended(
     """
     df_both = classify_reinjections(rawdf)
 
-    df = df_both[ df_both.mptcpdest == destination ]
+    df = df_both[df_both.mptcpdest == destination]
 
     for sf in stats["subflow_stats"]:
         # subflow_stats.append({
@@ -80,14 +80,13 @@ def mptcp_compute_throughput_extended(
         #     'bytes': subflow_load
         # })
         print("for tcpstream %d" % sf["tcpstreamid"])
-        df_stream = df[  _sender("tcpstream") == sf["tcpstreamid"] ]
-        
+        df_stream = df[_sender("tcpstream") == sf["tcpstreamid"]]
         # TODO eliminate retransmissions too
         # sum( map(lambda x: x['bytes'], subflow_stats)),
 
         # inexact, we should drop lost packets
         tcp_throughput = df["bytes"].sum()
-        mptcp_goodput = df[ df.redundant == False, "bytes"].sum()
+        mptcp_goodput = df[df.redundant == False, "bytes"].sum()
 
         # won
         seq_min = df.tcpseq.min()
@@ -105,9 +104,8 @@ def mptcp_compute_throughput_extended(
             "mptcp_goodput": mptcp_goodput,
 
             # can be > 1 in case of redundant packets
-            "mptcp_throughput_contribution": mptcp_throughput/stats["mptcp_throughput"],
+            "mptcp_throughput_contribution": mptcp_throughput/stats["mptcp_throughput_bytes"],
 
-            # 
             "mptcp_goodput_contribution": mptcp_goodput/stats["mptcp_goodput"],
         })
 

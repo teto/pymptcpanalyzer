@@ -115,6 +115,7 @@ def gen_bicap_parser(protocol, dest=False):
     parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
     parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
 
+    # TODO make it mandatory or not
     if dest:
         dest_action = parser.add_argument(
             '--destination',
@@ -518,7 +519,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mptcpstream = args.mptcpstream
 
         success, ret = stats.mptcp_compute_throughput(
-                self.data, args.mptcpstream, args.destination
+            self.data, args.mptcpstream, args.destination
         )
         if success is not True:
             print("Throughput computation failed:")
@@ -533,9 +534,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(val)
             return
 
-        mptcp_transferred = ret["mptcp_bytes"]
+        mptcp_transferred = ret["mptcp_throughput_bytes"]
         self.poutput("mptcpstream %d transferred %d bytes." % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
-        for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
+        for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["throughput_bytes"]), ret["subflow_stats"]):
             subflow_load = sf_bytes/ret["mptcp_bytes"]
             self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
                 tcpstream, sf_bytes, mptcp_transferred, subflow_load*100))
@@ -600,46 +601,47 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         pandas_to_csv(df, args.output)
 
 
-    @is_loaded
-    def do_summary_extended(self, line):
+    parser = gen_bicap_parser("mptcp", True)
+    parser.description = """
+        Look into more details of an mptcp connection
+        """
+    @with_argparser(parser)
+    def do_summary_extended(self, args):
         """
         Summarize contributions of each subflow
         For now it is naive, does not look at retransmissions ?
         """
-        parser = gen_bicap_parser("mptcp", True)
-        parser.description = """
-            Look into more details of an mptcp connection
-            """
 
-        args = parser.parse_args(shlex.split(line))
+        # args = parser.parse_args(args)
 
         basic_stats = stats.mptcp_compute_throughput(
-            args.pcap1, args.streamid,
-            args.dest
+            # TODO here we should load the pcap before hand !
+            args.pcap1, 
+            args.mptcpstream,
+            args.destination
         )
 
         df = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
-            args.streamid,
-            args.streamid2,
+            args.mptcpstream,
+            args.mptcpstream2,
             args.protocol == "mptcp",
             self.tshark_config
         )
 
         success, ret = stats.mptcp_compute_throughput_extended(
-                # self.data, args.mptcpstream, args.destination
-                df,
-                basic_stats,
-                args.destination
-
+            # self.data, args.mptcpstream, args.destination
+            df,
+            basic_stats,
+            args.destination
         )
         if success is not True:
             self.perror("Throughput computation failed:")
             self.perror(ret)
             return
 
-        total_transferred = ret["mptcp_bytes"]
+        total_transferred = ret["mptcp_throughput_bytes"]
         self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
             subflow_load = sf_bytes/ret["mptcp_bytes"]
@@ -763,9 +765,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         TODO move the code into a proper function
         """
-
-        # args = parser.parse_args(shlex.split(line))
-
         df_all = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
@@ -773,21 +772,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             args.mptcpstream2,
             mptcp=True,
             tshark_config=self.tshark_config
-            )
+        )
 
         # adds a redundant column
         df = classify_reinjections(df_all)
 
-        # keep only those that matched both for now
-        print("MATT %d df packets" % len(df))
- 
         # print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
         #     _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
         #     _receiver(["packetid", "reltime"])
         # ])
 
         # to help debug
-        # df.to_excel("temp.xls")
+        df.to_excel("temp.xls")
 
         def _print_reinjection_comparison(original_packet, reinj):
             """
@@ -802,26 +798,30 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     .format(
                 pktid               = getattr(row, _sender("packetid")),
                 initial_packetid    = initial_packetid,
-                
+ 
                 reinjection_start   = getattr(row, _sender("abstime")),
                 reinjection_arrival = getattr(row, _receiver("abstime")),
-                original_start      = original_packet[ _sender("abstime") ],
-                original_arrival    = original_packet[ _receiver("abstime") ] 
+                original_start      = original_packet[_sender("abstime")],
+                original_arrival    = original_packet[_receiver("abstime")] 
             ))
 
             if getattr(row, _receiver("abstime")) > original_packet[ _receiver("abstime") ]:
                 print("BUG: this is not a valid reinjection after all ?")
 
         # print("debugging ")
-        print("dataframe size = %d" % len(df))
+        # print("dataframe size = %d" % len(df))
 
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
         #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
 
+        if args.json:
+            self.pdebug("Exporting to json")
+            # df.to_json()
 
         for destination in ConnectionRoles:
             self.poutput("looking for reinjections towards mptcp %s" % destination)
-            sender_df = df[ df.mptcpdest == destination]
+            sender_df = df[df.mptcpdest == destination]
+            logging.debug("%d reinjections in that direction" % (len(sender_df), ))
 
             # TODO we now need to display successful reinjections
             reinjections = sender_df[ pd.notnull(sender_df[ _sender("reinjection_of") ]) ]
