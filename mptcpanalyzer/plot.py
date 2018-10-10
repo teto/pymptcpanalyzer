@@ -181,7 +181,7 @@ class Plot:
         Returns:
             Filtered dataframe
         """
-        log.debug("Preprocessing dataframe with extra args %s" % kwargs)
+        logging.debug("Preprocessing dataframe with extra args %s" % kwargs)
         queries = []
         print("tcp.stream", tcpstream, "mptcp:", mptcpstream)
         stream = tcpstream if tcpstream is not None else mptcpstream

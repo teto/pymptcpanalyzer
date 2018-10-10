@@ -664,7 +664,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         description="""
         Mptcpanalyzer filters pcaps to keep only tcp packets.
         This may explain why printed packet ids dont map
-
         """
     )
     load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
