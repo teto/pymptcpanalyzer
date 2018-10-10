@@ -368,9 +368,9 @@ def load_into_pandas(
 
     is_cache_valid, csv_filename = cache.get(uid)
 
-    log.debug("cache validity=%d cachename: %s" % (is_cache_valid, csv_filename))
+    logging.debug("cache validity=%d cachename: %s" % (is_cache_valid, csv_filename))
     if not is_cache_valid:
-        log.info("Cache invalid .. Converting %s " % (filename,))
+        logging.info("Cache invalid .. Converting %s " % (filename,))
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
             tshark_fields = [field.fullname for _, field in config.fields.items()]
@@ -410,10 +410,10 @@ def load_into_pandas(
             # we want packetid column to survive merges/dataframe transformation so keepit as a column
             # TODO remove ? let other functions do it ?
             data.set_index("packetid", drop=False, inplace=True)
-            log.debug("Column names: %s", data.columns)
+            logging.debug("Column names: %s", data.columns)
 
             hashing_fields = [name for name, field in config.fields.items() if field.hash]
-            log.debug("Hashing over fields %s" % hashing_fields)
+            logging.debug("Hashing over fields %s" % hashing_fields)
 
             # won't work because it passes a Serie (mutable)_
             # TODO generate hashing fields from Fields
@@ -572,7 +572,7 @@ def convert_to_sender_receiver(
         print(subdf.columns)
         print(total.columns)
 
-    logging.debug("Converting to sender/receiver format")
+    logging.debug("Converted to sender/receiver format")
     return total
 
 
@@ -612,7 +612,8 @@ def merge_tcp_dataframes_known_streams(
     h1_df, main_connection = con1
     h2_df, mapped_connection = con2
 
-    log.info("Trying to merge connection {} to {} of respective sizes {} and {}".format(
+    logging.info(
+        "Trying to merge connection {} to {} of respective sizes {} and {}".format(
         mapped_connection, main_connection, len(h1_df), len(h2_df)
     ))
     # print(h1_df[["packetid","hash", "reltime"]].head(5))
@@ -625,25 +626,38 @@ def merge_tcp_dataframes_known_streams(
     # TODO reorder columns to have packet ids first !
     total = pd.DataFrame()
 
-    for dest in ConnectionRoles:
+    for tcpdest in ConnectionRoles:
 
-        log.debug("Looking at destination %s" % dest)
-        q = main_connection.generate_direction_query(dest)
+        log.debug("Looking at tcpdestination %s" % tcpdest)
+        q = main_connection.generate_direction_query(tcpdest)
         h1_unidirectional_df = h1_df.query(q)
-        q = mapped_connection.generate_direction_query(dest)
+        q = mapped_connection.generate_direction_query(tcpdest)
         h2_unidirectional_df = h2_df.query(q)
 
-        # if dest == ConnectionRoles.Client:
+        # if tcpdest == ConnectionRoles.Client:
         #     sender_df, receiver_df = server_unidirectional_df, client_unidirectional_df
         # else:
-        #     # destination is server
+        #     # tcpdestination is server
         #     sender_df, receiver_df =  client_unidirectional_df, server_unidirectional_df
 
         res = map_tcp_packets(h1_unidirectional_df, h2_unidirectional_df)
         
         # pandas trick to avoid losing dtype 
         # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
-        res[_first('tcpdest')][:] = dest
+        # no need to set _second (as they are just opposite)
+        # TODO this should be done somewhere else
+        # else summary won't work
+        res[_first('tcpdest')][:] = tcpdest
+
+        # generate_mptcp_direction_query
+        if isinstance(main_connection, MpTcpSubflow):
+
+            print("THIS IS A SUBFLOW")
+            mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
+            res[_first('mptcpdest')][:] = mptcpdest
+
+            print("Setting mptcpdest to %s", mptcpdest)
+            # if tcpdest == main_connection.mptcpdest
 
         # TODO here we should
         total = pd.concat([res, total])
@@ -727,7 +741,7 @@ def merge_mptcp_dataframes_known_streams(
     df1, main_connection = con1
     df2, mapped_connection = con2
 
-    log.info("Merging %s with %s" % (main_connection, mapped_connection,))
+    logging.info("Merging %s with %s" % (main_connection, mapped_connection,))
 
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
 
@@ -743,6 +757,9 @@ def merge_mptcp_dataframes_known_streams(
             (df2, mapped_sf.mapped)
         )
 
+        # res[_first('mptcpdest')][:] = dest
+
+
         df_total = pd.concat([df_temp, df_total])
 
     # we do it a posteriori so that we can still debug a dataframe with full info
@@ -751,7 +768,7 @@ def merge_mptcp_dataframes_known_streams(
     # cols2drop = _receiver(cols2drop)
     # df_total.drop(labels=cols2drop)
 
-    log.info("Merging %s with %s" % (main_connection, mapped_connection,))
+    logging.info("Merging %s with %s" % (main_connection, mapped_connection,))
     return df_total
 
 
@@ -1064,7 +1081,7 @@ def map_mptcp_connection(
     # print("%r" % main)
     # print(rawdf2["mptcpstream"].unique().dropna())
 
-    for mptcpstream2 in rawdf2["mptcpstream"].dropna().unique():
+    for mptcpstream2 in rawdf2[_sender("mptcpstream")].dropna().unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
         mapping = map_mptcp_connection_from_known_streams(main, other)
         # score = main.score(other)
@@ -1091,6 +1108,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
     df_all["redundant"] = False
 
+    # rename to df_both ?
     df = df_all[df_all._merge == "both"]
 
     # print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
@@ -1111,7 +1129,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         print(sender_df["reinjection_of"])
         reinjected_packets = sender_df.dropna(axis='index', subset=[_sender("reinjection_of")])
 
-        print("%d reinjected packets" % len(reinjected_packets))
+        logging.debug("%d reinjected packets" % len(reinjected_packets))
         with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
             print(reinjected_packets[
                 _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])
@@ -1135,6 +1153,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
                 log.debug("reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
                 continue
 
+            # print("%r" % reinjection.reinjection_of)
             initial_packetid = reinjection.reinjection_of[0]
             # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
@@ -1142,7 +1161,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             if original_packet._merge != "both":
                 # TODO count missed classifications ?
-                log.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
+                logging.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
                 continue
 
             orig_arrival = getattr(original_packet, _receiver("reltime"))

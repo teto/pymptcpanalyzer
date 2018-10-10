@@ -64,26 +64,28 @@ def get_config() -> MpTcpAnalyzerConfig:
 # METADATA_ROWS = 2
 
 
-# def convert_to_list(x, field="pass a field to debug"):
-#     """
-#     Loads x of the form "1,2,5" or None
-#     for instance functools.partial(_convert_to_list, field="reinjectionOf"),
-#     returns np.nan instead of [] to allow for faster filtering
-#     """
-#     # pandas error message are not the best to understand why the convert failed
-#     # so we use this instead of lambda for debug reasons
-#     # print("converting field %s with value %r" % (field, x))
-#     res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
-#     return res
-
-def _load_list(x, field="set field to debug"):
+def _load_list(x, field="pass a field to debug"):
     """
-    Contrary to _convert_to_list
+    Loads x of the form "1,2,5" or None
+    for instance functools.partial(_convert_to_list, field="reinjectionOf"),
+    returns np.nan instead of [] to allow for faster filtering
     """
-    res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
-
-    # print("res", res)
+    # pandas error message are not the best to understand why the convert failed
+    # so we use this instead of lambda for debug reasons
+    # print("converting field %s with value %r" % (field, x))
+    res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
     return res
+
+# doesn't seem to work
+# sometimes it will create a tuple only if there are several elements
+# def _load_list(x, field="set field to debug"):
+#     """
+#     Contrary to _convert_to_list
+#     """
+#     res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
+
+#     # print("res", res)
+#     return res
 
 
 class TcpFlags(Flag):

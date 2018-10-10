@@ -53,7 +53,7 @@ def mptcp_compute_throughput(
         'mptcpstreamid': mptcpstreamid,
         # TODO append bytes
         'mptcp_goodput': total_transferred,
-        'mptcp_throughput_bytes': sum(map(lambda x: x['bytes'], subflow_stats)),
+        'mptcp_throughput_bytes': sum(map(lambda x: x['throughput_bytes'], subflow_stats)),
         'subflow_stats': subflow_stats,
     }
 

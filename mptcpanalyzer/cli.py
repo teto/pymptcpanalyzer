@@ -329,8 +329,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     filter_stream = parser.add_argument("mptcpstream", action="store", type=int,
         help="Equivalent to wireshark mptcp.stream id")
     setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
-    parser.add_argument("-c", "--contributions", action="store_true", default=False,
-        help="Display contribution of each subflow (taking into account reinjections ?)")
 
     @with_argparser(parser)
     @with_category(CAT_MPTCP)
@@ -343,7 +341,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         Example:
             ls 0
         """
-        # args = parser.parse_args(shlex.split(args))
         self.list_subflows(args.mptcpstream)
 
     @is_loaded
@@ -351,13 +348,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         try:
             con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-            self.poutput("Description of mptcp.stream %d " % mptcpstreamid)
-
-            self.poutput("The connection has %d subflow(s) (client/server): " % (len(con.subflows())))
+            self.poutput("mptcp.stream %d has %d subflow(s) (client/server): " % (mptcpstreamid, len(con.subflows())))
             for sf in con.subflows():
                 self.poutput("\t%s" % sf)
         except mp.MpTcpException as e:
-            self.poutput(e)
+            self.pwarn(e)
 
     # def help_list_subflows(self):
     #     print("Use parser -h")
@@ -522,8 +517,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.data, args.mptcpstream, args.destination
         )
         if success is not True:
-            print("Throughput computation failed:")
-            print(ret)
+            self.perror("Throughput computation failed:")
+            self.perror(ret)
             return
 
         if args.json:
@@ -535,11 +530,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             return
 
         mptcp_transferred = ret["mptcp_throughput_bytes"]
-        self.poutput("mptcpstream %d transferred %d bytes." % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
+        self.poutput("mptcpstream %d transferred %d bytes." % (ret["mptcpstreamid"], mptcp_transferred))
         for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["throughput_bytes"]), ret["subflow_stats"]):
-            subflow_load = sf_bytes/ret["mptcp_bytes"]
-            self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
-                tcpstream, sf_bytes, mptcp_transferred, subflow_load*100))
+            subflow_load = sf_bytes/mptcp_transferred
+            self.poutput("tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
+                    "accounting for {tput_ratio:.2f}%".format(
+                tcpstream, sf_tput=sf_bytes, mptcp_tput=mptcp_transferred, 
+                tput_ratio=subflow_load*100
+            ))
 
 
     # TODO check for reinjections etc...
@@ -577,7 +575,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         elif args.mptcpstream:
             self.poutput("Unsupported yet")
             # df = df[ df.mptcpstream == args.mptcpstream]
-
 
         # need to compute the destinations before dropping syn from the dataframe
         # df['tcpdest'] = np.nan;
@@ -658,6 +655,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
+            self.poutput("\n")
 
 
     parser = argparse_completer.ACArgumentParser(
@@ -814,7 +812,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
 
         if args.json:
-            self.pdebug("Exporting to json")
+            self.pdebug("Exporting to csv")
             # df.to_json()
 
         for destination in ConnectionRoles:
@@ -823,7 +821,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             logging.debug("%d reinjections in that direction" % (len(sender_df), ))
 
             # TODO we now need to display successful reinjections
-            reinjections = sender_df[ pd.notnull(sender_df[ _sender("reinjection_of") ]) ]
+            reinjections = sender_df[pd.notnull(sender_df[ _sender("reinjection_of") ])]
 
             print("=================================="
                 "=====       TESTING          ====="

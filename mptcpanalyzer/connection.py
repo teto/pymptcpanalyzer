@@ -35,7 +35,6 @@ class TcpConnection:
     """
     def __init__(
         self,
-        # tcpdest: ConnectionRoles,
         tcpstreamid: int,
         tcpclientip, tcpserverip,
         client_port: int, server_port: int,
@@ -198,6 +197,9 @@ class MpTcpSubflow(TcpConnection):
         # raise Exception("check for rcv_token")
         return res
 
+    def mptcp_dest_from_tcpdest(self, tcpdest: ConnectionRoles):
+        return self.mptcpdest if tcpdest == ConnectionRoles.Server else swap_role(self.mptcpdest)
+
     def generate_mptcp_direction_query(self, mptcpdest: ConnectionRoles):
         """
         Filter packets according to their MPTCP destination
@@ -210,7 +212,6 @@ class MpTcpSubflow(TcpConnection):
             tcpdest = swap_role(tcpdest)
 
         return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
-
 
     def __str__(self):
         """ Plot destination on top of it """
@@ -349,18 +350,18 @@ class MpTcpConnection:
 
             # assuming first packet is the initial SYN
             row = res[0]
-            token = subflow_ds["recvtok"].iloc[row]
+            receiver_token = subflow_ds["recvtok"].iloc[row]
 
             # if we see the token
             subflow = MpTcpSubflow.create_subflow(
-                mptcpdest = ConnectionRoles.Client if token == server_token else ConnectionRoles.Server,
+                mptcpdest = ConnectionRoles.Server if receiver_token == server_token else ConnectionRoles.Client,
                 tcpstreamid=tcpstreamid,
                 tcpclientip=subflow_ds['ipsrc'].iloc[row],
                 tcpserverip=subflow_ds['ipdst'].iloc[row],
                 client_port=subflow_ds['sport'].iloc[row], 
                 server_port=subflow_ds['dport'].iloc[row],
                 addrid=None,
-                rcv_token=token
+                rcv_token=receiver_token,
                 )
 
             subflows.append(subflow)
