@@ -51,12 +51,15 @@ from stevedore import extension
 plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
 
-log = logging.getLogger("mptcpanalyzer")
-ch = logging.StreamHandler()
+# log = logging.getLogger(__name__)
+
+# this catches the "root" logger which is the parent of all loggers
+log = logging.getLogger()
+# ch = logging.StreamHandler()
 # formatter = logging.Formatter('%(name)s:%(levelname)s: %(message)s')
 # ch.setFormatter(formatter)
 
-log.addHandler(ch)
+# log.addHandler(ch)
 # log.setLevel(logging.DEBUG)
 # handler = logging.FileHandler("mptcpanalyzer.log", delay=False)
 
@@ -64,10 +67,7 @@ log.addHandler(ch)
 histfile_size = 1000
 
 
-logLevels = { logging.getLevelName(level): level for level in [ logging.DEBUG, logging.INFO, logging.ERROR] }
-
-# workaround to get
-DestinationChoice = mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles])
+logLevels = { logging.getLevelName(level): level for level in [logging.DEBUG, logging.INFO, logging.ERROR] }
 
 
 CAT_TCP = "TCP related"
@@ -98,39 +98,6 @@ def experimental(f):
         return f(self, *args, **kwargs)
     return wrapped
 
-
-def gen_bicap_parser(protocol, dest=False):
-    """
-    protocol in ["mptcp", "tcp"]
-    """
-    parser = argparse_completer.ACArgumentParser(
-        description="""
-        Empty description, please provide one
-        """
-    )
-    load_pcap1 = parser.add_argument("pcap1", type=str, help="Capture file 1")
-    load_pcap2 = parser.add_argument("pcap2", type=str, help="Capture file 2")
-    for action in [load_pcap1, load_pcap2]:
-        setattr(action, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-    parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
-    parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
-
-    # TODO make it mandatory or not
-    if dest:
-        dest_action = parser.add_argument(
-            '--destination',
-            action="store",
-            choices=DestinationChoice,
-            type=lambda x: mp.ConnectionRoles[x],
-            # default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
-            help='Filter flows according to their direction'
-            '(towards the client or the server)'
-            'Depends on mptcpstream'
-        )
-
-        # tag the action objects with completion providers. This can be a collection or a callable
-        # setattr(dest_action, argparse_completer.ACTION_ARG_CHOICES, static_list_directors)
-    return parser
 
 
 class MpTcpAnalyzerCmdApp(cmd2.Cmd):
@@ -173,9 +140,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.data = None  # type: pd.DataFrame
         self.config = cfg
         self.tshark_config = TsharkConfig(
-            cfg["mptcpanalyzer"]["tshark_binary"],
-            cfg["mptcpanalyzer"]["delimiter"],
-            cfg["mptcpanalyzer"]["wireshark_profile"],
+            delimiter=cfg["mptcpanalyzer"]["delimiter"],
+            profile=cfg["mptcpanalyzer"]["wireshark_profile"],
         )
 
         # cmd2 specific initialization
@@ -495,7 +461,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     parser.add_argument(
         'destination',
-        action="store", choices=DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
+        action="store", choices=mp.DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
         help='Filter flows according to their direction'
         '(towards the client or the server)'
         'Depends on mptcpstream'
@@ -550,7 +516,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     group.add_argument('--tcpstream', action='store', type=int)
     group.add_argument('--mptcpstream', action='store', type=int)
     # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
-    parser.add_argument("--destination", action="store", choices=DestinationChoice,
+    parser.add_argument("--destination", action="store", choices=mp.DestinationChoice,
         help="tcp.stream id visible in wireshark")
     parser.add_argument("--drop-syn", action="store_true", default=False,
         help="Helper just for my very own specific usecase")
@@ -598,7 +564,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         pandas_to_csv(df, args.output)
 
 
-    parser = gen_bicap_parser("mptcp", True)
+    parser = mp.gen_bicap_parser("mptcp", True)
     parser.description = """
         Look into more details of an mptcp connection
         """
@@ -679,17 +645,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         self.tshark_config.filter_pcap(args.imported_pcap, args.exported_pcap)
 
-    parser = gen_bicap_parser("tcp")
+
+    # TODO it should be able to print for both 
+    parser = mp.gen_bicap_parser("tcp", True)
     parser.description = """This function tries merges a tcp stream from 2 pcaps
                         in an attempt to print owds. See map_tcp_connection first maybe."""
 
     # TODO add a limit of packets or use ppaged()
     # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"],
     #     help="tcp.stream id visible in wireshark")
-    parser.add_argument("--destination", action="store", choices=DestinationChoice,
-        help="tcp.stream id visible in wireshark")
     # give a choice "hash" / "stochastic"
-    # parser.add_argument("--map-packets", action="store", type=int, help="tcp.stream id visible in wireshark")
     parser.add_argument(
         '-v', '--verbose', dest="verbose", default=False,
         action="store_true",
@@ -726,6 +691,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # for row in df.itertuples();
             # self.ppaged()
 
+        if args.json:
+            self.pdebug("Exporting to csv")
+
         # print unmapped packets
         print("print_owds finished")
         # print("TODO display before doing plots")
@@ -743,7 +711,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput("you need a wireshark > 19 June 2018 with commit dac91db65e756a3198616da8cca11d66a5db6db7...")
 
 
-    parser = gen_bicap_parser("mptcp")
+    parser = mp.gen_bicap_parser("mptcp")
     parser.description = """
         Qualify reinjections of the connection.
         You might want to run map_mptcp_connection first to find out
@@ -813,12 +781,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         if args.json:
             self.pdebug("Exporting to csv")
-            # df.to_json()
+            # df.to_csv()
 
         for destination in ConnectionRoles:
             self.poutput("looking for reinjections towards mptcp %s" % destination)
             sender_df = df[df.mptcpdest == destination]
-            logging.debug("%d reinjections in that direction" % (len(sender_df), ))
+            log.debug("%d reinjections in that direction" % (len(sender_df), ))
 
             # TODO we now need to display successful reinjections
             reinjections = sender_df[pd.notnull(sender_df[ _sender("reinjection_of") ])]
@@ -1102,13 +1070,12 @@ def main(arguments=None):
     mp.__CACHE__ = mc.Cache(config.cachedir, disabled=args.no_cache)
     mp.__CONFIG__ = config
 
-    # level = logging.CRITICAL - min(args.debug, 4) * 10
     print("Setting log level to %s" % args.debug)
     log.setLevel(logLevels[args.debug])
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    # logging.basicConfig(format='%(levelname)s:%(message)s', level=logLevels[args.debug])
 
     log.debug("Starting in folder %s" % os.getcwd())
-    # log.debug("Pandas version: %s" % pd.show_versions())
+    # logging.debug("Pandas version: %s" % pd.show_versions())
     log.debug("Pandas version: %s" % pd.__version__)
     log.debug("cmd2 version: %s" % cmd2.__version__)
 

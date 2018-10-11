@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig, Field
-from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping
+from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, swap_role
 import mptcpanalyzer as mp
 from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender, 
 HOST1_SUFFIX, HOST2_SUFFIX, 
@@ -18,7 +18,6 @@ from enum import Enum, auto
 import functools
 
 log = logging.getLogger(__name__)
-slog = logging.getLogger(__name__)
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -96,8 +95,10 @@ per_pcap_artificial_fields = {
     "mptcpdest": Field("mptcpdest", dtype_role, "MPTCP destination", False, _convert_role),
     "tcpdest": Field("tcpdest", dtype_role, "TCP destination", False, _convert_role),
     "hash": Field("hash", np.float64, "Hash of fields", False, None),
+
+    # TODO rename ?
     # TODO should be a CategoryDataType !
-    # "owd": Field("merge", str, None, False, None)
+    "merge": Field("_merge", None, "How many packets were merged", False, None)
 }
 
 # merged_per_pcap_artificial_fields = {
@@ -227,23 +228,22 @@ def load_merged_streams_into_pandas(
 
             def _gen_dtypes(fields) -> Dict[str, Any]:
                 dtypes = {}  # type: ignore
-                for _rename in [_sender, _receiver]:
+                for _name in [_first, _second]:
 
                     # TODO this could be simplified
                     for k, v in fields.items():
                         if v is not None or k not in ["tcpflags"]:
-                            dtypes.setdefault(_rename(k), v)
+                            dtypes.setdefault(_name(k), v)
 
                     # add generated field dtypes
-                    dtypes.update({_rename(f.fullname): f.type for f in per_pcap_artificial_fields.values()})
+                    dtypes.update({_name(f.fullname): f.type for f in per_pcap_artificial_fields.values()})
 
                 # these are overrides from the generated dtypes
                 dtypes.update({
                     # during the merge, we join even unmapped packets so some entries
                     # may be empty => float64
-                    _sender("packetid"): np.float64,
-                    _receiver("packetid"): np.float64,
-                    _receiver("packetid"): np.float64,
+                    _first("packetid"): np.float64,
+                    _second("packetid"): np.float64,
                 })
 
                 return dtypes
@@ -257,7 +257,7 @@ def load_merged_streams_into_pandas(
                 default_converters = {name: f.converter for name, f in fields.items() if f.converter}
                 # converters.update({ name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
                 for name, converter in default_converters.items():
-                    converters.update({_sender(name): converter, _receiver(name): converter})
+                    converters.update({_first(name): converter, _second(name): converter})
 
                 return converters
 
@@ -545,12 +545,12 @@ def convert_to_sender_receiver(
         # min_h2 = h2_df['abstime'].min()
         logging.debug("Comparing %f (h1) with %f (h2)" % (min_h1, min_h2))
         if min_h1 < min_h2:
-            logging.debug("Looks like h1 is the client")
+            logging.debug("Looks like h1 is the tcp client")
             # suffixes = { HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX }
             h1_role = ConnectionRoles.Client
 
         else:
-            logging.debug("Looks like h2 is the client")
+            logging.debug("Looks like h2 is the tcp client")
             # suffixes = { HOST2_SUFFIX: SENDER_SUFFIX, HOST1_SUFFIX: RECEIVER_SUFFIX }
             h1_role = (ConnectionRoles.Server)
 
@@ -582,11 +582,6 @@ def convert_to_sender_receiver(
     # # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
     # res['tcpdest'][:] = dest
     # # res['tcpdest'] = res['tcpdest'].astype(dtype_role, copy=False)
-
-    # # la c un object
-    # print("res dtype=", res.dtypes.tcpdest)
-    # print("total dtype=", total.dtypes)
-
 
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
@@ -634,12 +629,6 @@ def merge_tcp_dataframes_known_streams(
         q = mapped_connection.generate_direction_query(tcpdest)
         h2_unidirectional_df = h2_df.query(q)
 
-        # if tcpdest == ConnectionRoles.Client:
-        #     sender_df, receiver_df = server_unidirectional_df, client_unidirectional_df
-        # else:
-        #     # tcpdestination is server
-        #     sender_df, receiver_df =  client_unidirectional_df, server_unidirectional_df
-
         res = map_tcp_packets(h1_unidirectional_df, h2_unidirectional_df)
         
         # pandas trick to avoid losing dtype 
@@ -648,6 +637,7 @@ def merge_tcp_dataframes_known_streams(
         # TODO this should be done somewhere else
         # else summary won't work
         res[_first('tcpdest')][:] = tcpdest
+        res[_second('tcpdest')][:] = tcpdest
 
         # generate_mptcp_direction_query
         if isinstance(main_connection, MpTcpSubflow):
@@ -655,6 +645,7 @@ def merge_tcp_dataframes_known_streams(
             print("THIS IS A SUBFLOW")
             mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
             res[_first('mptcpdest')][:] = mptcpdest
+            res[_second('mptcpdest')][:] = mptcpdest
 
             print("Setting mptcpdest to %s", mptcpdest)
             # if tcpdest == main_connection.mptcpdest

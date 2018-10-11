@@ -83,8 +83,8 @@ For example, we can load an mptcp pcap (I made one available on [wireshark wiki]
 (https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository, in the _examples_ folder).
 
 Run  `$ mptcpanalyzer --load examples/iperf-mptcp-0-0.pcap`. The script will try to generate
-a csv file, it can take a few minutes depending on your computer.
-Then you have a command line: you can type `?` to list available commands. You have for instance:
+a csv file, it can take a few minutes depending on the computer/pcap until the promt shows up.
+Type `?` to list available commands (and their aliases). You have for instance:
 - `lc` (list connections)
 - `ls` (list subflows)
 - `plot` 
@@ -98,7 +98,7 @@ Look at [Examples](#Examples)
 # Examples
 
 Plot One Way Delays from a connection:
-`plot owd_tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0 --display`
+`plot owd tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0 --display`
 
 Plot tcp sequence numbers in both directions:
 `plot tcp_attr`

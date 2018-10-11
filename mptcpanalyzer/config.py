@@ -2,8 +2,6 @@ import configparser
 import os
 import logging
 
-log = logging.getLogger(__name__)
-
 """
 Global config initialized in cli.py.
 Singleton-like
@@ -49,11 +47,10 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
         # ensure defaults for mandatory parameters
         self.read_dict({
             "mptcpanalyzer": {
-                "tshark_binary": "tshark",
                 "delimiter": "|",
                 "cache": cache_filename,
                 "history": history_filename,
-                "history_size": 200,
+                "history_size": 1000,
                 "wireshark_profile": "",
                 "style0": "",
                 "style1": "",
@@ -68,13 +65,13 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")
             filenames.append(xdg_config)
         elif filename:
-            log.info("Config file set to %s" % filename)
+            logging.info("Config file set to %s" % filename)
             filenames = [filename]
 
         loaded_from = self.read(filenames)
         if filename and filename not in loaded_from:
             raise ValueError("Could not load the specified configuration")
-        log.info("Configuration loaded from %s", loaded_from)
+        logging.info("Configuration loaded from %s", loaded_from)
 
     @property
     def cachedir(self):

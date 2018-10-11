@@ -143,8 +143,8 @@ class DSSOverTime(plot.Matplotlib):
 
 
             cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
-
             markers = cycle(cycler)
+
             for tcpstream, df in df_backward.groupby('tcpstream'):
                 marker = next(markers)
                 if df.empty:

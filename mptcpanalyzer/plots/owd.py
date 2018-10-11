@@ -6,21 +6,18 @@ from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import os
 import argparse
 import collections
 from mptcpanalyzer.cache import CacheId
 from cmd2 import argparse_completer
 from typing import Iterable, List #, Any, Tuple, Dict, Callable
+from itertools import cycle
 
 # global log and specific log
 log = logging.getLogger(__name__)
-slog = logging.getLogger("owd")
 
-
-# This is a complex plot hence we added some
-# debug variables
-# limit = 20
 
 TCP_DEBUG_FIELDS = ['hash', 'ipsrc', 'ipdst', 'tcpstream', 'packetid', "reltime", "abstime", "tcpdest"]
 
@@ -51,13 +48,13 @@ class TcpOneWayDelay(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
-        expected_pcaps = [
-            ("host1_pcap", plot.PreprocessingActions.Preload),
-            ("host2_pcap", plot.PreprocessingActions.Preload),
-        ]
+        # expected_pcaps = [
+        #     ("host1_pcap", plot.PreprocessingActions.Preload),
+        #     ("host2_pcap", plot.PreprocessingActions.Preload),
+        # ]
         super().__init__(
             *args,
-            input_pcaps=expected_pcaps,
+            input_pcaps=[],
             **kwargs
         )
 
@@ -69,23 +66,25 @@ class TcpOneWayDelay(plot.Matplotlib):
 
 
     def default_parser(self, *args, **kwargs):
-        parser = argparse_completer.ACArgumentParser(
-            description="Helps plotting One Way Delays between tcp connections"
-        )
-        parser = super().default_parser(
-            *args, parent_parsers=[parser], filterstream=False, **kwargs
-        )
-        parser.add_argument("tcpstream1", action="store",
-                type=int, help="Stream from pcap 1")
-        parser.add_argument("tcpstream2", action="store",
-                type=int, help="Stream from pcap 2")
-        parser.add_argument("--clock-offset", action="store",
-                type=int, help="Stream from pcap 1")
+        parser = super().default_parser()
+        subparsers = parser.add_subparsers(dest="protocol",
+            title="Subparsers", help='Choose protocol help',)
+
+        subparsers.required = True  # type: ignore
+        
+        tcpparser = mp.gen_bicap_parser("tcp", True)
+        mptcpparser = mp.gen_bicap_parser("mptcp", True)
+
+        subparsers.add_parser("tcp", parents=[tcpparser], add_help=False)
+        subparsers.add_parser("mptcp", parents=[mptcpparser], add_help=False)
+
+            
+        parser.description = "Helps plotting One Way Delays between tcp connections"
 
         return parser
 
 
-    def preprocess(self, tcpstream1, tcpstream2, **kwargs):
+    def preprocess(self, protocol, pcap1, pcap2, **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
         to compute OWDs.
@@ -96,17 +95,18 @@ class TcpOneWayDelay(plot.Matplotlib):
         directly this cache else we proceed as usual
 
         """
-            
+        logging.debug("Preprocess for protocol %s" % protocol)
         # if we can't load that file from cache
         try:
 
+            #TODO pass clockoffsets
             # Need to add the stream ids too !
             df = woo.load_merged_streams_into_pandas(
-                kwargs.get("host1_pcap"),
-                kwargs.get("host2_pcap"),
-                tcpstream1,
-                tcpstream2,
-                False,
+                pcap1,
+                pcap2,
+                kwargs.get(protocol + "stream"),
+                kwargs.get(protocol + "stream2"),
+                protocol == "mptcp",
                 # TODO how does it get the config
                 self.tshark_config,
             )
@@ -114,13 +114,13 @@ class TcpOneWayDelay(plot.Matplotlib):
             return df
 
         except Exception as e:
-            print("exception happened %s" % e )
+            logging.exception()
             raise e
             # log.debug("Could not load cached results %s" % cachename)
 
         # here we recompute the OWDs
 
-    def plot(self, res, mptcpstream=None, **kwargs):
+    def plot(self, res, **kwargs):
         """
         Ideally it should be mapped automatically
         For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
@@ -129,17 +129,16 @@ class TcpOneWayDelay(plot.Matplotlib):
         While this is true in discrete time simulators such as ns3
 
         """
-
         fig = plt.figure()
         axes = fig.gca()
 
         # TODO here we should rewrite
         debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + [ "owd" ]
-        print(res.loc[res._merge == "both", debug_fields ])
 
         # print(res.loc[res._merge == "both", 
         print("columns", res.columns)
         print("info", res.info())
+        print(res.loc[res._merge == "both", debug_fields ])
 
         # print(res[["packetid", "mapped_index",
         #     "sendkey" + self.suffixes[0], "sendkey" + self.suffixes[1],]])
@@ -168,20 +167,26 @@ class TcpOneWayDelay(plot.Matplotlib):
         # print(grouped_by.head())
         # print(len(grouped_by)) # len of 2 which is good, but why
 
-        for idx, df in res.groupby(_sender("tcpdest")):
-            print("ID=" , idx)
-            # print("df = ", df)
+        cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
+        markers = cycle(cycler)
+
+
+        # TODO la faut que ca marche pour les 2 cas mptcp/tcp
+
+        # TODO cycle through styles
+        for tcpdest, df in res.groupby(_sender("tcpdest")):
+            marker = next(markers)
 
             # df = debug_convert(df)
             pplot = df.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
-                legend=False,
+                legend=True,
                 # TODO should depend from 
                 x=_sender("abstime"),
                 y="owd",
-                label="TCP stream %s" % idx, # seems to be a bug
-                # style="-o",
+                label="TCP stream %s" % tcpdest, # seems to be a bug
+                style=marker,
                 # grid=True,
                 # xticks=tcpstreams["reltime"],
                 # rotation for ticks
@@ -213,7 +218,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # TODO add units
         axes.set_xlabel("Time (s)")
-        axes.set_ylabel("One Way Delay")
+        axes.set_ylabel("One Way Delay (s)")
         return fig
 
 

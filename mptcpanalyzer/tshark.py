@@ -3,12 +3,14 @@ import subprocess
 import os
 import tempfile
 import numpy as np
+import shlex
 from mptcpanalyzer import _load_list
 from collections import namedtuple
 from typing import List, Dict, Union, Optional, Callable, Any
 from enum import Enum
 import functools
 
+logger = logging.getLogger(__name__)
 
 class Filetype(Enum):
     unsupported = 0
@@ -23,7 +25,6 @@ def find_type(filename):
     Assumes
     """
     filename, ext = os.path.splitext(os.path.basename(filename))
-    print("Ext=", ext)
     if ext == ".csv":
         return Filetype.csv
     elif ext in (".pcap", ".pcapng"):
@@ -60,7 +61,7 @@ class TsharkConfig:
     these options are meant to override a base profile
     """
 
-    def __init__(self, tshark_bin="tshark", delimiter="|", profile=None):
+    def __init__(self, delimiter="|", profile=None):
         """
         Args:
             profile: wireshark profiles will setup everything as it should
@@ -72,11 +73,11 @@ class TsharkConfig:
              %Cus => Custom
              see epan/column.c / col_set_rel_time
         """
-        self.tshark_bin = tshark_bin
+        self.tshark_bin = "tshark"
         self.delimiter = delimiter
         self.profile = profile
         # ICMP packets can be pretty confusing as they will
-        self.read_filter = "mptcp or tcp and not icmp"
+        self._read_filter = "mptcp or tcp and not icmp"
         self.options = {
             "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
             # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
@@ -99,6 +100,10 @@ class TsharkConfig:
             logging.warn("Could not check fields ")
             pass
 
+    @property
+    def read_filter(self, ):
+        return self._read_filter
+
     def check_fields(self, fields: List[str]):
         """
         Check that this version of wireshark knows the fields we are going to use.
@@ -107,9 +112,9 @@ class TsharkConfig:
         searches = fields
         cmd = [self.tshark_bin, "-G", "fields" ]
 
-        logging.info("Checking for fields %s" % (cmd))
+        logger.info("Checking for fields %s" % (cmd))
         with subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                universal_newlines=True, # opens in text mode
+            universal_newlines=True, # opens in text mode
         ) as proc:
             matches: List[str] = [] 
             for line in proc.stdout:
@@ -119,9 +124,13 @@ class TsharkConfig:
 
 
     def add_basic_fields(self):
-        self.add_field("frame.number", "packetid", np.int64, False, False)
-        self.add_field("frame.time_relative", "reltime", None, False, False)
-        self.add_field("frame.time_delta", "time_delta", np.int64, False, False)
+        
+        # when merging packets some packets are lost and thus have no packetid
+        # so sadly we need a float64 in that case :'(
+        self.add_field("frame.number", "packetid", np.float64, False, False)
+        self.add_field("frame.time_relative", "reltime", np.float64, False, False)
+        # not used anymore
+        # self.add_field("frame.time_delta", "time_delta", np.int64, False, False)
         self.add_field("frame.time_epoch", "abstime", np.int64,
             "Nanoseconds time since epoch", False)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
@@ -219,8 +228,6 @@ class TsharkConfig:
             
         self._tshark_fields.setdefault(name,
             Field(fullname,  _type, label, _hash, converter))
-        # print("updating fields", self._tshark_fields)
-
 
 
     def export_to_csv(
@@ -233,7 +240,7 @@ class TsharkConfig:
 
         Returns exit code, stderr
         """
-        logging.info("Converting pcap [{pcap}] ".format(pcap=input_filename,))
+        logger.info("Converting pcap [{pcap}] ".format(pcap=input_filename,))
 
         if find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
@@ -242,15 +249,14 @@ class TsharkConfig:
             # self.tshark_bin,
             fields_to_export,
             input_filename,
-            self.read_filter,
             # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
         )
-        cmd_str = ' '.join(cmd)
         fd = output_csv
-        fd.write("# metadata: %s\n" % (cmd_str))
+        # fd.write("# metadata: %s\n" % (cmd_str))
         fd.flush()  # need to flush else order gets messed up
+
         return self.run_tshark(cmd, fd)
 
 
@@ -267,7 +273,7 @@ class TsharkConfig:
 
     @staticmethod
     def run_tshark(cmd, stdout):
-        cmd_str = ' '.join(cmd)
+        cmd_str = ' '.join(shlex.quote(x) for x in cmd)
         logging.info(cmd_str)
 
         try:
@@ -296,7 +302,6 @@ class TsharkConfig:
             # self.tshark_bin,
             self._tshark_fields.keys(),
             "PLACEHOLDER",
-            self.read_filter,
             # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
@@ -309,7 +314,6 @@ class TsharkConfig:
         self,
         fields_to_export: List[str],
         inputFilename,
-        read_filter=None,
         # profile=None,
         csv_delimiter='|',
         options={},
@@ -334,8 +338,8 @@ class TsharkConfig:
         for option, value in options.items():
             cmd.extend(['-o', option + ":" + str(value)])
 
-        if read_filter:
-            cmd.extend(['-2', '-R', read_filter])
+        if self.read_filter:
+            cmd.extend(['-2', '-R', self.read_filter])
 
         cmd.extend(['-T', 'fields'])
         for f in fields_to_export:

@@ -1,0 +1,12 @@
+server_2_filtered.pcapng> load_pcap examples/server_2_filtered.pcapng
+Loading examples\/server_2_filtered.pcapng
+server_2_filtered.pcapng> summary 0 Client
+mptcpstream 0 transferred 308 bytes.
+tcpstream 0 transferred 308 bytes out of 308, accounting for 100.00%
+tcpstream 2 transferred 0 bytes out of 308, accounting for 0.00%
+tcpstream 6 transferred 0 bytes out of 308, accounting for 0.00%
+server_2_filtered.pcapng> summary 0 Server
+mptcpstream 0 transferred 461 bytes.
+tcpstream 0 transferred 456 bytes out of 461, accounting for 98.92%
+tcpstream 2 transferred 5 bytes out of 461, accounting for 1.08%
+tcpstream 6 transferred 0 bytes out of 461, accounting for 0.00%

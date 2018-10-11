@@ -2,8 +2,6 @@
 # mptcpanalyzer loads automatically the file in "$XDG_CONFIG_HOME/mptcpanalyzer/config"
 
 [DEFAULT]
-# If you have several installations of tshark, then you can put the fullpath here
-tshark_binary = tshark
 
 # by default, look into  ${XDG_CACHE_HOME:.config}/mptcpanalyzer/config
 cache = /tmp

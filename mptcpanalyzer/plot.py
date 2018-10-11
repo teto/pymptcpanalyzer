@@ -117,7 +117,6 @@ class Plot:
                         choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
                         # type parameter is a function/callable
                         type=lambda x: mp.ConnectionRoles.from_string(x),
-                        # type=lambda x: mp.ConnectionRoles[x],
                         help='Filter flows according to their direction'
                         '(towards the client or the server)'
                         'Depends on mptcpstream')
@@ -236,7 +235,7 @@ class Plot:
         """
         pass
 
-    def preprocess(self, **kwargs) -> Collection[ pd.DataFrame ]:
+    def preprocess(self, **kwargs) -> Collection[pd.DataFrame]:
         """
         Must return the dataframes used by plot
         kwargs should contain arguments with the pcap names passed to self.input_pcaps
@@ -339,7 +338,7 @@ class Matplotlib(Plot):
 
         super().postprocess(v, **opt)
 
-    def run(self, dataframes, styles, *pargs, **kwargs):
+    def run(self, dataframes, styles=[], *pargs, **kwargs):
         """
         user should override plot() -> TODO plot
 

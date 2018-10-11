@@ -4,3 +4,4 @@
 *.init
 *.mptcpanalyzer*
 *.pyc
+*.egg-info/*
