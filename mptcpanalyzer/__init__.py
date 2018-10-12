@@ -5,8 +5,11 @@ from .config import MpTcpAnalyzerConfig
 from .cache import Cache
 import collections
 import numpy as np
-import ast
+import enum
+# import ast
 from cmd2 import argparse_completer
+from typing import Iterable, List, Dict
+import ast
 
 __CONFIG__ = None  # type: 'MpTcpAnalyzerConfig'
 __CACHE__ = None  # type: 'Cache'
@@ -65,28 +68,34 @@ def get_config() -> MpTcpAnalyzerConfig:
 # METADATA_ROWS = 2
 
 
-def _load_list(x, field="pass a field to debug"):
-    """
-    Loads x of the form "1,2,5" or None
-    for instance functools.partial(_convert_to_list, field="reinjectionOf"),
-    returns np.nan instead of [] to allow for faster filtering
-    """
-    # pandas error message are not the best to understand why the convert failed
-    # so we use this instead of lambda for debug reasons
-    # print("converting field %s with value %r" % (field, x))
-    res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
-    return res
+# def _load_list(x, field="pass a field to debug"):
+#     """
+#     Loads x of the form "1,2,5" or None
+#     for instance functools.partial(_convert_to_list, field="reinjectionOf"),
+#     returns np.nan instead of [] to allow for faster filtering
+#     """
+#     # pandas error message are not the best to understand why the convert failed
+#     # so we use this instead of lambda for debug reasons
+#     print("converting field %s with value %r" % (field, x))
+#     res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
+#     return res
 
 # doesn't seem to work
 # sometimes it will create a tuple only if there are several elements
-# def _load_list(x, field="set field to debug"):
-#     """
-#     Contrary to _convert_to_list
-#     """
-#     res = ast.literal_eval(x) if (x is not None and x != '') else np.nan
+def _load_list(x, field="set field to debug"):
+    """
+    Contrary to _convert_to_list
+    """
+    if x is None or len(x) == 0:
+        return np.nan
 
-#     # print("res", res)
-#     return res
+    if x[0] != "[":
+        x = "[" + x + "]"
+    #if (x is not None and x != '') else np.nan
+    res = ast.literal_eval(x) 
+
+    # print("res", res)
+    return res
 
 
 class TcpFlags(Flag):
@@ -173,37 +182,134 @@ class MpTcpException(Exception):
     pass
 
 
+class PreprocessingActions(enum.Flag):
+    """
+    What to do with pcaps on the command line
+    """
+    DoNothing                = enum.auto()
+    Preload                  = enum.auto()
+    FilterTcpStream          = enum.auto()
+    FilterMpTcpStream        = enum.auto()
+    FilterStream             = FilterMpTcpStream | FilterTcpStream
+
+
 def gen_bicap_parser(protocol, dest=False):
     """
     protocol in ["mptcp", "tcp"]
     """
-    parser = argparse_completer.ACArgumentParser(
-        description="""
-        Empty description, please provide one
-        """
-    )
-    load_pcap1 = parser.add_argument("pcap1", type=str, help="Capture file 1")
-    load_pcap2 = parser.add_argument("pcap2", type=str, help="Capture file 2")
-    for action in [load_pcap1, load_pcap2]:
-        setattr(action, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-    parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
-    parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
+    action = PreprocessingActions.Preload | (PreprocessingActions.FilterMpTcpStream if protocol == "mptcp" else PreprocessingActions.FilterTcpStream)
+    input_pcaps = {
+        "pcap1": action,
+        "pcap2": action,
+    }
+    return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
+    # parser = argparse_completer.ACArgumentParser(
+    #     description="Empty description, please provide one",
+    #     parents=parents,
+    # )
+    # load_pcap1 = parser.add_argument("pcap1", type=str, help="Capture file 1")
+    # load_pcap2 = parser.add_argument("pcap2", type=str, help="Capture file 2")
+    # for action in [load_pcap1, load_pcap2]:
+    #     setattr(action, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+    # parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
+    # parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
+    # # parser.add_argument( argparse.SUPPRESS)
+    # # TODO make it mandatory or not
+    # if dest:
+    #     dest_action = parser.add_argument(
+    #         '--destination',
+    #         action="store",
+    #         choices=DestinationChoice,
+    #         type=lambda x: ConnectionRoles[x],
+    #         # default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
+    #         help='Filter flows according to their direction'
+    #         '(towards the client or the server)'
+    #         'Depends on mptcpstream'
+    #     )
+    #     # tag the action objects with completion providers. This can be a collection or a callable
+    #     # setattr(dest_action, argparse_completer.ACTION_ARG_CHOICES, static_list_directors)
+    # return parser
 
-    # TODO make it mandatory or not
-    if dest:
-        dest_action = parser.add_argument(
-            '--destination',
-            action="store",
-            choices=DestinationChoice,
-            type=lambda x: ConnectionRoles[x],
-            # default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
-            help='Filter flows according to their direction'
-            '(towards the client or the server)'
-            'Depends on mptcpstream'
+def gen_pcap_parser(
+        input_pcaps: Dict[str, PreprocessingActions],
+        direction: bool = False,
+        parents=[],
+        skip_subflows: bool = True,
+        # dst_host: bool=False,
+    ) -> argparse_completer.ACArgumentParser:
+        """
+        Generates a parser with common options.
+        This parser can be completed or overridden by its children.
+
+        Args:
+            mptcpstream: to accept an mptcp.stream id
+            available_dataframe: True if a pcap was preloaded at start
+            direction: Enable filtering the stream depending if the packets
+            were sent towards the MPTCP client or the MPTCP server
+            skip_subflows: Allow to hide some subflows from the plot
+
+        Return:
+            An argparse.ArgumentParser
+
+        """
+        parser = argparse_completer.ACArgumentParser(
+            parents=parents,
+            add_help=not parents,
         )
-        # tag the action objects with completion providers. This can be a collection or a callable
-        # setattr(dest_action, argparse_completer.ACTION_ARG_CHOICES, static_list_directors)
-    return parser
+
+        for name, bitfield in input_pcaps.items():
+
+            load_pcap = parser.add_argument(name, action="store", type=str, help='Pcap file')
+            setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES,
+                ('path_complete', [False, False]))
+            parser.add_argument("--clock-offset" + name, action="store", type=int,
+                help='Offset compared to epoch (in nanoseconds)')
+
+            if bitfield | PreprocessingActions.FilterStream:
+                # difficult to change the varname here => change it everywhere
+                protocol = ""
+                if bitfield & PreprocessingActions.FilterMpTcpStream:
+                    protocol = "mptcp"
+                elif bitfield & PreprocessingActions.FilterTcpStream:
+                    protocol = "tcp"
+                parser.add_argument(
+                    name + 'stream', metavar= protocol + "stream", action="store", type=int,
+                    help= protocol + '.stream wireshark id')
+
+        if direction:
+            # this one is full of tricks: we want the object to be of the Enum type
+            # but we want to display the user readable version
+            # so we subclass list to convert the Enum to str value first.
+            parser.add_argument(
+                '--dest', metavar="destination", dest="destinations",
+                # see preprocess functions to see how destinations is handled when empty
+                default=None,
+                action="append",
+                choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
+                # type parameter is a function/callable
+                type=lambda x: ConnectionRoles.from_string(x),
+                help='Filter flows according to their direction'
+                '(towards the client or the server)'
+                'Depends on mptcpstream')
+
+        # TODO add as an action
+        if protocol == "mptcp" and skip_subflows:
+            parser.add_argument(
+                '--skip', dest="skipped_subflows", type=int,
+                action="append", default=[],
+                help=("You can type here the tcp.stream of a subflow "
+                    "not to take into account (because"
+                    "it was filtered by iptables or else)"))
+
+        # parser.add_argument('-o', '--out', action="store", default=None,
+        #     help='Name of the output plot')
+        # parser.add_argument('--display', action="store_true",
+        #     help='will display the generated plot (use xdg-open by default)')
+        # parser.add_argument('--title', action="store", type=str,
+        #     help='Overrides the default plot title')
+        # parser.add_argument('--primary', action="store_true",
+        #     help="Copy to X clipboard, requires `xsel` to be installed")
+        return parser
 
 # def gen_bigroup_parser(protocol, dest=False):
 #     """
@@ -246,7 +352,7 @@ class MpTcpMissingPcap(MpTcpException):
     pass
 
 __all__ = [
-        'List',
-        'RECEIVER_SUFFIX'
-        ]
+    'List',
+    'RECEIVER_SUFFIX'
+]
 

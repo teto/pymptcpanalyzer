@@ -3,30 +3,19 @@ import os
 import tempfile
 import matplotlib.pyplot as plt
 import mptcpanalyzer as mp
+from mptcpanalyzer import PreprocessingActions
 import pandas as pd
 from mptcpanalyzer.data import load_into_pandas, tcpdest_from_connections
 from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
-from typing import List, Tuple, Collection
+from typing import List, Tuple, Collection, Dict
 from cmd2 import argparse_completer
 import copy
 import abc
 import logging
 
 log = logging.getLogger(__name__)
-
-
-class PreprocessingActions(enum.Flag):
-    """
-    What to do with pcaps on the command line
-    """
-    DoNothing                = enum.auto()
-    Preload                  = enum.auto()
-    FilterTcpStream          = enum.auto()
-    FilterMpTcpStream        = enum.auto()
-    FilterStream             = FilterMpTcpStream | FilterTcpStream
-
 
 class Plot:
     """
@@ -45,7 +34,10 @@ class Plot:
     def __init__(
         self,
         exporter : TsharkConfig,
-        input_pcaps: List[Tuple[str, PreprocessingActions]],
+        # TODO encode input_pcaps into argparse
+        # TODO check with Dict now ?
+        input_pcaps: Dict[str, PreprocessingActions],
+        # input_pcaps: List[Tuple[str, PreprocessingActions]],
         title: str = None,
         *args, **kwargs
     ) -> None:
@@ -62,10 +54,12 @@ class Plot:
 
     def default_parser(
         self,
-        parent_parsers=[],
-        filterstream: bool = False,
-        direction: bool = False, skip_subflows: bool = True,
-        dst_host: bool=False,
+        # parent_parsers=[],
+        # direction: bool = False,
+        # skip_subflows: bool = True,
+        # input_pcaps: List[Tuple[str, PreprocessingActions]],
+        # dst_host: bool=False,
+        **kwargs
     ) -> argparse_completer.ACArgumentParser:
         """
         Generates a parser with common options.
@@ -82,52 +76,12 @@ class Plot:
             An argparse.ArgumentParser
 
         """
-        parser = argparse_completer.ACArgumentParser(
-            parents=parent_parsers,
-            add_help=False if len(parent_parsers) else True,
-        )
+        # parser = argparse_completer.ACArgumentParser(
+        #     parents=parent_parsers,
+        #     add_help=not parent_parsers,
+        # )
 
-        for name, bitfield in self.input_pcaps:
-
-            def _metavar():
-                pass
-
-            load_pcap = parser.add_argument(name, action="store", type=str, help='Pcap file')
-            setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES,
-                ('path_complete', [False, False]))
-            parser.add_argument("--clock-offset" + name, action="store", type=int,
-                help='Offset compared to epoch (in nanoseconds)')
-
-            if bitfield & PreprocessingActions.FilterStream:
-                # difficult to change the varname here => change it everywhere
-                protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
-                parser.add_argument(
-                    protocol + 'stream', metavar= protocol + "stream", action="store", type=int,
-                    help= protocol + '.stream id')
-
-                if direction:
-                    # this one is full of tricks: we want the object to be of the Enum type
-                    # but we want to display the user readable version
-                    # so we subclass list to convert the Enum to str value first.
-                    parser.add_argument(
-                        '--dest', metavar="destination", dest="destinations",
-                        # see preprocess functions to see how destinations is handled when empty
-                        default=None,
-                        action="append",
-                        choices=mp.CustomConnectionRolesChoices([e.name for e in mp.ConnectionRoles]),
-                        # type parameter is a function/callable
-                        type=lambda x: mp.ConnectionRoles.from_string(x),
-                        help='Filter flows according to their direction'
-                        '(towards the client or the server)'
-                        'Depends on mptcpstream')
-
-                if protocol == "mptcp" and skip_subflows:
-                    parser.add_argument(
-                        '--skip', dest="skipped_subflows", type=int,
-                        action="append", default=[],
-                        help=("You can type here the tcp.stream of a subflow "
-                            "not to take into account (because"
-                            "it was filtered by iptables or else)"))
+        parser = mp.gen_pcap_parser(input_pcaps=self.input_pcaps, **kwargs)
 
         parser.add_argument('-o', '--out', action="store", default=None,
             help='Name of the output plot')
@@ -180,7 +134,7 @@ class Plot:
         Returns:
             Filtered dataframe
         """
-        logging.debug("Preprocessing dataframe with extra args %s" % kwargs)
+        log.debug("Preprocessing dataframe with extra args %s" % kwargs)
         queries = []
         print("tcp.stream", tcpstream, "mptcp:", mptcpstream)
         stream = tcpstream if tcpstream is not None else mptcpstream
@@ -241,7 +195,7 @@ class Plot:
         kwargs should contain arguments with the pcap names passed to self.input_pcaps
         """
         dataframes = []
-        for pcap_name, actions in self.input_pcaps:
+        for pcap_name, actions in self.input_pcaps.items():
             log.info("pcap_name=%s value=%r" % (pcap_name, kwargs.get(pcap_name)))
             if actions & PreprocessingActions.Preload:
                 filename = kwargs.get(pcap_name)

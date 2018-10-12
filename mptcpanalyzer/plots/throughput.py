@@ -15,7 +15,9 @@ class SubflowThroughput(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream), ]
+        pcaps = {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream,
+        }
         super().__init__(
             *args,
             input_pcaps=pcaps,
@@ -28,11 +30,11 @@ class SubflowThroughput(plot.Matplotlib):
             description="Helps plotting Data sequence numbers"
         )
         parser = super().default_parser(
-            *args, parent_parsers=[parent],
-            filterstream=True,
+            *args, parents=[parent],
             direction=True,
             skip_subflows=True,
-            **kwargs)
+            **kwargs
+        )
         return parser
 
     def plot(self, dat, mptcpstream, destination, **kwargs):
@@ -65,6 +67,8 @@ class SubflowThroughput(plot.Matplotlib):
 
         axes.set_xlabel("Time (s)")
         axes.set_ylabel("contribution")
+
+        # fig.suptitle("One Way Delays for {protocol} streams ")
 
         # handles, labels = axes.get_legend_handles_labels()
 

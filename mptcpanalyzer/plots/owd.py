@@ -1,5 +1,5 @@
 import mptcpanalyzer as mp
-from mptcpanalyzer import _receiver, _sender
+from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer.data as woo
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -48,43 +48,40 @@ class TcpOneWayDelay(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
-        # expected_pcaps = [
-        #     ("host1_pcap", plot.PreprocessingActions.Preload),
-        #     ("host2_pcap", plot.PreprocessingActions.Preload),
-        # ]
+        expected_pcaps = {
+            "pcap1": PreprocessingActions.DoNothing,
+            "pcap2": PreprocessingActions.DoNothing
+        }
         super().__init__(
             *args,
-            input_pcaps=[],
+            input_pcaps=expected_pcaps,
             **kwargs
         )
 
         self.tshark_config.filter = "tcp";
         # print("owd tcp", self.tshark_config.fields)
         # TODO a purer version would be best
-        # self.tshark_config.fields = []
-        # self.tshark_config.add_basic_fields();
 
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser()
-        subparsers = parser.add_subparsers(dest="protocol",
-            title="Subparsers", help='Choose protocol help',)
+        parser = argparse_completer.ACArgumentParser(
+            # parents=parent_parsers,
+            description="Plot One Way Delays"
+        )
+        parser.add_argument("protocol", choices=["tcp", "mptcp"], action="store",
+            help="what kind to plot")
 
-        subparsers.required = True  # type: ignore
-        
-        tcpparser = mp.gen_bicap_parser("tcp", True)
-        mptcpparser = mp.gen_bicap_parser("mptcp", True)
+        parser = super().default_parser(parents=[parser])
+        # mptcpparser = mp.gen_bicap_parser("mptcp", True)
 
-        subparsers.add_parser("tcp", parents=[tcpparser], add_help=False)
-        subparsers.add_parser("mptcp", parents=[mptcpparser], add_help=False)
-
-            
+        # subparsers.add_parser("tcp", parents=[super().default_parser(direction=True)], add_help=False)
+        # subparsers.add_parser("mptcp", parents=[super().default_parser()], add_help=False)
         parser.description = "Helps plotting One Way Delays between tcp connections"
-
+        
         return parser
 
 
-    def preprocess(self, protocol, pcap1, pcap2, **kwargs):
+    def preprocess(self, protocol, pcap1, pcap2, pcap1stream, pcap2stream, **kwargs):
         """
         This is trickier than in other modules: this plot generates intermediary results
         to compute OWDs.
@@ -104,8 +101,10 @@ class TcpOneWayDelay(plot.Matplotlib):
             df = woo.load_merged_streams_into_pandas(
                 pcap1,
                 pcap2,
-                kwargs.get(protocol + "stream"),
-                kwargs.get(protocol + "stream2"),
+                pcap1stream,
+                pcap2stream,
+                # kwargs.get(""),
+                # kwargs.get("stream2"),
                 protocol == "mptcp",
                 # TODO how does it get the config
                 self.tshark_config,
@@ -120,7 +119,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         # here we recompute the OWDs
 
-    def plot(self, res, **kwargs):
+    def plot(self, res, protocol, **kwargs):
         """
         Ideally it should be mapped automatically
         For now plots only one direction but there could be a wrapper to plot forward owd, then backward OWDs
@@ -135,57 +134,57 @@ class TcpOneWayDelay(plot.Matplotlib):
         # TODO here we should rewrite
         debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + [ "owd" ]
 
-        # print(res.loc[res._merge == "both", 
         print("columns", res.columns)
         print("info", res.info())
-        print(res.loc[res._merge == "both", debug_fields ])
+        # print(res.loc[res._merge == "both", debug_fields ])
 
         # print(res[["packetid", "mapped_index",
         #     "sendkey" + self.suffixes[0], "sendkey" + self.suffixes[1],]])
-
-        # need to compute the owd depending on the direction right
-        # res['owd'] = res['abstime_y'] - res['abstime_x']
-        # TODO groupby ('tcpstream', 'dest')
-
-        # group by title/direction
-        # todo utiliser groupby
-        # print("Plotting is not ready yet ")
-        # exit(1)
-
-        # print(res["tcpdest"].head())
-        # cols = "tcpdest"
-        # cols = ["tcpstream_h1", "tcpstream_h2", ]
-        # print(res)
-        # print(res.columns)
-        # print(res.dtypes)
-# df.reset_index(drop=True)
-        # grouped_by = res.groupby(by=cols, sort=False)
-        # print(res.head())
-        # print(res[['tcpdest']])
-        # print(res[:,'tcpdest'])
-        # grouped_by = res.groupby(by=cols, )
-        # print(grouped_by.head())
-        # print(len(grouped_by)) # len of 2 which is good, but why
 
         cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
         markers = cycle(cycler)
 
 
         # TODO la faut que ca marche pour les 2 cas mptcp/tcp
+        # if protocol == "mptcp" and description:
+        #     # if kwargs.destinations:
+        #     # it should already be filtered ?!
+
+        #     for tcpstream, subdf in res.groupby("tcpstream", "tcpdest") 
+
+        
+        df = res
 
         # TODO cycle through styles
-        for tcpdest, df in res.groupby(_sender("tcpdest")):
-            marker = next(markers)
+        # for tcpdest, df in res.groupby(_sender("tcpdest")):
 
+        print("STARTING LOOP")
+        
+        fields = ["tcpdest", "tcpstream"]
+        if protocol == "mptcp":
+            fields.append("mptcpdest") 
+
+        for idx, subdf in df.groupby(_sender(fields)):
+
+            print("t= %r", idx)
+            tcpdest, tcpstream, mptcpdest = idx
+            # if protocol == tcpdest not in kwargs.destinations:
+            #     log.debug("skipping TCP dest %s" % tcpdest)
+            #     continue
+
+            marker = next(markers)
+            print("marker= %r", marker)
+
+            # if tcpdest 
             # df = debug_convert(df)
-            pplot = df.plot.line(
+            pplot = subdf.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
                 legend=True,
                 # TODO should depend from 
                 x=_sender("abstime"),
                 y="owd",
-                label="TCP stream %s" % tcpdest, # seems to be a bug
+                label="towards %s" % tcpdest, # seems to be a bug
                 style=marker,
                 # grid=True,
                 # xticks=tcpstreams["reltime"],
@@ -219,8 +218,15 @@ class TcpOneWayDelay(plot.Matplotlib):
         # TODO add units
         axes.set_xlabel("Time (s)")
         axes.set_ylabel("One Way Delay (s)")
-        return fig
 
+        # if protocol == "mptcp":
+        fig.suptitle("One Way Delays for {} streams {} <-> {}".format( 
+            protocol,
+            kwargs.get("pcap1stream"),
+            kwargs.get("pcap2stream"),
+        ))
+
+        return fig
 
 
 # class MpTcpOneWayDelay(TcpOneWayDelay):

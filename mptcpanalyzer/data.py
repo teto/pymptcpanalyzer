@@ -204,6 +204,8 @@ def load_merged_streams_into_pandas(
             logging.info("Saving into %s" % cachename)
             # trying to export lists correctly
             # print(merged_df.reinjected_in.dropna().head())
+            # convert arrays back to strings
+            # merged_df.apply(",".join()
             merged_df.to_csv(
                 cachename,
                 # columns=columns,

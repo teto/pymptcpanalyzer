@@ -17,8 +17,8 @@ Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = kwargs.get("input_pcaps", [("pcap", plot.PreprocessingActions.Preload |
-            plot.PreprocessingActions.FilterMpTcpStream), ])
+        pcaps = kwargs.get("input_pcaps", {"pcap": plot.PreprocessingActions.Preload |
+            plot.PreprocessingActions.FilterMpTcpStream})
         super().__init__(*args, input_pcaps=pcaps, **kwargs)
 
         # TODO filter the ones who have plot name
@@ -31,8 +31,7 @@ Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
             description="Plot tcp attributes over time"
         )
         parser = super().default_parser(
-            *args, parent_parsers=[parent],
-            filterstream=True,
+            *args, parents=[parent],
             direction=True,
             skip_subflows=True,
             **kwargs)
@@ -81,7 +80,9 @@ class PlotTcpAttribute(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
-        pcaps = [("pcap", plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream), ]
+        pcaps = {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream
+        }
         super(plot.Matplotlib, self).__init__(*args, input_pcaps=pcaps, **kwargs)
         self._attributes = attributes(self.tshark_config.fields)
 
@@ -91,8 +92,7 @@ class PlotTcpAttribute(plot.Matplotlib):
             description="Plot tcp attributes over time"
         )
         parser = super().default_parser(
-            *args, parent_parsers=[parent],
-            filterstream=True,
+            *args, parents=[parent],
             direction=True,
             skip_subflows=True,
             **kwargs)

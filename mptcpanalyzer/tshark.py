@@ -79,7 +79,9 @@ class TsharkConfig:
         # ICMP packets can be pretty confusing as they will
         self._read_filter = "mptcp or tcp and not icmp"
         self.options = {
-            "gui.column.format": '"Time","%Cus:frame.time","ipsrc","%s","ipdst","%d"',
+            # run tshark -G column-formats %At
+            # %Cus:frame.time
+            "gui.column.format": '"Time","%At","ipsrc","%s","ipdst","%d"',
             # "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
             "tcp.analyze_sequence_numbers": True,  # without it, the rest fails
             "mptcp.analyze_mappings": True,
@@ -94,11 +96,6 @@ class TsharkConfig:
         # (much faster)
         self.add_basic_fields()
         self.add_mptcp_fields()
-        try:
-            matches = self.check_fields([ "mptcp.related_mapping" ])
-        except subprocess.CalledProcessError as e:
-            logging.warn("Could not check fields ")
-            pass
 
     @property
     def read_filter(self, ):
@@ -129,9 +126,7 @@ class TsharkConfig:
         # so sadly we need a float64 in that case :'(
         self.add_field("frame.number", "packetid", np.float64, False, False)
         self.add_field("frame.time_relative", "reltime", np.float64, False, False)
-        # not used anymore
-        # self.add_field("frame.time_delta", "time_delta", np.int64, False, False)
-        self.add_field("frame.time_epoch", "abstime", np.int64,
+        self.add_field("frame.time_epoch", "abstime", np.float64,
             "Nanoseconds time since epoch", False)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)

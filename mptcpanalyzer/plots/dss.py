@@ -15,9 +15,9 @@ class DssLengthHistogram(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        input_pcaps = [
-            ("pcap", plot.PreprocessingActions.Preload),
-        ]
+        input_pcaps = {
+            "pcap": plot.PreprocessingActions.Preload,
+        }
         super().__init__(
                 args,
                 input_pcaps=input_pcaps,
@@ -54,9 +54,9 @@ class DSSOverTime(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        expected_pcaps = [
-            ("pcap", plot.PreprocessingActions.Preload),
-        ]
+        expected_pcaps = {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream,
+        }
         super().__init__(
             *args,
             input_pcaps=expected_pcaps,
@@ -65,7 +65,7 @@ class DSSOverTime(plot.Matplotlib):
         )
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args, filterstream=True,
+        parser = super().default_parser(*args,
                 direction=True, **kwargs)
         parser.add_argument('--dack', action="store_true", default=False,
                 help="Adds data acks to the graph")
