@@ -6,6 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 from typing import List, Any, Tuple, Dict, Callable, Set
 
+log = logging.getLogger(__name__)
 
 def attributes(fields):
     return { name: field.label for name, field in fields.items() if field.label }
@@ -46,8 +47,8 @@ Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
         fig = plt.figure()
         tcpstreams = dat.groupby('tcpstream')
 
-        print("%d streams in the MPTCP flow" % len(tcpstreams))
-        print("Plotting field %s" % field)
+        log.info("%d streams in the MPTCP flow" % len(tcpstreams))
+        log.info("Plotting field %s" % field)
 
         axes = fig.gca()
 
@@ -73,6 +74,7 @@ Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
             loc=4
         )
 
+        fig.suptitle("Plot of subflow %s" % field)
         return fig
 
 
@@ -115,7 +117,7 @@ class PlotTcpAttribute(plot.Matplotlib):
         # tcpstreams = dat.groupby('tcpstream')
 
         # print("%d streams in the MPTCP flow" % len(tcpstream))
-        print("Plotting field(s) %s" % fields)
+        log.debug("Plotting field(s) %s" % fields)
 
         axes = fig.gca()
 
@@ -131,7 +133,7 @@ class PlotTcpAttribute(plot.Matplotlib):
         # TODO le .iloc permet d'eliminer les syn/ack
         # print("DTYPES")
         # print(tcpdf.dtypes)
-        for dest, ddf in tcpdf.groupby("tcpdest"):
+        for dest, ddf in tcpdf.groupby(_sender("tcpdest")):
             # print("dest %r in %r" %( dest , destinations))
             if dest in destinations:
 
@@ -139,7 +141,7 @@ class PlotTcpAttribute(plot.Matplotlib):
                     # print("dest", dest, " in " , destinations)
 
                     ddf[field].plot.line(
-                        x="abstime",
+                        x=_sender("abstime"),
                         ax=axes,
                         # use_index=False,
                         legend=False,
@@ -167,5 +169,7 @@ class PlotTcpAttribute(plot.Matplotlib):
         #     ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
         #     loc=4
         )
+
+        fig.suptitle(" %s " % y_label)
 
         return fig

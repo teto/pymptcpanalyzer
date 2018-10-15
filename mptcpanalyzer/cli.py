@@ -506,11 +506,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             ))
 
 
-    # TODO check for reinjections etc...
     parser = argparse_completer.ACArgumentParser(description="Export connection(s) to CSV")
     parser.add_argument("output", action="store", help="Output filename")
-    # parser.add_argument("--stream", action="store", )
-    # )
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--tcpstream', action='store', type=int)
@@ -565,6 +562,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
     parser = mp.gen_bicap_parser("mptcp", True)
+    parser.add_argument("--json", action="store_true", default=False,
+        help="Machine readable summary.")
     parser.description = """
         Look into more details of an mptcp connection
         """
@@ -575,41 +574,69 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        # args = parser.parse_args(args)
+        df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
-        basic_stats = stats.mptcp_compute_throughput(
-            # TODO here we should load the pcap before hand !
-            args.pcap1, 
-            args.mptcpstream,
-            args.destination
-        )
+        destinations = args.destinations or list(mp.ConnectionRoles)
 
-        df = load_merged_streams_into_pandas(
-            args.pcap1,
-            args.pcap2,
-            args.mptcpstream,
-            args.mptcpstream2,
-            args.protocol == "mptcp",
-            self.tshark_config
-        )
+        for destination in destinations:
+            success, basic_stats = stats.mptcp_compute_throughput(
+                # TODO here we should load the pcap before hand !
+                df_pcap1,
+                args.pcap1stream,
+                args.destinations
+            )
+            if success is not True:
+                self.perror("Error %s" % basic_stats)
 
-        success, ret = stats.mptcp_compute_throughput_extended(
-            # self.data, args.mptcpstream, args.destination
-            df,
-            basic_stats,
-            args.destination
-        )
-        if success is not True:
-            self.perror("Throughput computation failed:")
-            self.perror(ret)
-            return
+            df = load_merged_streams_into_pandas(
+                args.pcap1,
+                args.pcap2,
+                args.pcap1stream,
+                args.pcap2stream,
+                True,
+                self.tshark_config
+            )
 
-        total_transferred = ret["mptcp_throughput_bytes"]
-        self.poutput("mptcpstream %d transferred %d" % (ret["mptcpstreamid"], ret["mptcp_bytes"]))
-        for tcpstream, sf_bytes in map(lambda sf: (sf["tcpstreamid"], sf["bytes"]), ret["subflow_stats"]):
-            subflow_load = sf_bytes/ret["mptcp_bytes"]
-            self.poutput('tcpstream %d transferred %d out of %d, accounting for %f%%' % (
-                tcpstream, sf_bytes, total_transferred, subflow_load*100))
+            success, ret = stats.mptcp_compute_throughput_extended(
+                df,
+                stats=basic_stats,
+                destination=destination
+            )
+
+            if success is not True:
+                self.perror("Throughput computation failed:")
+                self.perror(ret)
+                return
+
+            if args.json:
+                import json
+                # TODO use self.poutput
+                # or use a stream, it must just be testable
+                val = json.dumps(ret, ensure_ascii=False)
+                self.poutput(val)
+                return
+
+
+            # TODO display goodput/ratio
+            total_transferred = ret["mptcp_throughput_bytes"]
+            #  (ret["mptcpstreamid"], ret["mptcp_bytes"]))
+            msg = "mptcpstream {mptcpstreamid} throughput/goodput {mptcp_throughput_bytes}/{mptcp_goodput_bytes}"
+            self.poutput(msg.format(**ret))
+            for sf in ret["subflow_stats"]:
+
+                subflow_load = sf_bytes/ret["mptcp_bytes"]
+                msg = """
+                tcpstream {tcpstreamid} analysis:
+                - throughput: transferred {} out of {mptcp_throughput_bytes}, accounting for {.2f:throughput_contribution}%
+                - goodput: transferred {mptcp_goodput} out of {mptcp_goodput_bytes}, accounting for {.2f:goodput_contribution}%
+                """
+                
+                self.poutput(
+                    msg.format(
+                    mptcp_tput=ret["mptcp_throughput_bytes"],
+                    **ret,
+                    **sf
+                ))
 
     @is_loaded
     @with_category(CAT_MPTCP)
@@ -692,7 +719,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # self.ppaged()
 
         if args.json:
-            self.pdebug("Exporting to csv")
+            self.pdebug("Exporting to json")
 
         # print unmapped packets
         print("print_owds finished")

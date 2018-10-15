@@ -126,6 +126,9 @@ class TsharkConfig:
         # when merging packets some packets are lost and thus have no packetid
         # so sadly we need a float64 in that case :'(
         self.add_field("frame.number", "packetid", np.float64, False, False)
+
+        # TODO look at the doc ! with pd.Timestamp
+
         self.add_field("frame.time_relative", "reltime", np.float64, False, False)
         self.add_field("frame.time_epoch", "abstime", np.float64,
             "Nanoseconds time since epoch", False)

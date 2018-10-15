@@ -6,7 +6,30 @@ import matplotlib.pyplot as plt
 from mptcpanalyzer.statistics import mptcp_compute_throughput
 import collections
 from typing import List
+import logging
 
+log = logging.getLogger(__name__)
+
+
+def compute_goodput(df):
+    """
+    wiereshakr example can be found in:
+    ui/qt/tcp_stream_dialog.cpp: void TCPStreamDialog::fillThroughput()
+
+    // Throughput Graph - rate of sent bytes
+    // Goodput Graph - rate of ACKed bytes
+
+    todo should make it work with dack/ack
+    problem is we don't support sack :'(
+    """
+    # df.rolling(on="bytes")
+    # we can use mptcp.ack
+    # we can use tcp.ack that are relative
+    # rolling window can use offset
+
+
+    # df.rolling(3, on="bytes", win_type=).apply(np.mean).dropna()
+    return df
 
 class SubflowThroughput(plot.Matplotlib):
     """
@@ -16,7 +39,8 @@ class SubflowThroughput(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
         pcaps = {
-            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream,
+            "pcap1": plot.PreprocessingActions.DoNothing,
+            "pcap2": plot.PreprocessingActions.DoNothing,
         }
         super().__init__(
             *args,
@@ -37,7 +61,50 @@ class SubflowThroughput(plot.Matplotlib):
         )
         return parser
 
-    def plot(self, dat, mptcpstream, destination, **kwargs):
+    def preprocess(self, pcap1, pcap2, pcap1stream, pcap2stream, **kwargs):
+        """
+        This is trickier than in other modules: this plot generates intermediary results
+        to compute OWDs.
+        These results can be cached in which  case it's not necessary
+        to load the original pcaps.
+
+        First we get the cachename associated with the two pcaps. If it's cached we load
+        directly this cache else we proceed as usual
+
+        """
+        log.debug("Preprocessing")
+        # if we can't load that file from cache
+        try:
+
+            #TODO pass clockoffsets
+            # Need to add the stream ids too !
+            df = woo.load_merged_streams_into_pandas(
+                pcap1,
+                pcap2,
+                pcap1stream,
+                pcap2stream,
+                # kwargs.get(""),
+                # kwargs.get("stream2"),
+                True,
+                # TODO how does it get the config
+                self.tshark_config,
+            )
+
+            # then we need to process throughput/goodput
+            # Later move it to utils so that it can be used in
+            # summary_extended (to plot average/min/max)
+            for idx, subdf in df.groubpy(_sender(["tcpstream", "tcpdest"])):
+
+                compute_df(subdf)
+            return df
+
+        except Exception as e:
+            logging.exception()
+            raise e
+            # log.debug("Could not load cached results %s" % cachename)
+
+
+    def plot(self, dat, destinations, **kwargs):
         """
         getcallargs
         """
@@ -47,6 +114,10 @@ class SubflowThroughput(plot.Matplotlib):
         if success is not True:
             print("Failure: %s", ret)
             return
+
+
+        # TODO use df.rolling
+        rolling
 
         data = map(lambda x: x['bytes'], ret['subflow_stats'])
         s = pd.DataFrame(data=pd.Series(data))
@@ -66,9 +137,11 @@ class SubflowThroughput(plot.Matplotlib):
         #     )
 
         axes.set_xlabel("Time (s)")
+
+        # TODO plot on one y the throughput; on the other the goodput
         axes.set_ylabel("contribution")
 
-        # fig.suptitle("One Way Delays for {protocol} streams ")
+        fig.suptitle("Subflow throughput/goodput")
 
         # handles, labels = axes.get_legend_handles_labels()
 
