@@ -1103,6 +1103,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
 
     df_all["redundant"] = False
+    df_all["reinj_delta"] = np.nan
 
     # rename to df_both ?
     df = df_all[df_all._merge == "both"]
@@ -1122,14 +1123,14 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         # select only packets that have been reinjected
 
         # print("%d sender_df packets" % len(sender_df))
-        print(sender_df["reinjection_of"])
+        # print(sender_df["reinjection_of"])
         reinjected_packets = sender_df.dropna(axis='index', subset=[_sender("reinjection_of")])
 
         logging.debug("%d reinjected packets" % len(reinjected_packets))
-        with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
-            print(reinjected_packets[
-                _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])
-                ].head())
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
+        #     print(reinjected_packets[
+        #         _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])
+        #         ].head())
 
 
         for reinjection in reinjected_packets.itertuples():
@@ -1153,7 +1154,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
             initial_packetid = reinjection.reinjection_of[0]
             # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
-            original_packet = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
+            original_packet = df_all.loc[df_all.packetid == initial_packetid].iloc[0]
 
             if original_packet._merge != "both":
                 # TODO count missed classifications ?
@@ -1162,9 +1163,14 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             orig_arrival = getattr(original_packet, _receiver("reltime"))
             reinj_arrival = getattr(reinjection, _receiver("reltime"))
+            reinj_pktid = getattr(reinjection, _sender("packetid"))
 
-            if orig_arrival < reinj_arrival:
+            reinj_delta = orig_arrival - reinj_arrival
+            df_all.loc[reinj_pktid, "reinj_delta"] = reinj_delta
+
+            if reinj_delta < 0:
                 # print("GOT A MATCH")
                 df_all.loc[df_all[_sender("packetid")] == reinjection.packetid, "redundant"] = True
+                #TODO set reinj_delta for reinjection.packetid
 
     return df_all

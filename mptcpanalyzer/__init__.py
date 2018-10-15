@@ -203,32 +203,6 @@ def gen_bicap_parser(protocol, dest=False):
         "pcap2": action,
     }
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
-    # parser = argparse_completer.ACArgumentParser(
-    #     description="Empty description, please provide one",
-    #     parents=parents,
-    # )
-    # load_pcap1 = parser.add_argument("pcap1", type=str, help="Capture file 1")
-    # load_pcap2 = parser.add_argument("pcap2", type=str, help="Capture file 2")
-    # for action in [load_pcap1, load_pcap2]:
-    #     setattr(action, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-    # parser.add_argument(protocol + "stream", type=int, help=protocol + ".stream wireshark id")
-    # parser.add_argument(protocol + "stream2", type=int, help=protocol + "stream wireshark id")
-    # # parser.add_argument( argparse.SUPPRESS)
-    # # TODO make it mandatory or not
-    # if dest:
-    #     dest_action = parser.add_argument(
-    #         '--destination',
-    #         action="store",
-    #         choices=DestinationChoice,
-    #         type=lambda x: ConnectionRoles[x],
-    #         # default=[ mp.ConnectionRoles.Server, mp.ConnectionRoles.Client ],
-    #         help='Filter flows according to their direction'
-    #         '(towards the client or the server)'
-    #         'Depends on mptcpstream'
-    #     )
-    #     # tag the action objects with completion providers. This can be a collection or a callable
-    #     # setattr(dest_action, argparse_completer.ACTION_ARG_CHOICES, static_list_directors)
-    # return parser
 
 def gen_pcap_parser(
         input_pcaps: Dict[str, PreprocessingActions],

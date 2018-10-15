@@ -675,8 +675,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
-            args.tcpstream,
-            args.tcpstream2,
+            args.pcap1stream,
+            args.pcap2stream,
             False,
             # args.protocol == "mptcp",
             self.tshark_config
@@ -711,14 +711,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput("you need a wireshark > 19 June 2018 with commit dac91db65e756a3198616da8cca11d66a5db6db7...")
 
 
-    parser = mp.gen_bicap_parser("mptcp")
+    parser = mp.gen_bicap_parser("mptcp", dest=True)
     parser.description = """
         Qualify reinjections of the connection.
         You might want to run map_mptcp_connection first to find out
         what map to which
         """
-    parser.add_argument("--json", action="store_true", default=False,
+    parser.add_argument("--failed", action="store_true", default=False,
+        help="List failed reinjections too.")
+    parser.add_argument("--csv", action="store_true", default=False,
         help="Machine readable summary.")
+    parser.add_argument("--debug", action="store_true", default=False,
+        help="Explain decision for every reinjection.")
 
     @with_argparser_and_unknown_args(parser)
     @with_category(CAT_MPTCP)
@@ -733,8 +737,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df_all = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
-            args.mptcpstream,
-            args.mptcpstream2,
+            args.pcap1stream,
+            args.pcap2stream,
             mptcp=True,
             tshark_config=self.tshark_config
         )
@@ -748,73 +752,104 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # ])
 
         # to help debug
-        df.to_excel("temp.xls")
+        # df.to_excel("temp.xls")
 
-        def _print_reinjection_comparison(original_packet, reinj):
+        def _print_reinjection_comparison(original_packet, reinj, ):
             """
             Expects tuples of original and reinjection packets
             """
             # original_packet  = sender_df.loc[ sender_df.packetid == initial_packetid, ].iloc[0]
             row = reinj
-            # print(original_packet["packetid"])
-            print("packet {pktid} is a successful_reinjection of {initial_packetid}."
-                    " It arrived at {reinjection_arrival} to compare with {original_arrival}"
-                    " while being transmitted at {reinjection_start} to compare with {original_start}"
-                    .format(
-                pktid               = getattr(row, _sender("packetid")),
+
+            reinjection_packetid = getattr(row, _sender("packetid")),
+            reinjection_start    = getattr(row, _sender("abstime")),
+            reinjection_arrival  = getattr(row, _receiver("abstime")),
+            original_start       = original_packet[_sender("abstime")],
+            original_arrival     = original_packet[_receiver("abstime")] 
+
+            if reinj.redundant == False:
+                # print(original_packet["packetid"])
+                msg = ("packet {pktid} is a successful reinjection of {initial_packetid}."
+                        " It arrived at {reinjection_arrival} to compare with {original_arrival}"
+                        " while being transmitted at {reinjection_start} to compare with "
+                        "{original_start}, i.e., {reinj_delta} before")
+                # TODO use assert instead
+                if getattr(row, _receiver("abstime")) > original_packet[ _receiver("abstime") ]:
+                    print("BUG: this is not a valid reinjection after all ?")
+
+            elif args.failed:
+                # only de
+                msg = "packet {pktid} is a failed reinjection of {initial_packetid}."
+            else:
+                return
+
+            msg = msg.format(
+                pktid               = reinjection_packetid,
                 initial_packetid    = initial_packetid,
- 
-                reinjection_start   = getattr(row, _sender("abstime")),
-                reinjection_arrival = getattr(row, _receiver("abstime")),
-                original_start      = original_packet[_sender("abstime")],
-                original_arrival    = original_packet[_receiver("abstime")] 
-            ))
 
-            if getattr(row, _receiver("abstime")) > original_packet[ _receiver("abstime") ]:
-                print("BUG: this is not a valid reinjection after all ?")
+                reinjection_start   = reinjection_start,
+                reinjection_arrival = reinjection_arrival,
+                original_start      = original_start,
+                original_arrival    = original_arrival,
+                reinj_delta         = reinj.reinj_delta,
+            )
+            self.poutput(msg)
 
-        # print("debugging ")
-        # print("dataframe size = %d" % len(df))
 
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
         #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
+        # TODO filter depending on --failed and --destinations
 
-        if args.json:
-            self.pdebug("Exporting to csv")
-            # df.to_csv()
+        if args.csv:
+            self.pfeedback("Exporting to csv")
+            # keep redundant
+            # only export a subset ?
+            # for 
+            # df1 = df[['a','d']]
+            # smalldf = df.drop()
+            columns = _sender(["abstime", "reinjection_of", "reinjected_in", "packetid", "tcpstream", "mptcpstream", "tcpdest", "mptcpdest"])
+            columns += _receiver(["abstime", "packetid"])
+            columns += ["redundant", "owd", "reinj_delta"]
+
+            df[columns].to_csv(
+                self.stdout,
+                sep="|",
+                index=False,
+                header=True,
+            )
+            return
 
         for destination in ConnectionRoles:
+
+            if args.destinations and destination not in args.destinations:
+                log.debug("ignoring destination %s " % destination)
+                continue
+
             self.poutput("looking for reinjections towards mptcp %s" % destination)
             sender_df = df[df.mptcpdest == destination]
             log.debug("%d reinjections in that direction" % (len(sender_df), ))
 
             # TODO we now need to display successful reinjections
-            reinjections = sender_df[pd.notnull(sender_df[ _sender("reinjection_of") ])]
+            reinjections = sender_df[pd.notnull(sender_df[_sender("reinjection_of")])]
 
-            print("=================================="
-                "=====       TESTING          ====="
-                "==================================")
-
-            print("reinjections")
-            print(reinjections[ _sender(["packetid", "reinjection_of"]) ])
-
-            successful_reinjections = reinjections[ reinjections.redundant == False ]
+            successful_reinjections = reinjections[reinjections.redundant == False]
 
             self.poutput("%d successful reinjections" % len(successful_reinjections))
-            print(successful_reinjections[ _sender(["packetid", "reinjection_of"]) + _receiver(["packetid"]) ])
+            # print(successful_reinjections[ _sender(["packetid", "reinjection_of"]) + _receiver(["packetid"]) ])
 
-            for row in successful_reinjections.itertuples(index=False):
-                # print("full row %r" % (row,))
+            for row in reinjections.itertuples(index=False):
 
                 # loc ? this is an array, sort it and take the first one ?
-                # initial_packetid = getattr(row, _sender("reinjection_of")),
                 initial_packetid = row.reinjection_of[0]
                 # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
-                original_packet  = df_all.loc[ df_all.packetid == initial_packetid ].iloc[0]
+                original_packet  = df_all.loc[df_all.packetid == initial_packetid].iloc[0]
                 # print("original packet = %r %s" % (original_packet, type(original_packet)))
 
-                _print_reinjection_comparison(original_packet, row)
+                # if row.redundant == True and args.failed:
+                    # _print_failed_reinjection(original_packet, row, debug=args.debug)
+
+                _print_reinjection_comparison(original_packet, row, )
 
                 
     parser = argparse.ArgumentParser(
