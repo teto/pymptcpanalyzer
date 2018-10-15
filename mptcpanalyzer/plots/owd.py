@@ -19,7 +19,13 @@ from itertools import cycle
 log = logging.getLogger(__name__)
 
 
-TCP_DEBUG_FIELDS = ['hash', 'ipsrc', 'ipdst', 'tcpstream', 'packetid', "reltime", "abstime", "tcpdest"]
+TCP_DEBUG_FIELDS = ['hash', 'ipsrc', 'ipdst', 'tcpstream', 'packetid', "reltime", "abstime", "tcpdest", "mptcpdest"]
+
+
+cycler = mpl.cycler(marker=['s', 'o', 'x', '+', '.'], color=['r', 'g', 'b', 'y', 'c' ], 
+        linestyle=['-', '--', '-.', ':', '-'])
+
+markers = cycle(cycler)
 
 class TcpOneWayDelay(plot.Matplotlib):
     """
@@ -71,7 +77,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         parser.add_argument("protocol", choices=["tcp", "mptcp"], action="store",
             help="what kind to plot")
 
-        parser = super().default_parser(parents=[parser])
+        parser = super().default_parser(parents=[parser], direction=True)
         # mptcpparser = mp.gen_bicap_parser("mptcp", True)
 
         # subparsers.add_parser("tcp", parents=[super().default_parser(direction=True)], add_help=False)
@@ -136,38 +142,48 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         print("columns", res.columns)
         print("info", res.info())
-        # print(res.loc[res._merge == "both", debug_fields ])
+        print(res.loc[res._merge == "both", debug_fields ])
 
-        # print(res[["packetid", "mapped_index",
-        #     "sendkey" + self.suffixes[0], "sendkey" + self.suffixes[1],]])
-
-        cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
-        markers = cycle(cycler)
-
-
-        # TODO la faut que ca marche pour les 2 cas mptcp/tcp
-        # if protocol == "mptcp" and description:
-        #     # if kwargs.destinations:
-        #     # it should already be filtered ?!
-
-        #     for tcpstream, subdf in res.groupby("tcpstream", "tcpdest") 
-
-        
         df = res
 
-        # TODO cycle through styles
-        # for tcpdest, df in res.groupby(_sender("tcpdest")):
-
         print("STARTING LOOP")
-        
-        fields = ["tcpdest", "tcpstream"]
+        print("DESTINATION=%r" % kwargs.get("destinations", []))
+
+        fields = ["tcpdest", "tcpstream", ]
+        # if True:
         if protocol == "mptcp":
-            fields.append("mptcpdest") 
+            self.plot_mptcp(res, fig, fields, **kwargs )
+        else:
+            self.plot_tcp(res, fig, fields, **kwargs )
 
-        for idx, subdf in df.groupby(_sender(fields)):
 
-            print("t= %r", idx)
-            tcpdest, tcpstream, mptcpdest = idx
+        # TODO add units
+        axes.set_xlabel("Time (s)")
+        axes.set_ylabel("One Way Delay (s)")
+
+        # if protocol == "mptcp":
+        fig.suptitle("One Way Delays for {} streams {} <-> {} {dest}".format( 
+            protocol,
+            kwargs.get("pcap1stream"),
+            kwargs.get("pcap2stream"),
+            dest= ""
+
+        ))
+
+        return fig
+
+
+    def plot_tcp(self, df, fig, fields, **kwargs):
+        axes = fig.gca()
+        # fields = ["tcpdest", "tcpstream"]
+
+        # ConnctionRole doesn't support <
+        for idx, subdf in df.groupby(_sender(fields), sort=False):
+
+            print("t= %r" % (idx,))
+            print("len= %r" % len(subdf))
+            tcpdest, tcpstream = idx
+
             # if protocol == tcpdest not in kwargs.destinations:
             #     log.debug("skipping TCP dest %s" % tcpdest)
             #     continue
@@ -185,7 +201,7 @@ class TcpOneWayDelay(plot.Matplotlib):
                 x=_sender("abstime"),
                 y="owd",
                 label="towards %s" % tcpdest, # seems to be a bug
-                style=marker,
+                **marker,
                 # grid=True,
                 # xticks=tcpstreams["reltime"],
                 # rotation for ticks
@@ -193,40 +209,43 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # lw=3
             )
 
-        # set min(abstime_h1, abstime_2) as index
-        # passe un label a chaque plot alors ?
-        # pplot = grouped_by.plot.line(
-        #     # gca = get current axes (Axes), create one if necessary
-            # ax=axes,
-            # legend=False,
-            # x="abstime_h1",
-            # y="owd",
-            # # style="-o",
-            # # grid=True,
-            # # xticks=tcpstreams["reltime"],
-            # # rotation for ticks
-            # # rot=45,
-            # # lw=3
-        # )
+    def plot_mptcp(self, df, fig, fields, **kwargs):
+        axes = fig.gca()
+        fields = ["tcpdest", "tcpstream", "mptcpdest"]
 
-        # why are these so wrong !
-        # axes.legend(['toto', 'ta'])
+        for idx, subdf in df.groupby(_sender(fields), sort=False):
 
-        # handles, labels = axes.get_legend_handles_labels()
-        # print("labels=", labels)
+            print("t= %r" % (idx,))
+            print("len= %r" % len(subdf))
+            tcpdest, tcpstream, mptcpdest = idx
+            if mptcpdest not in kwargs.get("destinations"):
+                continue
 
-        # TODO add units
-        axes.set_xlabel("Time (s)")
-        axes.set_ylabel("One Way Delay (s)")
+            # if protocol == tcpdest not in kwargs.destinations:
+            #     log.debug("skipping TCP dest %s" % tcpdest)
+            #     continue
 
-        # if protocol == "mptcp":
-        fig.suptitle("One Way Delays for {} streams {} <-> {}".format( 
-            protocol,
-            kwargs.get("pcap1stream"),
-            kwargs.get("pcap2stream"),
-        ))
+            marker = next(markers)
+            print("marker= %r", marker)
 
-        return fig
+            # if tcpdest 
+            # df = debug_convert(df)
+            pplot = subdf.plot(
+                # gca = get current axes (Axes), create one if necessary
+                ax=axes,
+                legend=True,
+                # TODO should depend from 
+                x=_sender("abstime"),
+                y="owd",
+                label="Subflow %d towards tcp %s" % (tcpstream, tcpdest), # seems to be a bug
+                **marker,
+                # grid=True,
+                # xticks=tcpstreams["reltime"],
+                # rotation for ticks
+                # rot=45,
+                # lw=3
+            )
+    
 
 
 # class MpTcpOneWayDelay(TcpOneWayDelay):

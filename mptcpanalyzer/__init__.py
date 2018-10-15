@@ -124,7 +124,7 @@ class MpTcpOptions(IntEnum):
     MP_FAIL = 6
     MP_FASTCLOSE = 7
 
-# hopefully mypy will work with IntEnum's too
+# Keep it as Enum so that it gets serialized as a string in the CSV
 class ConnectionRoles(Enum):
     """
     Used to filter datasets and keep packets flowing in only one direction !

@@ -256,10 +256,13 @@ def load_merged_streams_into_pandas(
                 fields = dict(tshark_config.fields)
                 fields.update(per_pcap_artificial_fields)
                 converters = {}
-                default_converters = {name: f.converter for name, f in fields.items() if f.converter}
+                # no need to convert tcpflags
+                default_converters = {name: f.converter for name, f in fields.items()
+                    if f.converter and name != "tcpflags"}
                 # converters.update({ name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
                 for name, converter in default_converters.items():
                     converters.update({_first(name): converter, _second(name): converter})
+                
 
                 return converters
 
@@ -558,7 +561,7 @@ def convert_to_sender_receiver(
 
         print("renaming")
         # _rename_columns(role)
-        for tcpdest, tdf in subdf.groupby(_first("tcpdest")):
+        for tcpdest, tdf in subdf.groupby(_first("tcpdest"), sort=False):
             if tcpdest == h1_role:
                 suffixes = {HOST2_SUFFIX: SENDER_SUFFIX, HOST1_SUFFIX: RECEIVER_SUFFIX}
             else:

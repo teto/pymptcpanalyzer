@@ -937,7 +937,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         dargs = vars(args)
 
         # workaround argparse limitations to set as default both directions
-        dargs.update(destinations=dargs.get("destinations") or mp.ConnectionRoles)
+        destinations=dargs.get("destinations", list(mp.ConnectionRoles))
+        dargs.update(destinations=destinations)
+        log.debug("Selecting destinations %s" % (destinations,))
         dataframes = plotter.preprocess(**dargs)
         assert dataframes is not None, "Preprocess must return a list"
         # pass unknown_args too ?

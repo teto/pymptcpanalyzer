@@ -49,6 +49,7 @@ hash: take this hash into account ?
 Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter'])
 
 def _convert_flags(x):
+    """ double int in case we deal with a float"""
     return int(x, 16)
 
 class TsharkConfig:
