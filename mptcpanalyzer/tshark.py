@@ -55,9 +55,10 @@ def _convert_flags(x):
 
 def _convert_timestamp(x):
     # pd.Timestamp(ts_input=1529916720, unit="s", )
+    return pd.to_datetime(x, unit="s", utc=True)
+    # seconds=int(x)
+    # return pd.Timestamp(ts_input=seconds, unit="s", nanosecond=x-seconds)
 
-    seconds=int(x)
-    return pd.Timestamp(ts_input=seconds, unit="s", nanosecond=x-seconds)
 
 class TsharkConfig:
     """
@@ -137,8 +138,8 @@ class TsharkConfig:
         # TODO look at the doc ! with pd.Timestamp
 
         self.add_field("frame.time_relative", "reltime", np.float64, False, False)
-        self.add_field("frame.time_epoch", "abstime", np.datetime64,
-            "seconds+Nanoseconds time since epoch", _convert_timestamp)
+        self.add_field("frame.time_epoch", "abstime", np.float64,
+            "seconds+Nanoseconds time since epoch", None)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)

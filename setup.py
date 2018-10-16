@@ -121,7 +121,7 @@ setup(name="mptcpanalyzer",
             # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
             # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
             # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
-            'mptcp_throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
+            'throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
             ],
         # namespace for plugins that monkey patch the main Cmd class
         'mptcpanalyzer.cmds': [

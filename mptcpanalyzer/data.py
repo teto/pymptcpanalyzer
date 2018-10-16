@@ -2,7 +2,7 @@ import logging
 import os
 import pandas as pd
 import numpy as np
-from mptcpanalyzer.tshark import TsharkConfig, Field
+from mptcpanalyzer.tshark import TsharkConfig, Field, _convert_timestamp
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, swap_role
 import mptcpanalyzer as mp
 from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender, 
@@ -395,12 +395,21 @@ def load_into_pandas(
             converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
             # print("converters\n", converters)
+
+            dtypes = {field.fullname: field.type for _, field in config.fields.items()}
+            log.debug("Dtypes before load: %s" % dtypes)
             data = pd.read_csv(
                 fd,
                 comment='#',
                 sep=config.delimiter,
                 dtype=dtypes,
+                # seems like for now we can't change the default representation apart from converting the column to
+                # a string !!!
+                # https://stackoverflow.com/questions/46930201/pandas-to-datetime-is-not-formatting-the-datetime-value-in-the-desired-format
+                # date_parser=_convert_timestamp,
+                # parse_dates=["frame.time_epoch"],
                 converters=converters,
+                # float_precision="high",  # might be necessary
                 # nrows=10, # useful for debugging purpose
             )
             # 1 to 1 -> can't add new columns
@@ -409,25 +418,21 @@ def load_into_pandas(
             # add new columns
             data = data.assign(**{name: np.nan for name in per_pcap_artificial_fields.keys()})
             column_names = set(data.columns)
-            print("column_names", column_names)
+            # print("column_names", column_names)
             data = data.astype(dtype=artifical_dtypes, copy=False)
 
             # we want packetid column to survive merges/dataframe transformation so keepit as a column
             # TODO remove ? let other functions do it ?
             data.set_index("packetid", drop=False, inplace=True)
-            logging.debug("Column names: %s", data.columns)
+            log.debug("Column names: %s" % data.columns)
 
             hashing_fields = [name for name, field in config.fields.items() if field.hash]
-            logging.debug("Hashing over fields %s" % hashing_fields)
+            log.debug("Hashing over fields %s" % hashing_fields)
 
             # won't work because it passes a Serie (mutable)_
             # TODO generate hashing fields from Fields
             temp = pd.DataFrame(data, columns=hashing_fields)
             data["hash"] = temp.apply(lambda x: hash(tuple(x)), axis=1)
-
-        # some postprocessing steps
-        # don't do it here else we might repeat it
-        # data["abstime"] += clock_offset
 
     except Exception as e:
         logging.error("You may need to filter more your pcap to keep only mptcp packets")
@@ -436,8 +441,8 @@ def load_into_pandas(
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
 
     # print("FINAL_DTYPES")
-    # print(data.dtypes)
-    # print(data.tcpdest.head(10))
+    log.debug(data.dtypes)
+    # print(data.head(5))
     return data
 
 
