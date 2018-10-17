@@ -157,19 +157,18 @@ class SubflowThroughput(plot.Matplotlib):
             # log.debug("Could not load cached results %s" % cachename)
 
 
-    def plot(self, dat, destinations, **kwargs):
+    def plot(self, dat, destinations, protocol, **kwargs):
         """
         getcallargs
         """
 
         fig = plt.figure()
         axes = fig.gca()
-
+        mptcp_plot = (protocol == "mptcp")
         # success, ret = mptcp_compute_throughput(dat, mptcpstream, destination)
         # if success is not True:
         #     print("Failure: %s", ret)
         #     return
-
 
         # data = map(lambda x: x['bytes'], ret['subflow_stats'])
         # s = pd.DataFrame(data=pd.Series(data))
@@ -178,9 +177,22 @@ class SubflowThroughput(plot.Matplotlib):
         # gca = get current axes (Axes), create one if necessary
         axes = fig.gca()
 
-        fields = "tcpdest", "tcpstream"
+        title = "TCP throughput/goodput"
+
+        fields = ["tcpdest", "tcpstream", ]
+        if mptcp_plot:
+            fields.append("mptcpdest")
+            title = "MPTCP throughput/goodput"
+        
+
         for idx, subdf in dat.groupby(_sender(fields), sort=False):
-            stream, tcpdest = idx
+
+            # filler in case 
+            stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
+
+            filtereddest = mptcpdest if mptcp_plot else tcpdest
+            if filtereddest not in kwargs.get("destinations"):
+                continue
 
             tput_df = compute_goodput(subdf, kwargs.get("window"))
             tput_df.plot.line(
@@ -190,14 +202,14 @@ class SubflowThroughput(plot.Matplotlib):
                 x=_sender("dt_abstime"),
                 y="tput",
                 # y="gput",
-                label="Xput towards %s" % tcpdest, # seems to be a bug
+                label="Xput towards %s" % filtereddest, # seems to be a bug
             )
 
 
         # TODO plot on one y the throughput; on the other the goodput
         axes.set_xlabel("Time (s)")
         axes.set_ylabel("contribution")
-        fig.suptitle("Subflow throughput/goodput")
+        fig.suptitle(title)
 
         # handles, labels = axes.get_legend_handles_labels()
 
