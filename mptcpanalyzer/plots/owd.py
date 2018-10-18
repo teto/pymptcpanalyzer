@@ -116,7 +116,7 @@ class TcpOneWayDelay(plot.Matplotlib):
                 self.tshark_config,
             )
 
-            return df
+            return super().preprocess(protocol, pcap1, pcap2, pcap1stream, pcap2stream, **kwargs)
 
         except Exception as e:
             logging.exception()

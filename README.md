@@ -95,6 +95,18 @@ in `lc` output.
 
 Look at [Examples](#Examples)
 
+# How to customize plots ?
+
+From simple to hardcore:
+
+1. Mptcpanalyzer itself proposes few flags to customize plots: --title to override the default title and --style.
+You can set several --style at the same time, they are passed to matplotlib and as such allow for a wide 
+[Matplotlib customization](./styles/README.md).
+1. Some commands can export datasets to a machine readable format such as --csv/--json. Else you can look in mptcpanalyzer cache for the full csv file yourself.
+1. Mptcpanalyzer can automatically load (plot) plugins. See the doc.
+1. Your last hope is to fork the project. Have fun !
+
+
 # Examples
 
 Plot One Way Delays from a connection:

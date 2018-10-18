@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import mptcpanalyzer as mp
 from mptcpanalyzer import PreprocessingActions
 import pandas as pd
-from mptcpanalyzer.data import load_into_pandas, tcpdest_from_connections
+from mptcpanalyzer.data import load_into_pandas, tcpdest_from_connections, mptcpdest_from_connections
 from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -136,7 +136,7 @@ class Plot:
         """
         log.debug("Preprocessing dataframe with extra args %s" % kwargs)
         queries = []
-        print("tcp.stream", tcpstream, "mptcp:", mptcpstream)
+        log.debug("tcp.stream %d mptcp: %d" % (tcpstream, mptcpstream))
         stream = tcpstream if tcpstream is not None else mptcpstream
         dataframe = rawdf
 
@@ -159,16 +159,20 @@ class Plot:
                 #     queries.append(protocol + "dest==%d" % stream)
             else:
                 # todo shall do the same for mptcp destinations
+                con = MpTcpConnection.build_from_dataframe(dataframe, stream)
+                # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
+                df = mptcpdest_from_connections(dataframe, con)
+                # TODO generate mptcpdest
                 # if protocol == "mptcp":
                 if destinations is not None:
                     raise Exception("destination filtering is not ready yet for mptcp")
 
                     log.debug("Filtering destination")
+
                     # Generate a filter for the connection
                     # con = MpTcpConnection.build_from_dataframe(dataframe, stream)
                     # q = con.generate_direction_query(destination)
                     # queries.append(q)
-
         if extra_query:
             log.debug("Appending extra_query=%s" % extra_query)
             queries.append(extra_query)
@@ -189,19 +193,41 @@ class Plot:
         """
         pass
 
+    def load_dataframes(self, **kwargs):
+        dataframes = []
+        # for pcap_name, actions in self.input_pcaps.items():
+        #     log.info("pcap_name=%s value=%r" % (pcap_name, kwargs.get(pcap_name)))
+        #     if actions & PreprocessingActions.Preload:
+
+        def _preload(pcap_name):
+            filename = kwargs.get(pcap_name)
+            df = load_into_pandas(filename, self.tshark_config,)
+            dataframes.append(df)
+
+        return {pcap_name: _preload(pcap_name) for pcap_name, actions in self.input_pcaps.items() if actions & PreprocessingActions.Preload}
+
     def preprocess(self, **kwargs) -> Collection[pd.DataFrame]:
         """
         Must return the dataframes used by plot
         kwargs should contain arguments with the pcap names passed to self.input_pcaps
         """
-        dataframes = []
-        for pcap_name, actions in self.input_pcaps.items():
+        dataframes = self.load_dataframes()
+        for pcap_name, actions in dataframes:
             log.info("pcap_name=%s value=%r" % (pcap_name, kwargs.get(pcap_name)))
             if actions & PreprocessingActions.Preload:
                 filename = kwargs.get(pcap_name)
                 df = load_into_pandas(filename, self.tshark_config,)
                 if actions & PreprocessingActions.FilterStream:
-                    df = self.filter_dataframe(df, **kwargs)
+
+                    # TODO improve that along with destination filtering
+                    # TODO fix !
+                    tcpstream = kwargs.get(pcap_name + "stream")
+                    mptcpstream = kwargs.get(pcap_name + "stream")
+                    df = self.filter_dataframe(df, 
+                        tcpstream=tcpstream,
+                        mptcpstream=mptcpstream,
+                        **kwargs
+                    )
 
                 dataframes.append(df)
 
@@ -260,7 +286,8 @@ class Matplotlib(Plot):
                 "via several --style items."
                 "The style should be either an absolute path or the "
                 "name of a style present in the folder "
-                "$XDG_CONFIG_HOME/matplotlib/stylelib")
+                "$XDG_CONFIG_HOME/matplotlib/stylelib."
+                "(matplotlib will merge it with $XDG_CONFIG_HOME/matplotlib/matplotlibrc).")
         )
         return parser
 
@@ -275,7 +302,7 @@ class Matplotlib(Plot):
 
         """
         if opt.get('title', self.title):
-            v.suptitle(self.title, fontsize=12)
+            v.suptitle(self.title,)
 
         if out:
             self.savefig(v, out)
@@ -283,7 +310,7 @@ class Matplotlib(Plot):
         if display:
             if out is None:
                 with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-                    print("No output file set, using tempfile=%s" % tmpfile)
+                    log.info("No output file set, using tempfile=%s" % tmpfile)
                     r = self.savefig(v, tmpfile.name)
                     log.debug("returned %r" % r)
                     self.display(tmpfile.name)

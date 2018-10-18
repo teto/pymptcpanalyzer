@@ -5,6 +5,7 @@ import logging
 import argparse
 import matplotlib.pyplot as plt
 from typing import List, Any, Tuple, Dict, Callable, Set
+from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 
 log = logging.getLogger(__name__)
 
@@ -13,13 +14,14 @@ def attributes(fields):
 
 class PlotSubflowAttribute(plot.Matplotlib):
     """
-Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
+    Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
     This should be the most straightforward plot.
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = kwargs.get("input_pcaps", {"pcap": plot.PreprocessingActions.Preload |
-            plot.PreprocessingActions.FilterMpTcpStream})
+        pcaps = kwargs.get("input_pcaps", {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream
+        })
         super().__init__(*args, input_pcaps=pcaps, **kwargs)
 
         # TODO filter the ones who have plot name
@@ -40,20 +42,37 @@ Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
             help="Choose an mptcp attribute to plot")
         return parser
 
-    def plot(self, dat, mptcpstream, field=None, **kwargs):
+    def plot(self, df, pcapstream, field, **kwargs):
         """
         getcallargs
         """
         fig = plt.figure()
-        tcpstreams = dat.groupby('tcpstream')
+        # tcpstreams = dat.groupby('tcpstream')
 
-        log.info("%d streams in the MPTCP flow" % len(tcpstreams))
+        # log.info("%d streams in the MPTCP flow" % len(tcpstreams))
         log.info("Plotting field %s" % field)
+        log.info("len(df)= %d" % len(df))
 
         axes = fig.gca()
 
-        for idx, (streamid, ds) in enumerate(tcpstreams):
-            ds[field].plot.line(
+        # "tcpdest", 
+        fields = ["tcpstream", "mptcpdest"]
+
+        fig.suptitle("Plot of subflow %s" % field,
+                verticalalignment="top",
+                # x=0.1, y=.95,
+                )
+
+        # il n'a pas encore eu les destinations !!
+        print("DATASET HEAD")
+        print(df.head())
+        for idx, subdf in df.groupby(_sender(fields), sort=False):
+            log.info("len(df)= %d" % len(df))
+
+            # TODO check destination
+
+            # for idx, (streamid, ds) in enumerate(tcpstreams):
+            subdf[field].plot.line(
                 x="abstime",
                 ax=axes,
                 # use_index=False,
@@ -73,8 +92,6 @@ Plot one or several mptcp attributes (dsn, dss, etc...) on a same plot.
             ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
             loc=4
         )
-
-        fig.suptitle("Plot of subflow %s" % field)
         return fig
 
 

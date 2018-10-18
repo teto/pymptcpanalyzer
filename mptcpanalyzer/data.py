@@ -487,7 +487,43 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
 #     )
 
 
-def tcpdest_from_connections(df, con: TcpConnection):
+def mptcpdest_from_connections(df, con: MpTcpConnection) -> pd.DataFrame:
+
+    for dest in ConnectionRoles:
+
+        log.debug("Looking at mptcp destination %s" % dest)
+        q = con.generate_direction_query(dest)
+        df_dest = df.query(q)
+        print("mptcpdest %r" % dest)
+        df.loc[df_dest.index, 'mptcpdest'] = dest
+
+    return df
+
+    # for tcpdest in ConnectionRoles:
+
+    #     log.debug("Looking at tcpdestination %s" % tcpdest)
+        
+    #     # pandas trick to avoid losing dtype 
+    #     # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
+    #     # no need to set _second (as they are just opposite)
+    #     # TODO this should be done somewhere else
+    #     # else summary won't work
+    #     res[_first('tcpdest')][:] = tcpdest
+    #     res[_second('tcpdest')][:] = tcpdest
+
+    #     # generate_mptcp_direction_query
+    #     if isinstance(main_connection, MpTcpSubflow):
+
+    #         print("THIS IS A SUBFLOW")
+    #         mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
+    #         res[_first('mptcpdest')][:] = mptcpdest
+    #         res[_second('mptcpdest')][:] = mptcpdest
+
+    #         print("Setting mptcpdest to %s", mptcpdest)
+    #         # if tcpdest == main_connection.mptcpdest
+
+
+def tcpdest_from_connections(df, con: TcpConnection) -> pd.DataFrame:
 
     for dest in ConnectionRoles:
 
