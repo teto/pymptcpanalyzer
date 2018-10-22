@@ -110,7 +110,7 @@ You can set several --style at the same time, they are passed to matplotlib and 
 # Examples
 
 Plot One Way Delays from a connection:
-`plot owd tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0 0 --display`
+`plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display`
 
 Plot tcp sequence numbers in both directions:
 `plot tcp_attr`

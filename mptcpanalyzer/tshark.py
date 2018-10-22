@@ -5,13 +5,45 @@ import pandas as pd
 import tempfile
 import numpy as np
 import shlex
-from mptcpanalyzer import _load_list
+import ast
+# from mptcpanalyzer import _load_list
 from collections import namedtuple
 from typing import List, Dict, Union, Optional, Callable, Any
 from enum import Enum
 import functools
 
 logger = logging.getLogger(__name__)
+
+# def _load_list(x, field="pass a field to debug"):
+#     """
+#     Loads x of the form "1,2,5" or None
+#     for instance functools.partial(_convert_to_list, field="reinjectionOf"),
+#     returns np.nan instead of [] to allow for faster filtering
+#     """
+#     # pandas error message are not the best to understand why the convert failed
+#     # so we use this instead of lambda for debug reasons
+#     print("converting field %s with value %r" % (field, x))
+#     res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
+#     return res
+
+
+
+# doesn't seem to work
+# sometimes it will create a tuple only if there are several elements
+def _load_list(x, field="set field to debug"):
+    """
+    Contrary to _convert_to_list
+    """
+    if x is None or len(x) == 0:
+        return np.nan
+
+    if x[0] != "[":
+        x = "[" + x + "]"
+    #if (x is not None and x != '') else np.nan
+    res = ast.literal_eval(x) 
+
+    # print("res", res)
+    return res
 
 class Filetype(Enum):
     unsupported = 0

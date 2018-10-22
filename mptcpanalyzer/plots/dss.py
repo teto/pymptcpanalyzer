@@ -55,7 +55,7 @@ class DSSOverTime(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
         expected_pcaps = {
-            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream,
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream,
         }
         super().__init__(
             *args,
@@ -142,8 +142,9 @@ class DSSOverTime(plot.Matplotlib):
                     extra_query=dack_str + " >=0 ")
 
 
-            cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
-            markers = cycle(cycler)
+            #TODO remove the cycler in favor of something 
+            # cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
+            # markers = cycle(cycler)
 
             for tcpstream, df in df_backward.groupby('tcpstream'):
                 marker = next(markers)

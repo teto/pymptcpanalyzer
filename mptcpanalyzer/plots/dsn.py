@@ -6,11 +6,13 @@ import argparse
 import matplotlib.pyplot as plt
 from typing import List, Any, Tuple, Dict, Callable, Set
 from mptcpanalyzer import _receiver, _sender, PreprocessingActions
+from mptcpanalyzer.parser import gen_pcap_parser
 
 log = logging.getLogger(__name__)
 
 def attributes(fields):
     return { name: field.label for name, field in fields.items() if field.label }
+
 
 class PlotSubflowAttribute(plot.Matplotlib):
     """
@@ -19,10 +21,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        pcaps = kwargs.get("input_pcaps", {
-            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterMpTcpStream
-        })
-        super().__init__(*args, input_pcaps=pcaps, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # TODO filter the ones who have plot name
         self._attributes = attributes(self.tshark_config.fields)
@@ -30,17 +29,24 @@ class PlotSubflowAttribute(plot.Matplotlib):
 
     def default_parser(self, *args, **kwargs):
 
-        parent = argparse.ArgumentParser(
-            description="Plot tcp attributes over time"
-        )
-        parser = super().default_parser(
-            *args, parents=[parent],
-            direction=True,
-            skip_subflows=True,
-            **kwargs)
+        pcaps = {
+            "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterMpTcpStream
+        }
+
+        # print("mptcp_attr parser")
+        parser = gen_pcap_parser(pcaps, )
+        parser.description="Plot MPTCP subflow attributes over time"
+
         parser.add_argument('field', choices=self._attributes.keys(),
             help="Choose an mptcp attribute to plot")
-        return parser
+        res = super().default_parser(
+            *args, parents=[parser],
+            # direction=True,
+            # skip_subflows=True,
+            **kwargs)
+        # print("end of mptcp_attr parser")
+        return res
+        # return parser
 
     def plot(self, df, pcapstream, field, **kwargs):
         """
@@ -55,13 +61,12 @@ class PlotSubflowAttribute(plot.Matplotlib):
 
         axes = fig.gca()
 
-        # "tcpdest", 
         fields = ["tcpstream", "mptcpdest"]
 
         fig.suptitle("Plot of subflow %s" % field,
-                verticalalignment="top",
-                # x=0.1, y=.95,
-                )
+            verticalalignment="top",
+            # x=0.1, y=.95,
+            )
 
         # il n'a pas encore eu les destinations !!
         print("DATASET HEAD")
@@ -99,23 +104,18 @@ class PlotTcpAttribute(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
-        pcaps = {
-            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream
-        }
-        super(plot.Matplotlib, self).__init__(*args, input_pcaps=pcaps, **kwargs)
+        super(plot.Matplotlib, self).__init__(*args, **kwargs)
         self._attributes = attributes(self.tshark_config.fields)
 
     def default_parser(self, *args, **kwargs):
+        pcaps = {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream
+        }
+        parser = gen_pcap_parser(pcaps, )
 
-        parent = argparse.ArgumentParser(
-            description="Plot tcp attributes over time"
-        )
-        parser = super().default_parser(
-            *args, parents=[parent],
-            direction=True,
-            skip_subflows=True,
-            **kwargs)
-
+        # parent = argparse.ArgumentParser(
+        parser.description="Plot tcp attributes over time"
+        # )
         parser.add_argument('--syndrop', action="store_true",
             help="Will drop first 3 packets of the dataframe assuming they are syn")
         
@@ -123,7 +123,13 @@ class PlotTcpAttribute(plot.Matplotlib):
             # action="append",
             choices=self._attributes.keys(),
             help="Choose an mptcp attribute to plot")
-        return parser
+        # return parser
+        return super().default_parser(
+            *args, parents=[parser],
+            # direction=True,
+            # skip_subflows=True,
+            **kwargs)
+
 
 
     def plot(self, df, tcpstream, fields, destinations, **kwargs):

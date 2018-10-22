@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 from mptcpanalyzer.statistics import mptcp_compute_throughput
 from mptcpanalyzer.data import load_merged_streams_into_pandas
+from mptcpanalyzer.parser import gen_pcap_parser
 import collections
 from typing import List
 import logging
@@ -81,80 +82,84 @@ class SubflowThroughput(plot.Matplotlib):
     Mptcp throughput equals the sum of subflow contributions
     """
 
-    def __init__(self, *args, **kwargs):
-        pcaps = {
-            "pcap1": plot.PreprocessingActions.DoNothing,
-            "pcap2": plot.PreprocessingActions.DoNothing,
-        }
-        super().__init__(
-            *args,
-            input_pcaps=pcaps,
-            **kwargs
-        )
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(
+    #         *args,
+    #         input_pcaps=pcaps,
+    #         **kwargs
+    #     )
 
     def default_parser(self, *args, **kwargs):
+        # pcaps = {
+        #     "pcap1": plot.PreprocessingActions.DoNothing,
+        #     "pcap2": plot.PreprocessingActions.DoNothing,
+        # }
 
-        parent = argparse.ArgumentParser(
+        # TODO use gen_pcap_parser
+        parser = argparse.ArgumentParser(
             description="Helps plotting Data sequence numbers"
         )
-        parent.add_argument("protocol", choices=["tcp", "mptcp"], action="store",
+        parser.add_argument("protocol", choices=["tcp", "mptcp"], action="store",
             help="what kind to plot")
-        parser = super().default_parser(
-            *args, parents=[parent],
-            direction=True,
-            skip_subflows=True,
-            **kwargs
-        )
+        parser.epilog = """
+            plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
+        """
         parser.add_argument("window", metavar="AVG_WINDOW", action="store", type=str, 
                 default=3,
             help="Averaging window , for instance '1s' ")
-        return parser
+        # return parser
+        return super().default_parser(
+            *args, parents=[parser],
+            # direction=True,
+            # skip_subflows=True,
+            **kwargs
+        )
 
-    def preprocess(self, pcap1, pcap2, pcap1stream, pcap2stream, protocol, **kwargs):
-        """
-        This is trickier than in other modules: this plot generates intermediary results
-        to compute OWDs.
-        These results can be cached in which  case it's not necessary
-        to load the original pcaps.
+    #def preprocess(self, pcap1, pcap2, pcap1stream, pcap2stream, protocol, **kwargs):
+    #    """
+    #    This is trickier than in other modules: this plot generates intermediary results
+    #    to compute OWDs.
+    #    These results can be cached in which  case it's not necessary
+    #    to load the original pcaps.
 
-        First we get the cachename associated with the two pcaps. If it's cached we load
-        directly this cache else we proceed as usual
+    #    First we get the cachename associated with the two pcaps. If it's cached we load
+    #    directly this cache else we proceed as usual
 
-        """
-        log.debug("Preprocessing")
-        # if we can't load that file from cache
-        try:
+    #    """
+    #    log.debug("Preprocessing")
+    #    # if we can't load that file from cache
+    #    try:
 
-            #TODO pass clockoffsets
-            # Need to add the stream ids too !
-            merged_df = load_merged_streams_into_pandas(
-                pcap1,
-                pcap2,
-                pcap1stream,
-                pcap2stream,
-                # kwargs.get(""),
-                # kwargs.get("stream2"),
-                protocol == "mptcp",
-                # TODO how does it get the config
-                self.tshark_config,
-            )
+    #        #TODO pass clockoffsets
+    #        # Need to add the stream ids too !
+    #        merged_df = load_merged_streams_into_pandas(
+    #            pcap1,
+    #            pcap2,
+    #            pcap1stream,
+    #            pcap2stream,
+    #            # kwargs.get(""),
+    #            # kwargs.get("stream2"),
+    #            protocol == "mptcp",
+    #            # TODO how does it get the config
+    #            self.tshark_config,
+    #        )
 
-            # first test on TCP
+    #        # first test on TCP
 
 
-            # then we need to process throughput/goodput
-            # Later move it to utils so that it can be used in
-            # summary_extended (to plot average/min/max)
-            # for idx, subdf in df.groubpy(_sender(["tcpstream", "tcpdest"])):
-            #     print("computing tput")
+    #        # then we need to process throughput/goodput
+    #        # Later move it to utils so that it can be used in
+    #        # summary_extended (to plot average/min/max)
+    #        # for idx, subdf in df.groubpy(_sender(["tcpstream", "tcpdest"])):
+    #        #     print("computing tput")
 
-            #     compute_df(subdf)
-            return merged_df
+    #        #     compute_df(subdf)
+    #        return merged_df
 
-        except Exception as e:
-            logging.exception("Error while plotting throughput")
-            raise e
-            # log.debug("Could not load cached results %s" % cachename)
+    #    except Exception as e:
+    #        logging.exception("Error while plotting throughput")
+    #        raise e
+    #        # log.debug("Could not load cached results %s" % cachename)
 
 
     def plot(self, dat, destinations, protocol, **kwargs):

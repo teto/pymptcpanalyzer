@@ -23,6 +23,7 @@ import functools
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
+from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, StreamId, FilterStream, MpTcpAnalyzerParser
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas, classify_reinjections, pandas_to_csv
 from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
@@ -31,6 +32,7 @@ from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMappin
 import mptcpanalyzer.cache as mc
 import mptcpanalyzer.statistics as stats
 import mptcpanalyzer as mp
+from mptcpanalyzer import PreprocessingActions
 import stevedore
 import pandas as pd
 import shlex
@@ -193,6 +195,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             subparsers.add_parser(ext.name, parents=[parser], add_help=False)
 
         self.plot_mgr.map(register_plots, subparsers)
+        # # will raise NoMatches when no plot available
 
         # if loading commands from a file, we disable prompt not to pollute output
         if stdin != sys.stdin:
@@ -332,13 +335,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     #     return l
 
+
+
+
+    # parser = gen_pcap_parser({"pcap": PreprocessingActions.FilterStream | PreprocessingActions.Merge }, protocol="tcp")
     parser = argparse_completer.ACArgumentParser(
-        description="This function tries to map a tcp.stream id from one pcap"
-                    " to one in another pcap"
-                    "in another dataframe. "
+    description='''
+        This function tries to map a tcp.stream id from one pcap
+        to one in another pcap in another dataframe.
+    '''
     )
 
-    # todo should accept filetype of argparse.Filetype
+    # TODO could use LoadSinglePcap
     load_pcap1 = parser.add_argument("pcap1", action="store", help="first to load")
     load_pcap2 = parser.add_argument("pcap2", action="store", help="second pcap")
 
@@ -353,6 +361,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         help="Machine readable summary.")
     parser.add_argument( '-v', '--verbose', dest="verbose", default=False, action="store_true",
         help="how to display each connection")
+
+    parser.epilog = '''
+    Examples:
+        map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
+    '''
 
     @with_argparser(parser)
     @with_category(CAT_TCP)
@@ -461,6 +474,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     parser.add_argument(
         'destination',
+        # mp.DestinationChoice,
         action="store", choices=mp.DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
         help='Filter flows according to their direction'
         '(towards the client or the server)'
@@ -506,14 +520,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             ))
 
 
-    parser = argparse_completer.ACArgumentParser(description="Export connection(s) to CSV")
+    parser = gen_pcap_parser({"pcap": PreprocessingActions.Preload})
+    parser.description = "Export connection(s) to CSV"
+    parser.epilog = '''
+
+    '''
+    # faut qu'il prenne le pcap ici sinon je ne peux pas autofiltrer :
     parser.add_argument("output", action="store", help="Output filename")
 
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--tcpstream', action='store', type=int)
-    group.add_argument('--mptcpstream', action='store', type=int)
+    group.add_argument('--tcpstream', action=functools.partial(FilterStream, "pcap", False), type=StreamId)
+    group.add_argument('--mptcpstream', action=functools.partial(FilterStream, "pcap", True), type=StreamId)
     # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
-    parser.add_argument("--destination", action="store", choices=mp.DestinationChoice,
+    # TODO check ?
+    parser.add_argument("--destination", action="store", 
+        choices=mp.DestinationChoice,
         help="tcp.stream id visible in wireshark")
     parser.add_argument("--drop-syn", action="store_true", default=False,
         help="Helper just for my very own specific usecase")
@@ -525,18 +546,19 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
 
         df = self.data
-        if args.tcpstream:
-            # df = df[ df.tcpstream == args.tcpstream]
+        # TODO let the parser do it
+        # if args.tcpstream:
+        #     # df = df[ df.tcpstream == args.tcpstream]
 
-            self.poutput("Filtering tcpstream")
-            con = TcpConnection.build_from_dataframe(df, args.tcpstream)
-            if args.destination:
-                self.poutput("Filtering destination")
-                q = con.generate_direction_query(args.destination)
-                df = df.query(q)
+        #     self.poutput("Filtering tcpstream")
+        #     con = TcpConnection.build_from_dataframe(df, args.tcpstream)
+        #     if args.destination:
+        #         self.poutput("Filtering destination")
+        #         q = con.generate_direction_query(args.destination)
+        #         df = df.query(q)
 
-        elif args.mptcpstream:
-            self.poutput("Unsupported yet")
+        # elif args.mptcpstream:
+        #     self.poutput("Unsupported yet")
             # df = df[ df.mptcpstream == args.mptcpstream]
 
         # need to compute the destinations before dropping syn from the dataframe
@@ -556,16 +578,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # if args.destination:
         #     if args.tcpstream:
                 # TODO we should filter destination
-                # df.
         self.poutput("Writing to %s" % args.output)
         pandas_to_csv(df, args.output)
 
 
-    parser = mp.gen_bicap_parser("mptcp", True)
+    parser = gen_bicap_parser("mptcp", True)
     parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
     parser.description = """
         Look into more details of an mptcp connection
+        """
+    parser.epilog = """
+        summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
         """
     @with_argparser(parser)
     def do_summary_extended(self, args):
@@ -574,9 +598,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
+        print("%r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
-        destinations = args.destinations or list(mp.ConnectionRoles)
+        destinations = args.destinations
+        # or list(mp.ConnectionRoles)
 
         for destination in destinations:
             success, basic_stats = stats.mptcp_compute_throughput(
@@ -588,6 +614,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             if success is not True:
                 self.perror("Error %s" % basic_stats)
 
+            # TODO already be done
+            # TODO we should have the parser do it
             df = load_merged_streams_into_pandas(
                 args.pcap1,
                 args.pcap2,
@@ -674,7 +702,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
     # TODO it should be able to print for both 
-    parser = mp.gen_bicap_parser("tcp", True)
+    parser = gen_bicap_parser("tcp", True)
     parser.description = """This function tries merges a tcp stream from 2 pcaps
                         in an attempt to print owds. See map_tcp_connection first maybe."""
 
@@ -687,7 +715,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         action="store_true",
         help="how to display each connection"
     )
-
+    parser.epilog = '''
+    You can run for example:
+        map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
+    '''
     @with_argparser(parser)
     @experimental
     def do_print_owds(self, args):
@@ -738,7 +769,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput("you need a wireshark > 19 June 2018 with commit dac91db65e756a3198616da8cca11d66a5db6db7...")
 
 
-    parser = mp.gen_bicap_parser("mptcp", dest=True)
+    parser = gen_bicap_parser("mptcp", dest=True)
     parser.description = """
         Qualify reinjections of the connection.
         You might want to run map_mptcp_connection first to find out
@@ -941,16 +972,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # print("number of reinjections of ")
 
 
-    def load(self, filename,):
-
-        self.data = load_into_pandas(filename, self.tshark_config, )
-        self.prompt = "%s> " % os.path.basename(filename)
-
-    parser = argparse_completer.ACArgumentParser(
+    parser = MpTcpAnalyzerParser(
         description="Loads a pcap to analyze"
     )
     # TODO try with an argparse filetype ?
-    parser.add_argument("input_file", action="store",
+    parser.add_argument("input_file", action=LoadSinglePcap, 
         help="Either a pcap or a csv file."
         "When a pcap is passed, mptcpanalyzer looks for a cached csv"
         "else it generates a "
@@ -963,8 +989,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         Load the file as the current one
         """
+        print(args)
         self.poutput("Loading %s" % args.input_file)
-        self.load(args.input_file, )
+        self.data = args._dataframes["input_file"]
+        self.prompt = "%s> " % os.path.basename(args.input_file)
 
     complete_load_pcap = cmd2.Cmd.path_complete
 
@@ -981,7 +1009,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def pcap_loaded(self):
         return isinstance(self.data, pd.DataFrame)
 
-    plot_parser = argparse_completer.ACArgumentParser(prog='plot', description='Generate plots')
+    plot_parser = MpTcpAnalyzerParser(prog='plot', description='Generate plots')
+    # TODO complete the help
+    # plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3" "quit"
+    plot_parser.epilog = '''
+        You can run for example:
+            plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
+    '''
 
     @with_argparser_and_unknown_args(plot_parser)
     def do_plot(self, args, unknown):
@@ -998,14 +1032,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # 'converts' the namespace to for the syntax define a dict
         dargs = vars(args)
 
+        print("%s" % dargs)
+        dataframes = dargs.pop("_dataframes")
         # workaround argparse limitations to set as default both directions
-        destinations=dargs.get("destinations", list(mp.ConnectionRoles))
-        dargs.update(destinations=destinations)
-        log.debug("Selecting destinations %s" % (destinations,))
-        dataframes = plotter.preprocess(**dargs)
+        # TODO replace that with an action ?
+        # destinations=dargs.get("destinations", list(mp.ConnectionRoles))
+        # dargs.update(destinations=destinations)
+        # log.debug("Selecting destinations %s" % (destinations,))
+        # dataframes = plotter.preprocess(**dargs)
+        print("%s" % args)
+        # dataframes = args._dataframes.values()
         assert dataframes is not None, "Preprocess must return a list"
         # pass unknown_args too ?
-        result = plotter.run(dataframes, **dargs)
+        result = plotter.run(**dataframes, **dargs)
+
+        # to save to file for instance
         plotter.postprocess(result, **dargs)
  
     @with_category(CAT_GENERAL)
@@ -1014,7 +1055,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mptcpanalyzer saves pcap to csv converted files in a cache folder, (most likely
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
-        cache =  mp.get_cache()
+        cache = mp.get_cache()
         self.poutput("Cleaning cache [%s]" % cache.folder)
         cache.clean()
 
