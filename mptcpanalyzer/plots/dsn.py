@@ -158,6 +158,7 @@ class PlotTcpAttribute(plot.Matplotlib):
         # print(tcpdf.dtypes)
         for dest, ddf in tcpdf.groupby(_sender("tcpdest")):
             # print("dest %r in %r" %( dest , destinations))
+            # TODO remove ?
             if dest in destinations:
 
                 for field in fields:

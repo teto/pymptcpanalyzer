@@ -13,6 +13,15 @@ from functools import partial
 
 log = logging.getLogger(__name__)
 
+
+"""
+
+TODO
+- action to generate connection 
+
+
+"""
+
 # TODO add it to a custom MptcpAnalyzerAction
 # TODO insert it instead into dict
 def _add_dataframe(namespace, dest, df):
@@ -38,7 +47,7 @@ class DataframeAction(argparse.Action):
         # self.dest = df_name + self.dest
 
     def add_dataframe(self, namespace, df):
-        _add_dataframe(namespace, self.dest, df)
+        _add_dataframe(namespace, self.df_name, df)
 
 
 def StreamId(x):
@@ -106,7 +115,7 @@ class MergePcaps(DataframeAction):
         ) -> None:
         self.loader = loader
         self.protocol = protocol
-        DataframeAction.__init__(self, name, **kwargs)
+        DataframeAction.__init__(self, df_name=name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
 
@@ -115,10 +124,10 @@ class MergePcaps(DataframeAction):
 
 
         log.debug("Merging pcaps")
-        pcap1 = getattr(namespace, self.name + "1")
-        pcap2 = getattr(namespace, self.name + "2")
+        pcap1 = getattr(namespace, self.df_name + "1")
+        pcap2 = getattr(namespace, self.df_name + "2")
 
-        pcap1stream = getattr(namespace, self.name + "1stream")
+        pcap1stream = getattr(namespace, self.df_name + "1stream")
         # pcap2stream = getattr(namespace, self.name2 + "stream")
         pcap2stream = values
 
@@ -145,7 +154,7 @@ class MergePcaps(DataframeAction):
         # TODO add to merged_dataframes ?
         # setattr(namespace, self.dest + "_merged_df", df)
 
-        _add_dataframe (namespace, self.name, df)
+        self.add_dataframe (namespace, df)
 
 
 # class ClockOffset(argparse.Action):
@@ -170,7 +179,23 @@ class MergePcaps(DataframeAction):
 # class ExcludeStream(argparse.Action):
 #     def __
 
-class FilterStream(argparse.Action):
+def exclude_stream(df_name, mptcp: bool):
+    query = "tcpstream"
+    if mptcp:
+        query = "mp" + query 
+    query = query + "!=%d"
+    return partial(FilterStream, query, df_name)
+
+def retain_stream(df_name, mptcp: bool):
+    query = "tcpstream"
+    if mptcp:
+        query = "mp" + query 
+    query = query + "==%d"
+    return partial(FilterStream, query, df_name)
+
+
+
+class FilterStream(DataframeAction):
     '''
     To keep a specific stream id
     '''
@@ -182,20 +207,24 @@ class FilterStream(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
 
-
         # TODO move to function
         # if self.df_name not in namespace._dataframes:
         #     parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
         #     # TODO set dest
 
         # make sure result 
-        df = self._dataframes[self.df_name]
+        df = namespace._dataframes[self.df_name]
 
         # streamid = values
 
-        log.debug("Filtering %s stream %s" % (self.mptcp, self.values))
+        log.debug("Filtering stream %s" % (values))
+        log.debug("Applying query %s" % self.query)
+
+        if type(values) != list:
+            streamids = list(values)
+
         # TODO build a query
-        for streamid in values:
+        for streamid in streamids:
 
             if mptcp:
                 # parser.error("mptcp filtering Unsupported")
@@ -209,6 +238,7 @@ class FilterStream(argparse.Action):
                 df = tcpdest_from_connections(df, con)
         
         
+        df.query(inplace=True)
 
         # con = TcpConnection.build_from_dataframe(df, args.tcpstream)
         # if args.destination:
@@ -306,10 +336,9 @@ def gen_pcap_parser(
                 # TODO pas forcement
                 filterClass = FilterStream 
                 _pcap(df_name, pcapAction=LoadSinglePcap, 
-                    filterAction=partial(FilterStream, df_name, 
-                    query = "mptcpstream==%d"
-                    # mptcp = bitfield & PreprocessingActions.FilterMpTcpStream
-                ))
+                    filterAction=retain_stream(df_name, 
+                    mptcp = bool(bitfield & PreprocessingActions.FilterMpTcpStream))
+                )
 
             if bitfield & PreprocessingActions.FilterDestination or direction :
                 # this one is full of tricks: we want the object to be of the Enum type
@@ -335,7 +364,7 @@ def gen_pcap_parser(
             if skip_subflows:
                 parser.add_argument(
                     '--skip', dest=df_name + "skipped_subflows", type=StreamId,
-                    action=partial(FilterStream, df_name, mptcp=False),
+                    action=exclude_stream(df_name, mptcp=False),
                     default=[],
                     help=("You can type here the tcp.stream of a subflow "
                         "not to take into account (because"

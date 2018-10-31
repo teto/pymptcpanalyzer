@@ -124,16 +124,14 @@ could try to match both ids but for now you need
 
         print("STARTING LOOP")
         print("DESTINATION=%r" % kwargs.get("pcapdestinations", []))
-        df= df[df.owd > 0.0050]
-        # df.drop(df[df.owd < 0.050], inplace=True)
-            # 0.000009
+        # df= df[df.owd > 0.010]
 
         fields = ["tcpdest", "tcpstream", ]
         # if True:
         if protocol == "mptcp":
-            self.plot_mptcp(res, fig, fields, **kwargs )
+            self.plot_mptcp(df, fig, fields, **kwargs )
         else:
-            self.plot_tcp(res, fig, fields, **kwargs )
+            self.plot_tcp(df, fig, fields, **kwargs )
 
 
         # TODO add units
@@ -219,87 +217,3 @@ could try to match both ids but for now you need
             )
     
 
-
-# class MpTcpOneWayDelay(TcpOneWayDelay):
-#     """
-#     Same as TcpOneWayDelay but for several
-
-#     Todo:
-#         support skipping streams
-#     """
-
-#     def preprocess(self, main, mptcpstream=None, **kwargs):
-#         """
-#         This is trickier than in other modules: this plot generates intermediary results
-#         to compute OWDs. There results can be cached in which  case it's not necessary
-#         to load the original pcaps
-
-#         First we get the cachename associated with the two pcaps. If it's cached we load
-#         directly this cache else we proceed as usual
-#         """
-#         cachename = self.get_cachename(kwargs.get("client_pcap"), kwargs.get("server_pcap"))
-#         # if we can't load that file from cache
-#         try:
-#             df = main.load_into_pandas(cachename)
-#             input("Loaded from cache")
-#             return df
-#         except Exception:
-#             log.debug("Could not load cached results %s" % cachename)
-#         # if main.cache.is_cache_valid():
-#         #     pd.read_csv
-
-#         dataframes = super().preprocess(main, mptcpstream=mptcpstream, **kwargs)
-
-#         # we want to save results as a single file (easier to loader etc...)
-#         # so we concat ?
-#         # self.generate_owd_df(dataframes, cachename, **kwargs)
-#         print("len(df)=", len(dataframes))
-#         df1, df2 = dataframes
-#         main_connection = data.MpTcpConnection.build_from_dataframe(df1, mptcpstream)
-
-#         # du coup on a une liste
-#         mappings = data.mptcp_match_connection(df2, main_connection)
-
-#         print("Found mappings %s" % mappings)
-#         # returned a dict
-#         # if mptcpstream not in mappings:
-#         #     print("Could not find ptcpstream %d in the first pcap" % mptcpstream)
-#         #     return
-#         # print("Number of %d" % len(mappings[mptcpstream]))
-#         # print("#mappings=" len(mappings):
-#         if len(mappings) <= 0:
-#             print("Could not find a match in the second pcap for mptcpstream %d" % mptcpstream)
-#             return
-
-#         # limit number of packets while testing
-#         # HACK to process faster
-#         df1 = df1.head(limit)
-#         df2 = df2.head(limit)
-
-#         print("len(df1)=", len(df1), " len(rawdf2)=", len(rawdf2))
-#         # mappings
-#         mapped_connection, score = mappings[0]
-
-#         # some subflows may have been blocked by routing/firewall
-#         common_subflows = []
-#         for sf in main_connection.subflows:
-#             # if sf2 in
-#             for sf2 in mapped_connection.subflows:
-#                 if sf == sf2:
-#                     common_subflows.append((sf, sf2))
-#                     break
-
-#             # try:
-#             #     idx = mapped_connection.subflows.index(sf)
-#             #     sf2 = mapped_connection.subflows[idx]
-#             #     common_subflows.append((sf, sf2))
-
-#             # except ValueError:
-#             #     continue
-
-#         # common_subflows = set(mapped_connection.subflows, main_connection.subflows)
-#         print("common sf=%s", common_subflows)
-#         assert len(common_subflows) > 0, "Should be at least one common sf"
-#         # print(mappings)
-#         print("Found mappings %s" % mappings)
-#         return

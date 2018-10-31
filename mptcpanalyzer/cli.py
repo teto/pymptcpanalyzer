@@ -294,7 +294,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         return True if stop is True else False
 
-    parser = argparse_completer.ACArgumentParser(description="List subflows of an MPTCP connection")
+    parser = MpTcpAnalyzerParser(description="List subflows of an MPTCP connection")
     filter_stream = parser.add_argument("mptcpstream", action="store", type=int,
         help="Equivalent to wireshark mptcp.stream id")
     setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
@@ -321,7 +321,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             for sf in con.subflows():
                 self.poutput("\t%s" % sf)
         except mp.MpTcpException as e:
-            self.pwarn(e)
+            self.perror(e)
 
     # def help_list_subflows(self):
     #     print("Use parser -h")
@@ -396,7 +396,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
 
-    parser = argparse.ArgumentParser(
+    parser = MpTcpAnalyzerParser(
         description="This function tries to map a mptcp.stream from a dataframe"
                     "(aka pcap) to mptcp.stream"
                     "in another dataframe. "
@@ -467,9 +467,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(formatted_output)
 
 
-    parser = argparse.ArgumentParser(description="Prints a summary of the mptcp connection")
+    parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
     action_stream = parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-    # self.data.mptcpstream.max()))
     setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
 
     parser.add_argument(
@@ -666,6 +665,22 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     **sf
                 ))
 
+    # 
+    @is_loaded
+    @with_category(CAT_TCP)
+    def do_list_tcp_connections(self, *args):
+        """
+        List tcp connections via their ids (tcp.stream)
+        """
+        streams = self.data.groupby("tcpstream")
+        self.poutput('%d tcp connection(s)' % len(streams))
+        for tcpstream, group in streams:
+            # self.list_subflows(mptcpstream)
+            con = TcpConnection.build_from_dataframe(self.data, tcpstream)
+            self.poutput(con)
+            self.poutput("\n")
+
+
     @is_loaded
     @with_category(CAT_MPTCP)
     def do_list_mptcp_connections(self, *args):
@@ -694,7 +709,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         toto
         """
-        # cfg = mp.get_config()
         self.poutput("Exporting a clean version of {} in {}".format(
             args.imported_pcap, args.exported_pcap))
 
@@ -910,10 +924,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 _print_reinjection_comparison(original_packet, row, )
 
                 
-    parser = argparse.ArgumentParser(
+    parser = MpTcpAnalyzerParser(
         description="Listing reinjections of the connection"
     )
-    parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
+    parser.add_argument("mptcpstream", type=StreamId, help="mptcp.stream id")
     parser.add_argument("--summary", action="store_true", default=False,
             help="Just count reinjections")
 
@@ -931,11 +945,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         To do that, we need to take into account latencies
 
         """
-        # print("WARNING: Requires (until upstreaming) a custom wireshark:\n"
-        #     "Check out https://github.com/teto/wireshark/tree/reinject_stable"
-        # )
 
-        # args = parser.parse_args(line)
         df = self.data
         df = self.data[df.mptcpstream == args.mptcpstream]
         if df.empty:
