@@ -7,6 +7,14 @@ from mptcpanalyzer.data import (load_into_pandas, tcpdest_from_connections, mptc
 
 log = logging.getLogger(__name__)
 
+@pd.api.extensions.register_dataframe_accessor("tcp")
+class TcpAccessor:
+    def __init__(self, pandas_obj):
+        self._obj = pandas_obj
+
+    def connection(self, streamid):
+        return TcpConnection.build_from_dataframe(self._obj, streamid)
+
 def filter_dataframe(
     self,
     rawdf,

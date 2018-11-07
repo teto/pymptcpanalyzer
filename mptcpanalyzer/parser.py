@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 import argparse
+import cmd2
 from cmd2 import argparse_completer
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Callable, Optional, Any
 from .tshark import TsharkConfig
 # from .connection import 
 from .data import (load_into_pandas, load_merged_streams_into_pandas,
@@ -50,9 +51,15 @@ class DataframeAction(argparse.Action):
         _add_dataframe(namespace, self.df_name, df)
 
 
+
 def StreamId(x):
     return int(x)
 
+def TcpStreamId(x):
+    return int(x)
+
+def MpTcpStreamId(x):
+    return int(x)
 
 class LoadSinglePcap(DataframeAction):
     '''
@@ -61,6 +68,7 @@ class LoadSinglePcap(DataframeAction):
     def __init__(self, loader = TsharkConfig(), **kwargs) -> None:
         super().__init__(df_name=kwargs.get("dest"),  **kwargs)
         self.loader = loader
+        setattr(self, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
 
     def __call__(self, parser, namespace, values, option_string=None):
         if type(values) == list:
@@ -72,12 +80,42 @@ class LoadSinglePcap(DataframeAction):
 
         self.add_dataframe (namespace, df)
 
+def with_argparser_test(argparser: argparse.ArgumentParser,
+                   preserve_quotes: bool=False) -> Callable[[argparse.Namespace], Optional[bool]]:
+    import functools
+
+    # noinspection PyProtectedMember
+    def arg_decorator(func: Callable[[cmd2.Statement], Optional[bool]]):
+        @functools.wraps(func)
+        def cmd_wrapper(instance, cmdline):
+            lexed_arglist = cmd2.cmd2.parse_quoted_string(cmdline, preserve_quotes)
+            return func(instance, argparser, lexed_arglist)
+
+        # argparser defaults the program name to sys.argv[0]
+        # we want it to be the name of our command
+        # argparser.prog = func.__name__[len(COMMAND_FUNC_PREFIX):]
+
+        # If the description has not been set, then use the method docstring if one exists
+        if argparser.description is None and func.__doc__:
+            argparser.description = func.__doc__
+
+        # Set the command's help text as argparser.description (which can be None)
+        # cmd_wrapper.__doc__ = argparser.description
+
+        # Mark this function as having an argparse ArgumentParser
+        setattr(cmd_wrapper, 'argparser', argparser)
+
+        return cmd_wrapper
+
+    return arg_decorator
+
 
 class AppendDestination(DataframeAction):
     """
     assume convention on naming
     """
 
+    # query 
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
         super().__init__(*args, **kwargs)
@@ -86,21 +124,28 @@ class AppendDestination(DataframeAction):
     # TODO check if it's called several times
     def __call__(self, parser, namespace, values, option_string=None):
 
-        if self.already_called is False:
+        if self.already_called is True:
             # TODO change the default ?
-            setattr(namespace, self.dest, [])
+            # setattr(namespace, self.dest, [])
+            parser.error("Already set")
 
-        if type(values) == list:
-            print("destination", option_string)
-            print("first time called ?", self.already_called)
-            if values == []:
-                values = list(mp.ConnectionRoles)
-                print("empty values, setting these myself")
+        dest = values
+        # if type(values) == list:
+        #     print("destination", option_string)
+        #     print("first time called ?", self.already_called)
+        #     if values == []:
+        #         values = list(mp.ConnectionRoles)
+        #         print("empty values, setting these myself")
 
-            # TODO do sthg like append
-            setattr(namespace, self.dest, values)
-        else:
-            print("destination", values)
+        #     # TODO do sthg like append
+        #     setattr(namespace, self.dest, values)
+        # else:
+        print("destination", values)
+
+
+        df = namespace._dataframes[self.df_name]
+        df = df[df.tcpdest == dest]
+
 
 
 class MergePcaps(DataframeAction):
@@ -194,6 +239,85 @@ def retain_stream(df_name, mptcp: bool):
     return partial(FilterStream, query, df_name)
 
 
+def filter_dest(df_name, mptcp: bool):
+    # query = "tcpdest"
+    # if mptcp:
+    #     query = "mp" + query 
+    # query = query + "==%s"
+    return partial(FilterDest, mptcp, df_name)
+
+
+class FilterDest(DataframeAction):
+    '''
+    To keep a specific stream id
+    '''
+    def __init__(self, df_name: str, **kwargs) -> None:
+        # self.df_name = df_name
+
+        # assert self.field == "tcpdest" or self.field == "mptcpdest"
+        # self.mptcp = mptcp
+        super().__init__(df_name, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+
+        # TODO move to function
+        # if self.df_name not in namespace._dataframes:
+        #     parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
+        #     # TODO set dest
+
+        # make sure result 
+        df = namespace._dataframes[self.df_name]
+
+        # streamid = values
+
+        log.debug("Filtering dest %s" % (values))
+        log.debug("Applying query %s" % self.query)
+
+        if type(values) != list:
+            streamids = list(values)
+
+        # TODO build a query
+        query = ""
+
+        # make sure that it's called only after stream got selected ?
+        # assert df[self.field].unique().size == 1
+        # "tcpstream"
+        mptcp = False
+        field = "tcpstream"
+        if isinstance(values, TcpStreamId):
+            pass
+        
+        elif isinstance(values, MpTcpStreamId):
+            mptcp = True
+            field = "mptcpstream"
+        else:
+            parser.error("Unsupported type %s" % type(values))
+
+
+        for streamid in df.groupby():
+
+            if mptcp:
+                # parser.error("mptcp filtering Unsupported")
+
+                con = MpTcpConnection.build_from_dataframe(dataframe, stream)
+                # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
+                df = mptcpdest_from_connections(df, con)
+
+            else:
+                con = TcpConnection.build_from_dataframe(df, streamid)
+                df = tcpdest_from_connections(df, con)
+
+        
+        
+        # query = query_tpl %
+        df.query( inplace=True)
+
+        # con = TcpConnection.build_from_dataframe(df, args.tcpstream)
+        # if args.destination:
+        #     self.poutput("Filtering destination")
+        #     q = con.generate_direction_query(args.destination)
+        #     df = df.query(q)
+
 
 class FilterStream(DataframeAction):
     '''
@@ -201,7 +325,7 @@ class FilterStream(DataframeAction):
     '''
     def __init__(self, query: str, df_name: str, **kwargs) -> None:
         # self.df_name = df_name
-        self.query = query
+        self.query_tpl = query
         # self.mptcp = mptcp
         super().__init__(df_name, **kwargs)
 
@@ -224,6 +348,7 @@ class FilterStream(DataframeAction):
             streamids = list(values)
 
         # TODO build a query
+        query = ""
         for streamid in streamids:
 
             if mptcp:
@@ -238,7 +363,8 @@ class FilterStream(DataframeAction):
                 df = tcpdest_from_connections(df, con)
         
         
-        df.query(inplace=True)
+        # query = query_tpl %
+        df.query( inplace=True)
 
         # con = TcpConnection.build_from_dataframe(df, args.tcpstream)
         # if args.destination:
@@ -288,7 +414,7 @@ def gen_pcap_parser(
             An argparse.ArgumentParser
 
         """
-        parser = argparse_completer.ACArgumentParser(
+        parser = MpTcpAnalyzerParser(
             parents=parents,
             add_help=not parents,
         )
@@ -351,7 +477,6 @@ def gen_pcap_parser(
                     default=list(ConnectionRoles),
                     # TODO check how it works
                     action=partial(AppendDestination, df_name),
-                    # action="append",
                     choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
                     # type parameter is a function/callable
                     type=lambda x: ConnectionRoles.from_string(x),
@@ -363,7 +488,7 @@ def gen_pcap_parser(
             # TODO add as an action
             if skip_subflows:
                 parser.add_argument(
-                    '--skip', dest=df_name + "skipped_subflows", type=StreamId,
+                    '--skip', dest=df_name + "skipped_subflows", type=TcpStreamId,
                     action=exclude_stream(df_name, mptcp=False),
                     default=[],
                     help=("You can type here the tcp.stream of a subflow "
@@ -384,8 +509,10 @@ class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
         res = super().parse_known_args(args, namespace)
 
         # TODO call filter_dataframe ?
-        # for name, df in res.dataframes.items():
-        #     print
+        if getattr(res, "_dataframes", None):
+            for name, df in res._dataframes.items():
+                # print
+                pass
 
         print("Hey jude")
         return res

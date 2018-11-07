@@ -23,7 +23,7 @@ import functools
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, StreamId, FilterStream, MpTcpAnalyzerParser
+from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, StreamId, FilterStream, MpTcpAnalyzerParser, with_argparser_test, MpTcpStreamId, TcpStreamId
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas, classify_reinjections, pandas_to_csv
 from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
@@ -46,6 +46,7 @@ import cmd2
 import math
 from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category, argparse_completer
 from enum import Enum, auto
+import mptcpanalyzer.pdutils
 
 
 from stevedore import extension
@@ -371,7 +372,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     @with_category(CAT_TCP)
     def do_map_tcp_connection(self, args):
 
-        # args = parser.parse_args(shlex.split(line))
         df1 = load_into_pandas(args.pcap1, self.tshark_config)
         df2 = load_into_pandas(args.pcap2, self.tshark_config)
 
@@ -467,11 +467,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(formatted_output)
 
 
-    parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
-    action_stream = parser.add_argument("mptcpstream", type=int, help="mptcp.stream id")
-    setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
+    summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
+    action_stream = summary_parser.add_argument("mptcpstream", type=MpTcpStreamId, action=parser.retain_stream("pcap"), help="mptcp.stream id")
+    # TODO update the stream id autcompletion dynamically ?
+    # setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
 
-    parser.add_argument(
+    summary_parser.add_argument(
         'destination',
         # mp.DestinationChoice,
         action="store", choices=mp.DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
@@ -479,17 +480,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         '(towards the client or the server)'
         'Depends on mptcpstream'
     )
-    parser.add_argument("--json", action="store_true", default=False,
+    summary_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
-    @with_argparser(parser)
+    @with_argparser_test(summary_parser)
     @is_loaded
-    def do_summary(self, args):
+    def do_summary(self, parser, args):
         """
         Naive summary contributions of the mptcp connection
         See summary_extended for more details
         """
 
         df = self.data
+
+        myNs = Namespace()
+        myNs._dataframes = { "pcap": self.data }
+        args = parser.parse_args(args, myNs)
         mptcpstream = args.mptcpstream
 
         success, ret = stats.mptcp_compute_throughput(
@@ -676,6 +681,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput('%d tcp connection(s)' % len(streams))
         for tcpstream, group in streams:
             # self.list_subflows(mptcpstream)
+            self.data.tcp.connection(tcpstream)
             con = TcpConnection.build_from_dataframe(self.data, tcpstream)
             self.poutput(con)
             self.poutput("\n")
@@ -729,6 +735,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         action="store_true",
         help="how to display each connection"
     )
+    parser.add_argument("--csv", action="store", default=None,
+        help="Machine readable summary.")
     parser.epilog = '''
     You can run for example:
         map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
@@ -742,17 +750,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         - print abnormal OWDs (negative etc)
         """
 
-        # args = parser.parse_args(shlex.split(line))
         self.poutput("Loading merged streams")
-        df = load_merged_streams_into_pandas(
-            args.pcap1,
-            args.pcap2,
-            args.pcap1stream,
-            args.pcap2stream,
-            False,
-            # args.protocol == "mptcp",
-            self.tshark_config
-        )
+        df = args._dataframes["pcap"]
         result = df
         print(result.head(10))
         # print("%r" % result)
@@ -763,8 +762,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # for row in df.itertuples();
             # self.ppaged()
 
-        if args.json:
-            self.pdebug("Exporting to json")
+        if args.csv:
+            self.pfeedback("Exporting to csv")
+            with open(args.csv, "w") as fd:
+                df.to_csv(
+                    fd,
+                    sep="|",
+                    index=False,
+                    header=True,
+                )
 
         # print unmapped packets
         print("print_owds finished")
@@ -986,25 +992,32 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         description="Loads a pcap to analyze"
     )
     # TODO try with an argparse filetype ?
+    # 
+    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
     parser.add_argument("input_file", action=LoadSinglePcap, 
         help="Either a pcap or a csv file."
         "When a pcap is passed, mptcpanalyzer looks for a cached csv"
         "else it generates a "
         "csv from the pcap with the external tshark program.")
+
     # parser.add_argument(
     #     "--regen", "-r", action="store_true",
     #     help="Force the regeneration of the cached CSV file from the pcap input")
-    @with_argparser(parser)
-    def do_load_pcap(self, args):
+    @with_argparser_test(parser)
+    def do_load_pcap(self, parser, args):
         """
         Load the file as the current one
         """
         print(args)
+        # args = shlex.split(args)
+        # print(args)
+        # parser = self.do_load_pcap.argparser
+        print(parser)
+        args = parser.parse_args(args)
+        
         self.poutput("Loading %s" % args.input_file)
         self.data = args._dataframes["input_file"]
         self.prompt = "%s> " % os.path.basename(args.input_file)
-
-    complete_load_pcap = cmd2.Cmd.path_complete
 
     def do_list_available_plots(self, args):
         """
