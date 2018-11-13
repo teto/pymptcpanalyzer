@@ -467,8 +467,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(formatted_output)
 
 
+    # def parser_summary():
+    #     """ """
+    #     pass
+
     summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
-    action_stream = summary_parser.add_argument("mptcpstream", type=MpTcpStreamId, action=parser.retain_stream("pcap"), help="mptcp.stream id")
+    action_stream = summary_parser.add_argument(
+        "mptcpstream", type=MpTcpStreamId, action=mp.parser.retain_stream("pcap"),
+        help="mptcp.stream id")
     # TODO update the stream id autcompletion dynamically ?
     # setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
 
@@ -482,9 +488,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     )
     summary_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
-    @with_argparser_test(summary_parser)
+    @with_argparser_test(summary_parser, preload_pcap=True)
     @is_loaded
-    def do_summary(self, parser, args):
+    def do_summary(self, args, unknown):
         """
         Naive summary contributions of the mptcp connection
         See summary_extended for more details
@@ -492,9 +498,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         df = self.data
 
-        myNs = Namespace()
-        myNs._dataframes = { "pcap": self.data }
-        args = parser.parse_args(args, myNs)
+        # myNs = Namespace()
+        # myNs._dataframes = { "pcap": self.data }
+        # args = parser.parse_args(args, myNs)
         mptcpstream = args.mptcpstream
 
         success, ret = stats.mptcp_compute_throughput(
@@ -699,13 +705,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.list_subflows(mptcpstream)
             self.poutput("\n")
 
+    # def generate_namespace(self) -> argparse.Namespace:
+    #     myNamespace = Namespace()
+    #     myNamespace.toto = self.data
+    #     parser = argparse_completer.ACArgumentParser(
+    #         description="""
+    #         Mptcpanalyzer filters pcaps to keep only tcp packets.
+    #         This may explain why printed packet ids dont map
+    #         """
+    #     )
 
-    parser = argparse_completer.ACArgumentParser(
-        description="""
-        Mptcpanalyzer filters pcaps to keep only tcp packets.
-        This may explain why printed packet ids dont map
-        """
-    )
     load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
     setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
     parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
@@ -1004,7 +1013,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     #     "--regen", "-r", action="store_true",
     #     help="Force the regeneration of the cached CSV file from the pcap input")
     @with_argparser_test(parser)
-    def do_load_pcap(self, parser, args):
+    def do_load_pcap(self, args, unknown):
         """
         Load the file as the current one
         """
@@ -1012,8 +1021,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # args = shlex.split(args)
         # print(args)
         # parser = self.do_load_pcap.argparser
-        print(parser)
-        args = parser.parse_args(args)
+        # print(parser)
+        # args = parser.parse_args(args)
         
         self.poutput("Loading %s" % args.input_file)
         self.data = args._dataframes["input_file"]

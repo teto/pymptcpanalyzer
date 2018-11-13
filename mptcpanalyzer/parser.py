@@ -80,8 +80,42 @@ class LoadSinglePcap(DataframeAction):
 
         self.add_dataframe (namespace, df)
 
-def with_argparser_test(argparser: argparse.ArgumentParser,
-                   preserve_quotes: bool=False) -> Callable[[argparse.Namespace], Optional[bool]]:
+# def with_argparser_test(argparser: argparse.ArgumentParser,
+#                    preserve_quotes: bool=False) -> Callable[[argparse.Namespace], Optional[bool]]:
+#     import functools
+
+#     # noinspection PyProtectedMember
+#     def arg_decorator(func: Callable[[cmd2.Statement], Optional[bool]]):
+#         @functools.wraps(func)
+#         def cmd_wrapper(instance, cmdline):
+#             lexed_arglist = cmd2.cmd2.parse_quoted_string(cmdline, preserve_quotes)
+#             return func(instance, argparser, lexed_arglist)
+
+#         # argparser defaults the program name to sys.argv[0]
+#         # we want it to be the name of our command
+#         # argparser.prog = func.__name__[len(COMMAND_FUNC_PREFIX):]
+
+#         # If the description has not been set, then use the method docstring if one exists
+#         if argparser.description is None and func.__doc__:
+#             argparser.description = func.__doc__
+
+#         # Set the command's help text as argparser.description (which can be None)
+#         # cmd_wrapper.__doc__ = argparser.description
+
+#         # Mark this function as having an argparse ArgumentParser
+#         setattr(cmd_wrapper, 'argparser', argparser)
+
+#         return cmd_wrapper
+
+#     return arg_decorator
+
+
+# see cmd2/cmd2.py for the original
+def with_argparser_test(
+    argparser: argparse.ArgumentParser,
+    preserve_quotes: bool=False,
+    preload_pcap: bool=False,
+    ) -> Callable[[argparse.Namespace], Optional[bool]]:
     import functools
 
     # noinspection PyProtectedMember
@@ -89,7 +123,19 @@ def with_argparser_test(argparser: argparse.ArgumentParser,
         @functools.wraps(func)
         def cmd_wrapper(instance, cmdline):
             lexed_arglist = cmd2.cmd2.parse_quoted_string(cmdline, preserve_quotes)
-            return func(instance, argparser, lexed_arglist)
+            try:
+                # set as a parser attribute ?
+
+                myNs = argparse.Namespace()
+                if preload_pcap:
+                    myNs._dataframes = { "pcap": self.data }
+
+                args, unknown = argparser.parse_known_args(lexed_arglist, myNs)
+            except SystemExit:
+                return
+            else:
+                return func(instance, args, unknown)
+            # return func(instance, argparser, lexed_arglist)
 
         # argparser defaults the program name to sys.argv[0]
         # we want it to be the name of our command
@@ -101,9 +147,12 @@ def with_argparser_test(argparser: argparse.ArgumentParser,
 
         # Set the command's help text as argparser.description (which can be None)
         # cmd_wrapper.__doc__ = argparser.description
+        # if preloaded_pcap:
+        #     argparser.preload_pcap = True
 
         # Mark this function as having an argparse ArgumentParser
         setattr(cmd_wrapper, 'argparser', argparser)
+        # setattr(cmd_wrapper, 'custom_namespace', argparser)
 
         return cmd_wrapper
 
@@ -224,14 +273,14 @@ class MergePcaps(DataframeAction):
 # class ExcludeStream(argparse.Action):
 #     def __
 
-def exclude_stream(df_name, mptcp: bool):
+def exclude_stream(df_name, mptcp: bool=False):
     query = "tcpstream"
     if mptcp:
         query = "mp" + query 
     query = query + "!=%d"
     return partial(FilterStream, query, df_name)
 
-def retain_stream(df_name, mptcp: bool):
+def retain_stream(df_name, mptcp: bool=False):
     query = "tcpstream"
     if mptcp:
         query = "mp" + query 
@@ -500,6 +549,8 @@ def gen_pcap_parser(
 
 # argparse_completer.ACArgumentParser
 class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
+
+    # def __init__():
 
     # def _parse_known_args(self, arg_strings, namespace):
     def parse_known_args(self, args=None, namespace=None):
