@@ -23,7 +23,7 @@ import functools
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, StreamId, FilterStream, MpTcpAnalyzerParser, with_argparser_test, MpTcpStreamId, TcpStreamId
+from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, FilterStream, MpTcpAnalyzerParser, with_argparser_test, MpTcpStreamId, TcpStreamId
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, load_merged_streams_into_pandas, classify_reinjections, pandas_to_csv
 from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
@@ -539,8 +539,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser.add_argument("output", action="store", help="Output filename")
 
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--tcpstream', action=functools.partial(FilterStream, "pcap", False), type=StreamId)
-    group.add_argument('--mptcpstream', action=functools.partial(FilterStream, "pcap", True), type=StreamId)
+    group.add_argument('--tcpstream', action=functools.partial(FilterStream, "pcap", False), type=TcpStreamId)
+    group.add_argument('--mptcpstream', action=functools.partial(FilterStream, "pcap", True), type=MpTcpStreamId)
     # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"], help="tcp.stream id visible in wireshark")
     # TODO check ?
     parser.add_argument("--destination", action="store", 
@@ -821,6 +821,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         TODO move the code into a proper function
         """
+        # TODO this should be done automatically right ?
         df_all = load_merged_streams_into_pandas(
             args.pcap1,
             args.pcap2,
@@ -942,12 +943,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser = MpTcpAnalyzerParser(
         description="Listing reinjections of the connection"
     )
-    parser.add_argument("mptcpstream", type=StreamId, help="mptcp.stream id")
+    parser.add_argument("mptcpstream", type=MpTcpStreamId, help="mptcp.stream id")
     parser.add_argument("--summary", action="store_true", default=False,
             help="Just count reinjections")
 
     @is_loaded
     @with_category(CAT_MPTCP)
+    @with_argparser_test(parser)
     def do_list_reinjections(self, args):
         """
         List reinjections
@@ -1000,20 +1002,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser = MpTcpAnalyzerParser(
         description="Loads a pcap to analyze"
     )
-    # TODO try with an argparse filetype ?
-    # 
-    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
     parser.add_argument("input_file", action=LoadSinglePcap, 
         help="Either a pcap or a csv file."
         "When a pcap is passed, mptcpanalyzer looks for a cached csv"
         "else it generates a "
         "csv from the pcap with the external tshark program.")
-
-    # parser.add_argument(
-    #     "--regen", "-r", action="store_true",
-    #     help="Force the regeneration of the cached CSV file from the pcap input")
-    @with_argparser_test(parser)
-    def do_load_pcap(self, args, unknown):
+    @with_argparser(parser)
+    def do_load_pcap(self, args):
         """
         Load the file as the current one
         """

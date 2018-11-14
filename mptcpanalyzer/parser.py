@@ -52,14 +52,14 @@ class DataframeAction(argparse.Action):
 
 
 
-def StreamId(x):
-    return int(x)
+# class StreamId(x):
+#     return int(x)
 
-def TcpStreamId(x):
-    return int(x)
+class TcpStreamId(int):
+    pass
 
-def MpTcpStreamId(x):
-    return int(x)
+class MpTcpStreamId(int):
+    pass
 
 class LoadSinglePcap(DataframeAction):
     '''
@@ -128,7 +128,7 @@ def with_argparser_test(
 
                 myNs = argparse.Namespace()
                 if preload_pcap:
-                    myNs._dataframes = { "pcap": self.data }
+                    myNs._dataframes = { "pcap": instance.data }
 
                 args, unknown = argparser.parse_known_args(lexed_arglist, myNs)
             except SystemExit:
@@ -273,18 +273,19 @@ class MergePcaps(DataframeAction):
 # class ExcludeStream(argparse.Action):
 #     def __
 
+# don't need the Mptcp flag anymore
 def exclude_stream(df_name, mptcp: bool=False):
     query = "tcpstream"
     if mptcp:
         query = "mp" + query 
-    query = query + "!=%d"
+    query = query + "!={streamid}"
     return partial(FilterStream, query, df_name)
 
 def retain_stream(df_name, mptcp: bool=False):
     query = "tcpstream"
     if mptcp:
         query = "mp" + query 
-    query = query + "==%d"
+    query = query + "=={streamid}"
     return partial(FilterStream, query, df_name)
 
 
@@ -298,7 +299,7 @@ def filter_dest(df_name, mptcp: bool):
 
 class FilterDest(DataframeAction):
     '''
-    To keep a specific stream id
+    For now accept a single value
     '''
     def __init__(self, df_name: str, **kwargs) -> None:
         # self.df_name = df_name
@@ -320,10 +321,7 @@ class FilterDest(DataframeAction):
         # streamid = values
 
         log.debug("Filtering dest %s" % (values))
-        log.debug("Applying query %s" % self.query)
 
-        if type(values) != list:
-            streamids = list(values)
 
         # TODO build a query
         query = ""
@@ -331,19 +329,12 @@ class FilterDest(DataframeAction):
         # make sure that it's called only after stream got selected ?
         # assert df[self.field].unique().size == 1
         # "tcpstream"
-        mptcp = False
-        field = "tcpstream"
-        if isinstance(values, TcpStreamId):
-            pass
-        
-        elif isinstance(values, MpTcpStreamId):
-            mptcp = True
-            field = "mptcpstream"
-        else:
-            parser.error("Unsupported type %s" % type(values))
+        dest = values
+        # assert dest in ConnectionRoles
 
-
-        for streamid in df.groupby():
+        # TODO remove first the ones who already have the tcpdest set 
+        # (to prevent from doing it twice)
+        for streamid in df.groupby(field):
 
             if mptcp:
                 # parser.error("mptcp filtering Unsupported")
@@ -351,15 +342,17 @@ class FilterDest(DataframeAction):
                 con = MpTcpConnection.build_from_dataframe(dataframe, stream)
                 # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
                 df = mptcpdest_from_connections(df, con)
+                df = df[ df.mptcpdest == dest]
 
             else:
                 con = TcpConnection.build_from_dataframe(df, streamid)
                 df = tcpdest_from_connections(df, con)
+                df = df[ df.tcpdest == dest]
 
-        
+        # log.debug("Applying query %s" % self.query)
         
         # query = query_tpl %
-        df.query( inplace=True)
+        # df.query(query, inplace=True)
 
         # con = TcpConnection.build_from_dataframe(df, args.tcpstream)
         # if args.destination:
@@ -391,35 +384,29 @@ class FilterStream(DataframeAction):
         # streamid = values
 
         log.debug("Filtering stream %s" % (values))
-        log.debug("Applying query %s" % self.query)
 
-        if type(values) != list:
-            streamids = list(values)
+        # if type(values) != list:
+        #     streamids = list(values)
 
         # TODO build a query
-        query = ""
-        for streamid in streamids:
-
-            if mptcp:
-                # parser.error("mptcp filtering Unsupported")
-
-                con = MpTcpConnection.build_from_dataframe(dataframe, stream)
-                # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
-                df = mptcpdest_from_connections(df, con)
-
-            else:
-                con = TcpConnection.build_from_dataframe(df, streamid)
-                df = tcpdest_from_connections(df, con)
+        mptcp = False
+        field = "tcpstream"
+        if isinstance(values, TcpStreamId):
+            pass
         
-        
-        # query = query_tpl %
-        df.query( inplace=True)
+        elif isinstance(values, MpTcpStreamId):
+            mptcp = True
+            field = "mptcpstream"
+        else:
+            parser.error("Unsupported type %s" % type(values))
 
-        # con = TcpConnection.build_from_dataframe(df, args.tcpstream)
-        # if args.destination:
-        #     self.poutput("Filtering destination")
-        #     q = con.generate_direction_query(args.destination)
-        #     df = df.query(q)
+        # super(argparse.Action).__call__(parser, namespace, values, option_string)
+        setattr(namespace, self.dest, values)
+        query = self.query_tpl.format(streamid=values)
+
+        log.debug("Applying query %s" % query)
+        df.query(query, inplace=True)
+
 
 def gen_bicap_parser(protocol, dest=False):
     """
@@ -481,12 +468,13 @@ def gen_pcap_parser(
                 # or merge ?
                 if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
                     # difficult to change the varname here => change it everywhere
+                    mptcp : bool = bitfield & PreprocessingActions.FilterMpTcpStream
                     protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
                     parser.add_argument(
                         name + 'stream', metavar= name + "_" + protocol + "stream",
                         action=filterAction,
                         # dest= prefix + 
-                        type=StreamId,
+                        type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
                         help= protocol + '.stream wireshark id')
 
 
