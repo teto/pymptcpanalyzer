@@ -14,8 +14,8 @@ rst:
 publish:
 	# new system is setup.py sdist bdist_wheel
 	python setup.py sdist bdist_wheel
-	twine upload --verbose --repository-url https://test.pypi.org/legacy/ dist/*
-	# twine upload dist/*
+	# twine upload --verbose --repository-url https://test.pypi.org/legacy/ dist/*
+	twine upload --verbose dist/*
 	echo "You probably want to also tag the version now:"
 	echo "  git tag -a VERSION -m 'version X'"
 	echo "  git push --tags"
