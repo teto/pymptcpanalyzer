@@ -47,7 +47,7 @@ import math
 from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category, argparse_completer
 from enum import Enum, auto
 import mptcpanalyzer.pdutils
-
+from colorama import Fore, Back
 
 from stevedore import extension
 
@@ -76,6 +76,32 @@ logLevels = { logging.getLevelName(level): level for level in [logging.DEBUG, lo
 CAT_TCP = "TCP related"
 CAT_MPTCP = "MPTCP related"
 CAT_GENERAL = "Tool"
+
+
+FG_COLORS = {
+    'black': Fore.BLACK,
+    'red': Fore.RED,
+    'green': Fore.GREEN,
+    'yellow': Fore.YELLOW,
+    'blue': Fore.BLUE,
+    'magenta': Fore.MAGENTA,
+    'cyan': Fore.CYAN,
+    'white': Fore.WHITE,
+}
+BG_COLORS = {
+    'black': Back.BLACK,
+    'red': Back.RED,
+    'green': Back.GREEN,
+    'yellow': Back.YELLOW,
+    'blue': Back.BLUE,
+    'magenta': Back.MAGENTA,
+    'cyan': Back.CYAN,
+    'white': Back.WHITE,
+}
+
+color_off = Fore.RESET + Back.RESET
+
+# todo might be handy with async_update_prompt
 
 def is_loaded(f):
     """
@@ -139,7 +165,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             'lr': 'list_reinjections'
         })
         super().__init__(completekey='tab', stdin=stdin)
-        self.prompt = self.colorize("Ready>", "blue")
+        self.prompt = FG_COLORS['blue'] + "Ready>"  + color_off
         self.data = None  # type: pd.DataFrame
         self.config = cfg
         self.tshark_config = TsharkConfig(
@@ -450,7 +476,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             formatted_output = output.format(
                 c1=main_connection,
                 c2=match.mapped,
-                score=self.colorize(str(match.score), "red"),
+                score=FG_COLORS['red'] + str(match.score) + color_off,
                 extra= " <-- should be a correct match" if winner_like else ""
             )
 
