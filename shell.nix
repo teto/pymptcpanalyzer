@@ -15,6 +15,8 @@ mptcpanalyzer.overrideAttrs (oa: {
     # also overriding shellHook breaks 
     postShellHook = ''
       export SOURCE_DATE_EPOCH=315532800
+
+      which python3 > .nvimrc
       
     '';
 })
