@@ -324,6 +324,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser = MpTcpAnalyzerParser(description="List subflows of an MPTCP connection")
     filter_stream = parser.add_argument("mptcpstream", action="store", type=int,
         help="Equivalent to wireshark mptcp.stream id")
+    # TODO for tests only, fix
     setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
 
     @with_argparser(parser)
@@ -379,8 +380,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     # cmd2.Cmd.path_complete ?
     # setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
-    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-    setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+    # use path_filter
+    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+    setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
 
     parser.add_argument("tcpstreamid", action="store", type=int,
         help="tcp.stream id visible in wireshark for pcap1")
@@ -431,8 +433,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     load_pcap1 = parser.add_argument("pcap1", action="store", type=str, help="first to load")
     load_pcap2 = parser.add_argument("pcap2", action="store", type=str, help="second pcap")
 
-    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
-    setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+    setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
     parser.add_argument("mptcpstreamid", action="store", type=int, help="to filter")
     parser.add_argument("--trim", action="store", type=float, default=0, 
             help="Remove mappings with a score below this threshold")
@@ -742,7 +744,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     #     )
 
     load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
-    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
     parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
 
     @with_argparser(parser)

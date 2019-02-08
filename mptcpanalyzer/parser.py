@@ -68,7 +68,7 @@ class LoadSinglePcap(DataframeAction):
     def __init__(self, loader = TsharkConfig(), **kwargs) -> None:
         super().__init__(df_name=kwargs.get("dest"),  **kwargs)
         self.loader = loader
-        setattr(self, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+        setattr(self, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', (lambda x: True)))
 
     def __call__(self, parser, namespace, values, option_string=None):
         if type(values) == list:
@@ -460,7 +460,7 @@ def gen_pcap_parser(
             def _pcap(name, pcapAction="store", filterAction="store"):
                 # TODO change the type to expand things etc. like argparse.FileType
                 load_pcap = parser.add_argument(name, action=pcapAction, type=str, help='Pcap file')
-                setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', [False, False]))
+                setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
                 # TODO add action AddClockOffset
                 # parser.add_argument("--clock-offset" + name, action="store", type=int,
                 #     help='Offset compared to epoch (in nanoseconds)')
