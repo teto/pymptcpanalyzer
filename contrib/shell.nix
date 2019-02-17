@@ -15,7 +15,7 @@ let
   # pythonLibs = with ps; ;
   pythonEnv = python3.withPackages(ps: with ps; [
       jedi
-      urllib3 
+      urllib3
       mypy
       pyls-mypy # on le desactive sinon il genere des
       python-language-server

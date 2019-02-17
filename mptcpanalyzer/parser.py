@@ -5,7 +5,7 @@ import cmd2
 from cmd2 import argparse_completer
 from typing import Iterable, List, Dict, Callable, Optional, Any
 from .tshark import TsharkConfig
-# from .connection import 
+# from .connection import
 from .data import (load_into_pandas, load_merged_streams_into_pandas,
         tcpdest_from_connections, mptcpdest_from_connections)
 from . import PreprocessingActions, ConnectionRoles, DestinationChoice, CustomConnectionRolesChoices
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 """
 
 TODO
-- action to generate connection 
+- action to generate connection
 
 
 """
@@ -128,7 +128,7 @@ def with_argparser_test(
 
                 myNs = argparse.Namespace()
                 if preload_pcap:
-                    myNs._dataframes = { "pcap": instance.data }
+                    myNs._dataframes = { "pcap": instance.data}
 
                 args, unknown = argparser.parse_known_args(lexed_arglist, myNs)
             except SystemExit:
@@ -164,7 +164,7 @@ class AppendDestination(DataframeAction):
     assume convention on naming
     """
 
-    # query 
+    # query
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
         super().__init__(*args, **kwargs)
@@ -230,7 +230,7 @@ class MergePcaps(DataframeAction):
         assert pcap1stream is not None
         # assert pcap2stream is not None
 
-        
+
         #TODO pass clockoffsets
         # Need to add the stream ids too !
         df = load_merged_streams_into_pandas(
@@ -248,7 +248,7 @@ class MergePcaps(DataframeAction):
         # TODO add to merged_dataframes ?
         # setattr(namespace, self.dest + "_merged_df", df)
 
-        self.add_dataframe (namespace, df)
+        self.add_dataframe(namespace, df)
 
 
 # class ClockOffset(argparse.Action):
@@ -268,23 +268,23 @@ class MergePcaps(DataframeAction):
 # class ExcludeStream(DataframeAction):
 
 # class QueryAction(argparse.Action):
-#     def 
+#     def
 
 # class ExcludeStream(argparse.Action):
 #     def __
 
 # don't need the Mptcp flag anymore
-def exclude_stream(df_name, mptcp: bool=False):
+def exclude_stream(df_name, mptcp: bool = False):
     query = "tcpstream"
     if mptcp:
-        query = "mp" + query 
+        query = "mp" + query
     query = query + "!={streamid}"
     return partial(FilterStream, query, df_name)
 
-def retain_stream(df_name, mptcp: bool=False):
+def retain_stream(df_name, mptcp: bool = False):
     query = "tcpstream"
     if mptcp:
-        query = "mp" + query 
+        query = "mp" + query
     query = query + "=={streamid}"
     return partial(FilterStream, query, df_name)
 
@@ -292,7 +292,7 @@ def retain_stream(df_name, mptcp: bool=False):
 def filter_dest(df_name, mptcp: bool):
     # query = "tcpdest"
     # if mptcp:
-    #     query = "mp" + query 
+    #     query = "mp" + query
     # query = query + "==%s"
     return partial(FilterDest, mptcp, df_name)
 
@@ -315,7 +315,7 @@ class FilterDest(DataframeAction):
         #     parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
         #     # TODO set dest
 
-        # make sure result 
+        # make sure result
         df = namespace._dataframes[self.df_name]
 
         # streamid = values
@@ -332,7 +332,7 @@ class FilterDest(DataframeAction):
         dest = values
         # assert dest in ConnectionRoles
 
-        # TODO remove first the ones who already have the tcpdest set 
+        # TODO remove first the ones who already have the tcpdest set
         # (to prevent from doing it twice)
         for streamid in df.groupby(field):
 
@@ -350,7 +350,7 @@ class FilterDest(DataframeAction):
                 df = df[ df.tcpdest == dest]
 
         # log.debug("Applying query %s" % self.query)
-        
+
         # query = query_tpl %
         # df.query(query, inplace=True)
 
@@ -378,7 +378,7 @@ class FilterStream(DataframeAction):
         #     parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
         #     # TODO set dest
 
-        # make sure result 
+        # make sure result
         df = namespace._dataframes[self.df_name]
 
         # streamid = values
@@ -393,7 +393,7 @@ class FilterStream(DataframeAction):
         field = "tcpstream"
         if isinstance(values, TcpStreamId):
             pass
-        
+
         elif isinstance(values, MpTcpStreamId):
             mptcp = True
             field = "mptcpstream"
@@ -421,7 +421,7 @@ def gen_bicap_parser(protocol, dest=False):
         "pcap": actions,
     }
 
-    # protocol=protocol, 
+    # protocol=protocol,
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
 
 
@@ -468,12 +468,12 @@ def gen_pcap_parser(
                 # or merge ?
                 if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
                     # difficult to change the varname here => change it everywhere
-                    mptcp : bool = bitfield & PreprocessingActions.FilterMpTcpStream
+                    mptcp: bool = bitfield & PreprocessingActions.FilterMpTcpStream
                     protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
                     parser.add_argument(
                         name + 'stream', metavar= name + "_" + protocol + "stream",
                         action=filterAction,
-                        # dest= prefix + 
+                        # dest= prefix +
                         type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
                         help= protocol + '.stream wireshark id')
 
@@ -482,7 +482,7 @@ def gen_pcap_parser(
                 protocol = "mptcp" if bitfield & PreprocessingActions.MergeMpTcp else "tcp"
                 _pcap(df_name+"1")
                 _pcap(df_name+"2",
-                    filterAction=partial(MergePcaps, 
+                    filterAction=partial(MergePcaps,
                         name=df_name,
                         # name1=df_name + "1", name2=df_name + "2",
                     protocol=protocol),
@@ -491,15 +491,15 @@ def gen_pcap_parser(
                 # hidden
                 # action is triggered only when meet the parameter
                 # merge_pcap = parser.add_argument("--" + name + "_protocol",
-                #     action=partial(MergePcaps, prefix=name, protocol=protocol), 
+                #     action=partial(MergePcaps, prefix=name, protocol=protocol),
                 #     help=argparse.SUPPRESS)
                 # merge_pcap.default = "TEST"
             else:
                 # print("PreprocessingActions.Merge:")
                 # TODO pas forcement
-                filterClass = FilterStream 
-                _pcap(df_name, pcapAction=LoadSinglePcap, 
-                    filterAction=retain_stream(df_name, 
+                filterClass = FilterStream
+                _pcap(df_name, pcapAction=LoadSinglePcap,
+                    filterAction=retain_stream(df_name,
                     mptcp = bool(bitfield & PreprocessingActions.FilterMpTcpStream))
                 )
 
