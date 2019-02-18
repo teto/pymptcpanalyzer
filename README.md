@@ -62,6 +62,8 @@ Dependancies are (some will be made optional in the future):
 - [matplotlib](http://matplotlib) to plot graphs
 - [cmd2](https://github.com/python-cmd2/cmd2) to generate the command line
 
+## on nixos
+
 
 # Required wireshark version
 
@@ -149,6 +151,7 @@ Map tcp.stream between server and client pcaps:
 # How to contribute
 
 See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
+
 
 # TODO 
 

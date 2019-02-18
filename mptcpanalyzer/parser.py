@@ -107,14 +107,56 @@ class LoadSinglePcap(DataframeAction):
 #         return cmd_wrapper
 
 #     return arg_decorator
+# def with_argparser(argparser: argparse.ArgumentParser,
+#                    preserve_quotes: bool=False) -> Callable[[argparse.Namespace], Optional[bool]]:
+#     """A decorator to alter a cmd2 method to populate its ``args`` argument by parsing arguments
+#     with the given instance of argparse.ArgumentParser.
+
+#     :param argparser: unique instance of ArgumentParser
+#     :param preserve_quotes: if True, then arguments passed to argparse maintain their quotes
+#     :return: function that gets passed the argparse-parsed args
+#     """
+#     import functools
+
+#     # noinspection PyProtectedMember
+#     def arg_decorator(func: Callable[[Statement], Optional[bool]]):
+#         @functools.wraps(func)
+#         def cmd_wrapper(instance, cmdline):
+#             lexed_arglist = parse_quoted_string(cmdline, preserve_quotes)
+#             try:
+#                 args = argparser.parse_args(lexed_arglist)
+#             except SystemExit:
+#                 return
+#             else:
+#                 return func(instance, args)
+
+#         # argparser defaults the program name to sys.argv[0]
+#         # we want it to be the name of our command
+#         argparser.prog = func.__name__[len(COMMAND_FUNC_PREFIX):]
+
+#         # If the description has not been set, then use the method docstring if one exists
+#         if argparser.description is None and func.__doc__:
+#             argparser.description = func.__doc__
+
+#         # Set the command's help text as argparser.description (which can be None)
+#         cmd_wrapper.__doc__ = argparser.description
+
+#         # Mark this function as having an argparse ArgumentParser
+#         setattr(cmd_wrapper, 'argparser', argparser)
+
+#         return cmd_wrapper
+
+#     return arg_decorator
 
 
 # see cmd2/cmd2.py for the original
+# goal here is to be able to pass a custom namespace
+# see https://github.com/python-cmd2/cmd2/issues/596
 def with_argparser_test(
     argparser: argparse.ArgumentParser,
     preserve_quotes: bool=False,
     preload_pcap: bool=False,
-    ) -> Callable[[argparse.Namespace], Optional[bool]]:
+    ) -> Callable[[argparse.Namespace, List], Optional[bool]]:
     import functools
 
     # noinspection PyProtectedMember
@@ -127,12 +169,14 @@ def with_argparser_test(
 
                 myNs = argparse.Namespace()
                 if preload_pcap:
-                    myNs._dataframes = { "pcap": instance.data}
+                    myNs._dataframes = {"pcap": instance.data}
 
                 args, unknown = argparser.parse_known_args(lexed_arglist, myNs)
+                # print("namespace: %r" % args)
             except SystemExit:
                 return
             else:
+                # original cmd2 has the same warning
                 return func(instance, args, unknown)
             # return func(instance, argparser, lexed_arglist)
 
@@ -535,6 +579,13 @@ def gen_pcap_parser(
 
 # argparse_completer.ACArgumentParser
 class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
+    '''
+    Wrapper around cmd2 argparse completer
+    Should allow to switch backends easily. 
+    Also allows to do some postprocessing once the arguments are parsed
+    like loading dataframes etc
+
+    '''
 
     # def __init__():
 

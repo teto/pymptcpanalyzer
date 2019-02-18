@@ -8,19 +8,32 @@ let
       pkgs.python3Packages.twine
     ];
 
-    src = ../.;
+    src = ./.;
 
   });
 
   # pythonLibs = with ps; ;
-  pythonEnv = python3.withPackages(ps: with ps; [
+
+  python3PackagesFun = ps: with ps; ([
       jedi
+      # add rope for completion ?
       urllib3
       mypy
       pyls-mypy # on le desactive sinon il genere des
       python-language-server
       pycodestyle
     ]);
+
+  # wrapNeovim neovim-unwrapped
+  my_nvim = wrapNeovim neovim-unwrapped (
+    lib.mkMerge [
+    neovimDefaultConfig
+    {
+      extraPython3Packages = python3PackagesFun;
+    }
+    ]
+  );
+
 in
 # TODO generate our own nvim
 mkShell {

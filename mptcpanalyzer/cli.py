@@ -748,9 +748,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     #         """
     #     )
 
-    load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
-    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
-    parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
+
+
+    # parser = MpTcpAnalyzerParser(
+    #     description="""
+    #         Export a pcap that can be used with wireshark to debug ids
+    #     """
+    # )
+    # load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
+    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+    # parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
 
     @with_argparser(parser)
     def do_clean_pcap(self, args):
@@ -980,9 +987,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             help="Just count reinjections")
 
     @is_loaded
-    @with_category(CAT_MPTCP)
     @with_argparser_test(parser)
-    def do_list_reinjections(self, args):
+    @with_category(CAT_MPTCP)
+    def do_list_reinjections(self, args, unknown):
         """
         List reinjections
         We want to be able to distinguish between good and bad reinjections
