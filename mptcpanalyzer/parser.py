@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import argparse
 import cmd2
@@ -8,9 +7,9 @@ from .tshark import TsharkConfig
 # from .connection import
 from .data import (load_into_pandas, load_merged_streams_into_pandas,
         tcpdest_from_connections, mptcpdest_from_connections)
-from . import PreprocessingActions, ConnectionRoles, DestinationChoice, CustomConnectionRolesChoices
+from mptcpanalyzer import PreprocessingActions, ConnectionRoles, DestinationChoice, CustomConnectionRolesChoices
 from functools import partial
-
+from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 
 log = logging.getLogger(__name__)
 
@@ -322,7 +321,6 @@ class FilterDest(DataframeAction):
 
         log.debug("Filtering dest %s" % (values))
 
-
         # TODO build a query
         query = ""
 
@@ -342,12 +340,12 @@ class FilterDest(DataframeAction):
                 con = MpTcpConnection.build_from_dataframe(dataframe, stream)
                 # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
                 df = mptcpdest_from_connections(df, con)
-                df = df[ df.mptcpdest == dest]
+                df = df[df.mptcpdest == dest]
 
             else:
                 con = TcpConnection.build_from_dataframe(df, streamid)
                 df = tcpdest_from_connections(df, con)
-                df = df[ df.tcpdest == dest]
+                df = df[df.tcpdest == dest]
 
         # log.debug("Applying query %s" % self.query)
 
