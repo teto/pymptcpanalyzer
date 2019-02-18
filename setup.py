@@ -40,29 +40,6 @@ with open(ver_path) as ver_file:
     version = main_ns['__version__']
 
 
-# class Publish(Command):
-# class GenerateTranscripts(Command):
-#     user_options = [
-#             ('input-dir=', 'i', 'input directory'),
-#             ('output-dir=', 'o', 'output directory'),
-#         ]
-
-#     def initialize_options(self):
-#         self.input_dir = None
-#         self.output_dir = None
-
-#     def finalize_options(self):
-#         if self.input_dir is None:
-#             raise Exception("Parameter --input-dir is missing")
-#         if self.output_dir is None:
-#             raise Exception("Parameter --output-dir is missing")
-#         if not os.path.isdir(self.input_dir):
-#             raise Exception("Input directory does not exist: {0}".format(self.input_dir))
-#         if not os.path.isdir(self.output_dir):
-#             raise Exception("Output directory does not exist: {0}".format(self.output_dir))
-
-
-
 class RunTests(Command):
     """ Run my command.
     """
@@ -71,16 +48,6 @@ class RunTests(Command):
         import os
         os.system("make tests")
         sys.exit(1)
-
-# if sys.argv[-1] == 'publish':
-#     import os
-#     os.system("python setup.py sdist upload")
-#     os.system("python setup.py bdist_wheel upload")
-#     print("You probably want to also tag the version now:")
-#     print("  git tag -a %s -m 'version %s'" % (version, version))
-#     print("  git push --tags")
-#     sys.exit()
-
 
 setup(name="mptcpanalyzer",
     version=version,
@@ -97,7 +64,7 @@ setup(name="mptcpanalyzer",
         'Intended Audience :: Science/Research',
         'Intended Audience :: Telecommunications Industry',
         'Environment :: Console',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.7',
     ],
     keywords=["mptcp analysis pcap"],
     packages=find_packages(),
@@ -138,7 +105,6 @@ setup(name="mptcpanalyzer",
     # test_suite="tests",
     cmdclass={
     "test": RunTests,
-    # 'publish': 
     },
     zip_safe=False,
     )

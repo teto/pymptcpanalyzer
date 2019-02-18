@@ -7,7 +7,8 @@ from .tshark import TsharkConfig
 # from .connection import
 from .data import (load_into_pandas, load_merged_streams_into_pandas,
         tcpdest_from_connections, mptcpdest_from_connections)
-from mptcpanalyzer import PreprocessingActions, ConnectionRoles, DestinationChoice, CustomConnectionRolesChoices
+from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
+            CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId)
 from functools import partial
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 
@@ -54,11 +55,6 @@ class DataframeAction(argparse.Action):
 # class StreamId(x):
 #     return int(x)
 
-class TcpStreamId(int):
-    pass
-
-class MpTcpStreamId(int):
-    pass
 
 class LoadSinglePcap(DataframeAction):
     '''
@@ -177,7 +173,7 @@ def with_argparser_test(
                 return
             else:
                 # original cmd2 has the same warning
-                return func(instance, args, unknown)
+                return func(instance, args, unknown) # type:ignore
             # return func(instance, argparser, lexed_arglist)
 
         # argparser defaults the program name to sys.argv[0]
@@ -199,7 +195,7 @@ def with_argparser_test(
 
         return cmd_wrapper
 
-    return arg_decorator
+    return arg_decorator # type: ignore
 
 
 class AppendDestination(DataframeAction):
@@ -210,16 +206,30 @@ class AppendDestination(DataframeAction):
     # query
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
-        super().__init__(*args, **kwargs)
+        # self.destinations = list(ConnectionRoles)
+                    # default=list(ConnectionRoles),
+        super().__init__(
+            *args, choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
+            default = list(ConnectionRoles), **kwargs)
 
 
     # TODO check if it's called several times
     def __call__(self, parser, namespace, values, option_string=None):
 
+        # print("APPEND DEST")
         if self.already_called is True:
             # TODO change the default ?
             # setattr(namespace, self.dest, [])
-            parser.error("Already set")
+            print("Already set")
+            # to make it unique
+            self.destinations= list(set(self.destinations.append(values)))
+        else:
+            self.destinations = values
+
+        # df_name + "destinations"
+        setattr(namespace, self.dest, self.destinations)
+        # pcap1 = getattr(namespace, self.df_name + "1")
+        # pcap2 = getattr(namespace, self.df_name + "2")
 
         dest = values
         # if type(values) == list:
@@ -235,8 +245,8 @@ class AppendDestination(DataframeAction):
         print("destination", values)
 
 
-        df = namespace._dataframes[self.df_name]
-        df = df[df.tcpdest == dest]
+        # df = namespace._dataframes[self.df_name]
+        # df = df[df.tcpdest == dest]
 
 
 
@@ -349,6 +359,10 @@ class FilterDest(DataframeAction):
 
         # assert self.field == "tcpdest" or self.field == "mptcpdest"
         # self.mptcp = mptcp
+        # self.seen 
+        # init with all destinations
+        self.destinations = list(ConnectionRoles)
+        self.already_called = False
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -376,20 +390,20 @@ class FilterDest(DataframeAction):
 
         # TODO remove first the ones who already have the tcpdest set
         # (to prevent from doing it twice)
-        for streamid in df.groupby(field):
+        # for streamid in df.groupby(field):
 
-            if mptcp:
-                # parser.error("mptcp filtering Unsupported")
+        #     if mptcp:
+        #         # parser.error("mptcp filtering Unsupported")
 
-                con = MpTcpConnection.build_from_dataframe(dataframe, stream)
-                # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
-                df = mptcpdest_from_connections(df, con)
-                df = df[df.mptcpdest == dest]
+        #         mptcpcon = MpTcpConnection.build_from_dataframe(dataframe, stream)
+        #         # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
+        #         df = mptcpdest_from_connections(df, mptcpcon)
+        #         df = df[df.mptcpdest == dest]
 
-            else:
-                con = TcpConnection.build_from_dataframe(df, streamid)
-                df = tcpdest_from_connections(df, con)
-                df = df[df.tcpdest == dest]
+        #     else:
+        #         tcpcon = TcpConnection.build_from_dataframe(df, streamid)
+        #         df = tcpdest_from_connections(df, tcpcon)
+        #         df = df[df.tcpdest == dest]
 
         # log.debug("Applying query %s" % self.query)
 
@@ -510,12 +524,11 @@ def gen_pcap_parser(
                 # or merge ?
                 if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
                     # difficult to change the varname here => change it everywhere
-                    mptcp: bool = bitfield & PreprocessingActions.FilterMpTcpStream
-                    protocol = "mptcp" if bitfield & PreprocessingActions.FilterMpTcpStream else "tcp"
+                    mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
+                    protocol = "mptcp" if mptcp else "tcp"
                     parser.add_argument(
                         name + 'stream', metavar= name + "_" + protocol + "stream",
                         action=filterAction,
-                        # dest= prefix +
                         type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
                         help= protocol + '.stream wireshark id')
 
@@ -551,12 +564,13 @@ def gen_pcap_parser(
                 # so we subclass list to convert the Enum to str value first.
                 # TODO setup our own custom actions to get rid of our hacks
                 parser.add_argument(
-                    '--dest', metavar="destination", dest=df_name + "destinations",
+                    '--dest', metavar="destination", dest=df_name + "_destinations",
                     # see preprocess functions to see how destinations is handled when empty
-                    default=list(ConnectionRoles),
-                    # TODO check how it works
+                    # Both are already taken care of
+                    # default=list(ConnectionRoles),
+                    # choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
+                    # TODO check how it works/FilterDest
                     action=partial(AppendDestination, df_name),
-                    choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
                     # type parameter is a function/callable
                     type=lambda x: ConnectionRoles.from_string(x),
                     help='Filter flows according to their direction'
@@ -600,8 +614,11 @@ class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
         if getattr(res, "_dataframes", None):
             for name, df in res._dataframes.items():
                 # print
+                # so now we can filter the destination ?
                 pass
 
-        print("Hey jude")
+        # postprocessing for filtering destination
+
+        logging.debug("MpTcpAnalyzerParser parser finished")
         return res
 

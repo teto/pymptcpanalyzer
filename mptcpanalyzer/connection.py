@@ -1,9 +1,10 @@
 import pandas as pd
 import logging
-from mptcpanalyzer import ConnectionRoles, MpTcpException
+from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId
 
 from typing import List, NamedTuple, Tuple, Dict
 from enum import Enum
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
+@dataclass
 class TcpConnection:
     """
     Everything capable of identifying a connection
@@ -32,19 +34,28 @@ class TcpConnection:
     Attributes:
         tcpstreamid: wireshark tcp.stream
     """
-    def __init__(
-        self,
-        tcpstreamid: int,
-        tcpclientip, tcpserverip,
-        client_port: int, server_port: int,
-        **kwargs
-    ) -> None:
-        self.tcpstreamid = tcpstreamid 
-        self.tcpclient_ip = tcpclientip
-        self.tcpserver_ip = tcpserverip
-        self.server_port = server_port
-        self.client_port = client_port
-        self.isn = kwargs.get('isn')
+
+    tcpstreamid: TcpStreamId
+    tcpclient_ip: str
+    tcpserver_ip: str
+    server_port: int
+    client_port: int
+    isn: int = None
+
+
+    # def __init__(
+    #     self,
+    #     tcpstreamid: int,
+    #     tcpclientip, tcpserverip,
+    #     client_port: int, server_port: int,
+    #     **kwargs
+    # ) -> None:
+    #     self.tcpstreamid = tcpstreamid
+    #     self.tcpclient_ip = tcpclientip
+    #     self.tcpserver_ip = tcpserverip
+    #     self.server_port = server_port
+    #     self.client_port = client_port
+    #     self.isn = kwargs.get('isn')
 
 
     def generate_direction_query(self, tcpdest: ConnectionRoles) -> str:
@@ -111,7 +122,7 @@ class TcpConnection:
         return self.score(other) == float('inf')
 
     @staticmethod
-    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: int) -> 'TcpConnection':
+    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: TcpStreamId) -> 'TcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
         """
@@ -161,6 +172,7 @@ class TcpConnection:
         return line
 
 
+@dataclass
 class MpTcpSubflow(TcpConnection):
     """
 

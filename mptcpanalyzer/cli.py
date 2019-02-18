@@ -515,7 +515,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     summary_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
 
-    @with_argparser_test(summary_parser, preload_pcap=True)
+    @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
     @is_loaded
     def do_summary(self, args, unknown):
         """
@@ -530,6 +530,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # args = parser.parse_args(args, myNs)
         mptcpstream = args.mptcpstream
 
+        # args.pcapdestinations ?
+        print(args)
         success, ret = stats.mptcp_compute_throughput(
             self.data, args.mptcpstream, args.destination
         )
@@ -635,8 +637,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
         """
 
-    @with_argparser(sumext_parser)
-    def do_summary_extended(self, args):
+    @with_argparser_test(sumext_parser, preload_pcap=True) # type: ignore
+    def do_summary_extended(self, args, unknown):
         """
         Summarize contributions of each subflow
         For now it is naive, does not look at retransmissions ?
@@ -645,15 +647,17 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print("%r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
-        destinations = args.destinations
+        # to abstract things a bit
+        destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
 
+        print("NANI ? %r" % destinations )
         for destination in destinations:
             success, basic_stats = stats.mptcp_compute_throughput(
                 # TODO here we should load the pcap before hand !
                 df_pcap1,
                 args.pcap1stream,
-                args.destinations
+                destinations,  # ca il ne le comprend pas
             )
             if success is not True:
                 self.perror("Error %s" % basic_stats)
@@ -696,7 +700,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(msg.format(**ret))
             for sf in ret["subflow_stats"]:
 
-                subflow_load = sf_bytes/ret["mptcp_bytes"]
+                subflow_load = sf["bytes"]/ret["mptcp_bytes"]
                 msg = """
                 tcpstream {tcpstreamid} analysis:
                 - throughput: transferred {} out of {mptcp_throughput_bytes}, accounting for {.2f:throughput_contribution}%
@@ -705,10 +709,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
                 self.poutput(
                     msg.format(
-                    mptcp_tput=ret["mptcp_throughput_bytes"],
-                    **ret,
-                    **sf
-                ))
+                        mptcp_tput=ret["mptcp_throughput_bytes"],
+                        **ret,
+                        **sf
+                    )
+                )
 
     #
     @is_loaded
@@ -750,14 +755,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
 
-    # parser = MpTcpAnalyzerParser(
-    #     description="""
-    #         Export a pcap that can be used with wireshark to debug ids
-    #     """
-    # )
-    # load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
-    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
-    # parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
+    parser = MpTcpAnalyzerParser(
+        description="""
+            Export a pcap that can be used with wireshark to debug ids
+        """
+    )
+    load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
+    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+    parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
 
     @with_argparser(parser)
     def do_clean_pcap(self, args):
@@ -986,7 +991,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser.add_argument("--summary", action="store_true", default=False,
             help="Just count reinjections")
 
-    @is_loaded
+    @is_loaded # type: ignore
     @with_argparser_test(parser)
     @with_category(CAT_MPTCP)
     def do_list_reinjections(self, args, unknown):
@@ -1017,23 +1022,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         total_nb_reinjections = 0
         output = ""
         for row in reinjections.itertuples():
-            # if row.packetid not in known:
-            # ','.join(map(str,row.reinjection_of)
-            output += ("packetid=%d (tcp.stream %d) is a reinjection of %d packet(s): " %
+            output += ("packetid=%d (tcp.stream %d) is a reinjection of %d packet(s):\n" %
                 (row.packetid, row.tcpstream, len(row.reinjection_of)))
 
-            # print("reinjOf=", row.reinjection_of)
             # assuming packetid is the index
             for pktId in row.reinjection_of:
-                # print("packetId %d" % pktId)
-                # entry = self.data.iloc[ pktId - 1]
                 entry = self.data.loc[ pktId ]
-                # entry = df.loc[ df.packetid == pktId]
-                # print("packetId %r" % entry)
-                output += ("- packet %d (tcp.stream %d)" % (entry.packetid, entry.tcpstream))
+                output += ("- packet %d (tcp.stream %d)\n" % (entry.packetid, entry.tcpstream))
             # known.update([row.packetid] + row.reinjection)
 
-        self.ppaged(output)
+        self.ppaged(output,)
         # reinjections = df["reinjection_of"].dropna(axis=0, )
         # print("number of reinjections of ")
 

@@ -2,9 +2,10 @@ from typing import List, Any, Tuple, Dict, Callable
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from mptcpanalyzer import ConnectionRoles
 from mptcpanalyzer.data import classify_reinjections
-from mptcpanalyzer import _sender, _receiver
+from mptcpanalyzer import _sender, _receiver, TcpStreamId, MpTcpStreamId
 import math
 import logging
+from dataclasses import dataclass
 
 """
 Considerations:
@@ -16,6 +17,12 @@ https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
 """
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class SubflowStatistics:
+    tcpstreamid : TcpStreamId
+    throughput_bytes: int
 
 def mptcp_compute_throughput(
     rawdf, mptcpstreamid, destination: ConnectionRoles
@@ -50,6 +57,7 @@ def mptcp_compute_throughput(
             'throughput_bytes': int(subflow_load)
         })
 
+    # TODO use attr instead ?
     return True, {
         'mptcpstreamid': mptcpstreamid,
         # TODO append bytes

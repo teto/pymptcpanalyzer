@@ -56,7 +56,7 @@ class Plot:
     # rename to plot_attrs ?
     def default_parser(
         self,
-        parents=[],
+        parents=None,
         # input_pcaps: List[Tuple[str, PreprocessingActions]],
         **kwargs
     ) -> argparse_completer.ACArgumentParser:
@@ -75,6 +75,9 @@ class Plot:
             An argparse.ArgumentParser
 
         """
+        if parents is None:
+            # as per the nice comment https://github.com/teto/mptcpanalyzer/issues/10
+            parents = []
         parser = argparse_completer.ACArgumentParser(
             parents=parents,
             add_help=(parents == []),

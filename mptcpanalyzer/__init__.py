@@ -99,6 +99,12 @@ class MpTcpOptions(IntEnum):
     MP_FAIL = 6
     MP_FASTCLOSE = 7
 
+class TcpStreamId(int):
+    pass
+
+class MpTcpStreamId(int):
+    pass
+
 # Keep it as Enum so that it gets serialized as a string in the CSV
 class ConnectionRoles(Enum):
     """
@@ -111,7 +117,8 @@ class ConnectionRoles(Enum):
     Server = auto()
 
     def __str__(self):
-        # Note that defining __str__ is required to get ArgumentParser's help output to include the human readable (values) of Color
+        # Note that defining __str__ is required to get ArgumentParser's help output to include
+        # the human readable (values) of Color
         return self.name
 
     @staticmethod
@@ -122,7 +129,6 @@ class ConnectionRoles(Enum):
             raise ValueError()
 
     def __next__(self):
-        # 
         if self.value == 0:
             return ConnectionRoles.Server
         else:
