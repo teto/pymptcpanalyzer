@@ -296,23 +296,20 @@ class MpTcpConnection:
             #     tcpdest = swap_role(mptcpdest)
 
             q = " (" + sf.generate_mptcp_direction_query(mptcpdest) + ") "
-            # print(q)
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
 
         # print(result)
         return result
 
-    # TODO add a destination arg
     # @property
     def subflows(self, mptcpdest: ConnectionRoles = ConnectionRoles.Server):
         # TODO add a destination ?
         # assert 0
         return self._subflows
 
-    # TODO remove Union
     @staticmethod
-    def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: Union[int,MpTcpStreamId]) -> 'MpTcpConnection':
+    def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: MpTcpStreamId) -> 'MpTcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
         """
@@ -320,7 +317,7 @@ class MpTcpConnection:
         def get_index_of_non_null_values(serie):
             # http://stackoverflow.com/questions/14016247/python-find-integer-index-of-rows-with-nan-in-pandas/14033137#14033137
             # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
-            return serie.notnull().nonzero()[0]
+            return serie.to_numpy().nonzero()[0]
 
 
         ds = ds[ds.mptcpstream == mptcpstreamid]
@@ -330,8 +327,7 @@ class MpTcpConnection:
         # this returns the indexes where a sendkey is set :
         res = get_index_of_non_null_values(ds["sendkey"])
         if len(res) < 2:
-
-            raise MpTcpException("Could not find the initial keys (only found %r)" % (res,))
+            raise MpTcpException("Could not find the initial MPTCP keys (only found %r)" % (res,))
 
         cid = res[0]
         client_key       = ds["sendkey"].iloc[cid]

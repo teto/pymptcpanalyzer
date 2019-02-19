@@ -10,20 +10,19 @@
 | DOI | [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)|
 [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
-Presentation 
+Presentation
 ===
 
-Mptcpanalyzer is a python (>=3.6) tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance). 
+Mptcpanalyzer is a python (>=3.7) tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance).
 It is tested on linux only.
 
-It accepts as input a capture file (.pcap or .pcapng) and from there generates a CSV file 
+It accepts as input a capture file (.pcap or .pcapng) and from there generates a CSV file
 (thanks to tshark, the terminal version of wireshark) with the MPTCP fields
 required for analysis.
 From there you can:
 
 - list MPTCP connections
-- compute statistics on a specific MPTCP connection (list of subflows,
-		reinjections, subflow actual contributions...)
+- compute statistics on a specific MPTCP connection (list of subflows, reinjections, subflow actual contributions...)
 It accepts as input a capture file (\*.pcap) and depending on from there can :
 - export a CSV file with MPTCP fields
 - plot data sequence numbers for all subflows
@@ -40,7 +39,7 @@ Then you have an interpreter with autocompletion that can generate & display plo
 You can reference mptcpanalyzer via the following Digital Object Identifier:
 [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
 
-# Table of Contents 
+# Table of Contents
 [How to install](#How-to-install)
 [Faq](#FAQ)
 
@@ -81,18 +80,17 @@ You will need a wireshark version that contains:
   2. if a filename is passed as argument, it will load commands from this file
   3. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
 
-For example, we can load an mptcp pcap (I made one available on [wireshark wiki]
-(https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository, in the _examples_ folder).
+For example, we can load an mptcp pcap (I made one available on [wireshark wiki](https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository, in the _examples_ folder).
 
 Run  `$ mptcpanalyzer --load examples/iperf-mptcp-0-0.pcap`. The script will try to generate
 a csv file, it can take a few minutes depending on the computer/pcap until the promt shows up.
 Type `?` to list available commands (and their aliases). You have for instance:
 - `lc` (list connections)
 - `ls` (list subflows)
-- `plot` 
+- `plot`
 - ...
 
-`help ls` will return the syntax of the command, i.e. `ls [mptcp.stream]` where mptcp.stream is one of the number appearing 
+`help ls` will return the syntax of the command, i.e. `ls [mptcp.stream]` where mptcp.stream is one of the number appearing
 in `lc` output.
 
 Look at [Examples](#Examples)
@@ -102,7 +100,7 @@ Look at [Examples](#Examples)
 From simple to hardcore:
 
 1. Mptcpanalyzer itself proposes few flags to customize plots: --title to override the default title and --style.
-You can set several --style at the same time, they are passed to matplotlib and as such allow for a wide 
+You can set several --style at the same time, they are passed to matplotlib and as such allow for a wide
 [Matplotlib customization](./styles/README.md).
 1. Some commands can export datasets to a machine readable format such as --csv/--json. Else you can look in mptcpanalyzer cache for the full csv file yourself.
 1. Mptcpanalyzer can automatically load (plot) plugins. See the doc.
@@ -141,7 +139,7 @@ Map tcp.stream between server and client pcaps:
 -tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=inf
 -tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=inf
 -tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=inf
-0 <-> 1.0 with score=0 
+0 <-> 1.0 with score=0
 -tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 1: 10.0.0.1:33784  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=30
 -tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 3: 10.0.0.1:57491  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=30
 -tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 5: 11.0.0.1:50077  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=30
@@ -153,7 +151,7 @@ Map tcp.stream between server and client pcaps:
 See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
 
 
-# TODO 
+# TODO
 
 - use configobj to load config defaults/validation ?
 - as in mptcpplot plot some events (e.g., MP\_JOIN) differently ?
@@ -162,7 +160,7 @@ See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
 # FAQ
 
 1. Why packets ids don't match the frame.number from my pcap ?
-mptcpanalyzer 
+mptcpanalyzer
 
 
 

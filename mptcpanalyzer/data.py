@@ -6,10 +6,10 @@ from mptcpanalyzer.tshark import TsharkConfig, Field, _convert_timestamp
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, \
         MpTcpMapping, TcpMapping, swap_role, TcpStreamId, MpTcpStreamId
 import mptcpanalyzer as mp
-from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender, 
-HOST1_SUFFIX, HOST2_SUFFIX, 
+from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender,
+HOST1_SUFFIX, HOST2_SUFFIX,
 _first, _second,
-# _host1, _host2, 
+# _host1, _host2,
 suffix_fields, get_config, get_cache, ConnectionRoles)
 from typing import List, Any, Tuple, Dict, Callable, Collection, Union
 import math
@@ -263,7 +263,7 @@ def load_merged_streams_into_pandas(
                 # converters.update({ name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
                 for name, converter in default_converters.items():
                     converters.update({_first(name): converter, _second(name): converter})
-                
+
 
                 return converters
 
@@ -503,8 +503,8 @@ def mptcpdest_from_connections(df, con: MpTcpConnection) -> pd.DataFrame:
     # for tcpdest in ConnectionRoles:
 
     #     log.debug("Looking at tcpdestination %s" % tcpdest)
-        
-    #     # pandas trick to avoid losing dtype 
+
+    #     # pandas trick to avoid losing dtype
     #     # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
     #     # no need to set _second (as they are just opposite)
     #     # TODO this should be done somewhere else
@@ -625,7 +625,7 @@ def convert_to_sender_receiver(
 
     # print("res dtype before setting tcpdest=", res.dtypes.tcpdest)
     # print("dest type %r" % dest)
-    # # pandas trick to avoid losing dtype 
+    # # pandas trick to avoid losing dtype
     # # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
     # res['tcpdest'][:] = dest
     # # res['tcpdest'] = res['tcpdest'].astype(dtype_role, copy=False)
@@ -677,8 +677,8 @@ def merge_tcp_dataframes_known_streams(
         h2_unidirectional_df = h2_df.query(q)
 
         res = map_tcp_packets(h1_unidirectional_df, h2_unidirectional_df)
-        
-        # pandas trick to avoid losing dtype 
+
+        # pandas trick to avoid losing dtype
         # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
         # no need to set _second (as they are just opposite)
         # TODO this should be done somewhere else
@@ -716,7 +716,7 @@ def merge_tcp_dataframes_known_streams(
 # TODO make it part of the api (aka no print) or remove it ?
 def merge_mptcp_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame,
-    df1_mptcpstream: int
+    df1_mptcpstream: MpTcpStreamId
     ) -> Tuple[pd.DataFrame, str]:
     """
     First looks in df2 for a stream matching df1_mptcpstream
@@ -1040,8 +1040,6 @@ def map_tcp_packets_score_based(
     return df_final
 
 
-# TODO return TcpMapping
-# def sort_tcp_(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]:
 def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]:
     """
     Returns:
@@ -1180,9 +1178,9 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             # print("full reinjection %r" % (reinjection,))
 
-            # if there are packets in _receiver(reinjected_in), it means the reinjections 
+            # if there are packets in _receiver(reinjected_in), it means the reinjections
             # arrived before other similar segments and thus these segments are useless
-            # it should work because 
+            # it should work because
             # useless_reinjections = getattr(reinjection, _receiver("reinjected_in"), [])
 
             # if it was correctly mapped

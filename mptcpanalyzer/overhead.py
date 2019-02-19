@@ -20,9 +20,9 @@
 #    # 
 #    AddAddr4 = 10
 #    AddAddr6 = 22
-    
+
 #    # 3 + n * 1 ?
-#    # RmAddr 
+#    # RmAddr
 
 #class DssAck(IntEnum):
 #    NoAck = 0

@@ -1,9 +1,14 @@
-mptcpanalyzer is still in alpha
 
-Upcoming release:
 
-- addition of a dss plot
-- Added sphinx documentation
+mptcpanalyzer 0.3.1:
+- compatibility with cmd 0.9.7 (colorization/autocompletion)
+- require python 3.7 to use @dataclass attribute. This allows better static checking
+- bumped requirement to pandas >= 0.24 because of Int64
+
+
+mptcpanalyzer 0.3:
+- One Way Delay plotting
+- reinjection qulifications
 
 mptcpanalyzer 0.2:
 

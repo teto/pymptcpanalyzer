@@ -33,7 +33,7 @@ from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, \
     ConnectionRoles, swap_role
 import mptcpanalyzer.cache as mc
-import mptcpanalyzer.statistics as stats
+from mptcpanalyzer.statistics import mptcp_compute_throughput, mptcp_compute_throughput_extended
 import mptcpanalyzer as mp
 from mptcpanalyzer import PreprocessingActions
 import stevedore
@@ -50,6 +50,7 @@ import math
 from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category, argparse_completer
 from enum import Enum, auto
 import mptcpanalyzer.pdutils
+import dataclasses
 from colorama import Fore, Back
 
 from stevedore import extension
@@ -347,7 +348,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.list_subflows(args.mptcpstream)
 
     @is_loaded
-    def list_subflows(self, mptcpstreamid: int):
+    def list_subflows(self, mptcpstreamid: MpTcpStreamId):
 
         try:
             con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
@@ -532,7 +533,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # args.pcapdestinations ?
         print(args)
-        ret = stats.mptcp_compute_throughput(
+        ret = mptcp_compute_throughput(
             self.data, args.mptcpstream, args.destination
         )
         # if success is not True:
@@ -653,14 +654,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         print("NANI ? %r" % destinations )
         for destination in destinations:
-            basic_stats = stats.mptcp_compute_throughput(
+            basic_stats = mptcp_compute_throughput(
                 # TODO here we should load the pcap before hand !
                 df_pcap1,
                 args.pcap1stream,
-                destinations,  # ca il ne le comprend pas
+                destinations,
             )
-            # if success is not True:
-            #     self.perror("Error %s" % basic_stats)
 
             # TODO already be done
             # TODO we should have the parser do it
@@ -673,49 +672,41 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.tshark_config
             )
 
-            ret = stats.mptcp_compute_throughput_extended(
+            stats = mptcp_compute_throughput_extended(
                 df,
                 stats=basic_stats,
                 destination=destination
             )
 
-            if success is not True:
-                self.perror("Throughput computation failed:")
-                self.perror(ret)
-                return
-
             if args.json:
                 import json
                 # TODO use self.poutput
                 # or use a stream, it must just be testable
-                val = json.dumps(ret, ensure_ascii=False)
+                val = json.dumps(dataclasses.asdict(stats), ensure_ascii=False)
                 self.poutput(val)
                 return
 
-
             # TODO display goodput/ratio
-            total_transferred = ret["mptcp_throughput_bytes"]
-            #  (ret["mptcpstreamid"], ret["mptcp_bytes"]))
-            msg = "mptcpstream {mptcpstreamid} throughput/goodput {mptcp_throughput_bytes}/{mptcp_goodput_bytes}"
-            self.poutput(msg.format(**ret))
-            for sf in ret.subflow_stats:
+            total_transferred = stats.mptcp_throughput_bytes
+            msg = """mptcpstream {c.mptcpstreamid} throughput/goodput {c.mptcp_throughput_bytes}/{c.mptcp_goodput_bytes}"""
+            self.poutput(msg.format(c=stats))
 
-                subflow_load = sf.bytes/ret.mptcp_bytes
+            for subflow in stats.subflow_stats:
+
+                # TODO unused
+                # TODO display as a percentage !!
+                # subflow_load = sf.throughput_bytes/stats.mptcp_throughput_bytes
                 msg = """
-                tcpstream {tcpstreamid} analysis:
-                - throughput: transferred {} out of {mptcp_throughput_bytes}, accounting for {.2f:throughput_contribution}%
-                - goodput: transferred {mptcp_goodput} out of {mptcp_goodput_bytes}, accounting for {.2f:goodput_contribution}%
+                tcpstream {sf.tcpstreamid} analysis:
+                - throughput: transferred out of {mptcp.mptcp_throughput_bytes}, accounting for {sf.throughput_contribution}
+                - goodput: transferred {sf.mptcp_goodput} out of {mptcp.mptcp_goodput_bytes}, accounting for {sf.goodput_contribution:.2f}
                 """
 
+                print(subflow)
                 self.poutput(
-                    msg.format(
-                        mptcp_tput=ret.mptcp_throughput_bytes,
-                        **ret,
-                        **sf
-                    )
+                    msg.format(mptcp=stats, sf=subflow)
                 )
 
-    #
     @is_loaded
     @with_category(CAT_TCP)
     def do_list_tcp_connections(self, *args):

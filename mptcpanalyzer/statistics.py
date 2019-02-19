@@ -5,7 +5,7 @@ from mptcpanalyzer.data import classify_reinjections
 from mptcpanalyzer import _sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcpException
 import math
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 """
 Considerations:
@@ -19,33 +19,32 @@ https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
 log = logging.getLogger(__name__)
 
 
-# TcpConnectionStats ?
 @dataclass
 class TcpStats:
-    tcpstreamid : TcpStreamId
+    tcpstreamid: TcpStreamId
     throughput_bytes: int
     tcp_goodput: int = None # ex tcp_goodput
     mptcp_goodput: int = None
-    throughput_contribution: int = None # %
-    goodput_contribution: int = None  # %
+    # TODO attach metadata
+    throughput_contribution: float = None
+    # throughput_contribution: int = field(default=None, metadata={'unit': '%'})
+    goodput_contribution: float = None  # %
 
 @dataclass
 class MpTcpStats:
     mptcpstreamid: MpTcpStreamId
-    # TODO append bytes
     mptcp_goodput_bytes: int
     subflow_stats: List[TcpStats]
-    mptcp_goodput: int = None
+    # TODO rename to global ?
+    # mptcp_goodput_bytes: int = None
 
     @property
     def mptcp_throughput_bytes(self):
         return sum(map(lambda x: x.throughput_bytes, self.subflow_stats))
 
 
-# or throw exception instead ?
 def mptcp_compute_throughput(
-    rawdf, mptcpstreamid, destination: ConnectionRoles
-    # mptcpstreamid2=None
+    rawdf, mptcpstreamid: MpTcpStreamId, destination: ConnectionRoles
 ) -> MpTcpStats:
     """
     Very raw computation: substract highest dsn from lowest by the elapsed time
@@ -72,14 +71,12 @@ def mptcp_compute_throughput(
         subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
         subflow_load = subflow_load if not math.isnan(subflow_load) else 0
         subflow_stats.append(
-            TcpStats(tcpstreamid=tcpstream, throughput_bytes= int(subflow_load))
+            TcpStats(tcpstreamid=tcpstream, throughput_bytes=int(subflow_load))
         )
 
     return MpTcpStats(
         mptcpstreamid=mptcpstreamid,
-        # TODO append bytes
         mptcp_goodput_bytes=total_transferred,
-        # mptcp_throughput_bytes=sum(map(lambda x: x.throughput_bytes, subflow_stats)),
         subflow_stats=subflow_stats,
     )
 
@@ -102,17 +99,16 @@ def mptcp_compute_throughput_extended(
     print(stats.subflow_stats)
     print(df.columns)
 
+    stats.mptcp_goodput_bytes = df.loc[df.redundant == False, "tcplen"].sum()
     for sf in stats.subflow_stats:
         log.debug("for tcpstream %d" % sf.tcpstreamid)
         # columns.get_loc(_first('abstime'))]
         df_sf = df[df.tcpstream == sf.tcpstreamid]
         # TODO eliminate retransmissions too
-        # sum( map(lambda x: x['bytes'], subflow_stats)),
 
         # inexact, we should drop lost packets
         # tcplen ? depending on destination / _receiver/_sender
         tcp_throughput = df_sf["tcplen"].sum()
-        # mptcp_goodput = df[df_sf.redundant == False, "throughput_bytes"].sum()
 
         # won
         seq_min = df_sf.tcpseq.min()
@@ -120,7 +116,16 @@ def mptcp_compute_throughput_extended(
 
         tcp_goodput = seq_max - seq_min
 
-        mptcp_goodput = df[df_sf.redundant == False, "throughput_bytes"].sum()
+        # tcplen == 
+        # _first / _second
+        # or .loc
+        print ("DF.head")
+        print (df.head())
+        # print ("columns", df.columns)
+        non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
+        print(non_redundant_pkts)
+        mptcp_goodput = non_redundant_pkts.sum()
+        print("mptcp_goodput" , mptcp_goodput)
         sf_mptcp_throughput = tcp_throughput
 
         sf.tcp_goodput = tcp_goodput;
@@ -128,11 +133,6 @@ def mptcp_compute_throughput_extended(
 
         # can be > 1 in case of redundant packets
         sf.throughput_contribution = sf_mptcp_throughput/stats.mptcp_throughput_bytes
-        sf.goodput_contribution = mptcp_goodput/stats.mptcp_goodput
-
-    # for every subflow 
-    # for tcpstream, group in df.groupby( _sender("tcpstream")):
-    #     print("for tcpstream %d" % tcpstream)
-    #     group[ df.redundant == False, "redundant"].sum()
+        sf.goodput_contribution = mptcp_goodput/stats.mptcp_goodput_bytes
 
     return  stats
