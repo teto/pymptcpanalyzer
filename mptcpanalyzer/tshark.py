@@ -40,7 +40,7 @@ def _load_list(x, field="set field to debug"):
     if x[0] != "[":
         x = "[" + x + "]"
     #if (x is not None and x != '') else np.nan
-    res = ast.literal_eval(x) 
+    res = ast.literal_eval(x)
 
     # print("res", res)
     return res
@@ -154,7 +154,7 @@ class TsharkConfig:
         with subprocess.Popen(cmd, stdout=subprocess.PIPE,
             universal_newlines=True, # opens in text mode
         ) as proc:
-            matches: List[str] = [] 
+            matches: List[str] = []
             for line in proc.stdout:
                 matches = [x for x in searches if x in line]
                 searches = [item for item in searches if item not in matches]
@@ -162,7 +162,7 @@ class TsharkConfig:
 
 
     def add_basic_fields(self):
-        
+
         # when merging packets some packets are lost and thus have no packetid
         # so sadly we need a float64 in that case :'(
         self.add_field("frame.number", "packetid", np.float64, False, False)
@@ -208,7 +208,7 @@ class TsharkConfig:
             "DSS Sequence Number", True)
         self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64,
             "DSS raw ack", True)
-        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64, 
+        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64,
             "DSS Subflow Sequence Number", True)
         self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64,
             "DSS length", True)
@@ -264,7 +264,7 @@ class TsharkConfig:
         # if inspect.isfunction(type_or_converter):
         #     converter = type_or_converter
         #     _type = None
-            
+
         self._tshark_fields.setdefault(name,
             Field(fullname,  _type, label, _hash, converter))
 

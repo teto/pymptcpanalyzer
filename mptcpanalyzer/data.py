@@ -3,7 +3,8 @@ import os
 import pandas as pd
 import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig, Field, _convert_timestamp
-from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, swap_role
+from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, \
+        MpTcpMapping, TcpMapping, swap_role, TcpStreamId, MpTcpStreamId
 import mptcpanalyzer as mp
 from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender, 
 HOST1_SUFFIX, HOST2_SUFFIX, 
@@ -157,7 +158,7 @@ def load_merged_streams_into_pandas(
     cache = mp.get_cache()
     protocolStr = "mptcp" if mptcp else "tcp"
 
-    cacheid = cache.cacheuid("merged", [ getrealpath(pcap1), getrealpath(pcap2),], 
+    cacheid = cache.cacheuid("merged", [ getrealpath(pcap1), getrealpath(pcap2),],
         protocolStr + "_" + str(streamid1) + "_" + str(streamid2) + ".csv")
 
     # if we can't load that file from cache
@@ -176,8 +177,8 @@ def load_merged_streams_into_pandas(
             main_connection = None  # type: Union[MpTcpConnection, TcpConnection]
             other_connection = None  # type: Union[MpTcpConnection, TcpConnection]
             if mptcp:
-                main_connection = MpTcpConnection.build_from_dataframe(df1, streamid1)
-                other_connection = MpTcpConnection.build_from_dataframe(df2, streamid2)
+                main_connection = MpTcpConnection.build_from_dataframe(df1, MpTcpStreamId(streamid1))
+                other_connection = MpTcpConnection.build_from_dataframe(df2, MpTcpStreamId(streamid2))
 
                 # TODO generate
                 # map_mptcp_connection()

@@ -532,13 +532,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # args.pcapdestinations ?
         print(args)
-        success, ret = stats.mptcp_compute_throughput(
+        ret = stats.mptcp_compute_throughput(
             self.data, args.mptcpstream, args.destination
         )
-        if success is not True:
-            self.perror("Throughput computation failed:")
-            self.perror(ret)
-            return
+        # if success is not True:
+        #     self.perror("Throughput computation failed:")
+        #     self.perror(ret)
+        #     return
 
         if args.json:
             import json
@@ -548,11 +548,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(val)
             return
 
-        mptcp_transferred = ret["mptcp_throughput_bytes"]
+        mptcp_transferred = ret.mptcp_throughput_bytes
         self.poutput("mptcpstream %d transferred %d bytes."
-                     % (ret["mptcpstreamid"], mptcp_transferred))
+                     % (ret.mptcpstreamid, mptcp_transferred))
         for tcpstream, sf_bytes in \
-            map(lambda sf: (sf["tcpstreamid"], sf["throughput_bytes"]), ret["subflow_stats"]):
+            map(lambda sf: (sf.tcpstreamid, sf.throughput_bytes), ret.subflow_stats):
             subflow_load = sf_bytes/mptcp_transferred
             self.poutput("tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
                     "accounting for {tput_ratio:.2f}%".format(
@@ -653,14 +653,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         print("NANI ? %r" % destinations )
         for destination in destinations:
-            success, basic_stats = stats.mptcp_compute_throughput(
+            basic_stats = stats.mptcp_compute_throughput(
                 # TODO here we should load the pcap before hand !
                 df_pcap1,
                 args.pcap1stream,
                 destinations,  # ca il ne le comprend pas
             )
-            if success is not True:
-                self.perror("Error %s" % basic_stats)
+            # if success is not True:
+            #     self.perror("Error %s" % basic_stats)
 
             # TODO already be done
             # TODO we should have the parser do it
@@ -673,7 +673,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.tshark_config
             )
 
-            success, ret = stats.mptcp_compute_throughput_extended(
+            ret = stats.mptcp_compute_throughput_extended(
                 df,
                 stats=basic_stats,
                 destination=destination
@@ -698,9 +698,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             #  (ret["mptcpstreamid"], ret["mptcp_bytes"]))
             msg = "mptcpstream {mptcpstreamid} throughput/goodput {mptcp_throughput_bytes}/{mptcp_goodput_bytes}"
             self.poutput(msg.format(**ret))
-            for sf in ret["subflow_stats"]:
+            for sf in ret.subflow_stats:
 
-                subflow_load = sf["bytes"]/ret["mptcp_bytes"]
+                subflow_load = sf.bytes/ret.mptcp_bytes
                 msg = """
                 tcpstream {tcpstreamid} analysis:
                 - throughput: transferred {} out of {mptcp_throughput_bytes}, accounting for {.2f:throughput_contribution}%
@@ -709,7 +709,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
                 self.poutput(
                     msg.format(
-                        mptcp_tput=ret["mptcp_throughput_bytes"],
+                        mptcp_tput=ret.mptcp_throughput_bytes,
                         **ret,
                         **sf
                     )

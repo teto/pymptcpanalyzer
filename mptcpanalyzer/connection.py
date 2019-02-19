@@ -1,8 +1,8 @@
 import pandas as pd
 import logging
-from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId
+from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId, MpTcpStreamId
 
-from typing import List, NamedTuple, Tuple, Dict
+from typing import List, NamedTuple, Tuple, Dict, Union
 from enum import Enum
 from dataclasses import dataclass
 
@@ -79,7 +79,7 @@ class TcpConnection:
 
     def sort_candidates(self, ):
         """
-        Sort a list 
+        Sort a list
         """
         pass
 
@@ -122,7 +122,7 @@ class TcpConnection:
         return self.score(other) == float('inf')
 
     @staticmethod
-    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: TcpStreamId) -> 'TcpConnection':
+    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: Union[int, TcpStreamId]) -> 'TcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
         """
@@ -144,8 +144,9 @@ class TcpConnection:
         #     raise MpTcpException("No packet with this stream id")
 
         row = df.iloc[0,]
+
         result = TcpConnection(
-            tcpstreamid,
+            TcpStreamId(tcpstreamid),
             row['ipsrc'], row['ipdst'],
             client_port=row['sport'], server_port=row['dport']
         )
@@ -172,6 +173,7 @@ class TcpConnection:
         return line
 
 
+# should it ?
 @dataclass
 class MpTcpSubflow(TcpConnection):
     """
@@ -197,8 +199,8 @@ class MpTcpSubflow(TcpConnection):
     def reversed(self):
         res = self.create_subflow(
             mptcpdest=swap_role(self.mptcpdest),
-            tcpstreamid=self.tcpstreamid, 
-            tcpclientip=self.tcpserver_ip, 
+            tcpstreamid=self.tcpstreamid,
+            tcpclientip=self.tcpserver_ip,
             tcpserverip=self.tcpclient_ip,
             client_port=self.server_port, server_port=self.client_port,
             # self.rcv_token
@@ -229,7 +231,7 @@ class MpTcpSubflow(TcpConnection):
         res = super().__str__()
         res += " (mptcpdest: %s)" % self.mptcpdest
         return res
-            # 
+            #
             # return super(TcpConnection).generate_direction_query()
         # if dest == ConnectionRoles.Client:
         #     ipsrc = self.tcpserver_ip
@@ -243,6 +245,7 @@ class MpTcpSubflow(TcpConnection):
 
 
 
+# @dataframe
 class MpTcpConnection:
     """
     Holds key characteristics of an MPTCP connection: keys, tokens, subflows
@@ -279,7 +282,7 @@ class MpTcpConnection:
         """
         Filter packets according to the mptcp notion of client/server mptcpdest
         this is a bit different of TcpConnection.generate_direction_query and means that
-        some subflows 
+        some subflows
 
         Returns
             Query
@@ -303,13 +306,13 @@ class MpTcpConnection:
     # TODO add a destination arg
     # @property
     def subflows(self, mptcpdest: ConnectionRoles = ConnectionRoles.Server):
-        # 
         # TODO add a destination ?
         # assert 0
         return self._subflows
 
+    # TODO remove Union
     @staticmethod
-    def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: int) -> 'MpTcpConnection':
+    def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: Union[int,MpTcpStreamId]) -> 'MpTcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
         """
@@ -341,13 +344,13 @@ class MpTcpConnection:
 
         # we assume this is the first seen sendkey, thus it was sent to the mptcp server
         master_sf = MpTcpSubflow.create_subflow(
-            mptcpdest  = ConnectionRoles.Server,
-            tcpstreamid= master_tcpstream, 
-            tcpclientip= ds['ipsrc'].iloc[cid],
-            tcpserverip= ds['ipdst'].iloc[cid],
-            client_port      = ds['sport'].iloc[cid], 
+            mptcpdest        = ConnectionRoles.Server,
+            tcpstreamid      = master_tcpstream,
+            tcpclient_ip     = ds['ipsrc'].iloc[cid],
+            tcpserver_ip     = ds['ipdst'].iloc[cid],
+            client_port      = ds['sport'].iloc[cid],
             server_port      = ds['dport'].iloc[cid],
-            addrid     = 0   # master subflow has implicit addrid 0
+            addrid           = 0   # master subflow has implicit addrid 0
         )
 
         subflows.append(master_sf)
@@ -365,14 +368,15 @@ class MpTcpConnection:
 
             # if we see the token
             subflow = MpTcpSubflow.create_subflow(
-                mptcpdest = ConnectionRoles.Server if receiver_token == server_token else ConnectionRoles.Client,
-                tcpstreamid=tcpstreamid,
-                tcpclientip=subflow_ds['ipsrc'].iloc[row],
-                tcpserverip=subflow_ds['ipdst'].iloc[row],
-                client_port=subflow_ds['sport'].iloc[row], 
-                server_port=subflow_ds['dport'].iloc[row],
-                addrid=None,
-                rcv_token=receiver_token,
+                mptcpdest   = ConnectionRoles.Server if receiver_token == server_token \
+                        else ConnectionRoles.Client,
+                tcpstreamid =tcpstreamid,
+                tcpclient_ip=subflow_ds['ipsrc'].iloc[row],
+                tcpserver_ip=subflow_ds['ipdst'].iloc[row],
+                client_port =subflow_ds['sport'].iloc[row],
+                server_port =subflow_ds['dport'].iloc[row],
+                addrid      =None,
+                # rcv_token   =receiver_token,
                 )
 
             subflows.append(subflow)
@@ -467,7 +471,7 @@ class MpTcpConnection:
 TcpMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
 
 
-MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float), 
+MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float),
     # make it a dict rather
         ("subflow_mappings", List[Tuple[MpTcpSubflow,TcpMapping]])
     ])
