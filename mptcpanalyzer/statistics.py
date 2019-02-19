@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 @dataclass
-class SubflowStatistics:
+class SubflowStats:
     tcpstreamid : TcpStreamId
     throughput_bytes: int
 
@@ -47,7 +47,7 @@ def mptcp_compute_throughput(
     dsn_max = df.dss_dsn.max()
     total_transferred = dsn_max - dsn_min
     d = df.groupby(_sender('tcpstream'))
-    subflow_stats: List[Any] = []
+    subflow_stats: List[SubflowStats] = []
     for tcpstream, group in d:
         # TODO drop retransmitted
         subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
