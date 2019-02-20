@@ -15,12 +15,26 @@ class TcpAccessor:
     def connection(self, streamid):
         return TcpConnection.build_from_dataframe(self._obj, streamid)
 
+
+def read_csv_debug(fields, fd, *args, **kwargs):
+
+    for field in fields:
+        print("TESTING field ", field)
+        data = pd.read_csv(
+            fd,
+            *args,
+            usecols=[ field],
+            **kwargs
+        )
+        fd.seek(0)
+
+
 def filter_dataframe(
     self,
     rawdf,
     # TODO choose prefix
     merged_one,
-    tcpstream=None, 
+    tcpstream=None,
     mptcpstream=None,
     skipped_subflows=[],
     destinations: list=None,
