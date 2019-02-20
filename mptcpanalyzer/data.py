@@ -191,8 +191,8 @@ def load_merged_streams_into_pandas(
                 )
 
             else:
-                main_connection = TcpConnection.build_from_dataframe(df1, streamid1)
-                other_connection = TcpConnection.build_from_dataframe(df2, streamid2)
+                main_connection = TcpConnection.build_from_dataframe(df1, TcpStreamId(streamid1))
+                other_connection = TcpConnection.build_from_dataframe(df2, TcpStreamId(streamid2))
 
                 # for now we use known streams exclusively
                 # might be interested to use merge_tcp_dataframes later

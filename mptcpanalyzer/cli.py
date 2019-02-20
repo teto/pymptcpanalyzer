@@ -166,7 +166,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
 
         self.shortcuts.update({
-            'lc': 'list_connections',
+            'lm': 'list_mptcp_connections',
+            'lt': 'list_tcp_connections',
             'ls': 'list_subflows',
             'lr': 'list_reinjections'
         })

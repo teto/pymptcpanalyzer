@@ -122,7 +122,7 @@ class TcpConnection:
         return self.score(other) == float('inf')
 
     @staticmethod
-    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: Union[int, TcpStreamId]) -> 'TcpConnection':
+    def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: TcpStreamId) -> 'TcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
         """
@@ -135,7 +135,6 @@ class TcpConnection:
 
         df = rawdf[rawdf.tcpstream == tcpstreamid]
         if len(df.index) == 0:
-            # print(rawdf.head())
             raise MpTcpException("No packet with this tcp.stream id %r" % tcpstreamid)
 
         # + mp.TcpFlags TODO record ISN !!

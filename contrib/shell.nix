@@ -9,7 +9,8 @@ let
     ];
 
     src = ../.;
-    buildInputs = (oa.buildInputs or []) ++ [ my_nvim nvimConfig.python3Env ];
+    # nvimConfig.python3Env
+    buildInputs = (oa.buildInputs or []) ++ [ my_nvim  ];
 
     postShellHook = ''
       export SOURCE_DATE_EPOCH=315532800

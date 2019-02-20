@@ -176,22 +176,22 @@ class TsharkConfig:
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
         self.add_field("ip.dst_host", "ipdst_host", str, False, False)
-        self.add_field("tcp.stream", "tcpstream", np.float64, False, False)
-        self.add_field("tcp.srcport", "sport", np.float, False, False)
+        self.add_field("tcp.stream", "tcpstream", 'Int64', False, False)
+        self.add_field("tcp.srcport", "sport", 'Int64', False, False)
         self.add_field("tcp.dstport", "dport", np.float, False, False)
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
-        self.add_field("tcp.window_size", "rwnd", np.float64, True, True)
+        self.add_field("tcp.window_size", "rwnd", 'Int64', True, True)
         self.add_field("tcp.flags", "tcpflags", object, False, True, _convert_flags)
         # should be a list, TODO set hash to true
         self.add_field("tcp.option_kind", "tcpoptions", object, False, False,
             functools.partial(_load_list, field="option_kind"), )
-        self.add_field("tcp.seq", "tcpseq", np.float64, "TCP sequence number", True)
-        self.add_field("tcp.len", "tcplen", np.float64, "TCP segment length", True)
-        self.add_field("tcp.ack", "tcpack", np.float64, "TCP segment acknowledgment", True)
-        self.add_field("tcp.options.timestamp.tsval", "tcptsval", np.float64,
+        self.add_field("tcp.seq", "tcpseq", 'Int64', "TCP sequence number", True)
+        self.add_field("tcp.len", "tcplen", 'Int64', "TCP segment length", True)
+        self.add_field("tcp.ack", "tcpack", 'Int64', "TCP segment acknowledgment", True)
+        self.add_field("tcp.options.timestamp.tsval", "tcptsval", 'Int64',
             "TCP timestamp tsval", True)
-        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", np.float64,
+        self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", 'Int64',
             "TCP timestamp tsecr", True)
 
     def add_mptcp_fields(self, advanced=True):
