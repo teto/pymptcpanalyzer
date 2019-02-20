@@ -192,7 +192,10 @@ class PreprocessingActions(enum.Flag):
     # FilterStream             = FilterMpTcpStream | FilterTcpStream
 
 
+# logging.DEBUG = 10 so we need to be lower
+TRACE = 5
 
+logging.addLevelName(TRACE, 'TRACE')
 
 class MpTcpMissingPcap(MpTcpException):
     pass

@@ -34,7 +34,8 @@ def _convert_role(x):
     """
     Workaround https://github.com/pandas-dev/pandas/pull/20826
     """
-    # print("converting role")
+    log.log(mp.TRACE, "converting role")
+
     return ConnectionRoles[x] if x else np.nan
 
 def ignore(f1, f2):

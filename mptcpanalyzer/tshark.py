@@ -6,10 +6,11 @@ import tempfile
 import numpy as np
 import shlex
 import ast
-# from mptcpanalyzer import _load_list
 from collections import namedtuple
 from typing import List, Dict, Union, Optional, Callable, Any
 from enum import Enum
+# from mptcpanalyzer import Logger
+import mptcpanalyzer as mp
 import functools
 
 logger = logging.getLogger(__name__)
@@ -27,13 +28,13 @@ logger = logging.getLogger(__name__)
 #     return res
 
 
-
 # doesn't seem to work
 # sometimes it will create a tuple only if there are several elements
 def _load_list(x, field="set field to debug"):
     """
     Contrary to _convert_to_list
     """
+    logger.log(mp.TRACE, "Load field %s list %r" % (field, x))
     if x is None or len(x) == 0:
         return np.nan
 
@@ -42,7 +43,6 @@ def _load_list(x, field="set field to debug"):
     #if (x is not None and x != '') else np.nan
     res = ast.literal_eval(x)
 
-    # print("res", res)
     return res
 
 class Filetype(Enum):
