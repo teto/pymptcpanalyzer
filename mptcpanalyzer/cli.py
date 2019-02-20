@@ -495,10 +495,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             self.poutput(formatted_output)
 
-    # def parser_summary():
-    #     """ """
-    #     pass
-
     summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
     action_stream = summary_parser.add_argument(
         "mptcpstream", type=MpTcpStreamId, action=mp.parser.retain_stream("pcap"),
@@ -718,10 +714,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput('%d tcp connection(s)' % len(streams))
         for tcpstream, group in streams:
             # self.list_subflows(mptcpstream)
-            self.data.tcp.connection(tcpstream)
+            # self.data.tcp.connection(tcpstream)
             con = TcpConnection.build_from_dataframe(self.data, tcpstream)
             self.poutput(con)
-            self.poutput("\n")
 
     @is_loaded
     @with_category(CAT_MPTCP)

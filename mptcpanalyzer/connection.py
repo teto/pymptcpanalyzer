@@ -91,7 +91,7 @@ class TcpConnection:
         # print(res)
         return res
 
-    def score(self, other):
+    def score(self, other: 'TcpConnection'):
         """
         If every parameter is equal, returns +oo else 0
         TODO also match on isn in case ports got reused
@@ -116,10 +116,13 @@ class TcpConnection:
         Ignores
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
+        Should implement __neq__ ?
         """
         # print("self=%r"% self)
         # print("other=%r"% other)
-        return self.score(other) == float('inf')
+        if type(other) is type(self):
+            return self.score(other) == float('inf')
+        return False
 
     @staticmethod
     def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: TcpStreamId) -> 'TcpConnection':

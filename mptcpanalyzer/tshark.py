@@ -165,10 +165,10 @@ class TsharkConfig:
 
         # when merging packets some packets are lost and thus have no packetid
         # so sadly we need a float64 in that case :'(
-        self.add_field("frame.number", "packetid", None, False, 'Int64')
+        self.add_field("frame.number", "packetid", 'Int64', False, False)
 
         # TODO look at the doc ! with pd.Timestamp
-
+        # dtype=pd.Int64Dtype()
         self.add_field("frame.time_relative", "reltime", np.float64, False, False)
         self.add_field("frame.time_epoch", "abstime", np.float64,
             "seconds+Nanoseconds time since epoch", None)
@@ -177,14 +177,14 @@ class TsharkConfig:
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
         self.add_field("ip.dst_host", "ipdst_host", str, False, False)
         self.add_field("tcp.stream", "tcpstream", 'Int64', False, False)
-        self.add_field("tcp.srcport", "sport", 'Int64', False, False)
-        self.add_field("tcp.dstport", "dport", np.float, False, False)
+        self.add_field("tcp.srcport", "sport", 'Int16', False, False)
+        self.add_field("tcp.dstport", "dport", 'Int16', False, False)
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", 'Int64', True, True)
-        self.add_field("tcp.flags", "tcpflags", object, False, True, _convert_flags)
+        self.add_field("tcp.flags", "tcpflags", None, False, True, _convert_flags)
         # should be a list, TODO set hash to true
-        self.add_field("tcp.option_kind", "tcpoptions", object, False, False,
+        self.add_field("tcp.option_kind", "tcpoptions", None, False, False,
             functools.partial(_load_list, field="option_kind"), )
         self.add_field("tcp.seq", "tcpseq", 'Int64', "TCP sequence number", True)
         self.add_field("tcp.len", "tcplen", 'Int64', "TCP segment length", True)
@@ -197,25 +197,25 @@ class TsharkConfig:
     def add_mptcp_fields(self, advanced=True):
         # remove this one ?
         self.add_field("mptcp.expected_token", "expected_token", str, False, False)
-        self.add_field("mptcp.stream", "mptcpstream", np.float, False, False)
+        self.add_field("mptcp.stream", "mptcpstream", 'Int64', False, False)
         self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False, True)
         self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False, True)
         self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False, True)
-        self.add_field("tcp.options.mptcp.datafin.flag", "datafin", np.float, False, True)
+        self.add_field("tcp.options.mptcp.datafin.flag", "datafin", 'Int64', False, True)
         # this is a list really; can contain "2,4"
         self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)
-        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64,
+        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", 'Int64',
             "DSS Sequence Number", True)
-        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64,
+        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", 'Int64',
             "DSS raw ack", True)
-        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", np.float64,
+        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", 'Int64',
             "DSS Subflow Sequence Number", True)
-        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", np.float64,
+        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", 'Int64',
             "DSS length", True)
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False, True)
-        self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number", False)
-        self.add_field("mptcp.ack", "dack", np.float64, "MPTCP relative Ack", False)
-        self.add_field("mptcp.dsn", "dsn", np.float64, "Data Sequence Number", False)
+        self.add_field("mptcp.rawdsn64", "dsnraw64", 'UInt64', "Raw Data Sequence Number", False)
+        self.add_field("mptcp.ack", "dack", 'Int64', "MPTCP relative Ack", False)
+        self.add_field("mptcp.dsn", "dsn", 'Int64', "Data Sequence Number", False)
 
         if advanced:
             self.add_field("mptcp.related_mapping", "related_mappings", object, "DSS", False)

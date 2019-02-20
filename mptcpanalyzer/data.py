@@ -24,6 +24,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 
 # TODO might need a converter when saving/loading
+# TODO pandas.api.types.register_extension_dtype()
 dtype_role = pd.api.types.CategoricalDtype(categories=list(ConnectionRoles), ordered=True)
 
 TCP_DEBUG_FIELDS = ['hash', 'packetid', "reltime", "abstime"]
@@ -96,7 +97,7 @@ per_pcap_artificial_fields = {
     # TODO use dtype_role as type
     "mptcpdest": Field("mptcpdest", dtype_role, "MPTCP destination", False, _convert_role),
     "tcpdest": Field("tcpdest", dtype_role, "TCP destination", False, _convert_role),
-    "hash": Field("hash", np.float64, "Hash of fields", False, None),
+    "hash": Field("hash", str, "Hash of fields", False, None),
 
     # TODO rename ?
     # TODO should be a CategoryDataType !
@@ -246,8 +247,8 @@ def load_merged_streams_into_pandas(
                 dtypes.update({
                     # during the merge, we join even unmapped packets so some entries
                     # may be empty => float64
-                    _first("packetid"): np.float64,
-                    _second("packetid"): np.float64,
+                    _first("packetid"): tshark_config.fields["packetid"].dtype,
+                    _second("packetid"): tshark_config.fields["packetid"].dtype,
                 })
 
                 return dtypes
@@ -275,6 +276,8 @@ def load_merged_streams_into_pandas(
                 # pd.set_option('display.max_rows', 200)
                 # pd.set_option('display.max_colwidth', -1)
                 # print("converters=", converters)
+                log.debug("Using dtypes %s" % dtypes)
+                log.debug("Using converters %s" % converters)
                 merged_df = pd.read_csv(
                     fd,
                     skip_blank_lines=True,
@@ -357,6 +360,7 @@ def load_into_pandas(
     """
     log.debug("Asked to load simple pcap %s" % input_file)
 
+    # pd.set_option('mode.sim_interactive', True)
     filename = getrealpath(input_file)
     cache = mp.get_cache()
 
@@ -398,22 +402,42 @@ def load_into_pandas(
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
             # print("converters\n", converters)
 
-            dtypes = {field.fullname: field.type for _, field in config.fields.items()}
-            log.debug("Dtypes before load: %s" % dtypes)
-            data = pd.read_csv(
+            dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
+            log.log(mp.TRACE, "Dtypes before load: %s" % dtypes)
+            log.debug("Converters before load: %s" % converters)
+            # test = pd.read_csv(
+            #     fd,
+            #     comment='#',
+            #     sep=config.delimiter,
+            #     nrows=1, # useful for debugging purpose
+            # )
+            # log.debug("Dtypes after load:%s\n" % dict(test.dtypes))
+
+            # https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
+            # print(test.columns)
+            from .pdutils import read_csv_debug
+            fields = [f.fullname for _, f in config.fields.items()]
+            data = read_csv_debug(fields,
+            # data = pd.read_csv(
                 fd,
                 comment='#',
                 sep=config.delimiter,
                 dtype=dtypes,
+                # usecols = [config.fields["ipsrc"].fullname ],
                 # seems like for now we can't change the default representation apart from converting the column to
                 # a string !!!
                 # https://stackoverflow.com/questions/46930201/pandas-to-datetime-is-not-formatting-the-datetime-value-in-the-desired-format
                 # date_parser=_convert_timestamp,
                 # parse_dates=["frame.time_epoch"],
+
+
+                # DON't user converters
                 converters=converters,
                 # float_precision="high",  # might be necessary
-                # nrows=10, # useful for debugging purpose
+                # nrows=4, # useful for debugging purpose
             )
+
+            log.debug("Finished loading CSV file")
             # 1 to 1 -> can't add new columns
             data.rename(inplace=True, columns={f.fullname: name for name, f in config.fields.items()})
 
@@ -436,14 +460,19 @@ def load_into_pandas(
             temp = pd.DataFrame(data, columns=hashing_fields)
             data["hash"] = temp.apply(lambda x: hash(tuple(x)), axis=1)
 
+    except TypeError as e:
+        logging.error("You may need to filter more your pcap to keep only mptcp packets")
+        raise e
     except Exception as e:
         logging.error("You may need to filter more your pcap to keep only mptcp packets")
         raise e
+    # finally:
+        # print (data)
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
 
     # print("FINAL_DTYPES")
-    log.debug(data.dtypes)
+    # log.debug(data.dtypes)
     # print(data.head(5))
     return data
 
