@@ -401,7 +401,7 @@ def load_into_pandas(
             # print("converters\n", converters)
 
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
-            log.log(mp.TRACE, "Dtypes before load: %s" % dtypes)
+            log.debug("Dtypes before load: %s" % dtypes)
             log.debug("Converters before load: %s" % converters)
             # test = pd.read_csv(
             #     fd,
@@ -415,8 +415,8 @@ def load_into_pandas(
             # print(test.columns)
             from .pdutils import read_csv_debug
             fields = [f.fullname for _, f in config.fields.items()]
-            data = read_csv_debug(fields,
-            # data = pd.read_csv(
+            # data = read_csv_debug(fields,
+            data = pd.read_csv(
                 fd,
                 comment='#',
                 sep=config.delimiter,

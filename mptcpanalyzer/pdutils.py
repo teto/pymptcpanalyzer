@@ -43,7 +43,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
         except TypeError as e:
             # TODO retry with chunksize
             if first_try:
-                kwargs.update({"chunksize":chunksize  or 4})
+                kwargs.update({"chunksize":chunksize  or 40})
                 fd.seek(0)
                 read_csv_debug([field], fd, *args, first_try=False, **kwargs)
             else:

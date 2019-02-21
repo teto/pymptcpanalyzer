@@ -165,7 +165,7 @@ class TsharkConfig:
 
         # when merging packets some packets are lost and thus have no packetid
         # so sadly we need a float64 in that case :'(
-        self.add_field("frame.number", "packetid", 'Int64', False, False)
+        self.add_field("frame.number", "packetid", 'UInt64', False, False)
 
         # TODO look at the doc ! with pd.Timestamp
         # dtype=pd.Int64Dtype()
@@ -176,7 +176,7 @@ class TsharkConfig:
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
         self.add_field("ip.dst_host", "ipdst_host", str, False, False)
-        self.add_field("tcp.stream", "tcpstream", 'Int64', False, False)
+        self.add_field("tcp.stream", "tcpstream", 'UInt64', False, False)
         self.add_field("tcp.srcport", "sport", 'UInt16', False, False)
         self.add_field("tcp.dstport", "dport", 'UInt16', False, False)
         # rawvalue is tcp.window_size_value
@@ -213,7 +213,7 @@ class TsharkConfig:
         self.add_field("tcp.options.mptcp.datalvllen", "dss_length", 'UInt64',
             "DSS length", True)
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False, True)
-        self.add_field("mptcp.rawdsn64", "dsnraw64", 'UInt64', "Raw Data Sequence Number", False)
+        self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number", False)
         self.add_field("mptcp.ack", "dack", 'UInt64', "MPTCP relative Ack", False)
         self.add_field("mptcp.dsn", "dsn", 'UInt64', "Data Sequence Number", False)
 
