@@ -188,6 +188,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.debug = True  # for now
         self.set_posix_shlex = True  # need cmd2 >= 0.8
 
+        # Pandas specific initialization
+        # for as long as https://github.com/pydata/numexpr/issues/331 is a problem
+        pd.set_option('compute.use_numexpr', False)
+        print("use numexpr?", pd.get_option('compute.use_numexpr', False))
+
         #  Load Plots
         ######################
         # you can  list available plots under the namespace
@@ -502,6 +507,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # TODO update the stream id autcompletion dynamically ?
     # setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
 
+    # TODO use filter_dest instead
     summary_parser.add_argument(
         'destination',
         # mp.DestinationChoice,
@@ -533,16 +539,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         ret = mptcp_compute_throughput(
             self.data, args.mptcpstream, args.destination
         )
-        # if success is not True:
-        #     self.perror("Throughput computation failed:")
-        #     self.perror(ret)
-        #     return
 
         if args.json:
             import json
             # TODO use self.poutput
             # or use a stream, it must just be testable
-            val = json.dumps(ret, ensure_ascii=False)
+            val = json.dumps(dataclasses.asdict(ret), ensure_ascii=False)
             self.poutput(val)
             return
 

@@ -104,7 +104,7 @@ setup(name="mptcpanalyzer",
     ],
     # test_suite="tests",
     cmdclass={
-    "test": RunTests,
+        "test": RunTests,
     },
     zip_safe=False,
     )

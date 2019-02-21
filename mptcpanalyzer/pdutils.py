@@ -16,6 +16,8 @@ class TcpAccessor:
         return TcpConnection.build_from_dataframe(self._obj, streamid)
 
 
+
+# https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
     """
     Help debugging dataframe loading errors (with dtypes/converters)
@@ -51,17 +53,8 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
                 raise e
 
         finally:
-
             fd.seek(0)
-        # else:
-        #     data = pd.read_csv(
-        #         fd,
-        #         *args,
-        #         usecols=[ field],
-        #         **kwargs
-        #     )
 
-    # return data
 
 
 def filter_dataframe(

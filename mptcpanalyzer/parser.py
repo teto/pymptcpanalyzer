@@ -9,6 +9,7 @@ from .data import (load_into_pandas, load_merged_streams_into_pandas,
         tcpdest_from_connections, mptcpdest_from_connections)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
             CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId)
+import mptcpanalyzer as mp
 from functools import partial
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 
@@ -40,6 +41,9 @@ def _add_dataframe(namespace, dest, df):
 
 
 class DataframeAction(argparse.Action):
+    '''
+    If you need the action to act on a specific dataframe
+    '''
 
     def __init__(self, df_name: str, **kwargs) -> None:
         argparse.Action.__init__(self, **kwargs)
@@ -50,10 +54,6 @@ class DataframeAction(argparse.Action):
     def add_dataframe(self, namespace, df):
         _add_dataframe(namespace, self.df_name, df)
 
-
-
-# class StreamId(x):
-#     return int(x)
 
 
 class LoadSinglePcap(DataframeAction):
@@ -74,33 +74,6 @@ class LoadSinglePcap(DataframeAction):
             setattr(namespace, self.dest, values)
 
         self.add_dataframe (namespace, df)
-
-# def with_argparser_test(argparser: argparse.ArgumentParser,
-#                    preserve_quotes: bool=False) -> Callable[[argparse.Namespace], Optional[bool]]:
-#     import functools
-
-#     # noinspection PyProtectedMember
-#     def arg_decorator(func: Callable[[cmd2.Statement], Optional[bool]]):
-#         @functools.wraps(func)
-#         def cmd_wrapper(instance, cmdline):
-#             lexed_arglist = cmd2.cmd2.parse_quoted_string(cmdline, preserve_quotes)
-#             return func(instance, argparser, lexed_arglist)
-
-#         # argparser defaults the program name to sys.argv[0]
-#         # we want it to be the name of our command
-#         # argparser.prog = func.__name__[len(COMMAND_FUNC_PREFIX):]
-
-#         # If the description has not been set, then use the method docstring if one exists
-#         if argparser.description is None and func.__doc__:
-#             argparser.description = func.__doc__
-
-#         # Set the command's help text as argparser.description (which can be None)
-#         # cmd_wrapper.__doc__ = argparser.description
-
-#         # Mark this function as having an argparse ArgumentParser
-#         setattr(cmd_wrapper, 'argparser', argparser)
-
-#         return cmd_wrapper
 
 #     return arg_decorator
 # def with_argparser(argparser: argparse.ArgumentParser,
@@ -153,6 +126,10 @@ def with_argparser_test(
     preserve_quotes: bool=False,
     preload_pcap: bool=False,
     ) -> Callable[[argparse.Namespace, List], Optional[bool]]:
+    """
+    Arguments:
+        preload_pcap: Use the preloaded pcap as a dataframe
+    """
     import functools
 
     # noinspection PyProtectedMember
@@ -203,7 +180,6 @@ class AppendDestination(DataframeAction):
     assume convention on naming
     """
 
-    # query
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
         # self.destinations = list(ConnectionRoles)
@@ -254,7 +230,8 @@ class MergePcaps(DataframeAction):
     """
     assume convention on naming
     """
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
         protocol: str, # mptcp or tcp ?
         loader = TsharkConfig(),
@@ -327,18 +304,13 @@ class MergePcaps(DataframeAction):
 #     def __
 
 # don't need the Mptcp flag anymore
-def exclude_stream(df_name, mptcp: bool = False):
-    query = "tcpstream"
-    if mptcp:
-        query = "mp" + query
-    query = query + "!={streamid}"
+def exclude_stream(df_name):
+    query = "{field}!={streamid}"
     return partial(FilterStream, query, df_name)
 
-def retain_stream(df_name, mptcp: bool = False):
-    query = "tcpstream"
-    if mptcp:
-        query = "mp" + query
-    query = query + "=={streamid}"
+# TODO va dependre du type en fait
+def retain_stream(df_name):
+    query = "{field}=={streamid}"
     return partial(FilterStream, query, df_name)
 
 
@@ -424,7 +396,6 @@ class FilterStream(DataframeAction):
     def __init__(self, query: str, df_name: str, **kwargs) -> None:
         # self.df_name = df_name
         self.query_tpl = query
-        # self.mptcp = mptcp
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -437,31 +408,32 @@ class FilterStream(DataframeAction):
         # make sure result
         df = namespace._dataframes[self.df_name]
 
-        # streamid = values
-
         log.debug("Filtering stream %s" % (values))
 
         # if type(values) != list:
         #     streamids = list(values)
+        print("received values %r" % values)
 
-        # TODO build a query
-        mptcp = False
         field = "tcpstream"
-        if isinstance(values, TcpStreamId):
-            pass
-
-        elif isinstance(values, MpTcpStreamId):
-            mptcp = True
+        if isinstance(values, MpTcpStreamId):
             field = "mptcpstream"
+            print("mptcp instance type ")
+        elif isinstance(values, TcpStreamId):
+            pass
         else:
-            parser.error("Unsupported type %s" % type(values))
+            parser.error("Unsupported 'type' %s. Set it to TcpStreamId or MpTcpStreamId" % type(values))
 
         # super(argparse.Action).__call__(parser, namespace, values, option_string)
         setattr(namespace, self.dest, values)
-        query = self.query_tpl.format(streamid=values)
+        query = self.query_tpl.format(field=field, streamid=values)
 
-        log.debug("Applying query %s" % query)
-        df.query(query, inplace=True)
+        log.log(mp.TRACE, "Applying query [%s]" % query)
+        print(df.head(5))
+        print(df.dtypes)
+
+        import pandas as pd
+        print("use numexpr?", pd.get_option('compute.use_numexpr', False))
+        df.query(query, inplace=True, )
 
 
 def gen_bicap_parser(protocol, dest=False):
@@ -550,12 +522,11 @@ def gen_pcap_parser(
                 #     help=argparse.SUPPRESS)
                 # merge_pcap.default = "TEST"
             else:
-                # print("PreprocessingActions.Merge:")
-                # TODO pas forcement
                 filterClass = FilterStream
                 _pcap(df_name, pcapAction=LoadSinglePcap,
                     filterAction=retain_stream(df_name,
-                    mptcp = bool(bitfield & PreprocessingActions.FilterMpTcpStream))
+                    # mptcp = bool(bitfield & PreprocessingActions.FilterMpTcpStream)
+                        )
                 )
 
             if bitfield & PreprocessingActions.FilterDestination or direction :
@@ -582,7 +553,7 @@ def gen_pcap_parser(
             if skip_subflows:
                 parser.add_argument(
                     '--skip', dest=df_name + "skipped_subflows", type=TcpStreamId,
-                    action=exclude_stream(df_name, mptcp=False),
+                    action=exclude_stream(df_name,),
                     default=[],
                     help=("You can type here the tcp.stream of a subflow "
                         "not to take into account (because"
@@ -600,8 +571,6 @@ class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
     like loading dataframes etc
 
     '''
-
-    # def __init__():
 
     # def _parse_known_args(self, arg_strings, namespace):
     def parse_known_args(self, args=None, namespace=None):

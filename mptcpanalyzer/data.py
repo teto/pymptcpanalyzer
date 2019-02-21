@@ -403,16 +403,7 @@ def load_into_pandas(
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
             log.debug("Dtypes before load: %s" % dtypes)
             log.debug("Converters before load: %s" % converters)
-            # test = pd.read_csv(
-            #     fd,
-            #     comment='#',
-            #     sep=config.delimiter,
-            #     nrows=1, # useful for debugging purpose
-            # )
-            # log.debug("Dtypes after load:%s\n" % dict(test.dtypes))
 
-            # https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
-            # print(test.columns)
             from .pdutils import read_csv_debug
             fields = [f.fullname for _, f in config.fields.items()]
             # data = read_csv_debug(fields,
@@ -528,29 +519,6 @@ def mptcpdest_from_connections(df, con: MpTcpConnection) -> pd.DataFrame:
         df.loc[df_dest.index, 'mptcpdest'] = dest
 
     return df
-
-    # for tcpdest in ConnectionRoles:
-
-    #     log.debug("Looking at tcpdestination %s" % tcpdest)
-
-    #     # pandas trick to avoid losing dtype
-    #     # see https://github.com/pandas-dev/pandas/issues/22361#issuecomment-413147667
-    #     # no need to set _second (as they are just opposite)
-    #     # TODO this should be done somewhere else
-    #     # else summary won't work
-    #     res[_first('tcpdest')][:] = tcpdest
-    #     res[_second('tcpdest')][:] = tcpdest
-
-    #     # generate_mptcp_direction_query
-    #     if isinstance(main_connection, MpTcpSubflow):
-
-    #         print("THIS IS A SUBFLOW")
-    #         mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
-    #         res[_first('mptcpdest')][:] = mptcpdest
-    #         res[_second('mptcpdest')][:] = mptcpdest
-
-    #         print("Setting mptcpdest to %s", mptcpdest)
-    #         # if tcpdest == main_connection.mptcpdest
 
 
 def tcpdest_from_connections(df, con: TcpConnection) -> pd.DataFrame:
