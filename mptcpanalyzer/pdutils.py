@@ -16,17 +16,52 @@ class TcpAccessor:
         return TcpConnection.build_from_dataframe(self._obj, streamid)
 
 
-def read_csv_debug(fields, fd, *args, **kwargs):
+def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
+    """
+    Help debugging dataframe loading errors (with dtypes/converters)
+    chunksize: bool, 
+    """
+
+    chunksize = kwargs.get("chunksize")
+
+    if first_try:
+        kwargs.pop("chunksize", None)
 
     for field in fields:
         print("TESTING field ", field)
-        data = pd.read_csv(
-            fd,
-            *args,
-            usecols=[ field],
-            **kwargs
-        )
-        fd.seek(0)
+        try:
+            res = pd.read_csv(
+                    fd,
+                    *args,
+                    usecols=[ field],
+                    **kwargs
+                )
+            if chunksize is not None:
+                for i, chunk in enumerate(res):
+                    # print("chunk %d" % i)
+                    print(chunk)
+        except TypeError as e:
+            # TODO retry with chunksize
+            if first_try:
+                kwargs.update({"chunksize":chunksize  or 4})
+                fd.seek(0)
+                read_csv_debug([field], fd, *args, first_try=False, **kwargs)
+            else:
+                print(fd.readlines(chunksize))
+                raise e
+
+        finally:
+
+            fd.seek(0)
+        # else:
+        #     data = pd.read_csv(
+        #         fd,
+        #         *args,
+        #         usecols=[ field],
+        #         **kwargs
+        #     )
+
+    # return data
 
 
 def filter_dataframe(
