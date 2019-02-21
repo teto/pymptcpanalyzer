@@ -60,7 +60,7 @@ def mptcp_compute_throughput(
     con = MpTcpConnection.build_from_dataframe(df, mptcpstreamid)
     q = con.generate_direction_query(destination)
     print("query q= %r" % q)
-    df = unidirectional_df = df.query(q)
+    df = unidirectional_df = df.query(q, engine="python")
 
     dsn_min = df.dss_dsn.min()
     dsn_max = df.dss_dsn.max()

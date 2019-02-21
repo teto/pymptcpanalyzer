@@ -433,7 +433,7 @@ class FilterStream(DataframeAction):
 
         import pandas as pd
         print("use numexpr?", pd.get_option('compute.use_numexpr', False))
-        df.query(query, inplace=True, )
+        df.query(query, inplace=True, engine="python")
 
 
 def gen_bicap_parser(protocol, dest=False):

@@ -398,7 +398,7 @@ class MpTcpConnection:
             query = "{field} == '{value}'".format(field=field, value=value)
 
             log.debug("Running query %s" % query)
-            dat = data.query(query)
+            dat = data.query(query, engine="python")
         return dat
 
 

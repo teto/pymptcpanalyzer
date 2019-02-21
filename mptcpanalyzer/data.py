@@ -514,7 +514,7 @@ def mptcpdest_from_connections(df, con: MpTcpConnection) -> pd.DataFrame:
 
         log.debug("Looking at mptcp destination %s" % dest)
         q = con.generate_direction_query(dest)
-        df_dest = df.query(q)
+        df_dest = df.query(q, engine="python")
         print("mptcpdest %r" % dest)
         df.loc[df_dest.index, 'mptcpdest'] = dest
 
@@ -527,7 +527,7 @@ def tcpdest_from_connections(df, con: TcpConnection) -> pd.DataFrame:
 
         log.debug("Looking at destination %s" % dest)
         q = con.generate_direction_query(dest)
-        df_dest = df.query(q)
+        df_dest = df.query(q, engine="python")
         print("tcpdest %r" % dest)
         df.loc[df_dest.index, 'tcpdest'] = dest
 
@@ -669,9 +669,9 @@ def merge_tcp_dataframes_known_streams(
 
         log.debug("Looking at tcpdestination %s" % tcpdest)
         q = main_connection.generate_direction_query(tcpdest)
-        h1_unidirectional_df = h1_df.query(q)
+        h1_unidirectional_df = h1_df.query(q, engine="python")
         q = mapped_connection.generate_direction_query(tcpdest)
-        h2_unidirectional_df = h2_df.query(q)
+        h2_unidirectional_df = h2_df.query(q, engine="python")
 
         res = map_tcp_packets(h1_unidirectional_df, h2_unidirectional_df)
 

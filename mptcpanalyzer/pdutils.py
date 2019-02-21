@@ -139,7 +139,7 @@ def filter_dataframe(
     # throws when querying with an empty query
     if len(query) > 0:
         log.info("Running query:\n%s\n" % query)
-        dataframe.query(query, inplace=True)
+        dataframe.query(query, inplace=True, engine="python")
 
     return dataframe
 
