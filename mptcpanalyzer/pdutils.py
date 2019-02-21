@@ -16,6 +16,12 @@ class TcpAccessor:
         return TcpConnection.build_from_dataframe(self._obj, streamid)
 
 
+def debug_dataframe(df, debug_cols, intro="Debugging dataframe", nrows=5):
+    '''
+    test
+    '''
+    print(df.head(nrows))
+
 
 # https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):

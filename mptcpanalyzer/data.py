@@ -691,7 +691,7 @@ def merge_tcp_dataframes_known_streams(
             res[_first('mptcpdest')][:] = mptcpdest
             res[_second('mptcpdest')][:] = mptcpdest
 
-            print("Setting mptcpdest to %s", mptcpdest)
+            log.debug("Setting mptcpdest to %s" % mptcpdest)
             # if tcpdest == main_connection.mptcpdest
 
         # TODO here we should
@@ -920,7 +920,11 @@ def map_tcp_packets_via_hash(
     """
     log.info("Merging packets via hash")
     debug_cols = ["packetid", "hash", "reltime"]
-    print(sender_df[debug_cols].head(20))
+
+    from .pdutils import debug_dataframe
+    print("sender_df")
+    debug_dataframe(sender_df)
+    print("Receiver df")
     print(receiver_df[debug_cols].head(20))
     # print("sender_df dtype=", sender_df.dtypes.tcpdest)
     # print("receiver_df dtype=", receiver_df.dtypes.tcpdest)
@@ -936,7 +940,7 @@ def map_tcp_packets_via_hash(
         # we want to know how many packets were not mapped correctly, adds the _merge column
         # can take values "left_only"/ "right_only" or both
         indicator=True,
-        validate="one_to_one",  # can slow process
+        # validate="one_to_one",  # can slow process
     )
 
     #print("hash-based Map")
