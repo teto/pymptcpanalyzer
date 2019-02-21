@@ -325,7 +325,6 @@ def load_merged_streams_into_pandas(
         print("res=")
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
-        # .head(40))
         with pd.option_context('float_format', '{:f}'.format):
             print(
                 res[_sender(["ipsrc", "ipdst", "abstime"]) + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
@@ -360,7 +359,6 @@ def load_into_pandas(
     """
     log.debug("Asked to load simple pcap %s" % input_file)
 
-    # pd.set_option('mode.sim_interactive', True)
     filename = getrealpath(input_file)
     cache = mp.get_cache()
 
@@ -434,7 +432,8 @@ def load_into_pandas(
                 # DON't user converters
                 converters=converters,
                 # float_precision="high",  # might be necessary
-                # nrows=4, # useful for debugging purpose
+                # nrows=13, # useful for debugging purpose
+                # chunksize=5, # useful for debugging purpose
             )
 
             log.debug("Finished loading CSV file")

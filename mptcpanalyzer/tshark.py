@@ -177,8 +177,8 @@ class TsharkConfig:
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
         self.add_field("ip.dst_host", "ipdst_host", str, False, False)
         self.add_field("tcp.stream", "tcpstream", 'Int64', False, False)
-        self.add_field("tcp.srcport", "sport", 'Int16', False, False)
-        self.add_field("tcp.dstport", "dport", 'Int16', False, False)
+        self.add_field("tcp.srcport", "sport", 'UInt16', False, False)
+        self.add_field("tcp.dstport", "dport", 'UInt16', False, False)
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", 'Int64', True, True)
@@ -186,9 +186,9 @@ class TsharkConfig:
         # should be a list, TODO set hash to true
         self.add_field("tcp.option_kind", "tcpoptions", None, False, False,
             functools.partial(_load_list, field="option_kind"), )
-        self.add_field("tcp.seq", "tcpseq", 'Int64', "TCP sequence number", True)
-        self.add_field("tcp.len", "tcplen", 'Int64', "TCP segment length", True)
-        self.add_field("tcp.ack", "tcpack", 'Int64', "TCP segment acknowledgment", True)
+        self.add_field("tcp.seq", "tcpseq", 'UInt32', "TCP sequence number", True)
+        self.add_field("tcp.len", "tcplen", 'UInt16', "TCP segment length", True)
+        self.add_field("tcp.ack", "tcpack", 'UInt32', "TCP segment acknowledgment", True)
         self.add_field("tcp.options.timestamp.tsval", "tcptsval", 'Int64',
             "TCP timestamp tsval", True)
         self.add_field("tcp.options.timestamp.tsecr", "tcptsecr", 'Int64',
@@ -197,25 +197,25 @@ class TsharkConfig:
     def add_mptcp_fields(self, advanced=True):
         # remove this one ?
         self.add_field("mptcp.expected_token", "expected_token", str, False, False)
-        self.add_field("mptcp.stream", "mptcpstream", 'Int64', False, False)
+        self.add_field("mptcp.stream", "mptcpstream", 'UInt64', False, False)
         self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False, True)
         self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False, True)
         self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False, True)
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", 'Int64', False, True)
         # this is a list really; can contain "2,4"
         self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)
-        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", 'Int64',
+        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", 'UInt64',
             "DSS Sequence Number", True)
-        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", 'Int64',
+        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", 'UInt64',
             "DSS raw ack", True)
-        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", 'Int64',
+        self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", 'UInt64',
             "DSS Subflow Sequence Number", True)
-        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", 'Int64',
+        self.add_field("tcp.options.mptcp.datalvllen", "dss_length", 'UInt64',
             "DSS length", True)
         self.add_field("tcp.options.mptcp.addrid", "addrid", None, False, True)
         self.add_field("mptcp.rawdsn64", "dsnraw64", 'UInt64', "Raw Data Sequence Number", False)
-        self.add_field("mptcp.ack", "dack", 'Int64', "MPTCP relative Ack", False)
-        self.add_field("mptcp.dsn", "dsn", 'Int64', "Data Sequence Number", False)
+        self.add_field("mptcp.ack", "dack", 'UInt64', "MPTCP relative Ack", False)
+        self.add_field("mptcp.dsn", "dsn", 'UInt64', "Data Sequence Number", False)
 
         if advanced:
             self.add_field("mptcp.related_mapping", "related_mappings", object, "DSS", False)
