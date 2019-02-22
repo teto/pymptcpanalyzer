@@ -128,7 +128,6 @@ def drop_syn(df: pd.DataFrame, mptcp: bool = True) -> pd.DataFrame:
     # syns = df[df.tcpflags == mp.TcpFlags.SYN]
 
     syn_index = df.tcpflags.where(lambda x: x & mp.TcpFlags.SYN).dropna()
-
     return df.drop(syn_index.Index)
 
 
@@ -259,7 +258,7 @@ def load_merged_streams_into_pandas(
                 fields = dict(tshark_config.fields)
                 fields.update(per_pcap_artificial_fields)
                 converters = {}
-                # no need to convert tcpflags
+                # tcpflags is already in good format
                 default_converters = {name: f.converter for name, f in fields.items()
                     if f.converter and name != "tcpflags"}
                 # converters.update({ name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
@@ -270,14 +269,13 @@ def load_merged_streams_into_pandas(
                 return converters
 
             with open(cachename) as fd:
-                dtypes = _gen_dtypes({name: field.type for name, field in tshark_config.fields.items()})
+                merge_dtypes = _gen_dtypes({name: field.type for name, field in tshark_config.fields.items() if field.converter is None})
                 converters = _gen_converters()
                 # more recent versions can do without it
-                # pd.set_option('display.max_rows', 200)
-                # pd.set_option('display.max_colwidth', -1)
                 # print("converters=", converters)
-                log.debug("Using dtypes %s" % dtypes)
-                log.debug("Using converters %s" % converters)
+                log.log(mp.TRACE, "Using dtypes %s" % merge_dtypes)
+                log.log(mp.TRACE, "Using converters %s" % converters)
+                # debug_dataframe()
                 merged_df = pd.read_csv(
                     fd,
                     skip_blank_lines=True,
@@ -285,7 +283,7 @@ def load_merged_streams_into_pandas(
                     # we don't need 'header' when metadata is with comment
                     sep=tshark_config.delimiter,
                     # memory_map=True, # could speed up processing
-                    dtype=dtypes,  # poping still generates
+                    dtype=merge_dtypes,  # poping still generates
                     converters=converters,
                 )
 
@@ -513,10 +511,10 @@ def mptcpdest_from_connections(df, con: MpTcpConnection) -> pd.DataFrame:
 
     for dest in ConnectionRoles:
 
-        log.debug("Looking at mptcp destination %s" % dest)
+        log.log(mp.TRACE, "Looking at mptcp destination %s" % dest)
         q = con.generate_direction_query(dest)
         df_dest = df.query(q, engine="python")
-        print("mptcpdest %r" % dest)
+        # print("mptcpdest %r" % dest)
         df.loc[df_dest.index, 'mptcpdest'] = dest
 
     return df
@@ -566,8 +564,8 @@ def convert_to_sender_receiver(
         min_h1 = subdf.iloc[0, subdf.columns.get_loc(_first('abstime'))]
         min_h2 = subdf.iloc[0, subdf.columns.get_loc(_second('abstime'))]
         # min_h2 = subdf[_second('abstime')][0]
-        print("min_h1 = %r" % min_h1)
-        print("min_h1 float = %f" % min_h1)
+        # print("min_h1 = %r" % min_h1)
+        # print("min_h1 float = %f" % min_h1)
 
 #         def _rename_columns(h1_role: ConnectionRoles):
 #             """
@@ -588,18 +586,18 @@ def convert_to_sender_receiver(
 
         # min_h1 = h1_df['abstime'].min()
         # min_h2 = h2_df['abstime'].min()
-        logging.debug("Comparing %f (h1) with %f (h2)" % (min_h1, min_h2))
+        log.debug("Comparing %f (h1) with %f (h2)" % (min_h1, min_h2))
         if min_h1 < min_h2:
-            logging.debug("Looks like h1 is the tcp client")
+            log.debug("Looks like h1 is the tcp client")
             # suffixes = { HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX }
             h1_role = ConnectionRoles.Client
 
         else:
-            logging.debug("Looks like h2 is the tcp client")
+            log.debug("Looks like h2 is the tcp client")
             # suffixes = { HOST2_SUFFIX: SENDER_SUFFIX, HOST1_SUFFIX: RECEIVER_SUFFIX }
             h1_role = (ConnectionRoles.Server)
 
-        print("renaming")
+        # print("renaming")
         # _rename_columns(role)
         for tcpdest, tdf in subdf.groupby(_first("tcpdest"), sort=False):
             if tcpdest == h1_role:
@@ -608,14 +606,14 @@ def convert_to_sender_receiver(
                 suffixes = {HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX}
 
             rename_func = functools.partial(_rename_column, suffixes=suffixes)
-            print("renaming inplace")
+            log.log(mp.TRACE, "renaming inplace")
 
             tdf.rename(columns=rename_func, inplace=True)
             total = pd.concat([total, tdf], ignore_index=True)
 
         # subdf[ _first("tcpdest") == ConnectionRole.Client] .rename(columns=_rename_cols, inplace=True)
-        print(subdf.columns)
-        print(total.columns)
+        # print(subdf.columns)
+        # print(total.columns)
 
     logging.debug("Converted to sender/receiver format")
     return total

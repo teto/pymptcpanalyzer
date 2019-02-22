@@ -691,15 +691,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 return
 
             # TODO display goodput/ratio
+            # TODO display direction
             total_transferred = stats.mptcp_throughput_bytes
-            msg = """mptcpstream {c.mptcpstreamid} throughput/goodput {c.mptcp_throughput_bytes}/{c.mptcp_goodput_bytes}"""
-            # self.poutput(msg.format(c=stats))
+            msg = ("mptcpstream {c.mptcpstreamid} towards {destination} forwarded "
+                   "{c.mptcp_throughput_bytes} bytes with a goodput of {c.mptcp_goodput_bytes}")
+            self.poutput(msg.format(c=stats, destination=destination))
 
             for subflow in stats.subflow_stats:
 
-                # TODO unused
-                # TODO display as a percentage !!
-                # subflow_load = sf.throughput_bytes/stats.mptcp_throughput_bytes
+                # TODO print subflow
                 msg = inspect.cleandoc("""
                 tcpstream {sf.tcpstreamid} analysis:
                 - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes}, accounting for {mptcp_tput_ratio:.2f}%
@@ -753,9 +753,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
     parser = MpTcpAnalyzerParser(
-        description="""
-            Export a pcap that can be used with wireshark to debug ids
-        """
+        description="Export a pcap that can be used with wireshark to debug ids"
     )
     load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
     setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
@@ -789,10 +787,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     )
     parser.add_argument("--csv", action="store", default=None,
         help="Machine readable summary.")
-    parser.epilog = '''
+    parser.epilog = inspect.cleandoc('''
     You can run for example:
         map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
-    '''
+    ''')
     @with_argparser(parser)
     @experimental
     def do_print_owds(self, args):

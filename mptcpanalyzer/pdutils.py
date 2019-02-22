@@ -27,6 +27,8 @@ def debug_dataframe(
     '''
     # if use_cols is None:
     #     use_cols=[]
+    # pd.set_option('display.max_rows', 200)
+    # pd.set_option('display.max_colwidth', -1)
     print(df.info())
     # print(df.columns)
     print(df.dtypes)
