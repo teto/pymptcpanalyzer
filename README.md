@@ -10,6 +10,16 @@
 | DOI | [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)|
 [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
+
+
+<!-- BEGIN-MARKDOWN-TOC -->
+* [Presentation](#presentation)
+* [Installation](#installation)
+* [FAQ](#faq)
+* [Related tools](#related_tools)
+
+<!-- END-MARKDOWN-TOC -->
+
 Presentation
 ===
 
@@ -40,10 +50,8 @@ You can reference mptcpanalyzer via the following Digital Object Identifier:
 [![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
 
 # Table of Contents
-[How to install](#How-to-install)
-[Faq](#FAQ)
 
-# How to install ?
+# Installation
 
 First of all you will need a wireshark version that supports my MPTCP patches.
 See the [next section](#Required-wireshark-version) to check for requirements.
@@ -166,12 +174,16 @@ mptcpanalyzer
 
 
 
-# Similar tools
+# Related tools
 
 If I have forgotten about your tool, file an issue, for know we are aware of:
 - [mptcptrace] with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
 - [mptcpplot] with [generated output example](https://roland.grc.nasa.gov/~jishac/mptcpplot/)
 
+| Tool             | Description                                                                       |
+|------------------------|-------------------------------------------------------------------------------|
+| mptcptrace             | C based                                               |
+| mptcpplot       | C based developed at NASA                                                 |
 
 [mptcptrace]: https://bitbucket.org/bhesmans/mptcptrace
 [mptcpplot]: https://github.com/nasa/multipath-tcp-tools/
