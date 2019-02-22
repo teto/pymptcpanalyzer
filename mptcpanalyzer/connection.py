@@ -466,13 +466,26 @@ class MpTcpConnection:
         return res
 
 
+# TODO replace with dataclass
 TcpMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
-
 
 MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float),
     # make it a dict rather
         ("subflow_mappings", List[Tuple[MpTcpSubflow,TcpMapping]])
     ])
+
+# @dataclass
+# class MpTcpMapping:
+#     mapped: MpTcpConnection
+#     score: float
+#     subflow_mappings: List[Tuple[MpTcpSubflow,TcpMapping]]
+
+
+# @dataclass
+# class TcpMapping:
+#     mapped: TcpConnection
+#     score: float
+
 
 # MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
 

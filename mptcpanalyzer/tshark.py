@@ -199,8 +199,8 @@ class TsharkConfig:
         self.add_field("mptcp.expected_token", "expected_token", str, False, False)
         self.add_field("mptcp.stream", "mptcpstream", 'UInt64', False, False)
         self.add_field("tcp.options.mptcp.sendkey", "sendkey", np.float64, False, True)
-        self.add_field("tcp.options.mptcp.recvkey", "recvkey", None, False, True)
-        self.add_field("tcp.options.mptcp.recvtok", "recvtok", None, False, True)
+        self.add_field("tcp.options.mptcp.recvkey", "recvkey", np.float64, False, True)
+        self.add_field("tcp.options.mptcp.recvtok", "recvtok", np.float64, False, True)
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", 'Int64', False, True)
         # this is a list really; can contain "2,4"
         self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)

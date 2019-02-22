@@ -247,8 +247,8 @@ def load_merged_streams_into_pandas(
                 dtypes.update({
                     # during the merge, we join even unmapped packets so some entries
                     # may be empty => float64
-                    _first("packetid"): tshark_config.fields["packetid"].dtype,
-                    _second("packetid"): tshark_config.fields["packetid"].dtype,
+                    _first("packetid"): tshark_config.fields["packetid"].type,
+                    _second("packetid"): tshark_config.fields["packetid"].type,
                 })
 
                 return dtypes
@@ -322,13 +322,14 @@ def load_merged_streams_into_pandas(
         logging.debug("Computing owds")
         log.debug("Column names: %s", res.columns)
         log.debug("Dtypes after load:%s\n" % dict(res.dtypes))
-        print("res=")
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
-        with pd.option_context('float_format', '{:f}'.format):
-            print(
-                res[_sender(["ipsrc", "ipdst", "abstime"]) + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
-            )
+
+        # debug_dataframe("owd", res)
+        # with pd.option_context('float_format', '{:f}'.format):
+        #     print(
+        #         res[_sender(["ipsrc", "ipdst", "abstime"]) + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
+        #     )
 
     except Exception:
         logging.exception("exception happened while merging")
@@ -922,10 +923,9 @@ def map_tcp_packets_via_hash(
     debug_cols = ["packetid", "hash", "reltime"]
 
     from .pdutils import debug_dataframe
-    print("sender_df")
-    debug_dataframe(sender_df)
-    print("Receiver df")
-    print(receiver_df[debug_cols].head(20))
+    debug_dataframe(sender_df, "sender_df", )
+    debug_dataframe(receiver_df, "receiver df")
+    # print(receiver_df[debug_cols].head(20))
     # print("sender_df dtype=", sender_df.dtypes.tcpdest)
     # print("receiver_df dtype=", receiver_df.dtypes.tcpdest)
 
@@ -940,6 +940,7 @@ def map_tcp_packets_via_hash(
         # we want to know how many packets were not mapped correctly, adds the _merge column
         # can take values "left_only"/ "right_only" or both
         indicator=True,
+        # TODO reestablish
         # validate="one_to_one",  # can slow process
     )
 
@@ -947,8 +948,8 @@ def map_tcp_packets_via_hash(
     ## print(sender_df[['hash', 'packetid']].head(20))
     ## print(receiver_df[['hash', 'packetid']].head(20))
 
-    print("Just after hash")
-    print(res.columns)
+    log.debug("Just after hash")
+    log.debug(res.columns)
     # print(res[TCP_DEBUG_FIELDS].head(20))
     return res
 

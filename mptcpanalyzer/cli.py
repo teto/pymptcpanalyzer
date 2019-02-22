@@ -19,6 +19,7 @@ import logging
 import os
 import subprocess
 import functools
+import inspect
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
@@ -186,11 +187,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.allow_redirection = True  # allow pipes in commands
         self.default_to_shell = False
         self.debug = True  # for now
-        self.set_posix_shlex = True  # need cmd2 >= 0.8
+        self.set_posix_shlex = True
 
         # Pandas specific initialization
         # for as long as https://github.com/pydata/numexpr/issues/331 is a problem
+        # does not seem to work :s
         pd.set_option('compute.use_numexpr', False)
+        pd.set_option('display.max_info_columns', 5)  # verbose dataframe.info
         print("use numexpr?", pd.get_option('compute.use_numexpr', False))
 
         #  Load Plots
@@ -452,6 +455,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser.add_argument('-v', '--verbose', dest="verbose", default=False, action="store_true",
                         help="display all candidates")
 
+    parser.epilog = '''
+        For example run:
+        > map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
+    '''
     @with_argparser(parser)
     @with_category(CAT_MPTCP)
     @experimental
@@ -633,9 +640,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser.description = """
         Look into more details of an mptcp connection
         """
-    sumext_parser.epilog = """
-        summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
-        """
+    sumext_parser.epilog = inspect.cleandoc("""
+        > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
+    """)
 
     @with_argparser_test(sumext_parser, preload_pcap=True) # type: ignore
     def do_summary_extended(self, args, unknown):
@@ -644,7 +651,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        print("%r" % args)
+        # print("%r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
@@ -679,8 +686,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             if args.json:
                 import json
-                # TODO use self.poutput
-                # or use a stream, it must just be testable
                 val = json.dumps(dataclasses.asdict(stats), ensure_ascii=False)
                 self.poutput(val)
                 return
@@ -688,22 +693,25 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # TODO display goodput/ratio
             total_transferred = stats.mptcp_throughput_bytes
             msg = """mptcpstream {c.mptcpstreamid} throughput/goodput {c.mptcp_throughput_bytes}/{c.mptcp_goodput_bytes}"""
-            self.poutput(msg.format(c=stats))
+            # self.poutput(msg.format(c=stats))
 
             for subflow in stats.subflow_stats:
 
                 # TODO unused
                 # TODO display as a percentage !!
                 # subflow_load = sf.throughput_bytes/stats.mptcp_throughput_bytes
-                msg = """
+                msg = inspect.cleandoc("""
                 tcpstream {sf.tcpstreamid} analysis:
-                - throughput: transferred out of {mptcp.mptcp_throughput_bytes}, accounting for {sf.throughput_contribution}
-                - goodput: transferred {sf.mptcp_goodput} out of {mptcp.mptcp_goodput_bytes}, accounting for {sf.goodput_contribution:.2f}
-                """
+                - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes}, accounting for {mptcp_tput_ratio:.2f}%
+                - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}%""")
 
-                print(subflow)
+                # print(subflow)
                 self.poutput(
-                    msg.format(mptcp=stats, sf=subflow)
+                    msg.format(
+                        mptcp=stats, sf=subflow,
+                        mptcp_tput_ratio=subflow.throughput_contribution * 100,
+                        mptcp_gput_ratio=subflow.goodput_contribution * 100,
+                    )
                 )
 
     @is_loaded
@@ -765,8 +773,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     # TODO it should be able to print for both
     parser = gen_bicap_parser("tcp", True)
-    parser.description = """This function tries merges a tcp stream from 2 pcaps
-                        in an attempt to print owds. See map_tcp_connection first maybe."""
+    parser.description = inspect.cleandoc("""
+        This function tries merges a tcp stream from 2 pcaps
+        in an attempt to print owds. See map_tcp_connection first maybe.
+    """)
 
     # TODO add a limit of packets or use ppaged()
     # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"],

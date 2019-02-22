@@ -24,11 +24,15 @@ class TcpStats:
     tcpstreamid: TcpStreamId
     throughput_bytes: int
     tcp_goodput: int = None # ex tcp_goodput
-    mptcp_goodput: int = None
-    # TODO attach metadata
+    mptcp_goodput_bytes: int = None
+    # TODO convert to property ?
     throughput_contribution: float = None
     # throughput_contribution: int = field(default=None, metadata={'unit': '%'})
     goodput_contribution: float = None  # %
+
+    # @property
+    # def throughput_contribution(self):
+    #     return self.througput_bytes
 
 @dataclass
 class MpTcpStats:
@@ -59,7 +63,7 @@ def mptcp_compute_throughput(
 
     con = MpTcpConnection.build_from_dataframe(df, mptcpstreamid)
     q = con.generate_direction_query(destination)
-    print("query q= %r" % q)
+    # print("query q= %r" % q)
     df = unidirectional_df = df.query(q, engine="python")
 
     dsn_min = df.dss_dsn.min()
@@ -97,8 +101,8 @@ def mptcp_compute_throughput_extended(
 
     df = df_both[df_both.mptcpdest == destination]
 
-    print(stats.subflow_stats)
-    print(df.columns)
+    # print(stats.subflow_stats)
+    # print(df.columns)
 
     stats.mptcp_goodput_bytes = df.loc[df.redundant == False, "tcplen"].sum()
     for sf in stats.subflow_stats:
@@ -120,20 +124,20 @@ def mptcp_compute_throughput_extended(
         # tcplen == 
         # _first / _second
         # or .loc
-        print ("DF.head")
-        print (df.head())
+        # print ("DF.head")
+        # print (df.head())
         # print ("columns", df.columns)
         non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
-        print(non_redundant_pkts)
-        mptcp_goodput = non_redundant_pkts.sum()
-        print("mptcp_goodput" , mptcp_goodput)
+        # print(non_redundant_pkts)
+        mptcp_goodput_bytes = non_redundant_pkts.sum()
+        # print("mptcp_goodput" , mptcp_goodput)
         sf_mptcp_throughput = tcp_throughput
 
         sf.tcp_goodput = tcp_goodput;
-        sf.mptcp_goodput = mptcp_goodput  # cumulative sum of nonredundant dsn packets
+        sf.mptcp_goodput_bytes = mptcp_goodput_bytes  # cumulative sum of nonredundant dsn packets
 
         # can be > 1 in case of redundant packets
         sf.throughput_contribution = sf_mptcp_throughput/stats.mptcp_throughput_bytes
-        sf.goodput_contribution = mptcp_goodput/stats.mptcp_goodput_bytes
+        sf.goodput_contribution = mptcp_goodput_bytes/stats.mptcp_goodput_bytes
 
     return  stats
