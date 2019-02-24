@@ -1,8 +1,11 @@
 from typing import List, Any, Tuple, Dict, Callable, Union
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from mptcpanalyzer import ConnectionRoles
-from mptcpanalyzer.data import classify_reinjections
+import mptcpanalyzer as mp
+from mptcpanalyzer.data import classify_reinjections, tcpdest_from_connections
 from mptcpanalyzer import _sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcpException
+from mptcpanalyzer.pdutils import debug_dataframe
+
 import math
 import logging
 from dataclasses import dataclass, field
@@ -19,9 +22,11 @@ https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
 log = logging.getLogger(__name__)
 
 
+# These should be unidirection
 @dataclass
-class TcpStats:
+class TcpUnidirectionalStats:
     tcpstreamid: TcpStreamId
+    # bytes: int
     throughput_bytes: int
     tcp_goodput: int = None # ex tcp_goodput
     mptcp_goodput_bytes: int = None
@@ -35,10 +40,10 @@ class TcpStats:
     #     return self.througput_bytes
 
 @dataclass
-class MpTcpStats:
+class MpTcpUnidirectionalStats:
     mptcpstreamid: MpTcpStreamId
     mptcp_goodput_bytes: int
-    subflow_stats: List[TcpStats]
+    subflow_stats: List[TcpUnidirectionalStats]
     # TODO rename to global ?
     # mptcp_goodput_bytes: int = None
 
@@ -47,9 +52,46 @@ class MpTcpStats:
         return sum(map(lambda x: x.throughput_bytes, self.subflow_stats))
 
 
+def tcp_get_stats(
+    rawdf,
+    tcpstreamid: TcpStreamId,
+    mptcp=False
+    ):
+    # -> Tuple[TcpUnidirectionalStats, TcpUnidirectionalStats]:
+    df = rawdf[rawdf.tcpstream == tcpstreamid]
+    if df.empty:
+        raise MpTcpException("No packet with tcp.stream == %d" % tcpstreamid)
+
+    con = TcpConnection.build_from_dataframe(df, tcpstreamid)
+
+    df2 = tcpdest_from_connections(df, con)
+    # q = con.generate_direction_query(destination)
+    # df = unidirectional_df = df.query(q, engine="python")
+    # return (TcpUnidirectionalStats(),  TcpUnidirectionalStats() )
+    res = { }
+    debug_dataframe(df2, "before connection", )
+    for destination in ConnectionRoles:
+        log.log(mp.TRACE, "looking at role %s" % destination)
+        print(df2["tcpdest"])
+        sdf = df2[df2.tcpdest == destination]
+        bytes_transferred = sdf["tcplen"].sum()
+        # sdf["tcplen"].sum()
+        print("bytes  bytes_transferred ")
+
+
+        if mptcp:
+            print("do some extra work")
+
+
+        res[destination] = TcpUnidirectionalStats(bytes_transferred, 0, 0)
+
+
+    return res
+
+
 def mptcp_compute_throughput(
     rawdf, mptcpstreamid: MpTcpStreamId, destination: ConnectionRoles
-) -> MpTcpStats:
+) -> MpTcpUnidirectionalStats:
     """
     Very raw computation: substract highest dsn from lowest by the elapsed time
 
@@ -70,16 +112,18 @@ def mptcp_compute_throughput(
     dsn_max = df.dss_dsn.max()
     total_transferred = dsn_max - dsn_min
     d = df.groupby(_sender('tcpstream'))
-    subflow_stats: List[TcpStats] = []
+    subflow_stats: List[TcpUnidirectionalStats] = []
     for tcpstream, group in d:
+        tcp_get_stats(df, tcpstream, True)
+
         # TODO drop retransmitted
         subflow_load = group.drop_duplicates(subset="dss_dsn").dss_length.sum()
         subflow_load = subflow_load if not math.isnan(subflow_load) else 0
         subflow_stats.append(
-            TcpStats(tcpstreamid=tcpstream, throughput_bytes=int(subflow_load))
+            TcpUnidirectionalStats(tcpstreamid=tcpstream, throughput_bytes=int(subflow_load))
         )
 
-    return MpTcpStats(
+    return MpTcpUnidirectionalStats(
         mptcpstreamid=mptcpstreamid,
         mptcp_goodput_bytes=total_transferred,
         subflow_stats=subflow_stats,
@@ -89,9 +133,9 @@ def mptcp_compute_throughput(
 # TODO rename goodput
 def mptcp_compute_throughput_extended(
     rawdf,  # need the rawdf to classify_reinjections
-    stats: MpTcpStats,  # result of mptcp_compute_throughput
+    stats: MpTcpUnidirectionalStats,  # result of mptcp_compute_throughput
     destination: ConnectionRoles,
-) -> MpTcpStats:
+) -> MpTcpUnidirectionalStats:
     """
     df expects an extended dataframe
 

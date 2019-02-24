@@ -110,8 +110,6 @@ class ConnectionRoles(Enum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
     Parser should accept --destination Client --destination Server if you want both.
-
-    TODO: convert back to enum, that was done for bad reasons
     """
     Client = auto()
     Server = auto()

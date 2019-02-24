@@ -34,7 +34,8 @@ from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, \
     ConnectionRoles, swap_role
 import mptcpanalyzer.cache as mc
-from mptcpanalyzer.statistics import mptcp_compute_throughput, mptcp_compute_throughput_extended
+from mptcpanalyzer.statistics import mptcp_compute_throughput, mptcp_compute_throughput_extended, \
+    tcp_get_stats
 import mptcpanalyzer as mp
 from mptcpanalyzer import PreprocessingActions
 import stevedore
@@ -507,6 +508,34 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             self.poutput(formatted_output)
 
+
+
+    summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
+    action_stream = summary_parser.add_argument(
+        "tcpstream", type=TcpStreamId, action=mp.parser.retain_stream("pcap"),
+        help="tcp.stream id")
+    summary_parser.epilog = inspect.cleandoc('''
+    Similar to wireshark's "Follow -> TCP stream"
+    ''')
+    @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
+    @is_loaded
+    def do_tcp_summary(self, args, unknown):
+        print("Summary of TCP connection " )
+        df = self.data
+        # tcpstream = args.tcpstream
+
+        # args.pcapdestinations ?
+        print(args)
+        res = tcp_get_stats(
+            self.data, args.tcpstream,
+            # args.destination
+        )
+
+        for dest in ConnectionRoles:
+
+            print("TEMP")
+            print(res[dest])
+
     summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
     action_stream = summary_parser.add_argument(
         "mptcpstream", type=MpTcpStreamId, action=mp.parser.retain_stream("pcap"),
@@ -528,17 +557,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
     @is_loaded
-    def do_summary(self, args, unknown):
+    def do_mptcp_summary(self, args, unknown):
         """
         Naive summary contributions of the mptcp connection
         See summary_extended for more details
         """
 
         df = self.data
-
-        # myNs = Namespace()
-        # myNs._dataframes = { "pcap": self.data }
-        # args = parser.parse_args(args, myNs)
         mptcpstream = args.mptcpstream
 
         # args.pcapdestinations ?
@@ -566,6 +591,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 tcpstream, sf_tput=sf_bytes, mptcp_tput=mptcp_transferred,
                 tput_ratio=subflow_load*100
             ))
+
+
+
 
     parser = gen_pcap_parser({"pcap": PreprocessingActions.Preload})
     parser.description = "Export connection(s) to CSV"
@@ -764,8 +792,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         toto
         """
-        self.poutput("Exporting a clean version of {} in {}".format(
-            args.imported_pcap, args.exported_pcap))
+        msg = "Exporting a clean version of {} in {}"
+        self.poutput(msg.format(args.imported_pcap, args.exported_pcap))
 
         self.tshark_config.filter_pcap(args.imported_pcap, args.exported_pcap)
 

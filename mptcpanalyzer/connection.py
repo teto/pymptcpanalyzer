@@ -43,21 +43,6 @@ class TcpConnection:
     isn: int = None
 
 
-    # def __init__(
-    #     self,
-    #     tcpstreamid: int,
-    #     tcpclientip, tcpserverip,
-    #     client_port: int, server_port: int,
-    #     **kwargs
-    # ) -> None:
-    #     self.tcpstreamid = tcpstreamid
-    #     self.tcpclient_ip = tcpclientip
-    #     self.tcpserver_ip = tcpserverip
-    #     self.server_port = server_port
-    #     self.client_port = client_port
-    #     self.isn = kwargs.get('isn')
-
-
     def generate_direction_query(self, tcpdest: ConnectionRoles) -> str:
         """
         Filter packets according to the tcp notion of client/server destination
@@ -291,11 +276,6 @@ class MpTcpConnection:
         """
         queries = []
         for sf in self.subflows():
-            # we need to check the tcp destination to match the mptcp one
-            # tcpdest = mptcpdest
-            # if sf.mptcpdest != mptcpdest:
-            #     # TODO tester ca in REPL ?
-            #     tcpdest = swap_role(mptcpdest)
 
             q = " (" + sf.generate_mptcp_direction_query(mptcpdest) + ") "
             queries.append(q)

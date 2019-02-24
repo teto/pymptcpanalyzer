@@ -17,7 +17,7 @@ class TcpAccessor:
 
 
 def debug_dataframe(
-        df,
+        df: pd.DataFrame,
         msg,
         use_cols=None,
         intro="Debugging dataframe", nrows=5
