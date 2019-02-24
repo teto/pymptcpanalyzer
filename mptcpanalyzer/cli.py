@@ -510,31 +510,33 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
 
-    summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
+    summary_parser = MpTcpAnalyzerParser(
+        description="Prints a summary of the mptcp connection"
+    )
     action_stream = summary_parser.add_argument(
         "tcpstream", type=TcpStreamId, action=mp.parser.retain_stream("pcap"),
         help="tcp.stream id")
     summary_parser.epilog = inspect.cleandoc('''
-    Similar to wireshark's "Follow -> TCP stream"
+        Similar to wireshark's "Follow -> TCP stream"
     ''')
     @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
     @is_loaded
     def do_tcp_summary(self, args, unknown):
         print("Summary of TCP connection " )
         df = self.data
-        # tcpstream = args.tcpstream
 
         # args.pcapdestinations ?
-        print(args)
-        res = tcp_get_stats(
-            self.data, args.tcpstream,
-            # args.destination
-        )
+        # print(args)
 
         for dest in ConnectionRoles:
+            res = tcp_get_stats(
+                self.data, args.tcpstream,
+                dest,
+                False
+            )
 
             print("TEMP")
-            print(res[dest])
+            print(res)
 
     summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
     action_stream = summary_parser.add_argument(
@@ -626,21 +628,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
 
         df = self.data
-        # TODO let the parser do it
-        # if args.tcpstream:
-        #     # df = df[ df.tcpstream == args.tcpstream]
-
-        #     self.poutput("Filtering tcpstream")
-        #     con = TcpConnection.build_from_dataframe(df, args.tcpstream)
-        #     if args.destination:
-        #         self.poutput("Filtering destination")
-        #         q = con.generate_direction_query(args.destination)
-        #         df = df.query(q)
-
-        # elif args.mptcpstream:
-        #     self.poutput("Unsupported yet")
-            # df = df[ df.mptcpstream == args.mptcpstream]
-
         # need to compute the destinations before dropping syn from the dataframe
         # df['tcpdest'] = np.nan;
         for streamid, subdf in df.groupby("tcpstream"):
@@ -672,7 +659,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
 
-    @with_argparser_test(sumext_parser, preload_pcap=True) # type: ignore
+    @with_argparser_test(sumext_parser, preload_pcap=False) # type: ignore
     def do_summary_extended(self, args, unknown):
         """
         Summarize contributions of each subflow
@@ -683,6 +670,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
+        # destinations = [ ConnectionRoles.Server ];
         destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
 
@@ -692,7 +680,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 # TODO here we should load the pcap before hand !
                 df_pcap1,
                 args.pcap1stream,
-                destinations,
+                destination,
             )
 
             # TODO already be done
@@ -705,6 +693,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 True,
                 self.tshark_config
             )
+
+
+            print("DEBUG")
+            for subflow in basic_stats.subflow_stats:
+                print(subflow)
 
             stats = mptcp_compute_throughput_extended(
                 df,
