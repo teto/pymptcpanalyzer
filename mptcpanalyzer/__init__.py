@@ -94,7 +94,7 @@ class MpTcpOptions(IntEnum):
     MP_JOIN    = 1
     MP_DSS =  2
     MP_ADD_ADDR =  3
-    MP_REMOVE_ADDR = 4 
+    MP_REMOVE_ADDR = 4
     MP_PRIO = 5
     MP_FAIL = 6
     MP_FASTCLOSE = 7

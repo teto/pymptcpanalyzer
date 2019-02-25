@@ -1,4 +1,5 @@
 import logging
+import pprint
 import pandas as pd
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 from mptcpanalyzer.data import (load_into_pandas, tcpdest_from_connections, mptcpdest_from_connections,
@@ -6,6 +7,8 @@ from mptcpanalyzer.data import (load_into_pandas, tcpdest_from_connections, mptc
 
 
 log = logging.getLogger(__name__)
+
+pp = pprint.PrettyPrinter(indent=4)
 
 @pd.api.extensions.register_dataframe_accessor("tcp")
 class TcpAccessor:
@@ -29,9 +32,11 @@ def debug_dataframe(
     #     use_cols=[]
     # pd.set_option('display.max_rows', 200)
     # pd.set_option('display.max_colwidth', -1)
+    # verbose=True
     print(df.info())
     # print(df.columns)
-    print(df.dtypes)
+    # print(df.dtypes)
+    pp.pformat(df.dtypes))
     with pd.option_context('float_format', '{:f}'.format):
         print(df.head(nrows))
 
