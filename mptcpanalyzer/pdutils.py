@@ -36,7 +36,7 @@ def debug_dataframe(
     print(df.info())
     # print(df.columns)
     # print(df.dtypes)
-    pp.pformat(df.dtypes))
+    pp.pformat(df.dtypes)
     with pd.option_context('float_format', '{:f}'.format):
         print(df.head(nrows))
 

@@ -3,9 +3,9 @@ from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnectio
 from mptcpanalyzer import ConnectionRoles
 import mptcpanalyzer as mp
 from mptcpanalyzer.data import classify_reinjections, tcpdest_from_connections
-from mptcpanalyzer import _sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcpException
+from mptcpanalyzer import (_sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcpException,
+    _first, _second)
 from mptcpanalyzer.pdutils import debug_dataframe
-
 import math
 import logging
 from dataclasses import dataclass, field
@@ -135,7 +135,10 @@ def mptcp_compute_throughput(
     d = df.groupby(_sender('tcpstream'))
     subflow_stats: List[TcpUnidirectionalStats] = []
     for tcpstream, subdf in d:
-        sf_stats = tcp_get_stats(subdf, tcpstream, subdf["tcpdest"] , True)
+        # subdf.iloc[0, subdf.columns.get_loc(_second('abstime'))]
+        sf_stats = tcp_get_stats(subdf, tcpstream, 
+            subdf.iloc[0, subdf.columns.get_loc(_first('tcpdest'))],
+        True)
 
         # TODO drop retransmitted
         # assumes that dss.
@@ -145,7 +148,6 @@ def mptcp_compute_throughput(
         # subflow_load = subdf.drop_duplicates(subset="dss_dsn").dss_length.sum()
         # subflow_load = subflow_load if not math.isnan(subflow_load) else 0
 
-        # 
         sf_stats.mptcp_goodput_bytes = sf_dsn_max - sf_dsn_min - 1
 
         subflow_stats.append(

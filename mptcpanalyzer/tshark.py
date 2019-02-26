@@ -34,7 +34,7 @@ def _load_list(x, field="set field to debug"):
     """
     Contrary to _convert_to_list
     """
-    logger.log(mp.TRACE, "Load field %s list %r" % (field, x))
+    # logger.log(mp.TRACE, "Load field %s list %r" % (field, x))
     if x is None or len(x) == 0:
         return np.nan
 
