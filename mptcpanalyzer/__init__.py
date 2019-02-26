@@ -106,7 +106,7 @@ class MpTcpStreamId(int):
     pass
 
 # Keep it as Enum so that it gets serialized as a string in the CSV
-class ConnectionRoles(Enum):
+class ConnectionRoles(IntEnum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
     Parser should accept --destination Client --destination Server if you want both.

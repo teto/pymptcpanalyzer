@@ -79,7 +79,7 @@ def tcp_get_stats(
     # res = { }
     # debug_dataframe(df2, "before connection", )
     # for destination in ConnectionRoles:
-    log.log(mp.TRACE, "looking at role %s" % destination)
+    log.log(mp.TRACE, "Looking at role %s" % destination)
     # print(df2["tcpdest"])
     # TODO assume it's already filtered ?
     sdf = df2[df2.tcpdest == destination]
@@ -136,8 +136,9 @@ def mptcp_compute_throughput(
     subflow_stats: List[TcpUnidirectionalStats] = []
     for tcpstream, subdf in d:
         # subdf.iloc[0, subdf.columns.get_loc(_second('abstime'))]
-        sf_stats = tcp_get_stats(subdf, tcpstream, 
-            subdf.iloc[0, subdf.columns.get_loc(_first('tcpdest'))],
+        debug_dataframe(subdf, "subdf")
+        sf_stats = tcp_get_stats(subdf, tcpstream,
+            subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))],
         True)
 
         # TODO drop retransmitted

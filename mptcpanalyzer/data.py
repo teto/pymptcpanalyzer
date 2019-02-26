@@ -17,6 +17,7 @@ import tempfile
 import pprint
 from enum import Enum, auto
 import functools
+from mptcpanalyzer.pdutils import debug_dataframe
 
 log = logging.getLogger(__name__)
 
@@ -136,7 +137,7 @@ def drop_syn(df: pd.DataFrame, mptcp: bool = True) -> pd.DataFrame:
 def load_merged_streams_into_pandas(
     pcap1: str,
     pcap2: str,
-    streamid1: int,  # Union[MpTcpStreamId, TcpStreamId],
+    streamid1: int,
     streamid2: int,
     mptcp: bool,
     tshark_config: TsharkConfig,
@@ -278,9 +279,8 @@ def load_merged_streams_into_pandas(
                 converters = _gen_converters()
                 # more recent versions can do without it
                 # print("converters=", converters)
-                log.log(mp.TRACE, "Using dtypes %s" % merge_dtypes)
-                log.log(mp.TRACE, "Using converters %s" % converters)
-                # debug_dataframe()
+                log.log(mp.TRACE, "Using dtypes %s" % pp.pformat(merge_dtypes))
+                log.log(mp.TRACE, "Using converters %s" % (pp.pformat(converters)))
                 merged_df = pd.read_csv(
                     fd,
                     skip_blank_lines=True,
@@ -291,11 +291,10 @@ def load_merged_streams_into_pandas(
                     dtype=merge_dtypes,  # poping still generates
                     converters=converters,
                 )
+                # at this stage, destinatiosn are nan
+                debug_dataframe(merged_df, "Merged dataframe", )
 
                 # log.debug("Column names after loading from cache: %s", merged_df.columns)
-
-                # TODO:
-                # No columns to parse from file
 
         # we fix the clocks a posteriori so that the cache is still usable
 
@@ -617,7 +616,7 @@ def convert_to_sender_receiver(
             log.log(mp.TRACE, "renaming inplace")
 
             tdf.rename(columns=rename_func, inplace=True)
-            total = pd.concat([total, tdf], ignore_index=True)
+            total = pd.concat([total, tdf], ignore_index=True, sort=False, )
 
         # subdf[ _first("tcpdest") == ConnectionRole.Client] .rename(columns=_rename_cols, inplace=True)
         # print(subdf.columns)

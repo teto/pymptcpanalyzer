@@ -538,7 +538,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             print("TEMP")
             print(res)
 
-    summary_parser = MpTcpAnalyzerParser(description="Prints a summary of the mptcp connection")
+    summary_parser = MpTcpAnalyzerParser(
+        description="Prints a summary of the mptcp connection"
+    )
     action_stream = summary_parser.add_argument(
         "mptcpstream", type=MpTcpStreamId, action=mp.parser.retain_stream("pcap"),
         help="mptcp.stream id")
@@ -583,8 +585,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             return
 
         mptcp_transferred = ret.mptcp_throughput_bytes
-        self.poutput("mptcpstream %d transferred %d bytes."
-                     % (ret.mptcpstreamid, mptcp_transferred))
+        msg = "mptcpstream %d transferred %d bytes."
+        self.poutput(msg % (ret.mptcpstreamid, mptcp_transferred))
         for tcpstream, sf_bytes in \
             map(lambda sf: (sf.tcpstreamid, sf.throughput_bytes), ret.subflow_stats):
             subflow_load = sf_bytes/mptcp_transferred
@@ -666,7 +668,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        # print("%r" % args)
+        print("%r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
@@ -683,7 +685,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 destination,
             )
 
-            # TODO already be done
+            # TODO already be done BUT NOT THE CASE FOR GOD's SAKE !
             # TODO we should have the parser do it
             df = load_merged_streams_into_pandas(
                 args.pcap1,
@@ -693,6 +695,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 True,
                 self.tshark_config
             )
+
+            # also here the dest are wrong
 
 
             print("DEBUG")
