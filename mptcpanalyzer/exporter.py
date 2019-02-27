@@ -8,7 +8,7 @@ import os
 import subprocess
 import logging
 import sys
-from mptcpanalyzer.tshark import TsharkConfig, convert_csv_to_sql
+from mptcpanalyzer.tshark import TsharkConfig
 
 log = logging.getLogger(__name__)
 

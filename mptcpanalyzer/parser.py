@@ -178,6 +178,7 @@ def with_argparser_test(
 class AppendDestination(DataframeAction):
     """
     assume convention on naming
+    TODO check if it's ok with FilterDest
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -335,6 +336,7 @@ class FilterDest(DataframeAction):
         # init with all destinations
         self.destinations = list(ConnectionRoles)
         self.already_called = False
+        # TODO it could set choices automatically 
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):

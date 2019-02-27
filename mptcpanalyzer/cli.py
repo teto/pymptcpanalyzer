@@ -54,7 +54,7 @@ from enum import Enum, auto
 import mptcpanalyzer.pdutils
 import dataclasses
 from colorama import Fore, Back
-
+from mptcpanalyzer.pdutils import debug_dataframe
 from stevedore import extension
 
 plugin_logger = logging.getLogger("stevedore")

@@ -73,13 +73,15 @@ def tcp_get_stats(
     con = TcpConnection.build_from_dataframe(df, tcpstreamid)
 
     df2 = tcpdest_from_connections(df, con)
+
+    log.debug("df2 size = %d" % len(df2))
     # q = con.generate_direction_query(destination)
     # df = unidirectional_df = df.query(q, engine="python")
     # return (TcpUnidirectionalStats(),  TcpUnidirectionalStats() )
     # res = { }
     # debug_dataframe(df2, "before connection", )
     # for destination in ConnectionRoles:
-    log.log(mp.TRACE, "Looking at role %s" % destination)
+    log.debug("Looking at role %s" % destination)
     # print(df2["tcpdest"])
     # TODO assume it's already filtered ?
     sdf = df2[df2.tcpdest == destination]
@@ -132,13 +134,15 @@ def mptcp_compute_throughput(
     # -1 because of syn
     dsn_range = dsn_max - dsn_min - 1
 
+    # Could groupby destination as well
     d = df.groupby(_sender('tcpstream'))
     subflow_stats: List[TcpUnidirectionalStats] = []
     for tcpstream, subdf in d:
         # subdf.iloc[0, subdf.columns.get_loc(_second('abstime'))]
-        debug_dataframe(subdf, "subdf")
+        debug_dataframe(subdf, "subdf for stream %d" % tcpstream)
+        dest = subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))]
         sf_stats = tcp_get_stats(subdf, tcpstream,
-            subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))],
+            dest,
         True)
 
         # TODO drop retransmitted
@@ -173,6 +177,8 @@ def mptcp_compute_throughput_extended(
 
     Should display goodput
     """
+    assert isinstance(destination, ConnectionRoles)
+    log.debug("Looking at destination ", destination)
     df_both = classify_reinjections(rawdf)
 
     df = df_both[df_both.mptcpdest == destination]

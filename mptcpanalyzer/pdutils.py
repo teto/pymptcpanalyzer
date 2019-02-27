@@ -43,7 +43,7 @@ def debug_dataframe(
     print(df.info())
     # print(df.columns)
     # print(df.dtypes)
-    pp.pformat(df.dtypes)
+    print(pp.pformat(df.dtypes))
     with pd.option_context('float_format', '{:f}'.format):
         sdf = df
         if usecols:
