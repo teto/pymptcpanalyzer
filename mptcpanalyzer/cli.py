@@ -671,18 +671,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
-        # destinations = [ ConnectionRoles.Server ];
-        destinations = args.pcap_destinations
+        # TODO revert
+        destinations = [ ConnectionRoles.Server ];
+        print("test %r" % type(destinations[0]))
+        # destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
 
         print("NANI ? %r" % destinations )
         for destination in destinations:
-            basic_stats = mptcp_compute_throughput(
-                # TODO here we should load the pcap before hand !
-                df_pcap1,
-                args.pcap1stream,
-                destination,
-            )
+            # will create problems
+            # basic_stats = mptcp_compute_throughput(
+            #     # TODO here we should load the pcap before hand !
+            #     df_pcap1,
+            #     args.pcap1stream,
+            #     destination,
+            # )
 
             # TODO already be done BUT NOT THE CASE FOR GOD's SAKE !
             # TODO we should have the parser do it
@@ -693,6 +696,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 args.pcap2stream,
                 True,
                 self.tshark_config
+            )
+
+            debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
+            basic_stats = mptcp_compute_throughput(
+                # TODO here we should load the pcap before hand !
+                df,
+                args.pcap1stream,
+                destination,
             )
 
             # also here the dest are wrong
@@ -719,7 +730,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             total_transferred = stats.mptcp_throughput_bytes
             msg = ("mptcpstream {c.mptcpstreamid} towards {destination} forwarded "
                    "{c.mptcp_throughput_bytes} bytes with a goodput of {c.mptcp_goodput_bytes}")
-            self.poutput(msg.format(c=stats, destination=destination))
+            self.poutput(msg.format(c=stats, destination=destination.name))
 
             for subflow in stats.subflow_stats:
 

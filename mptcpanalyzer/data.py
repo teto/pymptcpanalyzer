@@ -26,7 +26,8 @@ pp = pprint.PrettyPrinter(indent=4)
 
 # TODO might need a converter when saving/loading
 # TODO pandas.api.types.register_extension_dtype()
-dtype_role = pd.api.types.CategoricalDtype(categories=ConnectionRoles, ordered=True)
+# the list here is important in fact
+dtype_role = pd.api.types.CategoricalDtype(categories=list(ConnectionRoles), ordered=True)
 
 TCP_DEBUG_FIELDS = ['hash', 'packetid', "reltime", "abstime"]
 MPTCP_DEBUG_FIELDS = TCP_DEBUG_FIELDS + ['mptcpdest']
@@ -122,6 +123,22 @@ class PacketMappingMode(Enum):
     """
     HASH = auto()
     SCORE = auto()
+
+
+def check_df(f, checks):
+    '''
+    decorator checking that dataframe fulfill some conditions
+    first argument (dataframe) 
+    '''
+    # TODO
+    @functools.wraps(f)
+    def wrapped(self, *args):
+        if self.data is not None:
+            return f(self, *args)
+        else:
+            raise mp.MpTcpException("Please load a pcap with `load_pcap` first")
+        return None
+    return wrapped
 
 
 def drop_syn(df: pd.DataFrame, mptcp: bool = True) -> pd.DataFrame:
@@ -703,7 +720,7 @@ def merge_tcp_dataframes_known_streams(
             log.debug("Setting mptcpdest to %s" % mptcpdest)
             # if tcpdest == main_connection.mptcpdest
 
-        debug_dataframe(total, "concanated df", usecols=["tcpdest", "mptcpdest"])
+        debug_dataframe(total, "concanated df", ) # usecols=["tcpdest", "mptcpdest"])
         # TODO here we should
         total = pd.concat([res, total])
 

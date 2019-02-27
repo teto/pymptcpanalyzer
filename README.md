@@ -170,7 +170,8 @@ See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
 1. Why packets ids don't match the frame.number from my pcap ?
 mptcpanalyzer
 
-
+2. iperf3 reminder:
+Normally, the test data is sent from the client to the server, and measures the upload speed of the client.
 
 
 

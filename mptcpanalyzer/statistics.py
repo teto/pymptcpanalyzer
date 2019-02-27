@@ -64,14 +64,19 @@ def tcp_get_stats(
     destination: ConnectionRoles,
     mptcp=False
     ):
+    '''
+    Expects df to have tcpdest set
+    '''
     # -> Tuple[TcpUnidirectionalStats, TcpUnidirectionalStats]:
     log.debug("Getting TCP stats for stream %d" % tcpstreamid)
+    assert destination in ConnectionRoles, "destination is %r" % type(destination)
+
     df = rawdf[rawdf.tcpstream == tcpstreamid]
     if df.empty:
         raise MpTcpException("No packet with tcp.stream == %d" % tcpstreamid)
 
+    # TODO do it only when needed
     con = TcpConnection.build_from_dataframe(df, tcpstreamid)
-
     df2 = tcpdest_from_connections(df, con)
 
     log.debug("df2 size = %d" % len(df2))
@@ -96,6 +101,8 @@ def tcp_get_stats(
 
     # -1 to accoutn for SYN
     tcp_goodput = seq_max - seq_min - 1
+    log.debug("tcp_goodput ({}) = {} (seq_max) - {} (seq_min) - 1".format(tcp_goodput, seq_max, seq_min))
+
 
     # if mptcp:
     #     print("do some extra work")
@@ -119,6 +126,7 @@ def mptcp_compute_throughput(
     Returns:
         a tuple (True/false, dict)
     """
+    assert isinstance(destination, ConnectionRoles), "destination is %r" % destination
 
     df = rawdf[rawdf.mptcpstream == mptcpstreamid]
     if df.empty:
@@ -134,6 +142,8 @@ def mptcp_compute_throughput(
     # -1 because of syn
     dsn_range = dsn_max - dsn_min - 1
 
+    log.debug("tcp_goodput ({}) = {} (seq_max) - {} (seq_min) - 1".format(tcp_goodput, seq_max, seq_min))
+
     # Could groupby destination as well
     d = df.groupby(_sender('tcpstream'))
     subflow_stats: List[TcpUnidirectionalStats] = []
@@ -142,7 +152,7 @@ def mptcp_compute_throughput(
         debug_dataframe(subdf, "subdf for stream %d" % tcpstream)
         dest = subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))]
         sf_stats = tcp_get_stats(subdf, tcpstream,
-            dest,
+            ConnectionRoles(dest),
         True)
 
         # TODO drop retransmitted
@@ -178,7 +188,7 @@ def mptcp_compute_throughput_extended(
     Should display goodput
     """
     assert isinstance(destination, ConnectionRoles)
-    log.debug("Looking at destination ", destination)
+    log.debug("Looking at destination %s" % destination)
     df_both = classify_reinjections(rawdf)
 
     df = df_both[df_both.mptcpdest == destination]
