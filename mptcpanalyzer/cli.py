@@ -550,7 +550,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # TODO use filter_dest instead
     summary_parser.add_argument(
         'destination',
-        # mp.DestinationChoice,
         action="store", choices=mp.DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
         help='Filter flows according to their direction'
         '(towards the client or the server)'

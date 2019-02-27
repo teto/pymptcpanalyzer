@@ -24,7 +24,7 @@ def debug_dataframe(
         msg,
         # intro="Debugging dataframe", 
         nrows=5,
-        use_cols=None,
+        usecols=None,
         **kwargs
     ):
     '''
@@ -45,7 +45,10 @@ def debug_dataframe(
     # print(df.dtypes)
     pp.pformat(df.dtypes)
     with pd.option_context('float_format', '{:f}'.format):
-        print(df.head(nrows, ))
+        sdf = df
+        if usecols:
+            sdf = df[usecols]
+        print(sdf.head(nrows, ))
 
 # https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):

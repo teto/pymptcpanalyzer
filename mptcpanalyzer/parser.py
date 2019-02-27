@@ -493,7 +493,6 @@ def gen_pcap_parser(
                 # parser.add_argument("--clock-offset" + name, action="store", type=int,
                 #     help='Offset compared to epoch (in nanoseconds)')
 
-                # or merge ?
                 if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
                     # difficult to change the varname here => change it everywhere
                     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0

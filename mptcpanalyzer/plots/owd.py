@@ -70,12 +70,12 @@ could try to match both ids but for now you need
             title="Subparsers", help='sub-command help',)
         subparsers.required = True  # type: ignore
 
-        actions = {
+        orig_actions = {
             "tcp": PreprocessingActions.MergeTcp | PreprocessingActions.FilterDestination,
             "mptcp": PreprocessingActions.MergeMpTcp | PreprocessingActions.FilterDestination,
         }
-        
-        for protocol, actions in actions.items():
+
+        for protocol, actions in orig_actions.items():
 
             expected_pcaps = {
                 "pcap": actions
@@ -92,7 +92,6 @@ could try to match both ids but for now you need
         parser.epilog = '''
             plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
         '''
-        
         return parser
 
         # here we recompute the OWDs
@@ -118,7 +117,7 @@ could try to match both ids but for now you need
         print("columns", pcap)
         print("columns", res.columns)
         print("info", res.info())
-        print(res.loc[res._merge == "both", debug_fields ])
+        print(res.loc[res.merge_status == "both", debug_fields ])
 
         df = res
 

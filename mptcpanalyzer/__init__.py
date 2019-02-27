@@ -106,6 +106,11 @@ class MpTcpStreamId(int):
     pass
 
 # Keep it as Enum so that it gets serialized as a string in the CSV
+# @register_extension_dtype
+    # must be implemented
+    # * type
+    # * name
+    # * construct_from_string
 class ConnectionRoles(IntEnum):
     """
     Used to filter datasets and keep packets flowing in only one direction !
@@ -114,12 +119,12 @@ class ConnectionRoles(IntEnum):
     Client = auto()
     Server = auto()
 
-    def __str__(self):
-        # Note that defining __str__ is required to get ArgumentParser's help output to include
-        # the human readable (values) of Color
-        return self.name
+    # def __str__(self):
+    #     # Note that defining __str__ is required to get ArgumentParser's help output to include
+    #     # the human readable (values) of Color
+    #     return self.name
 
-    @staticmethod
+    # @staticmethod
     def from_string(s):
         try:
             return ConnectionRoles[s]
