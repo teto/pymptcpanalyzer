@@ -652,6 +652,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         pandas_to_csv(df, args.output)
 
 
+
     sumext_parser = gen_bicap_parser("mptcp", True)
     sumext_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
@@ -719,14 +720,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # also here the dest are wrong
 
 
-            print("DEBUG")
-            for subflow in basic_stats.subflow_stats:
-                print(subflow)
+            # print("DEBUG")
+            # for subflow in basic_stats.subflow_stats:
+            #     print(subflow)
 
-            stats = mptcp_compute_throughput_extended(
+            stats = mptcp_compute_throughput(
                 df,
                 # stats=basic_stats,
-                destination=destination
+                destination=destination,
+                merged_df = True,
             )
 
             if args.json:
