@@ -430,21 +430,22 @@ def load_into_pandas(
 
             converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
-            # print("converters\n", converters)
 
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
-            log.debug("Dtypes before load: %s" % dtypes)
-            log.debug("Converters before load: %s" % converters)
+            log.debug("Dtypes before load: %s" % (pp.pformat(dtypes)))
+            log.debug("Converters before load: %s" % (pp.pformat(converters)))
 
             from .pdutils import read_csv_debug
-            fields = [f.fullname for _, f in config.fields.items()]
+            # fields = [f.fullname for _, f in config.fields.items()]
+            # fields =[ "tcp.options.mptcp.sendkey" ]
             # data = read_csv_debug(fields,
             data = pd.read_csv(
                 fd,
                 comment='#',
                 sep=config.delimiter,
                 dtype=dtypes,
-                # usecols = [config.fields["ipsrc"].fullname ],
+                # config.fields["ipsrc"].fullname
+                # usecols = [ "tcp.options.mptcp.sendkey" ],
                 # seems like for now we can't change the default representation apart from converting the column to
                 # a string !!!
                 # https://stackoverflow.com/questions/46930201/pandas-to-datetime-is-not-formatting-the-datetime-value-in-the-desired-format
@@ -456,7 +457,7 @@ def load_into_pandas(
                 converters=converters,
                 # float_precision="high",  # might be necessary
                 # nrows=13, # useful for debugging purpose
-                # chunksize=5, # useful for debugging purpose
+                # chunksize=1, # useful for debugging purpose
             )
 
             log.debug("Finished loading CSV file")
@@ -472,7 +473,7 @@ def load_into_pandas(
             # we want packetid column to survive merges/dataframe transformation so keepit as a column
             # TODO remove ? let other functions do it ?
             data.set_index("packetid", drop=False, inplace=True)
-            log.debug("Column names: %s" % data.columns)
+            # log.debug("Column names: %s" % data.columns)
 
             hashing_fields = [name for name, field in config.fields.items() if field.hash]
             log.debug("Hashing over fields %s" % hashing_fields)
@@ -488,14 +489,9 @@ def load_into_pandas(
     except Exception as e:
         logging.error("You may need to filter more your pcap to keep only mptcp packets")
         raise e
-    # finally:
-        # print (data)
 
     log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
 
-    # print("FINAL_DTYPES")
-    # log.debug(data.dtypes)
-    # print(data.head(5))
     return data
 
 

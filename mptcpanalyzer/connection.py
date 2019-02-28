@@ -154,18 +154,22 @@ class TcpConnection:
         # :>5d
         # TODO should be converted to int instead, would spare some memory
         line = ("tcp.stream {s.tcpstreamid:.0f}: {s.tcpclient_ip}:{s.client_port:0>5.0f} "
-                " <-> {s.tcpserver_ip}:{s.server_port:0>5.0f} ").format(s=self,
+                " -> {s.tcpserver_ip}:{s.server_port:0>5.0f} ").format(s=self,
                         # tcpstreamid=self.tcpstreamid
                         )
         return line
 
 
 # should it ?
-@dataclass
+# @dataclass
 class MpTcpSubflow(TcpConnection):
     """
 
     """
+
+    """ to which mptcp side belongs the tcp server"""
+    # mptcpdest: ConnectionRoles
+    # addrid: int = None
 
     def __init__(self, mptcpdest: ConnectionRoles, addrid=None, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -233,6 +237,7 @@ class MpTcpSubflow(TcpConnection):
 
 
 # @dataframe
+# @dataclass
 class MpTcpConnection:
     """
     Holds key characteristics of an MPTCP connection: keys, tokens, subflows
@@ -241,6 +246,8 @@ class MpTcpConnection:
 
     subflows can be any order
     """
+    # mptcpstreamid: MpTcpStreamId
+
     def __init__(self,
             mptcpstreamid: int,
             client_key: int, client_token: int, server_key: int,
@@ -294,6 +301,8 @@ class MpTcpConnection:
     def build_from_dataframe(ds: pd.DataFrame, mptcpstreamid: MpTcpStreamId) -> 'MpTcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
+
+        Look for the first 2 packets containing "sendkey"
         """
 
         def get_index_of_non_null_values(serie):
@@ -345,9 +354,13 @@ class MpTcpConnection:
             receiver_token = subflow_ds["recvtok"].iloc[row]
 
             # if we see the token
+            log.debug("receiver_token %r to compare with server_token %r" % (receiver_token, server_token))
+            log.debug("Test %s" % (receiver_token == server_token))
+            mptcpdest = ConnectionRoles.Server if receiver_token == server_token \
+                    else ConnectionRoles.Client
+
             subflow = MpTcpSubflow.create_subflow(
-                mptcpdest   = ConnectionRoles.Server if receiver_token == server_token \
-                        else ConnectionRoles.Client,
+                mptcpdest   = mptcpdest,
                 tcpstreamid =tcpstreamid,
                 tcpclient_ip=subflow_ds['ipsrc'].iloc[row],
                 tcpserver_ip=subflow_ds['ipdst'].iloc[row],
@@ -355,7 +368,9 @@ class MpTcpConnection:
                 server_port =subflow_ds['dport'].iloc[row],
                 addrid      =None,
                 # rcv_token   =receiver_token,
-                )
+            )
+
+            log.debug("Created subflow %s" % subflow)
 
             subflows.append(subflow)
 

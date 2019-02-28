@@ -362,8 +362,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         try:
             con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-            self.poutput("mptcp.stream %d has %d subflow(s) (client/server): "
-                         % (mptcpstreamid, len(con.subflows())))
+            msg = "mptcp.stream %d has %d subflow(s) (client/server): "
+            self.poutput(msg % (mptcpstreamid, len(con.subflows())))
             for sf in con.subflows():
                 self.poutput("\t%s" % sf)
         except mp.MpTcpException as e:
@@ -526,7 +526,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df = self.data
 
         # args.pcapdestinations ?
-        # print(args)
 
         for dest in ConnectionRoles:
             # TODO do it only when needed
@@ -573,7 +572,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mptcpstream = args.mptcpstream
 
         # args.pcapdestinations ?
-        print(args)
+        # print(args)
         ret = mptcp_compute_throughput(
             self.data, args.mptcpstream, args.destination
         )
@@ -670,7 +669,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        print("%r" % args)
+        print("Summary extended resume %r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
@@ -778,17 +777,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         for mptcpstream, group in streams:
             self.list_subflows(mptcpstream)
             self.poutput("\n")
-
-    # def generate_namespace(self) -> argparse.Namespace:
-    #     myNamespace = Namespace()
-    #     myNamespace.toto = self.data
-    #     parser = argparse_completer.ACArgumentParser(
-    #         description="""
-    #         Mptcpanalyzer filters pcaps to keep only tcp packets.
-    #         This may explain why printed packet ids dont map
-    #         """
-    #     )
-
 
 
     parser = MpTcpAnalyzerParser(
@@ -1091,12 +1079,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         Load the file as the current one
         """
-        print(args)
-        # args = shlex.split(args)
         # print(args)
-        # parser = self.do_load_pcap.argparser
-        # print(parser)
-        # args = parser.parse_args(args)
 
         self.poutput("Loading %s" % args.input_file)
         self.data = args._dataframes["input_file"]
@@ -1138,7 +1121,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # 'converts' the namespace to for the syntax define a dict
         dargs = vars(args)
 
-        print("%s" % dargs)
+        # print("%s" % dargs)
         dataframes = dargs.pop("_dataframes")
         # workaround argparse limitations to set as default both directions
         # TODO replace that with an action ?
@@ -1146,7 +1129,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # dargs.update(destinations=destinations)
         # log.debug("Selecting destinations %s" % (destinations,))
         # dataframes = plotter.preprocess(**dargs)
-        print("%s" % args)
+        print("DO_PLOT %s" % args)
         # dataframes = args._dataframes.values()
         assert dataframes is not None, "Preprocess must return a list"
         # pass unknown_args too ?

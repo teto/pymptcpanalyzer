@@ -54,7 +54,7 @@ def debug_dataframe(
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
     """
     Help debugging dataframe loading errors (with dtypes/converters)
-    chunksize: bool, 
+    chunksize: bool,
     """
 
     chunksize = kwargs.get("chunksize")
@@ -63,14 +63,15 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
         kwargs.pop("chunksize", None)
 
     for field in fields:
-        print("TESTING field ", field)
+        print("TESTING field %s (first_try ? %s ) " % (field, first_try))
+        print(kwargs.get("dtype")[field])
         try:
             res = pd.read_csv(
-                    fd,
-                    *args,
-                    usecols=[ field],
-                    **kwargs
-                )
+                fd,
+                *args,
+                usecols=[ field],
+                **kwargs
+            )
             if chunksize is not None:
                 for i, chunk in enumerate(res):
                     # print("chunk %d" % i)
@@ -78,7 +79,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
         except TypeError as e:
             # TODO retry with chunksize
             if first_try:
-                kwargs.update({"chunksize":chunksize  or 40})
+                kwargs.update({"chunksize": chunksize  or 40})
                 fd.seek(0)
                 read_csv_debug([field], fd, *args, first_try=False, **kwargs)
             else:
