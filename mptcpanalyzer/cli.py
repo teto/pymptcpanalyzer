@@ -657,7 +657,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         help="Machine readable summary.")
     sumext_parser.description = """
         Look into more details of an mptcp connection
-        """
+    """
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
@@ -674,7 +674,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # to abstract things a bit
         # TODO revert
-        destinations = [ ConnectionRoles.Server ];
+        destinations = [ ConnectionRoles.Server ]
         print("test %r" % type(destinations[0]))
         # destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
@@ -700,13 +700,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.tshark_config
             )
 
+            # if log level >= DEBUG then save to xls too !
+            if True:
+                filename = "toto" + ".xls"
+                logging.debug("Saved a debug excel copy at %s" % filename)
+                df.to_excel(filename)
+
             debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
-            basic_stats = mptcp_compute_throughput(
-                # TODO here we should load the pcap before hand !
-                df,
-                args.pcap1stream,
-                destination,
-            )
+
+            # ce n'est pas bon car les directions ne correspondent pas forcement
+            # basic_stats = mptcp_compute_throughput(
+            #     # TODO here we should load the pcap before hand !
+            #     df,
+            #     args.pcap1stream,
+            #     destination,
+            # )
 
             # also here the dest are wrong
 
@@ -717,7 +725,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             stats = mptcp_compute_throughput_extended(
                 df,
-                stats=basic_stats,
+                # stats=basic_stats,
                 destination=destination
             )
 

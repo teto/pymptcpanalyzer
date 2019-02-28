@@ -132,10 +132,15 @@ def tcp_get_stats(
 
 # TODO same return both directions
 def mptcp_compute_throughput(
-    rawdf, mptcpstreamid: MpTcpStreamId, destination: ConnectionRoles
+    rawdf,
+    mptcpstreamid: MpTcpStreamId,
+    destination: ConnectionRoles,
+    merged_df: bool
 ) -> MpTcpUnidirectionalStats:
     """
     Very raw computation: substract highest dsn from lowest by the elapsed time
+    Args:
+        merged_df: True if merged_df
 
     Returns:
         a tuple (True/false, dict)
@@ -150,6 +155,8 @@ def mptcp_compute_throughput(
     q = con.generate_direction_query(destination)
     # print("query q= %r" % q)
     df = unidirectional_df = df.query(q, engine="python")
+    print("unidirectional_df")
+    print(unidirectional_df["mptcpdest"])
 
     dsn_min = df.dss_dsn.min()
     dsn_max = df.dss_dsn.max()
@@ -185,6 +192,10 @@ def mptcp_compute_throughput(
             sf_stats
         )
 
+    if merged_df:
+        df_both = classify_reinjections(rawdf)
+
+
     return MpTcpUnidirectionalStats(
         mptcpstreamid=mptcpstreamid,
         mptcp_transferred_bytes=dsn_range,
@@ -193,9 +204,10 @@ def mptcp_compute_throughput(
 
 
 # TODO rename goodput
+# merge with previous function
 def mptcp_compute_throughput_extended(
     rawdf,  # need the rawdf to classify_reinjections
-    stats: MpTcpUnidirectionalStats,  # result of mptcp_compute_throughput
+    # stats: MpTcpUnidirectionalStats,  # result of mptcp_compute_throughput
     destination: ConnectionRoles,
 ) -> MpTcpUnidirectionalStats:
     """
@@ -204,7 +216,7 @@ def mptcp_compute_throughput_extended(
     Should display goodput
     """
     assert isinstance(destination, ConnectionRoles)
-    log.debug("Looking at destination %r" % destination)
+    log.debug("Looking at mptcp destination %r" % destination)
     df_both = classify_reinjections(rawdf)
 
     df = df_both[df_both.mptcpdest == destination]
@@ -212,7 +224,7 @@ def mptcp_compute_throughput_extended(
     # print(stats.subflow_stats)
     # print(df.columns)
 
-    stats.mptcp_transferred_bytes = df.loc[df.redundant == False, "tcplen"].sum()
+    mptcp_transferred_bytes = df.loc[df.redundant == False, "tcplen"].sum()
 
     print("MATT mptcp throughput ", stats.mptcp_throughput_bytes)
     for sf in stats.subflow_stats:
@@ -250,4 +262,8 @@ def mptcp_compute_throughput_extended(
         sf.throughput_contribution = sf_mptcp_throughput/stats.mptcp_throughput_bytes
         sf.goodput_contribution = mptcp_transferred_bytes/stats.mptcp_transferred_bytes
 
-    return  stats
+    return  MpTcpUnidirectionalStats(
+        mptcpstreamid=mptcpstreamid,
+        mptcp_transferred_bytes=dsn_range,
+        subflow_stats=subflow_stats,
+    )
