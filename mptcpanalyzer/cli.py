@@ -529,6 +529,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # print(args)
 
         for dest in ConnectionRoles:
+            # TODO do it only when needed
+            # con = TcpConnection.build_from_dataframe(df, tcpstreamid)
+            # df2 = tcpdest_from_connections(df, con)
             res = tcp_get_stats(
                 self.data, args.tcpstream,
                 dest,
@@ -737,8 +740,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 # TODO print subflow
                 msg = inspect.cleandoc("""
                 tcpstream {sf.tcpstreamid} analysis:
-                - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes}, accounting for {mptcp_tput_ratio:.2f}%
-                - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}%""")
+                - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
+                - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
+                """)
 
                 # print(subflow)
                 self.poutput(
@@ -897,6 +901,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         TODO move the code into a proper function
         """
+
+        print("Qualifying reinjections for stream in destination:")
+        # destinations = [ ConnectionRoles.Server ]
+        destinations = args.pcap_destinations
+        print("Looking at destinations %s" % destinations)
+
         # TODO this should be done automatically right ?
         df_all = load_merged_streams_into_pandas(
             args.pcap1,
@@ -925,10 +935,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # original_packet  = sender_df.loc[ sender_df.packetid == initial_packetid, ].iloc[0]
             row = reinj
 
-            reinjection_packetid = getattr(row, _sender("packetid")),
-            reinjection_start    = getattr(row, _sender("abstime")),
-            reinjection_arrival  = getattr(row, _receiver("abstime")),
-            original_start       = original_packet[_sender("abstime")],
+            reinjection_packetid = getattr(row, _sender("packetid"))
+            reinjection_start    = getattr(row, _sender("abstime"))
+            reinjection_arrival  = getattr(row, _receiver("abstime"))
+            original_start       = original_packet[_sender("abstime")]
             original_arrival     = original_packet[_receiver("abstime")]
 
             if reinj.redundant == False:
@@ -983,15 +993,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
             return
 
-        for destination in ConnectionRoles:
-
-            if args.destinations and destination not in args.destinations:
-                log.debug("ignoring destination %s " % destination)
-                continue
+        # TODO  use args.mptcp_destinations instead
+        # TODO revert
+        # destinations = [ ConnectionRoles.Server ]
+        for destination in destinations:
 
             self.poutput("looking for reinjections towards mptcp %s" % destination)
             sender_df = df[df.mptcpdest == destination]
-            log.debug("%d reinjections in that direction" % (len(sender_df), ))
+            log.debug("%d packets in that direction" % (len(sender_df), ))
 
             # TODO we now need to display successful reinjections
             reinjections = sender_df[pd.notnull(sender_df[_sender("reinjection_of")])]
@@ -1019,6 +1028,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser = MpTcpAnalyzerParser(
         description="Listing reinjections of the connection"
     )
+    # action= filter_stream
     parser.add_argument("mptcpstream", type=MpTcpStreamId, help="mptcp.stream id")
     parser.add_argument("--summary", action="store_true", default=False,
             help="Just count reinjections")

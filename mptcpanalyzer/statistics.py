@@ -31,26 +31,38 @@ class TcpUnidirectionalStats:
     throughput_bytes: int
 
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
-    tcp_goodput: int = None # ex tcp_goodput
+    # rename to byte range ?
+    tcp_transferred_bytes: int = None
 
     ''' max(dsn)- min(dsn) - 1'''
-    mptcp_goodput_bytes: int = None
+    mptcp_transferred_bytes: int = None
     # TODO convert to property ?
     throughput_contribution: float = None
     # throughput_contribution: int = field(default=None, metadata={'unit': '%'})
     goodput_contribution: float = None  # %
 
+    ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
+    tcp_goodput: int = None # ex tcp_goodput
+
     # @property
     # def throughput_contribution(self):
     #     return self.througput_bytes
 
+    @property
+    def mptcp_goodput_bytes(self):
+        return self.mptcp_transferred_bytes
+
 @dataclass
 class MpTcpUnidirectionalStats:
     mptcpstreamid: MpTcpStreamId
-    mptcp_goodput_bytes: int
+    mptcp_transferred_bytes: int
     subflow_stats: List[TcpUnidirectionalStats]
     # TODO rename to global ?
     # mptcp_goodput_bytes: int = None
+
+    @property
+    def mptcp_goodput_bytes(self):
+        return self.mptcp_transferred_bytes
 
     @property
     def mptcp_throughput_bytes(self):
@@ -76,8 +88,9 @@ def tcp_get_stats(
         raise MpTcpException("No packet with tcp.stream == %d" % tcpstreamid)
 
     # TODO do it only when needed
-    con = TcpConnection.build_from_dataframe(df, tcpstreamid)
-    df2 = tcpdest_from_connections(df, con)
+    # con = TcpConnection.build_from_dataframe(df, tcpstreamid)
+    # df2 = tcpdest_from_connections(df, con)
+    df2 = df
 
     log.debug("df2 size = %d" % len(df2))
     # q = con.generate_direction_query(destination)
@@ -100,8 +113,9 @@ def tcp_get_stats(
     seq_max = sdf.tcpseq.max()
 
     # -1 to accoutn for SYN
-    tcp_goodput = seq_max - seq_min - 1
-    log.debug("tcp_goodput ({}) = {} (seq_max) - {} (seq_min) - 1".format(tcp_goodput, seq_max, seq_min))
+    tcp_transferred_bytes = seq_max - seq_min - 1
+    msg = "tcp_transferred_bytes ({}) = {} (seq_max) - {} (seq_min) - 1"
+    log.debug(msg.format(tcp_transferred_bytes, seq_max, seq_min))
 
 
     # if mptcp:
@@ -112,7 +126,7 @@ def tcp_get_stats(
     return TcpUnidirectionalStats(
         tcpstreamid,
         throughput_bytes=bytes_transferred,
-        tcp_goodput=tcp_goodput,
+        tcp_transferred_bytes=tcp_transferred_bytes,
     )
 
 
@@ -142,7 +156,8 @@ def mptcp_compute_throughput(
     # -1 because of syn
     dsn_range = dsn_max - dsn_min - 1
 
-    log.debug("tcp_goodput ({}) = {} (seq_max) - {} (seq_min) - 1".format(tcp_goodput, seq_max, seq_min))
+    log.debug("dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1".format(
+        dsn_range, dsn_max, dsn_min))
 
     # Could groupby destination as well
     d = df.groupby(_sender('tcpstream'))
@@ -163,7 +178,7 @@ def mptcp_compute_throughput(
         # subflow_load = subdf.drop_duplicates(subset="dss_dsn").dss_length.sum()
         # subflow_load = subflow_load if not math.isnan(subflow_load) else 0
 
-        sf_stats.mptcp_goodput_bytes = sf_dsn_max - sf_dsn_min - 1
+        sf_stats.mptcp_transferred_bytes_bytes = sf_dsn_max - sf_dsn_min - 1
 
         subflow_stats.append(
             sf_stats
@@ -171,7 +186,7 @@ def mptcp_compute_throughput(
 
     return MpTcpUnidirectionalStats(
         mptcpstreamid=mptcpstreamid,
-        mptcp_goodput_bytes=dsn_range,
+        mptcp_transferred_bytes=dsn_range,
         subflow_stats=subflow_stats,
     )
 
@@ -188,7 +203,7 @@ def mptcp_compute_throughput_extended(
     Should display goodput
     """
     assert isinstance(destination, ConnectionRoles)
-    log.debug("Looking at destination %s" % destination)
+    log.debug("Looking at destination %r" % destination)
     df_both = classify_reinjections(rawdf)
 
     df = df_both[df_both.mptcpdest == destination]
@@ -196,7 +211,7 @@ def mptcp_compute_throughput_extended(
     # print(stats.subflow_stats)
     # print(df.columns)
 
-    stats.mptcp_goodput_bytes = df.loc[df.redundant == False, "tcplen"].sum()
+    stats.mptcp_transferred_bytes = df.loc[df.redundant == False, "tcplen"].sum()
 
     print("MATT mptcp throughput ", stats.mptcp_throughput_bytes)
     for sf in stats.subflow_stats:
@@ -213,7 +228,7 @@ def mptcp_compute_throughput_extended(
         # seq_min = df_sf.tcpseq.min()
         # seq_max = df_sf.tcpseq.max()
 
-        # tcp_goodput = seq_max - seq_min
+        # tcp_transferred_bytes = seq_max - seq_min
 
         # tcplen == 
         # _first / _second
@@ -223,15 +238,15 @@ def mptcp_compute_throughput_extended(
         # print ("columns", df.columns)
         non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
         # print(non_redundant_pkts)
-        mptcp_goodput_bytes = non_redundant_pkts.sum()
-        # print("mptcp_goodput" , mptcp_goodput)
+        mptcp_transferred_bytes = non_redundant_pkts.sum()
+        # print("mptcp_transferred_bytes" , mptcp_transferred_bytes)
         sf_mptcp_throughput = sf.throughput_bytes
 
-        # sf.tcp_goodput = tcp_goodput;
-        sf.mptcp_goodput_bytes = mptcp_goodput_bytes  # cumulative sum of nonredundant dsn packets
+        # sf.tcp_transferred_bytes = tcp_transferred_bytes;
+        sf.mptcp_transferred_bytes = mptcp_transferred_bytes  # cumulative sum of nonredundant dsn packets
 
         # can be > 1 in case of redundant packets
         sf.throughput_contribution = sf_mptcp_throughput/stats.mptcp_throughput_bytes
-        sf.goodput_contribution = mptcp_goodput_bytes/stats.mptcp_goodput_bytes
+        sf.goodput_contribution = mptcp_transferred_bytes/stats.mptcp_transferred_bytes
 
     return  stats

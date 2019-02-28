@@ -180,13 +180,13 @@ class AppendDestination(DataframeAction):
     assume convention on naming
     TODO check if it's ok with FilterDest
     """
-
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
-        # self.destinations = list(ConnectionRoles)
+        self.destinations = list(ConnectionRoles)
                     # default=list(ConnectionRoles),
         super().__init__(
-            *args, choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
+            *args,
+            choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
             default = list(ConnectionRoles), **kwargs)
 
 
@@ -198,11 +198,17 @@ class AppendDestination(DataframeAction):
             # TODO change the default ?
             # setattr(namespace, self.dest, [])
             print("Already set")
+            print("setting value %r" % values)
+            # print("setting value %r" % self.destinations)
             # to make it unique
-            self.destinations= list(set(self.destinations.append(values)))
+            self.destinations.append(values)
+            self.destinations= list(set(self.destinations))
+            print("new result %r" % self.destinations)
         else:
-            self.destinations = values
+            print("Received first value %s" % values)
+            self.destinations = [values]
 
+        self.already_called = True
         # df_name + "destinations"
         setattr(namespace, self.dest, self.destinations)
         # pcap1 = getattr(namespace, self.df_name + "1")
@@ -332,11 +338,11 @@ class FilterDest(DataframeAction):
 
         # assert self.field == "tcpdest" or self.field == "mptcpdest"
         # self.mptcp = mptcp
-        # self.seen 
+        # self.seen
         # init with all destinations
         self.destinations = list(ConnectionRoles)
         self.already_called = False
-        # TODO it could set choices automatically 
+        # TODO it could set choices automatically
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -454,6 +460,41 @@ def gen_bicap_parser(protocol, dest=False):
     # protocol=protocol,
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
 
+# argparse_completer.ACArgumentParser
+class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
+    '''
+    Wrapper around cmd2 argparse completer
+    Should allow to switch backends easily. 
+    Also allows to do some postprocessing once the arguments are parsed
+    like loading dataframes etc
+
+    '''
+
+    # def _parse_known_args(self, arg_strings, namespace):
+    def parse_known_args(self, args=None, namespace=None):
+        """
+        override it just to postprocess arguments
+        """
+
+        # returns a 2-item tuple
+        known, unknown = super().parse_known_args(args, namespace)
+        # print("res", res)
+
+        # TODO call filter_dataframe ?
+        if getattr(known, "_dataframes", None):
+            for name, df in known._dataframes.items():
+                # print
+                # so now we can filter the destination ?
+                log.debug("dataframe [%s] in namespace" % name)
+        else:
+            log.debug("No dataframe in namespace")
+
+        # postprocessing for filtering destination
+
+        log.debug("MpTcpAnalyzerParser parser finished")
+        # TODO pass along known, dataframes ?
+        return (known, unknown)
+
 
 # map pcaps to a group
 def gen_pcap_parser(
@@ -464,7 +505,7 @@ def gen_pcap_parser(
         parents=[],
         # TODO get rid of this/skip-stream
         skip_subflows: bool = True,
-    ) -> argparse_completer.ACArgumentParser:
+        ) -> MpTcpAnalyzerParser:
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
@@ -543,6 +584,7 @@ def gen_pcap_parser(
                     # choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
                     # TODO check how it works/FilterDest
                     action=partial(AppendDestination, df_name),
+                    # action=partial(AppendDestination, df_name),
                     # type parameter is a function/callable
                     type=lambda x: ConnectionRoles.from_string(x),
                     help='Filter flows according to their direction'
@@ -563,32 +605,4 @@ def gen_pcap_parser(
         return parser
 
 
-# argparse_completer.ACArgumentParser
-class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
-    '''
-    Wrapper around cmd2 argparse completer
-    Should allow to switch backends easily. 
-    Also allows to do some postprocessing once the arguments are parsed
-    like loading dataframes etc
-
-    '''
-
-    # def _parse_known_args(self, arg_strings, namespace):
-    def parse_known_args(self, args=None, namespace=None):
-        """
-        override it just to postprocess arguments
-        """
-        res = super().parse_known_args(args, namespace)
-
-        # TODO call filter_dataframe ?
-        if getattr(res, "_dataframes", None):
-            for name, df in res._dataframes.items():
-                # print
-                # so now we can filter the destination ?
-                pass
-
-        # postprocessing for filtering destination
-
-        logging.debug("MpTcpAnalyzerParser parser finished")
-        return res
 

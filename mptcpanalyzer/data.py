@@ -285,7 +285,6 @@ def load_merged_streams_into_pandas(
                 for name, converter in default_converters.items():
                     converters.update({_first(name): converter, _second(name): converter})
 
-
                 return converters
 
             with open(cachename) as fd:
@@ -309,6 +308,14 @@ def load_merged_streams_into_pandas(
                 )
                 # at this stage, destinatiosn are nan
                 # debug_dataframe(merged_df, "Merged dataframe", )
+
+                # workaround bug https://github.com/pandas-dev/pandas/issues/25448
+                def _convert_to_enums():
+                    # per_pcap_artificial_fields
+                    for col in [ _first("tcpdest"), _first("mptcpdest"), _second("tcpdest"), _second("mptcpdest")]:
+                        merged_df[col] = merged_df[col].apply(_convert_role, convert_dtype=False)
+
+                # df[]
 
                 # log.debug("Column names after loading from cache: %s", merged_df.columns)
 
@@ -638,7 +645,7 @@ def convert_to_sender_receiver(
         # subdf[ _first("tcpdest") == ConnectionRole.Client] .rename(columns=_rename_cols, inplace=True)
         # print(subdf.columns)
         # print(total.columns)
-    debug_dataframe(total, "total")
+    # debug_dataframe(total, "total")
 
     logging.debug("Converted to sender/receiver format")
     return total
@@ -1173,6 +1180,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     Returns
         a new dataframe with an added column "redundant"
     """
+    log.debug("Classifying reinjections")
 
     df_all["redundant"] = False
     df_all["reinj_delta"] = np.nan
@@ -1187,6 +1195,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
     for destination in ConnectionRoles:
 
+        log.debug("Looking at mptcp destination %r" % destination)
         sender_df = df[df.mptcpdest == destination]
 
         # print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
@@ -1198,7 +1207,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         # print(sender_df["reinjection_of"])
         reinjected_packets = sender_df.dropna(axis='index', subset=[_sender("reinjection_of")])
 
-        logging.debug("%d reinjected packets" % len(reinjected_packets))
+        log.debug("%d reinjected packets" % len(reinjected_packets))
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
         #     print(reinjected_packets[
         #         _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])
@@ -1230,7 +1239,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             if original_packet.merge_status != "both":
                 # TODO count missed classifications ?
-                logging.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
+                log.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
                 continue
 
             orig_arrival = getattr(original_packet, _receiver("reltime"))
