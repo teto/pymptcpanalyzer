@@ -34,8 +34,7 @@ from mptcpanalyzer.metadata import Metadata
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, \
     ConnectionRoles, swap_role
 import mptcpanalyzer.cache as mc
-from mptcpanalyzer.statistics import mptcp_compute_throughput, mptcp_compute_throughput_extended, \
-    tcp_get_stats
+from mptcpanalyzer.statistics import mptcp_compute_throughput, tcp_get_stats
 import mptcpanalyzer as mp
 from mptcpanalyzer import PreprocessingActions
 import stevedore
@@ -574,7 +573,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # args.pcapdestinations ?
         # print(args)
         ret = mptcp_compute_throughput(
-            self.data, args.mptcpstream, args.destination
+            self.data, args.mptcpstream, args.destination, False
         )
 
         if args.json:
@@ -726,6 +725,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             stats = mptcp_compute_throughput(
                 df,
+                args.pcap1stream,
                 # stats=basic_stats,
                 destination=destination,
                 merged_df = True,
