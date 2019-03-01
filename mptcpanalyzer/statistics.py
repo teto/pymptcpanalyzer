@@ -135,6 +135,18 @@ def tcp_get_stats(
     )
 
 
+def transmitted_seq_range(df, seq_name):
+    '''
+
+    '''
+
+    sorted_seq = df.sort_values(by=seq_name)
+    seq_min = sorted_seq.loc[sorted_seq.first_valid_index(), seq_name]
+    seq_max = sorted_seq.loc[sorted_seq.last_valid_index(), seq_name] \
+        + sorted_seq.loc[sorted_seq.last_valid_index(), "tcplen"]
+
+    return seq_range, seq_max, seq_min
+
 # TODO same return both directions
 def mptcp_compute_throughput(
     rawdf,
@@ -157,12 +169,19 @@ def mptcp_compute_throughput(
     print("query q= %r" % q)
     df = unidirectional_df = rawdf.query(q, engine="python")
     print("unidirectional_df")
-    print(unidirectional_df["mptcpdest"])
+    # assert len(unidirectional_df["mptcpdest"]) == len(df["mptcpdest" == destination]), "wrong query"
+    # print(unidirectional_df["mptcpdest"])
 
-    dsn_min = df.dss_dsn.min()
-    dsn_max = df.dss_dsn.max()
-    # -1 because of syn
-    dsn_range = dsn_max - dsn_min - 1
+    # TODO tcp.sndnxt
+    # last_valid_index / first_valid_index
+    # sorted_dsn = df.sort_values(by="dss_dsn")
+    # dsn_min = sorted_dsn.loc[sorted_dsn.first_valid_index(), "dss_dsn"]
+    # dsn_max = sorted_dsn.loc[sorted_dsn.last_valid_index(), "dss_dsn"] \
+    #     + sorted_dsn.loc[sorted_dsn.last_valid_index(), "tcplen"] 
+
+    # # -1 because of syn
+    # dsn_range = dsn_max - dsn_min - 1
+    dsn_range, dsn_max, dsn_min = transmitted_seq_range
 
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
     log.debug(msg.format( dsn_range, dsn_max, dsn_min))
@@ -188,13 +207,16 @@ def mptcp_compute_throughput(
         # sf_dsn_min = subdf.dss_dsn.min()
         # sf_dsn_max = subdf.dss_dsn.max()
 
+        fields =  ["tcpdest", "mptcpdest", "dss_dsn", "dss_length"]
+        print(subdf[fields])
         # DSNs can be discontinuous,
+        # dss_length
         sf_stats.mptcp_application_bytes = subdf.drop_duplicates(subset="dss_dsn").dss_length.sum()
 
         # subflow_load = subflow_load if not math.isnan(subflow_load) else 0
 
         # mptcp_application_bytes_bytes = sf_dsn_max - sf_dsn_min - 1
-        assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range
+        assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range, sf_stats
 
         subflow_stats.append(
             sf_stats
