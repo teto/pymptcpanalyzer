@@ -346,6 +346,12 @@ def load_merged_streams_into_pandas(
             # don't do it here else we might repeat it
             # data["abstime"] += clock_offset
 
+
+
+        # log.debug("Sorting by sender abstime")
+        # merged_df.sort_values(by=_sender("abstime"), ascending=True, inplace=True)
+
+
         # debug_dataframe(res, "checking merge", usecols=["merge_status"])
         # print("%d nan values" % len(res[res.merge_status == np.nan]))
 
