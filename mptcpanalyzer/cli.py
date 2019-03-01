@@ -679,6 +679,24 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
 
+        # TODO already be done BUT NOT THE CASE FOR GOD's SAKE !
+        # TODO we should have the parser do it
+        df = load_merged_streams_into_pandas(
+            args.pcap1,
+            args.pcap2,
+            args.pcap1stream,
+            args.pcap2stream,
+            True,
+            self.tshark_config
+        )
+
+        if True:
+            filename = "toto" + ".xls"
+            logging.debug("Saved a debug excel copy at %s" % filename)
+            df.to_excel(filename)
+        debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
+
+
         print("NANI ? %r" % destinations )
         for destination in destinations:
             # will create problems
@@ -688,25 +706,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             #     args.pcap1stream,
             #     destination,
             # )
-
-            # TODO already be done BUT NOT THE CASE FOR GOD's SAKE !
-            # TODO we should have the parser do it
-            df = load_merged_streams_into_pandas(
-                args.pcap1,
-                args.pcap2,
-                args.pcap1stream,
-                args.pcap2stream,
-                True,
-                self.tshark_config
-            )
-
             # if log level >= DEBUG then save to xls too !
-            if True:
-                filename = "toto" + ".xls"
-                logging.debug("Saved a debug excel copy at %s" % filename)
-                df.to_excel(filename)
-
-            debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
 
             # ce n'est pas bon car les directions ne correspondent pas forcement
             # basic_stats = mptcp_compute_throughput(
@@ -717,7 +717,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # )
 
             # also here the dest are wrong
-
 
             # print("DEBUG")
             # for subflow in basic_stats.subflow_stats:

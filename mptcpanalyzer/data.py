@@ -229,6 +229,8 @@ def load_merged_streams_into_pandas(
             # print(merged_df.reinjected_in.dropna().head())
             # convert arrays back to strings
             # merged_df.apply(",".join()
+
+            # TODO adding 
             merged_df.to_csv(
                 cachename,
                 # columns=columns,
@@ -321,11 +323,11 @@ def load_merged_streams_into_pandas(
 
         # we fix the clocks a posteriori so that the cache is still usable
 
-        logging.debug("Postprocessing clock if needed")
+        log.debug("Postprocessing clock if needed")
         merged_df[_first('abstime')] += clock_offset1
         merged_df[_second('abstime')] += clock_offset2
 
-        logging.debug("Converting dataframes to be sender/receiver based...")
+        log.debug("Converting dataframes to be sender/receiver based...")
         # in both cases
         # TODO here we should attribute the definite mptcprole
         # compute owd

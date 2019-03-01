@@ -1,5 +1,6 @@
 import pandas as pd
 import logging
+import math
 from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId, MpTcpStreamId
 
 from typing import List, NamedTuple, Tuple, Dict, Union
@@ -308,7 +309,8 @@ class MpTcpConnection:
         def get_index_of_non_null_values(serie):
             # http://stackoverflow.com/questions/14016247/python-find-integer-index-of-rows-with-nan-in-pandas/14033137#14033137
             # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
-            return serie.to_numpy().nonzero()[0]
+            return serie.notnull().to_numpy().nonzero()[0]
+            # return serie.to_numpy().nonzero()[0]
 
 
         ds = ds[ds.mptcpstream == mptcpstreamid]
@@ -316,42 +318,64 @@ class MpTcpConnection:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
         # this returns the indexes where a sendkey is set :
-        res = get_index_of_non_null_values(ds["sendkey"])
-        if len(res) < 2:
-            raise MpTcpException("Could not find the initial MPTCP keys (only found %r)" % (res,))
+        sendkey_row_ids = get_index_of_non_null_values(ds["sendkey"])
+        # print("sendkey rows")
+        # print(sendkey_row_ids)
+        if len(sendkey_row_ids) < 2:
+            # possible to have more in case of retransmissions etc
+            raise MpTcpException("Could not find the initial MPTCP keys (only found %r)" % (sendkey_row_ids))
 
-        cid = res[0]
-        client_key       = ds["sendkey"].iloc[cid]
-        client_token     = ds["expected_token"].iloc[cid]
-        server_key       = ds["sendkey"].iloc[res[1]]
-        server_token     = ds["expected_token"].iloc[res[1]]
+        # log.debug("Found %d rows with a valid sendkey" % len(sendkey_row_ids))
+
+        client_row       = sendkey_row_ids[0]
+        server_row       = sendkey_row_ids[1]
+        client_key       = ds["sendkey"].iloc[client_row]
+        client_token     = ds["expected_token"].iloc[client_row]
+        server_key       = ds["sendkey"].iloc[server_row]
+        server_token     = ds["expected_token"].iloc[server_row]
         master_tcpstream = ds["tcpstream"].iloc[0]
 
-        subflows = []
+        # print("line with key:")
+        # print("client key = %r" % client_key)
+        # print("server key = %r" % server_key)
+        # print(ds.iloc[res[1], ])
+        log.debug("Server token = %r" % server_token)
+        assert math.isfinite(int(server_token))
+        # assert math.isnan(server_token) == False
+
+        subflows : List[MpTcpSubflow] = []
 
         # we assume this is the first seen sendkey, thus it was sent to the mptcp server
         master_sf = MpTcpSubflow.create_subflow(
             mptcpdest        = ConnectionRoles.Server,
             tcpstreamid      = master_tcpstream,
-            tcpclient_ip     = ds['ipsrc'].iloc[cid],
-            tcpserver_ip     = ds['ipdst'].iloc[cid],
-            client_port      = ds['sport'].iloc[cid],
-            server_port      = ds['dport'].iloc[cid],
+            tcpclient_ip     = ds['ipsrc'].iloc[client_row],
+            tcpserver_ip     = ds['ipdst'].iloc[client_row],
+            client_port      = ds['sport'].iloc[client_row],
+            server_port      = ds['dport'].iloc[client_row],
             addrid           = 0   # master subflow has implicit addrid 0
         )
 
         subflows.append(master_sf)
-        tcpstreams = ds.groupby('tcpstream')
-        for tcpstreamid, subflow_ds in tcpstreams:
+        for tcpstreamid, subflow_ds in ds.groupby('tcpstream'):
+            log.debug("Building subflow from tcpstreamid %d" % tcpstreamid)
             if tcpstreamid == master_tcpstream:
                 continue
-            res = get_index_of_non_null_values(subflow_ds["recvtok"])
-            if len(res) < 1:
+
+            join_row_id = get_index_of_non_null_values(subflow_ds["recvtok"])
+            if len(join_row_id) < 1:
                 raise MpTcpException("Missing MP_JOIN")
 
             # assuming first packet is the initial SYN
-            row = res[0]
-            receiver_token = subflow_ds["recvtok"].iloc[row]
+            syn_row = join_row_id[0]
+            receiver_token = subflow_ds["recvtok"].iloc[syn_row]
+            # subdf.columns.get_loc(_second('abstime'))]
+            # print("ROW:")
+            # print(subflow_ds.iloc[row, "recvtok"])
+            # print("DEBUGGIN receiver_token %r" % receiver_token)
+            # receiver_token = subflow_ds["recvtok"].iloc[row]
+
+            assert math.isfinite(int(receiver_token))
 
             # if we see the token
             log.debug("receiver_token %r to compare with server_token %r" % (receiver_token, server_token))
@@ -362,10 +386,10 @@ class MpTcpConnection:
             subflow = MpTcpSubflow.create_subflow(
                 mptcpdest   = mptcpdest,
                 tcpstreamid =tcpstreamid,
-                tcpclient_ip=subflow_ds['ipsrc'].iloc[row],
-                tcpserver_ip=subflow_ds['ipdst'].iloc[row],
-                client_port =subflow_ds['sport'].iloc[row],
-                server_port =subflow_ds['dport'].iloc[row],
+                tcpclient_ip=subflow_ds['ipsrc'].iloc[client_row],
+                tcpserver_ip=subflow_ds['ipdst'].iloc[client_row],
+                client_port =subflow_ds['sport'].iloc[client_row],
+                server_port =subflow_ds['dport'].iloc[client_row],
                 addrid      =None,
                 # rcv_token   =receiver_token,
             )
@@ -374,8 +398,12 @@ class MpTcpConnection:
 
             subflows.append(subflow)
 
-        result = MpTcpConnection(mptcpstreamid, client_key, client_token,
-            server_key, server_token, subflows)
+        result = MpTcpConnection(
+            mptcpstreamid, client_key, client_token,
+            server_key,
+            server_token,
+            subflows
+        )
         return result
 
 

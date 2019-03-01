@@ -35,8 +35,9 @@ class TcpUnidirectionalStats:
     # rename to byte range ?
     tcp_byte_range: int = None
 
-    ''' max(dsn)- min(dsn) - 1'''
+    ''' application data = goodput = useful bytes '''
     mptcp_application_bytes: int = None
+
     # TODO convert to property ?
     throughput_contribution: float = None
     # throughput_contribution: int = field(default=None, metadata={'unit': '%'})
@@ -58,6 +59,7 @@ class MpTcpUnidirectionalStats:
     mptcpstreamid: MpTcpStreamId
 
     ''' application data = goodput = useful bytes '''
+    ''' max(dsn)- min(dsn) - 1'''
     mptcp_application_bytes: int
     subflow_stats: List[TcpUnidirectionalStats]
     # TODO rename to global ?
@@ -150,14 +152,10 @@ def mptcp_compute_throughput(
     """
     assert isinstance(destination, ConnectionRoles), "destination is %r" % destination
 
-    df = rawdf[rawdf.mptcpstream == mptcpstreamid]
-    if df.empty:
-        raise MpTcpException("No packet with mptcp.stream == %d" % mptcpstreamid)
-
-    con = MpTcpConnection.build_from_dataframe(df, mptcpstreamid)
+    con = MpTcpConnection.build_from_dataframe(rawdf, mptcpstreamid)
     q = con.generate_direction_query(destination)
-    # print("query q= %r" % q)
-    df = unidirectional_df = df.query(q, engine="python")
+    print("query q= %r" % q)
+    df = unidirectional_df = rawdf.query(q, engine="python")
     print("unidirectional_df")
     print(unidirectional_df["mptcpdest"])
 
