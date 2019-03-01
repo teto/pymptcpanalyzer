@@ -76,7 +76,9 @@ histfile_size = 1000
 
 
 logLevels = {
-    logging.getLevelName(level): level for level in [mp.TRACE, logging.DEBUG, logging.INFO, logging.ERROR]
+    logging.getLevelName(level): level for level in [
+        mp.TRACE, logging.DEBUG, logging.INFO, logging.ERROR
+    ]
 }
 
 

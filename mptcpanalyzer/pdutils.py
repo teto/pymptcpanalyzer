@@ -16,7 +16,14 @@ class TcpAccessor:
         self._obj = pandas_obj
 
     def connection(self, streamid):
-        return TcpConnection.build_from_dataframe(self._obj, streamid)
+        # TODO copy the dataframe
+        # TcpConnection.build_from_dataframe(self._obj, streamid)
+        return self._obj.where("tcpstream == %d" % streamid)
+
+@pd.api.extensions.register_dataframe_accessor("tcp")
+class MpTcpAccessor:
+    def __init__(self, pandas_obj):
+        self._obj = pandas_obj
 
 
 def debug_dataframe(

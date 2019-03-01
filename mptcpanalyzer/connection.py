@@ -1,7 +1,8 @@
 import pandas as pd
 import logging
 import math
-from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId, MpTcpStreamId
+import numpy as np
+from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId, MpTcpStreamId, TcpFlags
 
 from typing import List, NamedTuple, Tuple, Dict, Union
 from enum import Enum
@@ -114,16 +115,14 @@ class TcpConnection:
     def build_from_dataframe(rawdf: pd.DataFrame, tcpstreamid: TcpStreamId) -> 'TcpConnection':
         """
         Instantiates a class that describes an MPTCP connection
+
+        Look for syn and synack => don't assume packets in order
+
+        TODO: might need to pass a name changer
         """
 
-        def get_index_of_non_null_values(serie):
-            # http://stackoverflow.com/questions/14016247/python-find-integer-index-of-rows-with-nan-in-pandas/14033137#14033137
-            # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
-            return serie.notnull().nonzero()[0]
-
-
         df = rawdf[rawdf.tcpstream == tcpstreamid]
-        if len(df.index) == 0:
+        if len(df.index) < 1:
             raise MpTcpException("No packet with this tcp.stream id %r" % tcpstreamid)
 
         # + mp.TcpFlags TODO record ISN !!
@@ -131,14 +130,32 @@ class TcpConnection:
         # if len(syns) == 0
         #     raise MpTcpException("No packet with this stream id")
 
-        row = df.iloc[0,]
+        # returns a  serie
+        syns = np.bitwise_and(df['tcpflags'], TcpFlags.SYN)
+        # TODO check times
+        # syn_df = ds.where(ds.tcpflags == syn_only)
+        # synack_df = ds.where(ds.tcpflags == synack_val)
+
+        if len(syns.index) < 1:
+            raise MpTcpException("" % tcpstreamid)
+
+        idx = syns.index[0]
+        row = df.loc[idx,]
 
         result = TcpConnection(
             TcpStreamId(tcpstreamid),
-            row['ipsrc'], row['ipdst'],
-            client_port=row['sport'], server_port=row['dport']
+            row['ipsrc'], 
+            row['ipdst'],
+            client_port=row['sport'], 
+            server_port=row['dport']
         )
-        log.debug("Created connection %s", result)
+
+        if df.loc[idx, "tcpflags"] & TcpFlags.ACK:
+            # then revert the flow
+            log.debug("We have seen the syn/ack instead of syn, invert destination")
+            result = result.reversed()
+
+        log.debug("Created connection %s" % result)
         return result
 
     def reversed(self):
@@ -237,7 +254,7 @@ class MpTcpSubflow(TcpConnection):
 
 
 
-# @dataframe
+# TODO provide as a dataclass
 # @dataclass
 class MpTcpConnection:
     """
@@ -306,34 +323,37 @@ class MpTcpConnection:
         Look for the first 2 packets containing "sendkey"
         """
 
-        def get_index_of_non_null_values(serie):
-            # http://stackoverflow.com/questions/14016247/python-find-integer-index-of-rows-with-nan-in-pandas/14033137#14033137
-            # pd.np.nan == pd.np.nan retursn false in panda so one should use notnull(), isnull()
-            return serie.notnull().to_numpy().nonzero()[0]
-            # return serie.to_numpy().nonzero()[0]
-
-
         ds = ds[ds.mptcpstream == mptcpstreamid]
         if len(ds.index) == 0:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
-        # this returns the indexes where a sendkey is set :
-        sendkey_row_ids = get_index_of_non_null_values(ds["sendkey"])
-        # print("sendkey rows")
-        # print(sendkey_row_ids)
-        if len(sendkey_row_ids) < 2:
-            # possible to have more in case of retransmissions etc
-            raise MpTcpException("Could not find the initial MPTCP keys (only found %r)" % (sendkey_row_ids))
+        syn_mpcapable_df = ds.where(ds.tcpflags == TcpFlags.SYN).dropna(subset=['sendkey'])
+        synack_mpcapable_df = ds.where(ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)).dropna(subset=['sendkey'])
 
-        # log.debug("Found %d rows with a valid sendkey" % len(sendkey_row_ids))
+        # print(syn_mpcapable_df[ ["sendkey", "tcpflags", "expected_token", "ipsrc"]])
+        # print(synack_mpcapable_df[ ["sendkey", "tcpflags", "expected_token", "ipsrc"]])
 
-        client_row       = sendkey_row_ids[0]
-        server_row       = sendkey_row_ids[1]
-        client_key       = ds["sendkey"].iloc[client_row]
-        client_token     = ds["expected_token"].iloc[client_row]
-        server_key       = ds["sendkey"].iloc[server_row]
-        server_token     = ds["expected_token"].iloc[server_row]
-        master_tcpstream = ds["tcpstream"].iloc[0]
+
+        if len(syn_mpcapable_df) < 1:
+            raise MpTcpException("Could not find the client MPTCP key")
+
+        if len(synack_mpcapable_df) < 1:
+            raise MpTcpException("Could not find the server MPTCP key")
+
+
+        # not really rows but index
+        client_id       = syn_mpcapable_df.index[0]
+        server_id       = synack_mpcapable_df.index[0]
+        client_key       = ds.loc[client_id, "sendkey"]
+        client_token     = ds.loc[client_id, "expected_token"]
+        server_key       = ds.loc[server_id, "sendkey"]
+        server_token     = ds.loc[server_id, "expected_token"]
+        master_tcpstream = ds.loc[client_id, "tcpstream"]
+
+        # TODO now add a check on abstime
+        if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
+            log.error("Clocks are not synchronized correctly")
+            # print("")
 
         # print("line with key:")
         # print("client key = %r" % client_key)
@@ -349,10 +369,10 @@ class MpTcpConnection:
         master_sf = MpTcpSubflow.create_subflow(
             mptcpdest        = ConnectionRoles.Server,
             tcpstreamid      = master_tcpstream,
-            tcpclient_ip     = ds['ipsrc'].iloc[client_row],
-            tcpserver_ip     = ds['ipdst'].iloc[client_row],
-            client_port      = ds['sport'].iloc[client_row],
-            server_port      = ds['dport'].iloc[client_row],
+            tcpclient_ip     = ds.loc[client_id, 'ipsrc'],
+            tcpserver_ip     = ds.loc[client_id, 'ipdst'],
+            client_port      = ds.loc[client_id, 'sport'],
+            server_port      = ds.loc[client_id, 'dport'],
             addrid           = 0   # master subflow has implicit addrid 0
         )
 
@@ -360,20 +380,17 @@ class MpTcpConnection:
         for tcpstreamid, subflow_ds in ds.groupby('tcpstream'):
             log.debug("Building subflow from tcpstreamid %d" % tcpstreamid)
             if tcpstreamid == master_tcpstream:
+                log.debug("skipping %d, master already registered" % tcpstreamid)
                 continue
 
-            join_row_id = get_index_of_non_null_values(subflow_ds["recvtok"])
-            if len(join_row_id) < 1:
-                raise MpTcpException("Missing MP_JOIN")
+            syn_join_df = subflow_ds.where(ds.tcpflags == TcpFlags.SYN).dropna(subset=['recvtok'])
+
+            if len(syn_join_df) < 1:
+                raise MpTcpException("Missing TCP client MP_JOIN")
 
             # assuming first packet is the initial SYN
-            syn_row = join_row_id[0]
-            receiver_token = subflow_ds["recvtok"].iloc[syn_row]
-            # subdf.columns.get_loc(_second('abstime'))]
-            # print("ROW:")
-            # print(subflow_ds.iloc[row, "recvtok"])
-            # print("DEBUGGIN receiver_token %r" % receiver_token)
-            # receiver_token = subflow_ds["recvtok"].iloc[row]
+            syn_join_id = syn_join_df.index[0]
+            receiver_token = subflow_ds.loc[syn_join_id, "recvtok"]
 
             assert math.isfinite(int(receiver_token))
 
@@ -386,10 +403,10 @@ class MpTcpConnection:
             subflow = MpTcpSubflow.create_subflow(
                 mptcpdest   = mptcpdest,
                 tcpstreamid =tcpstreamid,
-                tcpclient_ip=subflow_ds['ipsrc'].iloc[client_row],
-                tcpserver_ip=subflow_ds['ipdst'].iloc[client_row],
-                client_port =subflow_ds['sport'].iloc[client_row],
-                server_port =subflow_ds['dport'].iloc[client_row],
+                tcpclient_ip=subflow_ds.loc[syn_join_id,'ipsrc'],
+                tcpserver_ip=subflow_ds.loc[syn_join_id,'ipdst'],
+                client_port =subflow_ds.loc[syn_join_id,'sport'],
+                server_port =subflow_ds.loc[syn_join_id,'dport'],
                 addrid      =None,
                 # rcv_token   =receiver_token,
             )

@@ -183,7 +183,7 @@ class TsharkConfig:
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", 'Int64', True, True)
         self.add_field("tcp.flags", "tcpflags", None, False, True, _convert_flags)
-        # should be a list, TODO set hash to true
+        # TODO set hash to true, isn't needed after tcpflags ?
         self.add_field("tcp.option_kind", "tcpoptions", None, False, False,
             functools.partial(_load_list, field="option_kind"), )
         self.add_field("tcp.seq", "tcpseq", 'UInt32', "TCP sequence number", True)

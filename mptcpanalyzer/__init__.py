@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from enum import Enum, IntEnum, Flag, auto
+from enum import Enum, IntEnum, Flag, IntFlag, auto
 from .config import MpTcpAnalyzerConfig
 from .cache import Cache
 from .tshark import TsharkConfig
@@ -73,7 +73,7 @@ def get_config() -> MpTcpAnalyzerConfig:
 # METADATA_ROWS = 2
 
 
-class TcpFlags(Flag):
+class TcpFlags(IntFlag):
     NONE = 0
     FIN = 1
     SYN = 2

@@ -231,6 +231,9 @@ def load_merged_streams_into_pandas(
             # merged_df.apply(",".join()
 
             # TODO adding 
+
+            # or abstime ?
+
             merged_df.to_csv(
                 cachename,
                 # columns=columns,
@@ -440,8 +443,8 @@ def load_into_pandas(
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
 
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
-            log.debug("Dtypes before load: %s" % (pp.pformat(dtypes)))
-            log.debug("Converters before load: %s" % (pp.pformat(converters)))
+            # log.debug("Dtypes before load: %s" % (pp.pformat(dtypes)))
+            # log.debug("Converters before load: %s" % (pp.pformat(converters)))
 
             from .pdutils import read_csv_debug
             # fields = [f.fullname for _, f in config.fields.items()]
