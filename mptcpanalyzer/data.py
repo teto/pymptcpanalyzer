@@ -1189,7 +1189,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
     log.debug("Classifying reinjections")
 
-    df_all["redundant"] = False
+    df_all.loc[:, "redundant"] = False
     df_all["reinj_delta"] = np.nan
 
     # rename to df_both ?

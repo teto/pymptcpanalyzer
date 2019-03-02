@@ -101,24 +101,17 @@ def tcp_get_stats(
     # q = con.generate_direction_query(destination)
     # df = unidirectional_df = df.query(q, engine="python")
     # return (TcpUnidirectionalStats(),  TcpUnidirectionalStats() )
-    # res = { }
     # debug_dataframe(df2, "before connection", )
     # for destination in ConnectionRoles:
     log.debug("Looking at role %s" % destination)
-    # print(df2["tcpdest"])
     # TODO assume it's already filtered ?
     sdf = df2[df2.tcpdest == destination]
     bytes_transferred = sdf["tcplen"].sum()
     # sdf["tcplen"].sum()
     # print("bytes  bytes_transferred ")
 
-    seq_min = sdf.tcpseq.min()
-
-    # TODO + add the last packet size ?
-    seq_max = sdf.tcpseq.max()
-
     # -1 to accoutn for SYN
-    tcp_byte_range = seq_max - seq_min - 1
+    tcp_byte_range, seq_max, seq_min = transmitted_seq_range(sdf, "tcpseq")
     msg = "tcp_byte_range ({}) = {} (seq_max) - {} (seq_min) - 1"
     log.debug(msg.format(tcp_byte_range, seq_max, seq_min))
 
@@ -137,14 +130,16 @@ def tcp_get_stats(
 
 def transmitted_seq_range(df, seq_name):
     '''
-
+    test
     '''
+    log.debug("Computing byte range for sequence field %s" % seq_name)
 
     sorted_seq = df.sort_values(by=seq_name)
     seq_min = sorted_seq.loc[sorted_seq.first_valid_index(), seq_name]
     seq_max = sorted_seq.loc[sorted_seq.last_valid_index(), seq_name] \
         + sorted_seq.loc[sorted_seq.last_valid_index(), "tcplen"]
 
+    seq_range = seq_max - seq_min
     return seq_range, seq_max, seq_min
 
 # TODO same return both directions
@@ -181,7 +176,7 @@ def mptcp_compute_throughput(
 
     # # -1 because of syn
     # dsn_range = dsn_max - dsn_min - 1
-    dsn_range, dsn_max, dsn_min = transmitted_seq_range
+    dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dss_dsn")
 
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
     log.debug(msg.format( dsn_range, dsn_max, dsn_min))
@@ -207,11 +202,20 @@ def mptcp_compute_throughput(
         # sf_dsn_min = subdf.dss_dsn.min()
         # sf_dsn_max = subdf.dss_dsn.max()
 
-        fields =  ["tcpdest", "mptcpdest", "dss_dsn", "dss_length"]
+        fields = ["tcpdest", "mptcpdest", "dss_dsn", "dss_length"]
         print(subdf[fields])
-        # DSNs can be discontinuous,
-        # dss_length
-        sf_stats.mptcp_application_bytes = subdf.drop_duplicates(subset="dss_dsn").dss_length.sum()
+
+        # dsn_range, dsn_max, dsn_min = transmitted_seq_range(subdf, "dss_dsn")
+
+        # DSNs can be discontinuous, so we have to look at each packet
+        # we drop duplicates
+        transmitted_dsn_df = subdf.drop_duplicates(subset="dss_dsn")
+        # print("transmitted_dsn_df")
+        # print(transmitted_dsn_df)
+        # print(transmitted_dsn_df["tcplen"].dropna())
+
+        sf_stats.mptcp_application_bytes = transmitted_dsn_df["tcplen"].sum()
+        print(sf_stats.mptcp_application_bytes )
 
         # subflow_load = subflow_load if not math.isnan(subflow_load) else 0
 

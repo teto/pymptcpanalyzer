@@ -137,16 +137,16 @@ class TcpConnection:
         # synack_df = ds.where(ds.tcpflags == synack_val)
 
         if len(syns.index) < 1:
-            raise MpTcpException("" % tcpstreamid)
+            raise MpTcpException("No packet with any SYN flag for tcpstream %d" % tcpstreamid)
 
         idx = syns.index[0]
         row = df.loc[idx,]
 
         result = TcpConnection(
             TcpStreamId(tcpstreamid),
-            row['ipsrc'], 
+            row['ipsrc'],
             row['ipdst'],
-            client_port=row['sport'], 
+            client_port=row['sport'],
             server_port=row['dport']
         )
 
