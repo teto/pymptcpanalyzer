@@ -3,7 +3,7 @@ import logging
 import math
 import numpy as np
 from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId, MpTcpStreamId, TcpFlags
-
+import mptcpanalyzer as mp
 from typing import List, NamedTuple, Tuple, Dict, Union
 from enum import Enum
 from dataclasses import dataclass
@@ -97,6 +97,22 @@ class TcpConnection:
 
         # TODO more granular score
         return score
+
+
+    def fill_tcpdest(self, df) -> pd.DataFrame:
+
+        for dest in ConnectionRoles:
+
+            log.debug("Looking at destination %s" % dest)
+            q = self.generate_direction_query(dest)
+            df_dest = df.query(q, engine="python")
+            print("tcpdest %r" % dest)
+            df.loc[df_dest.index, 'tcpdest'] = dest
+
+        # print(df.tcpdest.head())
+        # assert df['tcpdest'].notnull() == , "every packet should have tcpdest set"
+        return df
+
 
     def __eq__(self, other):
         """
@@ -308,6 +324,20 @@ class MpTcpConnection:
 
         # print(result)
         return result
+
+
+    # never used ?
+    def mptcpdest_from_connections(self, df) -> pd.DataFrame:
+
+        for dest in ConnectionRoles:
+
+            log.log(mp.TRACE, "Looking at mptcp destination %s" % dest)
+            q = self.generate_direction_query(dest)
+            df_dest = df.query(q, engine="python")
+            # print("mptcpdest %r" % dest)
+            df.loc[df_dest.index, 'mptcpdest'] = dest
+
+        return df
 
     # @property
     def subflows(self, mptcpdest: ConnectionRoles = ConnectionRoles.Server):

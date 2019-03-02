@@ -1,29 +1,69 @@
 import logging
 import pprint
+import numpy as np
 import pandas as pd
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
-# from mptcpanalyzer.data import (load_into_pandas, tcpdest_from_connections, mptcpdest_from_connections,
-    # load_merged_streams_into_pandas)
+import mptcpanalyzer as mp
+from mptcpanalyzer import TcpFlags
 
 
 log = logging.getLogger(__name__)
 
 pp = pprint.PrettyPrinter(indent=4)
 
+# register_series_accessor
+# pandas.api.extensions.register_index_accessor
+
+# StreamAccessor ?
 @pd.api.extensions.register_dataframe_accessor("tcp")
 class TcpAccessor:
     def __init__(self, pandas_obj):
         self._obj = pandas_obj
+        # print(kwargs)
 
-    def connection(self, streamid):
+    def connection(self, streamid) -> TcpConnection:
+        # if tcpdest is None:
+        #     tcpdest = list(mp.ConnectionRoles)
+        return TcpConnection.build_from_dataframe(self._obj, streamid)
+
         # TODO copy the dataframe
         # TcpConnection.build_from_dataframe(self._obj, streamid)
-        return self._obj.where("tcpstream == %d" % streamid)
+        # TODO fill destination
+        # TODO fill tcpdest
+        # return self._obj.where(self._obj.tcpstream == streamid)
 
-@pd.api.extensions.register_dataframe_accessor("tcp")
+    # def match(self, , stream, df):
+        # TODO
+        # pass
+
+    # def merge(self, df, stream):
+
+    # need to filter the stream
+    def syn_idx(self):
+        # TODO 
+        syns = np.bitwise_and(self._obj['tcpflags'], TcpFlags.SYN)
+
+        if len(syns.index) < 1:
+            raise mp.MpTcpException("No packet with any SYN flag for tcpstream")
+
+        idx = syns.index[0]
+        return idx
+
+    def dest(self, ConnectionRoles):
+        return
+
+    # TODO fill destination
+
+@pd.api.extensions.register_dataframe_accessor("mptcp")
 class MpTcpAccessor:
     def __init__(self, pandas_obj):
         self._obj = pandas_obj
+
+    def connection(self, streamid) -> MpTcpConnection:
+        return MpTcpConnection.build_from_dataframe(self._obj, streamid)
+
+    def filter(self, streamid) -> MpTcpConnection:
+        return self._obj.where(self._obj.mptcpstream == streamid)
 
 
 def debug_dataframe(
@@ -151,7 +191,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
 #         if protocol == "tcp":
 #             # generates the "tcpdest" component of the dataframe
 #             con2 = TcpConnection.build_from_dataframe(dataframe, stream)
-#             dataframe = tcpdest_from_connections(dataframe, con2)
+#             dataframe = Xcpdest_from_connections(dataframe, con2)
 #             # trust plots to do the filtering
 #             # if destinations is not []:
 #             #     queries.append(protocol + "dest==%d" % stream)
@@ -159,7 +199,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
 #             # todo shall do the same for mptcp destinations
 #             con = MpTcpConnection.build_from_dataframe(dataframe, stream)
 #             # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
-#             df = mptcpdest_from_connections(dataframe, con)
+#             df = Xptcpdest_from_connections(dataframe, con)
 #             # TODO generate mptcpdest
 #             # if protocol == "mptcp":
 #             if destinations is not None:

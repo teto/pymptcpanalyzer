@@ -6,8 +6,7 @@ import mptcpanalyzer as mp
 from mptcpanalyzer import PreprocessingActions
 from mptcpanalyzer.parser import gen_pcap_parser
 import pandas as pd
-from mptcpanalyzer.data import (load_into_pandas, tcpdest_from_connections, mptcpdest_from_connections,
-    load_merged_streams_into_pandas)
+from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -197,7 +196,7 @@ class Matplotlib(Plot):
         """
         title = opt.get('title', self.title)
 
-        log.info("User passed title, %s" % title)
+        log.info("User passed title [%s]" % title)
         if title and title != "none":
             v.suptitle(title)
 

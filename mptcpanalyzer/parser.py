@@ -5,8 +5,7 @@ from cmd2 import argparse_completer
 from typing import Iterable, List, Dict, Callable, Optional, Any
 from .tshark import TsharkConfig
 # from .connection import
-from .data import (load_into_pandas, load_merged_streams_into_pandas,
-        tcpdest_from_connections, mptcpdest_from_connections)
+from .data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
             CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId)
 import mptcpanalyzer as mp
@@ -175,7 +174,7 @@ def with_argparser_test(
     return arg_decorator # type: ignore
 
 
-class AppendDestination(DataframeAction):
+class AppendDestination(argparse.Action):
     """
     assume convention on naming
     TODO check if it's ok with FilterDest
@@ -183,7 +182,8 @@ class AppendDestination(DataframeAction):
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
         self.destinations = list(ConnectionRoles)
-                    # default=list(ConnectionRoles),
+        # default=list(ConnectionRoles),
+        # TODO pass the type as well
         super().__init__(
             *args,
             choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
@@ -321,12 +321,12 @@ def retain_stream(df_name):
     return partial(FilterStream, query, df_name)
 
 
-def filter_dest(df_name, mptcp: bool):
+def filter_dest(df_name, mptcp: bool=False):
     # query = "tcpdest"
     # if mptcp:
     #     query = "mp" + query
     # query = query + "==%s"
-    return partial(FilterDest, mptcp, df_name)
+    return partial(FilterDest, df_name)
 
 
 class FilterDest(DataframeAction):
@@ -342,7 +342,9 @@ class FilterDest(DataframeAction):
         # init with all destinations
         self.destinations = list(ConnectionRoles)
         self.already_called = False
+        # TODO need to pass a type
         # TODO it could set choices automatically
+        # type=lambda x: ConnectionRoles.from_string(x),
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -355,7 +357,6 @@ class FilterDest(DataframeAction):
         # make sure result
         df = namespace._dataframes[self.df_name]
 
-        # streamid = values
 
         log.debug("Filtering dest %s" % (values))
 
@@ -377,12 +378,12 @@ class FilterDest(DataframeAction):
 
         #         mptcpcon = MpTcpConnection.build_from_dataframe(dataframe, stream)
         #         # mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
-        #         df = mptcpdest_from_connections(df, mptcpcon)
+        #         df = Xptcpdest_from_connections(df, mptcpcon)
         #         df = df[df.mptcpdest == dest]
 
         #     else:
         #         tcpcon = TcpConnection.build_from_dataframe(df, streamid)
-        #         df = tcpdest_from_connections(df, tcpcon)
+        #         df = Xcpdest_from_connections(df, tcpcon)
         #         df = df[df.tcpdest == dest]
 
         # log.debug("Applying query %s" % self.query)
@@ -486,6 +487,8 @@ class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
                 # print
                 # so now we can filter the destination ?
                 log.debug("dataframe [%s] in namespace" % name)
+
+                # TODO here we should filter the destinations
         else:
             log.debug("No dataframe in namespace")
 
@@ -577,7 +580,8 @@ def gen_pcap_parser(
                 # so we subclass list to convert the Enum to str value first.
                 # TODO setup our own custom actions to get rid of our hacks
                 parser.add_argument(
-                    '--dest', metavar="destination", dest=df_name + "_destinations",
+                    '--dest', metavar="destination",
+                    dest=df_name + "_destinations",
                     # see preprocess functions to see how destinations is handled when empty
                     # Both are already taken care of
                     # default=list(ConnectionRoles),
@@ -586,7 +590,7 @@ def gen_pcap_parser(
                     action=partial(AppendDestination, df_name),
                     # action=partial(AppendDestination, df_name),
                     # type parameter is a function/callable
-                    type=lambda x: ConnectionRoles.from_string(x),
+                    # type=lambda x: ConnectionRoles.from_string(x),
                     help='Filter flows according to their direction'
                     '(towards the client or the server)'
                     'Depends on mptcpstream')

@@ -2,7 +2,7 @@ from typing import List, Any, Tuple, Dict, Callable, Union
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from mptcpanalyzer import ConnectionRoles
 import mptcpanalyzer as mp
-from mptcpanalyzer.data import classify_reinjections, tcpdest_from_connections
+from mptcpanalyzer.data import classify_reinjections
 from mptcpanalyzer import (_sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcpException,
     _first, _second)
 from mptcpanalyzer.pdutils import debug_dataframe
@@ -94,7 +94,7 @@ def tcp_get_stats(
 
     # TODO do it only when needed
     # con = TcpConnection.build_from_dataframe(df, tcpstreamid)
-    # df2 = tcpdest_from_connections(df, con)
+    # df2 = Xcpdest_from_connections(df, con)
     df2 = df
 
     log.debug("df2 size = %d" % len(df2))
@@ -108,11 +108,11 @@ def tcp_get_stats(
     sdf = df2[df2.tcpdest == destination]
     bytes_transferred = sdf["tcplen"].sum()
     # sdf["tcplen"].sum()
-    print("bytes_transferred ", bytes_transferred)
+    # print("bytes_transferred ", bytes_transferred)
 
     # -1 to accoutn for SYN
     tcp_byte_range, seq_max, seq_min = transmitted_seq_range(sdf, "tcpseq")
-    msg = "tcp_byte_range ({}) = {} (seq_max) - {} (seq_min) - 1"
+    msg = "tcp_byte_range ({}) , {} (seq_max) - {} (seq_min) - 1"
     log.debug(msg.format(tcp_byte_range, seq_max, seq_min))
 
 
@@ -122,8 +122,8 @@ def tcp_get_stats(
 
 
     # TODO put in the constructor
-    print ("bytes_transferred ", bytes_transferred)
-    print ("vs tcp_byte_range ", tcp_byte_range)
+    # print ("bytes_transferred ", bytes_transferred)
+    # print ("vs tcp_byte_range ", tcp_byte_range)
     assert tcp_byte_range is not None
     assert bytes_transferred is not None
 
@@ -141,23 +141,18 @@ def transmitted_seq_range(df, seq_name):
     log.debug("Computing byte range for sequence field %s" % seq_name)
 
     sorted_seq = df.dropna(subset=[seq_name]).sort_values(by=seq_name)
-    print("sorted_seq")
-    print(sorted_seq)
+    log.log(mp.TRACE, "sorted_seq %s" % sorted_seq)
 
     seq_min = sorted_seq.loc[sorted_seq.first_valid_index(), seq_name]
     last_valid_index = sorted_seq.last_valid_index()
     seq_max = sorted_seq.loc[last_valid_index, seq_name] \
         + sorted_seq.loc[last_valid_index, "tcplen"]
 
-    # -1
-    seq_range = seq_max - seq_min
+    # -1 because of SYN
+    seq_range = seq_max - seq_min - 1
 
     msg = "seq_range ({}) = {} (seq_max) - {} (seq_min) - 1"
-    log.debug(msg.format( seq_range, seq_max, seq_min))
-
-    # print("%s_range: " % seq_name, seq_range)
-    # print("seq_max:", seq_max)
-    # print("seq_min:", seq_min)
+    log.log(mp.TRACE, msg.format( seq_range, seq_max, seq_min))
 
     return seq_range, seq_max, seq_min
 
@@ -178,11 +173,11 @@ def mptcp_compute_throughput(
     """
     assert isinstance(destination, ConnectionRoles), "destination is %r" % destination
 
-    con = MpTcpConnection.build_from_dataframe(rawdf, mptcpstreamid)
+    con = rawdf.mptcp.connection(mptcpstreamid)
     q = con.generate_direction_query(destination)
-    print("query q= %r" % q)
+    # print("query q= %r" % q)
     df = unidirectional_df = rawdf.query(q, engine="python")
-    print("unidirectional_df")
+    # print("unidirectional_df")
     # assert len(unidirectional_df["mptcpdest"]) == len(df["mptcpdest" == destination]), "wrong query"
     # print(unidirectional_df["mptcpdest"])
 

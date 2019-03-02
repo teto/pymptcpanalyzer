@@ -25,6 +25,7 @@ from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, FilterStream, \
     MpTcpAnalyzerParser, with_argparser_test, MpTcpStreamId, TcpStreamId
+import mptcpanalyzer.parser as mpparser
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, \
     merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, \
@@ -526,7 +527,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print("Summary of TCP connection " )
         df = self.data
 
-        # args.pcapdestinations ?
+        con = df.tcp.connection(0)
+        con.fill_tcpdest(df)
 
         for dest in ConnectionRoles:
             # TODO do it only when needed
@@ -538,8 +540,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 False
             )
 
-            print("TEMP")
+            # print("TEMP")
             print(res)
+
 
     summary_parser = MpTcpAnalyzerParser(
         description="Prints a summary of the mptcp connection"
@@ -553,7 +556,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # TODO use filter_dest instead
     summary_parser.add_argument(
         'destination',
-        action="store", choices=mp.DestinationChoice, type=lambda x: mp.ConnectionRoles[x],
+        # action="store",
+        action=mpparser.AppendDestination,
+        # choices=mp.DestinationChoice,
+        # type=lambda x: mp.ConnectionRoles[x],
         help='Filter flows according to their direction'
         '(towards the client or the server)'
         'Depends on mptcpstream'
@@ -572,10 +578,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df = self.data
         mptcpstream = args.mptcpstream
 
+        # TODO need to compute dest
+
         # args.pcapdestinations ?
         # print(args)
         ret = mptcp_compute_throughput(
-            self.data, args.mptcpstream, args.destination, False
+            self.data, args.mptcpstream,
+            args.destination,
+            # TODO set to true
+            False
         )
 
         if args.json:
@@ -636,8 +647,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # need to compute the destinations before dropping syn from the dataframe
         # df['tcpdest'] = np.nan;
         for streamid, subdf in df.groupby("tcpstream"):
-            con = TcpConnection.build_from_dataframe(df, streamid)
-            df = mpdata.tcpdest_from_connections(df, con)
+            con = df.tcp.connection(streamid)
+            df = con.fill_tcpdest(df)
 
             if args.drop_syn:
                 # use subdf ?
@@ -658,9 +669,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser = gen_bicap_parser("mptcp", True)
     sumext_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
-    sumext_parser.description = """
+    sumext_parser.description = inspect.cleandoc("""
         Look into more details of an mptcp connection
-    """
+    """)
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
@@ -672,7 +683,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        print("Summary extended resume %r" % args)
+        # print("Summary extended resume %r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
@@ -693,11 +704,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.tshark_config
         )
 
-        if True:
-            filename = "toto" + ".xls"
-            logging.debug("Saved a debug excel copy at %s" % filename)
-            df.to_excel(filename)
-        debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
+        # if True:
+        #     filename = "toto" + ".xls"
+        #     logging.debug("Saved a debug excel copy at %s" % filename)
+        #     df.to_excel(filename)
+        # debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
 
 
         print("NANI ? %r" % destinations )
@@ -1110,14 +1121,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def pcap_loaded(self):
         return isinstance(self.data, pd.DataFrame)
 
+
     plot_parser = MpTcpAnalyzerParser(prog='plot', description='Generate plots')
     # TODO complete the help
     # plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3" "quit"
-    plot_parser.epilog = '''
+    plot_parser.epilog = inspect.cleandoc('''
         You can run for example:
             plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
-    '''
-
+    ''')
     @with_argparser_and_unknown_args(plot_parser)
     def do_plot(self, args, unknown):
         """
@@ -1147,6 +1158,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # pass unknown_args too ?
         result = plotter.run(**dataframes, **dargs)
 
+
+        print( "result %r", result)
         # to save to file for instance
         plotter.postprocess(result, **dargs)
 

@@ -547,34 +547,6 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
 #     )
 
 
-def mptcpdest_from_connections(df, con: MpTcpConnection) -> pd.DataFrame:
-
-    for dest in ConnectionRoles:
-
-        log.log(mp.TRACE, "Looking at mptcp destination %s" % dest)
-        q = con.generate_direction_query(dest)
-        df_dest = df.query(q, engine="python")
-        # print("mptcpdest %r" % dest)
-        df.loc[df_dest.index, 'mptcpdest'] = dest
-
-    return df
-
-
-def tcpdest_from_connections(df, con: TcpConnection) -> pd.DataFrame:
-
-    for dest in ConnectionRoles:
-
-        log.debug("Looking at destination %s" % dest)
-        q = con.generate_direction_query(dest)
-        df_dest = df.query(q, engine="python")
-        print("tcpdest %r" % dest)
-        df.loc[df_dest.index, 'tcpdest'] = dest
-
-    # print(df.tcpdest.head())
-    # assert df['tcpdest'].notnull() == , "every packet should have tcpdest set"
-    return df
-
-
 
 def convert_to_sender_receiver(
     df
