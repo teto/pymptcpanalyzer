@@ -592,8 +592,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         for tcpstream, sf_bytes in \
             map(lambda sf: (sf.tcpstreamid, sf.throughput_bytes), ret.subflow_stats):
             subflow_load = sf_bytes/mptcp_transferred
-            self.poutput("tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
-                    "accounting for {tput_ratio:.2f}%".format(
+            self.poutput(
+                "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
+                "accounting for {tput_ratio:.2f}%".format(
                 tcpstream, sf_tput=sf_bytes, mptcp_tput=mptcp_transferred,
                 tput_ratio=subflow_load*100
             ))

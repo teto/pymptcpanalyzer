@@ -1189,8 +1189,13 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
     log.debug("Classifying reinjections")
 
-    df_all.loc[:, "redundant"] = False
-    df_all["reinj_delta"] = np.nan
+
+    # print("is_copy ?", df_all.is_copy) # returns "weakref"
+    # use assign
+    df_all = df_all.assign(redundant=False, reinj_delta=np.nan)
+
+    # df_all["redundant"] = False
+    # df_all["reinj_delta"] = np.nan
 
     # rename to df_both ?
     df = df_all[df_all.merge_status == "both"]

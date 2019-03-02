@@ -108,7 +108,7 @@ def tcp_get_stats(
     sdf = df2[df2.tcpdest == destination]
     bytes_transferred = sdf["tcplen"].sum()
     # sdf["tcplen"].sum()
-    # print("bytes  bytes_transferred ")
+    print("bytes_transferred ", bytes_transferred)
 
     # -1 to accoutn for SYN
     tcp_byte_range, seq_max, seq_min = transmitted_seq_range(sdf, "tcpseq")
@@ -120,6 +120,12 @@ def tcp_get_stats(
     #     print("do some extra work")
         # res[destination] = TcpUnidirectionalStats(tcpstreamid, bytes_transferred, 0, 0)
 
+
+    # TODO put in the constructor
+    print ("bytes_transferred ", bytes_transferred)
+    print ("vs tcp_byte_range ", tcp_byte_range)
+    assert tcp_byte_range is not None
+    assert bytes_transferred is not None
 
     return TcpUnidirectionalStats(
         tcpstreamid,
@@ -134,12 +140,25 @@ def transmitted_seq_range(df, seq_name):
     '''
     log.debug("Computing byte range for sequence field %s" % seq_name)
 
-    sorted_seq = df.sort_values(by=seq_name)
-    seq_min = sorted_seq.loc[sorted_seq.first_valid_index(), seq_name]
-    seq_max = sorted_seq.loc[sorted_seq.last_valid_index(), seq_name] \
-        + sorted_seq.loc[sorted_seq.last_valid_index(), "tcplen"]
+    sorted_seq = df.dropna(subset=[seq_name]).sort_values(by=seq_name)
+    print("sorted_seq")
+    print(sorted_seq)
 
+    seq_min = sorted_seq.loc[sorted_seq.first_valid_index(), seq_name]
+    last_valid_index = sorted_seq.last_valid_index()
+    seq_max = sorted_seq.loc[last_valid_index, seq_name] \
+        + sorted_seq.loc[last_valid_index, "tcplen"]
+
+    # -1
     seq_range = seq_max - seq_min
+
+    msg = "seq_range ({}) = {} (seq_max) - {} (seq_min) - 1"
+    log.debug(msg.format( seq_range, seq_max, seq_min))
+
+    # print("%s_range: " % seq_name, seq_range)
+    # print("seq_max:", seq_max)
+    # print("seq_min:", seq_min)
+
     return seq_range, seq_max, seq_min
 
 # TODO same return both directions
@@ -167,15 +186,7 @@ def mptcp_compute_throughput(
     # assert len(unidirectional_df["mptcpdest"]) == len(df["mptcpdest" == destination]), "wrong query"
     # print(unidirectional_df["mptcpdest"])
 
-    # TODO tcp.sndnxt
-    # last_valid_index / first_valid_index
-    # sorted_dsn = df.sort_values(by="dss_dsn")
-    # dsn_min = sorted_dsn.loc[sorted_dsn.first_valid_index(), "dss_dsn"]
-    # dsn_max = sorted_dsn.loc[sorted_dsn.last_valid_index(), "dss_dsn"] \
-    #     + sorted_dsn.loc[sorted_dsn.last_valid_index(), "tcplen"] 
-
-    # # -1 because of syn
-    # dsn_range = dsn_max - dsn_min - 1
+    # -1 because of syn
     dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dss_dsn")
 
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
@@ -233,7 +244,9 @@ def mptcp_compute_throughput(
     on the goodput
     """
     if merged_df:
-        df = df_both = classify_reinjections(unidirectional_df)
+        df = classify_reinjections(unidirectional_df)
+
+        debug_dataframe(df, "after reinjections have been analyzed")
 
         # mptcp_application_bytes = df.loc[df.redundant == False, "tcplen"].sum()
         for sf in subflow_stats:
@@ -246,30 +259,27 @@ def mptcp_compute_throughput(
             # tcplen ? depending on destination / _receiver/_sender
             # tcp_throughput = df_sf["tcplen"].sum()
 
-            # won
-            # seq_min = df_sf.tcpseq.min()
-            # seq_max = df_sf.tcpseq.max()
-
-            # tcp_byte_range = seq_max - seq_min
-
-            # tcplen == 
             # _first / _second
             # or .loc
             # print ("DF.head")
             # print (df.head())
-            # print ("columns", df.columns)
             non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
-            # print(non_redundant_pkts)
-            mptcp_application_bytes = non_redundant_pkts.sum()
-            # print("mptcp_application_bytes" , mptcp_application_bytes)
-            sf_mptcp_throughput = sf.throughput_bytes
+            print("non_redundant_pkts")
+            print(non_redundant_pkts)
+            sf.mptcp_application_bytes = non_redundant_pkts.sum()
+            print("sf.mptcp_application_bytes" , sf.mptcp_application_bytes)
+            # sf_mptcp_throughput = sf.throughput_bytes
 
             # sf.tcp_byte_range = tcp_byte_range;
-            sf.mptcp_application_bytes = mptcp_application_bytes  # cumulative sum of nonredundant dsn packets
+            # sf.mptcp_application_bytes = mptcp_application_bytes  # cumulative sum of nonredundant dsn packets
+
+            print("mptcp_application_bytes:")
+            print(dsn_range)
+
 
             # can be > 1 in case of redundant packets
-            sf.throughput_contribution = sf_mptcp_throughput/ total_tput
-            sf.goodput_contribution = sf.mptcp_application_bytes/mptcp_application_bytes
+            sf.throughput_contribution = sf.throughput_bytes / total_tput
+            sf.goodput_contribution = sf.mptcp_application_bytes / dsn_range
 
 
     return MpTcpUnidirectionalStats(
