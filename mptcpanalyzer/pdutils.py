@@ -49,8 +49,11 @@ class TcpAccessor:
         idx = syns.index[0]
         return idx
 
-    def dest(self, ConnectionRoles):
-        return
+    def fill_dest(self, streamid):
+        '''
+        '''
+        con = self.connection(streamid)
+        return con.fill_dest(self._obj)
 
     # TODO fill destination
 
@@ -64,6 +67,12 @@ class MpTcpAccessor:
 
     def filter(self, streamid) -> MpTcpConnection:
         return self._obj.where(self._obj.mptcpstream == streamid)
+
+    def fill_dest(self, streamid):
+        '''
+        '''
+        con = self.connection(streamid)
+        return con.fill_dest(self._obj)
 
 
 def debug_dataframe(

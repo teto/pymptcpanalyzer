@@ -182,12 +182,21 @@ class AppendDestination(argparse.Action):
     def __init__(self, *args, **kwargs) -> None:
         self.already_called = False
         self.destinations = list(ConnectionRoles)
-        # default=list(ConnectionRoles),
         # TODO pass the type as well
+        print(args)
+        print(kwargs)
+        kwargs.pop("choices", None)
+        kwargs.pop("type", None)
+        # kwargs.pop("option_strings", None)
         super().__init__(
             *args,
+            # name,
+            default=list(ConnectionRoles),
             choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
-            default = list(ConnectionRoles), **kwargs)
+            type=lambda x: ConnectionRoles.from_string(x),
+            **kwargs
+        )
+        print("destinations", self.dest)
 
 
     # TODO check if it's called several times
@@ -205,11 +214,14 @@ class AppendDestination(argparse.Action):
             self.destinations= list(set(self.destinations))
             print("new result %r" % self.destinations)
         else:
-            print("Received first value %s" % values)
+            print("Received first value %r" % values)
             self.destinations = [values]
+        # else:
+        #     self.destinations = list(ConnectionRoles)
 
         self.already_called = True
         # df_name + "destinations"
+        print("setting into %s" % self.dest)
         setattr(namespace, self.dest, self.destinations)
         # pcap1 = getattr(namespace, self.df_name + "1")
         # pcap2 = getattr(namespace, self.df_name + "2")
@@ -580,17 +592,13 @@ def gen_pcap_parser(
                 # so we subclass list to convert the Enum to str value first.
                 # TODO setup our own custom actions to get rid of our hacks
                 parser.add_argument(
-                    '--dest', metavar="destination",
+                    '--dest',
+                    metavar="destination",
                     dest=df_name + "_destinations",
                     # see preprocess functions to see how destinations is handled when empty
                     # Both are already taken care of
-                    # default=list(ConnectionRoles),
-                    # choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
                     # TODO check how it works/FilterDest
-                    action=partial(AppendDestination, df_name),
-                    # action=partial(AppendDestination, df_name),
-                    # type parameter is a function/callable
-                    # type=lambda x: ConnectionRoles.from_string(x),
+                    action=AppendDestination,
                     help='Filter flows according to their direction'
                     '(towards the client or the server)'
                     'Depends on mptcpstream')

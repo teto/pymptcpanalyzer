@@ -195,9 +195,10 @@ def mptcp_compute_throughput(
         # subdf.iloc[0, subdf.columns.get_loc(_second('abstime'))]
         # debug_dataframe(subdf, "subdf for stream %d" % tcpstream)
         dest = subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))]
+        print("dest", dest)
         sf_stats = tcp_get_stats(
             subdf, tcpstream,
-            # work around pandas issue
+            # work around pandas issue (since for now it's a float
             ConnectionRoles(dest),
             True
         )

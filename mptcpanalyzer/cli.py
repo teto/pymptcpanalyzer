@@ -528,7 +528,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df = self.data
 
         con = df.tcp.connection(0)
-        con.fill_tcpdest(df)
+        con.fill_dest(df)
 
         for dest in ConnectionRoles:
             # TODO do it only when needed
@@ -555,11 +555,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     # TODO use filter_dest instead
     summary_parser.add_argument(
-        'destination',
-        # action="store",
+        '--dest',
         action=mpparser.AppendDestination,
-        # choices=mp.DestinationChoice,
-        # type=lambda x: mp.ConnectionRoles[x],
         help='Filter flows according to their direction'
         '(towards the client or the server)'
         'Depends on mptcpstream'
@@ -579,36 +576,42 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mptcpstream = args.mptcpstream
 
         # TODO need to compute dest
+        df = df.mptcp.fill_dest(mptcpstream)
+
+        print(df.loc[df.mptcpstream == mptcpstream, [ "mptcpdest", "tcpdest"] ].head())
 
         # args.pcapdestinations ?
         # print(args)
-        ret = mptcp_compute_throughput(
-            self.data, args.mptcpstream,
-            args.destination,
-            # TODO set to true
-            False
-        )
 
-        if args.json:
-            import json
-            # TODO use self.poutput
-            # or use a stream, it must just be testable
-            val = json.dumps(dataclasses.asdict(ret), ensure_ascii=False)
-            self.poutput(val)
-            return
+        print("valid values", args.dest)
+        for destination in args.dest:
+            ret = mptcp_compute_throughput(
+                self.data, args.mptcpstream,
+                destination,
+                # TODO set to true
+                False
+            )
 
-        mptcp_transferred = ret.mptcp_throughput_bytes
-        msg = "mptcpstream %d transferred %d bytes."
-        self.poutput(msg % (ret.mptcpstreamid, mptcp_transferred))
-        for tcpstream, sf_bytes in \
-            map(lambda sf: (sf.tcpstreamid, sf.throughput_bytes), ret.subflow_stats):
-            subflow_load = sf_bytes/mptcp_transferred
-            self.poutput(
-                "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
-                "accounting for {tput_ratio:.2f}%".format(
-                tcpstream, sf_tput=sf_bytes, mptcp_tput=mptcp_transferred,
-                tput_ratio=subflow_load*100
-            ))
+            if args.json:
+                import json
+                # TODO use self.poutput
+                # or use a stream, it must just be testable
+                val = json.dumps(dataclasses.asdict(ret), ensure_ascii=False)
+                self.poutput(val)
+                return
+
+            mptcp_transferred = ret.mptcp_throughput_bytes
+            msg = "mptcpstream %d transferred %d bytes."
+            self.poutput(msg % (ret.mptcpstreamid, mptcp_transferred))
+            for tcpstream, sf_bytes in \
+                map(lambda sf: (sf.tcpstreamid, sf.throughput_bytes), ret.subflow_stats):
+                subflow_load = sf_bytes/mptcp_transferred
+                self.poutput(
+                    "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
+                    "accounting for {tput_ratio:.2f}%".format(
+                    tcpstream, sf_tput=sf_bytes, mptcp_tput=mptcp_transferred,
+                    tput_ratio=subflow_load*100
+                ))
 
 
 
@@ -627,9 +630,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     group.add_argument('--mptcpstream', action=functools.partial(FilterStream, "pcap", True),
             type=MpTcpStreamId)
 
-    # parser.add_argument("protocol", action="store", choices=["mptcp", "tcp"],
-    # help="tcp.stream id visible in wireshark")
-    # TODO check ?
+    # TODO check ? use AppendDestination
     parser.add_argument("--destination", action="store",
         choices=mp.DestinationChoice,
         help="tcp.stream id visible in wireshark")
@@ -648,7 +649,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # df['tcpdest'] = np.nan;
         for streamid, subdf in df.groupby("tcpstream"):
             con = df.tcp.connection(streamid)
-            df = con.fill_tcpdest(df)
+            df = con.fill_dest(df)
 
             if args.drop_syn:
                 # use subdf ?
@@ -657,10 +658,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 # drop 3 first packets of each connection ?
                 # this should be a filter
                 syns = df[df.tcpflags == mp.TcpFlags.SYN]
-        #     df = df[ df.flags ]
-        # if args.destination:
-        #     if args.tcpstream:
-                # TODO we should filter destination
+
         self.poutput("Writing to %s" % args.output)
         pandas_to_csv(df, args.output)
 

@@ -99,7 +99,7 @@ class TcpConnection:
         return score
 
 
-    def fill_tcpdest(self, df) -> pd.DataFrame:
+    def fill_dest(self, df) -> pd.DataFrame:
 
         for dest in ConnectionRoles:
 
@@ -327,7 +327,10 @@ class MpTcpConnection:
 
 
     # never used ?
-    def mptcpdest_from_connections(self, df) -> pd.DataFrame:
+    def fill_dest(self, df) -> pd.DataFrame:
+        '''
+        TODO it should set it also for subflows as well
+        '''
 
         for dest in ConnectionRoles:
 
@@ -336,6 +339,9 @@ class MpTcpConnection:
             df_dest = df.query(q, engine="python")
             # print("mptcpdest %r" % dest)
             df.loc[df_dest.index, 'mptcpdest'] = dest
+
+        for sf in self.subflows():
+            sf.fill_dest(df)
 
         return df
 

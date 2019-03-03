@@ -51,6 +51,7 @@ class CrossSubflowInterArrival(plot.Matplotlib):
             pass
             if dat.iloc[i-1, tcpstreamcol] != dat.iloc[i, tcpstreamcol]:
                 # print("index i:", dat.iloc[i])
+                # TODO check if buggy , idx vs row ?
                 row = {
                     'from': dat.iloc[i-1, tcpstreamcol],
                     'to':   dat.iloc[i, tcpstreamcol],
