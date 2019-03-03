@@ -578,14 +578,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # TODO need to compute dest
         df = df.mptcp.fill_dest(mptcpstream)
 
-        print(df.loc[df.mptcpstream == mptcpstream, [ "mptcpdest", "tcpdest"] ].head())
-
-        # args.pcapdestinations ?
+        # print(df.loc[df.mptcpstream == mptcpstream, [ "mptcpdest", "tcpdest"] ].head())
         # print(args)
 
-        print("valid values", args.dest)
+        # print("valid values", args.dest)
         for destination in args.dest:
-            ret = mptcp_compute_throughput(
+            stats = mptcp_compute_throughput(
                 self.data, args.mptcpstream,
                 destination,
                 # TODO set to true
@@ -596,21 +594,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 import json
                 # TODO use self.poutput
                 # or use a stream, it must just be testable
-                val = json.dumps(dataclasses.asdict(ret), ensure_ascii=False)
+                val = json.dumps(dataclasses.asdict(stats), ensure_ascii=False)
                 self.poutput(val)
                 return
 
-            mptcp_transferred = ret.mptcp_throughput_bytes
+            # mptcp_transferred = ret.mptcp_throughput_bytes
             msg = "mptcpstream %d transferred %d bytes."
-            self.poutput(msg % (ret.mptcpstreamid, mptcp_transferred))
-            for tcpstream, sf_bytes in \
-                map(lambda sf: (sf.tcpstreamid, sf.throughput_bytes), ret.subflow_stats):
-                subflow_load = sf_bytes/mptcp_transferred
+            self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes))
+            for sf in stats.subflow_stats:
+                # subflow_load = sf_bytes/mptcp_transferred
                 self.poutput(
                     "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
                     "accounting for {tput_ratio:.2f}%".format(
-                    tcpstream, sf_tput=sf_bytes, mptcp_tput=mptcp_transferred,
-                    tput_ratio=subflow_load*100
+                    sf.tcpstreamid, sf_tput=sf.throughput_bytes,
+                    mptcp_tput=stats.mptcp_throughput_bytes,
+                    tput_ratio=sf.throughput_contribution*100
                 ))
 
 
@@ -668,7 +666,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
     sumext_parser.description = inspect.cleandoc("""
-        Look into more details of an mptcp connection
+        Look into more details of an mptcp connection.
+        Requires to have both server and client pcap.
     """)
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
@@ -681,13 +680,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
+        print("Summary extended of mptcp connection" % args)
         # print("Summary extended resume %r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
         # TODO revert
         destinations = [ ConnectionRoles.Server ]
-        print("test %r" % type(destinations[0]))
+        # print("test %r" % type(destinations[0]))
         # destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
 
@@ -711,33 +711,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         print("NANI ? %r" % destinations )
         for destination in destinations:
-            # will create problems
-            # basic_stats = mptcp_compute_throughput(
-            #     # TODO here we should load the pcap before hand !
-            #     df_pcap1,
-            #     args.pcap1stream,
-            #     destination,
-            # )
-            # if log level >= DEBUG then save to xls too !
-
-            # ce n'est pas bon car les directions ne correspondent pas forcement
-            # basic_stats = mptcp_compute_throughput(
-            #     # TODO here we should load the pcap before hand !
-            #     df,
-            #     args.pcap1stream,
-            #     destination,
-            # )
-
-            # also here the dest are wrong
-
-            # print("DEBUG")
-            # for subflow in basic_stats.subflow_stats:
-            #     print(subflow)
 
             stats = mptcp_compute_throughput(
                 df,
                 args.pcap1stream,
-                # stats=basic_stats,
                 destination=destination,
                 merged_df = True,
             )
