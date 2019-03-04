@@ -195,23 +195,23 @@ class TcpConnection:
 
 
 # should it ?
-# @dataclass
+@dataclass
 class MpTcpSubflow(TcpConnection):
     """
 
     """
 
     """ to which mptcp side belongs the tcp server"""
-    # mptcpdest: ConnectionRoles
-    # addrid: int = None
+    mptcpdest: ConnectionRoles = None
+    addrid: int = None
 
-    def __init__(self, mptcpdest: ConnectionRoles, addrid=None, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.addrid = addrid
-        # self.rcv_token = rcv_token
-        # token_owner ?
-        """ to which mptcp side belongs the tcp server"""
-        self.mptcpdest = mptcpdest
+    # def __init__(self, mptcpdest: ConnectionRoles, addrid=None, **kwargs) -> None:
+    #     super().__init__(**kwargs)
+    #     self.addrid = addrid
+    #     # self.rcv_token = rcv_token
+    #     # token_owner ?
+    #     """ to which mptcp side belongs the tcp server"""
+    #     self.mptcpdest = mptcpdest
 
     @staticmethod
     def create_subflow(**kwargs):
@@ -225,11 +225,12 @@ class MpTcpSubflow(TcpConnection):
         res = self.create_subflow(
             mptcpdest=swap_role(self.mptcpdest),
             tcpstreamid=self.tcpstreamid,
-            tcpclientip=self.tcpserver_ip,
-            tcpserverip=self.tcpclient_ip,
-            client_port=self.server_port, server_port=self.client_port,
-            # self.rcv_token
+            tcpclient_ip=self.tcpserver_ip,
+            tcpserver_ip=self.tcpclient_ip,
+            client_port=self.server_port,
+            server_port=self.client_port,
         )
+        log.warn("Losing addrid")
         # we lose the addrid in opposite direction
         # res.addrid = self.addrid
         # raise Exception("check for rcv_token")

@@ -680,15 +680,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        print("Summary extended of mptcp connection" % args)
+        print("Summary extended of mptcp connection ")
         # print("Summary extended resume %r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
-        # TODO revert
-        destinations = [ ConnectionRoles.Server ]
+        # TODO remove
+        # destinations = [ ConnectionRoles.Server ]
+        destinations = args.pcap_destinations
         # print("test %r" % type(destinations[0]))
-        # destinations = args.pcap_destinations
         # or list(mp.ConnectionRoles)
 
         # TODO already be done BUT NOT THE CASE FOR GOD's SAKE !

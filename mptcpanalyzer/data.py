@@ -946,18 +946,44 @@ def map_tcp_packets_via_hash(
 
     # todo we could now use merge_asof
     # TODO here we should be able to drop some columns in double
-    res = pd.merge(
-        sender_df, receiver_df,
-        on="hash",
-        # suffixes=(SENDER_SUFFIX, RECEIVER_SUFFIX), #  columns suffixes (sender/receiver)
-        suffixes=(HOST1_SUFFIX, HOST2_SUFFIX),  # columns suffixes (sender/receiver)
-        how="outer", # we want to keep packets from both
-        # we want to know how many packets were not mapped correctly, adds the merge column
-        # can take values "left_only"/ "right_only" or both
-        indicator="merge_status",
-        # TODO reestablish
-        validate="one_to_one",  # can slow process
-    )
+    try:
+        # first check hashes are identical
+        # check hashes are different
+
+        # TODO maybe we should make interactive 
+        print("looking for duplicates")
+        def deal_with_duplicated_hash(df):
+            '''
+            '''
+            pass
+
+
+        dups = sender_df["hash"].duplicated()
+        print(sender_df.loc[dups, :])
+        exit(1)
+
+        res = pd.merge(
+            sender_df, receiver_df,
+            on="hash",
+            # suffixes=(SENDER_SUFFIX, RECEIVER_SUFFIX), #  columns suffixes (sender/receiver)
+            suffixes=(HOST1_SUFFIX, HOST2_SUFFIX),  # columns suffixes (sender/receiver)
+            how="outer", # we want to keep packets from both
+            # we want to know how many packets were not mapped correctly, adds the merge column
+            # can take values "left_only"/ "right_only" or both
+            indicator="merge_status",
+            # TODO reestablish
+            validate="one_to_one",  # can slow process
+        )
+
+
+    except pd.errors.MergeError as e:
+
+        print("MATT")
+        # print(dir(e))
+        print("An error happened during the merge of the 2 pcaps")
+        # print(res)
+        print(e)
+        raise e
 
     #print("hash-based Map")
     ## print(sender_df[['hash', 'packetid']].head(20))
