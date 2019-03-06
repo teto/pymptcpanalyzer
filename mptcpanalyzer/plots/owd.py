@@ -8,13 +8,14 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
-import argparse
+import inspect
 import collections
 from mptcpanalyzer.cache import CacheId
-from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser
+from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, MpTcpAnalyzerParser
 from cmd2 import argparse_completer
 from typing import Iterable, List #, Any, Tuple, Dict, Callable
 from itertools import cycle
+from mptcpanalyzer.pdutils import debug_dataframe
 
 # global log and specific log
 log = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ could try to match both ids but for now you need
 
 
     def default_parser(self, *args, **kwargs):
-        parser = argparse_completer.ACArgumentParser(
+        parser = MpTcpAnalyzerParser(
             description="Plot One Way Delays"
         )
 
@@ -85,13 +86,13 @@ could try to match both ids but for now you need
             subparser = subparsers.add_parser(protocol, parents=[temp, ],
                     add_help=False)
 
-        parser.description = '''
+        parser.description = inspect.cleandoc('''
             Helps plotting One Way Delays between tcp connections
-        '''
+        ''')
 
-        parser.epilog = '''
+        parser.epilog = inspect.cleandoc('''
             plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
-        '''
+        ''')
         return parser
 
         # here we recompute the OWDs
@@ -114,9 +115,8 @@ could try to match both ids but for now you need
         # TODO here we should rewrite
         debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + [ "owd" ]
 
-        print("columns", pcap)
-        print("columns", res.columns)
-        print("info", res.info())
+        # print("columns", pcap)
+        debug_dataframe(res, "owd dataframe")
         print(res.loc[res.merge_status == "both", debug_fields ])
 
         df = res
@@ -137,7 +137,7 @@ could try to match both ids but for now you need
         axes.set_xlabel("Time (s)")
         axes.set_ylabel("One Way Delay (s)")
 
-        self.title = "One Way Delays for {} streams {} <-> {} {dest}".format( 
+        self.title = "One Way Delays for {} streams {} <-> {} {dest}".format(
             protocol,
             kwargs.get("pcap1stream"),
             kwargs.get("pcap2stream"),
@@ -154,28 +154,25 @@ could try to match both ids but for now you need
         # ConnctionRole doesn't support <
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
-            print("t= %r" % (idx,))
+            # print("t= %r" % (idx,))
             print("len= %r" % len(subdf))
             tcpdest, tcpstream = idx
-
-            # if protocol == tcpdest not in kwargs.destinations:
-            #     log.debug("skipping TCP dest %s" % tcpdest)
-            #     continue
 
             # print("tcpdest= %r" % tcpdest)
             # print("=== less than 0\n", subdf[subdf.owd < 0.050])
             # print("=== less than 0\n", subdf.tail())
 
-            # if tcpdest 
+            # if tcpdest
             # df = debug_convert(df)
+            debug_dataframe(subdf, "subdf stream %d destination %r" % (tcpstream, tcpdest))
             pplot = subdf.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
                 legend=True,
-                # TODO should depend from 
+                # TODO should depend from
                 x=_sender("abstime"),
                 y="owd",
-                label="towards %s" % tcpdest, # seems to be a bug
+                label="Stream %d towards %s" % (tcpstream, tcpdest), # seems to be a bug
                 # grid=True,
                 # xticks=tcpstreams["reltime"],
                 # rotation for ticks
@@ -198,13 +195,13 @@ could try to match both ids but for now you need
             #     continue
 
 
-            # if tcpdest 
+            # if tcpdest
             # df = debug_convert(df)
             pplot = subdf.plot(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
                 legend=True,
-                # TODO should depend from 
+                # TODO should depend from
                 x=_sender("abstime"),
                 y="owd",
                 label="Subflow %d towards tcp %s" % (tcpstream, tcpdest), # seems to be a bug
@@ -214,5 +211,5 @@ could try to match both ids but for now you need
                 # rot=45,
                 # lw=3
             )
-    
+
 

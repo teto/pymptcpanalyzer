@@ -111,18 +111,18 @@ class PlotTcpAttribute(plot.Matplotlib):
         pcaps = {
             "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream
         }
-        parser = gen_pcap_parser(pcaps, )
+        # can we filter dest ?
+        parser = gen_pcap_parser(pcaps, True)
 
-        # parent = argparse.ArgumentParser(
         parser.description="Plot tcp attributes over time"
-        # )
         parser.add_argument('--syndrop', action="store_true",
-            help="Will drop first 3 packets of the dataframe assuming they are syn")
-        
-        parser.add_argument('fields', nargs='+', 
+            help="Drops first 3 packets of the dataframe assuming they are syn"
+        )
+        parser.add_argument('fields', nargs='+',
             # action="append",
             choices=self._attributes.keys(),
-            help="Choose an mptcp attribute to plot")
+            help="Choose a tcp attribute to plot"
+        )
         # return parser
         return super().default_parser(
             *args, parents=[parser],
@@ -132,21 +132,18 @@ class PlotTcpAttribute(plot.Matplotlib):
 
 
 
-    def plot(self, df, tcpstream, fields, destinations, **kwargs):
+    def plot(self, pcap, pcapstream, fields, pcap_destinations, **kwargs):
         """
         getcallargs
         """
         fig = plt.figure()
-        # tcpstreams = dat.groupby('tcpstream')
 
         # print("%d streams in the MPTCP flow" % len(tcpstream))
         log.debug("Plotting field(s) %s" % fields)
 
         axes = fig.gca()
 
-        # for idx, (streamid, ds) in enumerate(tcpstreams):
-        tcpdf = df
-        # [df.tcpstream == tcpstream]
+        tcpdf = pcap
 
         # if dropsyn
         # tcpdf[field].iloc[3:]
@@ -154,16 +151,19 @@ class PlotTcpAttribute(plot.Matplotlib):
         labels = [] # type: List[str]
 
         # TODO le .iloc permet d'eliminer les syn/ack
-        # print("DTYPES")
-        # print(tcpdf.dtypes)
         for dest, ddf in tcpdf.groupby(_sender("tcpdest")):
             # print("dest %r in %r" %( dest , destinations))
             # TODO remove ?
-            if dest in destinations:
+            if dest in pcap_destinations:
+                log.debug("Plotting destination %s" % dest)
 
                 for field in fields:
                     # print("dest", dest, " in " , destinations)
 
+                    print("dataframe to plot")
+                    print(ddf[field])
+
+                    log.debug("Plotting field %s" % field)
                     ddf[field].plot.line(
                         x=_sender("abstime"),
                         ax=axes,

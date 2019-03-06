@@ -206,7 +206,6 @@ def mptcp_compute_throughput(
         fields = ["tcpdest", "mptcpdest", "dss_dsn", "dss_length"]
         print(subdf[fields])
 
-
         # DSNs can be discontinuous, so we have to look at each packet
         # we drop duplicates
         transmitted_dsn_df = subdf.drop_duplicates(subset="dsn")
@@ -217,9 +216,6 @@ def mptcp_compute_throughput(
         sf_stats.mptcp_application_bytes = transmitted_dsn_df["tcplen"].sum()
         print(sf_stats.mptcp_application_bytes )
 
-        # subflow_load = subflow_load if not math.isnan(subflow_load) else 0
-
-        # mptcp_application_bytes_bytes = sf_dsn_max - sf_dsn_min - 1
         assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range, sf_stats
 
         subflow_stats.append(
@@ -242,28 +238,14 @@ def mptcp_compute_throughput(
             log.debug("for tcpstream %d" % sf.tcpstreamid)
             # columns.get_loc(_first('abstime'))]
             df_sf = df[df.tcpstream == sf.tcpstreamid]
-            # TODO eliminate retransmissions too
 
-            # inexact, we should drop lost packets
-            # tcplen ? depending on destination / _receiver/_sender
-            # tcp_throughput = df_sf["tcplen"].sum()
-
-            # _first / _second
-            # or .loc
-            # print ("DF.head")
-            # print (df.head())
             non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
             print("non_redundant_pkts")
             print(non_redundant_pkts)
             sf.mptcp_application_bytes = non_redundant_pkts.sum()
-            print("sf.mptcp_application_bytes" , sf.mptcp_application_bytes)
-            # sf_mptcp_throughput = sf.throughput_bytes
-
-            # sf.tcp_byte_range = tcp_byte_range;
-            # sf.mptcp_application_bytes = mptcp_application_bytes  # cumulative sum of nonredundant dsn packets
-
-            print("mptcp_application_bytes:")
-            print(dsn_range)
+            # print("sf.mptcp_application_bytes" , sf.mptcp_application_bytes)
+            # print("mptcp_application_bytes:")
+            # print(dsn_range)
 
 
             # can be > 1 in case of redundant packets
@@ -275,9 +257,6 @@ def mptcp_compute_throughput(
                 log.warn("Total Throughput <= 0. Something fishy possibly ?")
 
             sf.goodput_contribution = sf.mptcp_application_bytes / dsn_range
-            # except ZeroDivisionError as e:
-            #     print(e)
-            #     log.
 
 
     return MpTcpUnidirectionalStats(

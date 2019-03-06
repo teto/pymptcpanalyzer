@@ -685,8 +685,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
-        # TODO remove
-        # destinations = [ ConnectionRoles.Server ]
         destinations = args.pcap_destinations
         # print("test %r" % type(destinations[0]))
         # or list(mp.ConnectionRoles)
@@ -709,7 +707,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
 
 
-        print("NANI ? %r" % destinations )
+        # print("NANI ? %r" % destinations )
         for destination in destinations:
 
             stats = mptcp_compute_throughput(
@@ -1101,8 +1099,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # TODO complete the help
     # plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3" "quit"
     plot_parser.epilog = inspect.cleandoc('''
-        You can run for example:
-            plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
+        Here are a few plots you can create:
+
+        To plot tcp attributes:
+        > plot tcp_attr examples/client_2_filtered.pcapng 0 tcpseq
+
+        To plot one way delays, you need 2 pcaps: from the client and the server side. Then you can run:
+        > plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
     ''')
     @with_argparser_and_unknown_args(plot_parser)
     def do_plot(self, args, unknown):
@@ -1121,17 +1124,30 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # print("%s" % dargs)
         dataframes = dargs.pop("_dataframes")
+        # print("DATAFRAMES %r" % dataframes)
         # workaround argparse limitations to set as default both directions
         # TODO replace that with an action ?
         # destinations=dargs.get("destinations", list(mp.ConnectionRoles))
         # dargs.update(destinations=destinations)
         # log.debug("Selecting destinations %s" % (destinations,))
         # dataframes = plotter.preprocess(**dargs)
-        print("DO_PLOT %s" % args)
+        for pcap, df in dataframes.items():
+            res = dargs.pop(pcap, None)
+            if res:
+                log.debug("Popping %s to prevent a duplicate with the one from _dataframes" % pcap)
+
         # dataframes = args._dataframes.values()
         assert dataframes is not None, "Preprocess must return a list"
         # pass unknown_args too ?
-        result = plotter.run(**dataframes, **dargs)
+        try:
+            result = plotter.run(**dataframes, **dargs)
+        except TypeError as e:
+            print("Problem when calling plotter.run")
+            print("We passed the following arguments:")
+            print(dataframes)
+            print(dargs)
+            raise e
+
 
 
         print( "result %r", result)

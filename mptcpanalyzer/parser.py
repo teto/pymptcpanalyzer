@@ -541,6 +541,9 @@ def gen_pcap_parser(
             add_help=not parents,
         )
 
+        # TODO we should make this cleaner
+        # with add_argument_group for instance ?
+        # https://stackoverflow.com/questions/18668227/argparse-subcommands-with-nested-namespaces
         for df_name, bitfield in input_pcaps.items():
 
             def _pcap(name, pcapAction="store", filterAction="store"):
@@ -556,7 +559,8 @@ def gen_pcap_parser(
                     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
                     protocol = "mptcp" if mptcp else "tcp"
                     parser.add_argument(
-                        name + 'stream', metavar= name + "_" + protocol + "stream",
+                        name + 'stream',
+                        metavar= name + "_" + protocol + "stream",
                         action=filterAction,
                         type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
                         help= protocol + '.stream wireshark id')
@@ -579,8 +583,9 @@ def gen_pcap_parser(
                 #     help=argparse.SUPPRESS)
                 # merge_pcap.default = "TEST"
             else:
-                filterClass = FilterStream
-                _pcap(df_name, pcapAction=LoadSinglePcap,
+                _pcap(df_name,
+                    # use an alternate dest so that it doesn't collapse
+                    pcapAction=LoadSinglePcap,
                     filterAction=retain_stream(df_name,
                     # mptcp = bool(bitfield & PreprocessingActions.FilterMpTcpStream)
                         )

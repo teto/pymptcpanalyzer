@@ -203,6 +203,9 @@ class Matplotlib(Plot):
         if out:
             self.savefig(v, out)
 
+
+        print("v %r" % v)
+
         if display:
             if out is None:
                 with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
@@ -230,7 +233,7 @@ class Matplotlib(Plot):
 
         with plt.style.context(styles):
             # print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
-            fig = self.plot(styles=styles, *pargs, **kwargs)
+            fig = self.plot(*pargs, styles=styles, **kwargs)
 
         return fig
 
