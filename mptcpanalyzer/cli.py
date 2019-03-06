@@ -344,7 +344,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         "mptcpstream", action="store", type=int,
         help="Equivalent to wireshark mptcp.stream id")
     # TODO for tests only, fix
-    setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
+    # setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
 
     @with_argparser(parser)
     @with_category(CAT_MPTCP)

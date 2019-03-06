@@ -274,8 +274,16 @@ def mptcp_compute_throughput(
 
 
             # can be > 1 in case of redundant packets
-            sf.throughput_contribution = sf.throughput_bytes / total_tput
+            # try:
+            if total_tput > 0:
+                sf.throughput_contribution = sf.throughput_bytes / total_tput
+            else:
+                sf.throughput_contribution = 0
+                log.warn("Total Throughput <= 0. Something fishy possibly ?")
             sf.goodput_contribution = sf.mptcp_application_bytes / dsn_range
+            # except ZeroDivisionError as e:
+            #     print(e)
+            #     log.
 
 
     return MpTcpUnidirectionalStats(

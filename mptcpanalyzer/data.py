@@ -951,16 +951,29 @@ def map_tcp_packets_via_hash(
         # check hashes are different
 
         # TODO maybe we should make interactive 
-        print("looking for duplicates")
         def deal_with_duplicated_hash(df):
             '''
             '''
-            pass
+            print("looking for duplicates")
+            dups = sender_df["hash"].duplicated()
+            nb_dups = len(sender_df.loc[dups, :])
+            # TODO should count the number of duplicated packets
+            print("Got %d duplicates" % nb_dups)
+            print(sender_df.loc[dups, :])
+            log.warn("Dropping duplicates in ")
+            df.drop_duplicates(
+                subset=["hash"],
+                inplace=True,
+                # TODO maybe we should make it interactive ? or configurable
+                keep="first",
+            )
+            return df
 
 
-        dups = sender_df["hash"].duplicated()
-        print(sender_df.loc[dups, :])
-        exit(1)
+
+        sender_df = deal_with_duplicated_hash(sender_df)
+        receiver_df = deal_with_duplicated_hash(sender_df)
+        # exit(1)
 
         res = pd.merge(
             sender_df, receiver_df,
