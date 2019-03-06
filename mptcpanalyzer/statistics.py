@@ -182,7 +182,7 @@ def mptcp_compute_throughput(
     # print(unidirectional_df["mptcpdest"])
 
     # -1 because of syn
-    dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dss_dsn")
+    dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dsn")
 
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
     log.debug(msg.format( dsn_range, dsn_max, dsn_min))
@@ -203,20 +203,13 @@ def mptcp_compute_throughput(
             True
         )
 
-        # TODO drop retransmitted
-        # TODO gets DSS length instead, since DSN are not necessarily contiguous
-        # assumes that dss.
-        # sf_dsn_min = subdf.dss_dsn.min()
-        # sf_dsn_max = subdf.dss_dsn.max()
-
         fields = ["tcpdest", "mptcpdest", "dss_dsn", "dss_length"]
         print(subdf[fields])
 
-        # dsn_range, dsn_max, dsn_min = transmitted_seq_range(subdf, "dss_dsn")
 
         # DSNs can be discontinuous, so we have to look at each packet
         # we drop duplicates
-        transmitted_dsn_df = subdf.drop_duplicates(subset="dss_dsn")
+        transmitted_dsn_df = subdf.drop_duplicates(subset="dsn")
         # print("transmitted_dsn_df")
         # print(transmitted_dsn_df)
         # print(transmitted_dsn_df["tcplen"].dropna())
@@ -280,6 +273,7 @@ def mptcp_compute_throughput(
             else:
                 sf.throughput_contribution = 0
                 log.warn("Total Throughput <= 0. Something fishy possibly ?")
+
             sf.goodput_contribution = sf.mptcp_application_bytes / dsn_range
             # except ZeroDivisionError as e:
             #     print(e)
@@ -292,68 +286,3 @@ def mptcp_compute_throughput(
         subflow_stats=subflow_stats,
     )
 
-
-# TODO rename goodput
-# merge with previous function
-# def mptcp_compute_throughput_extended(
-#     rawdf,  # need the rawdf to classify_reinjections
-#     # stats: MpTcpUnidirectionalStats,  # result of mptcp_compute_throughput
-#     destination: ConnectionRoles,
-# ) -> MpTcpUnidirectionalStats:
-#     """
-#     df expects an extended dataframe
-
-#     Should display goodput
-#     """
-#     assert isinstance(destination, ConnectionRoles)
-#     log.debug("Looking at mptcp destination %r" % destination)
-#     df_both = classify_reinjections(rawdf)
-
-#     df = df_both[df_both.mptcpdest == destination]
-
-#     # print(stats.subflow_stats)
-#     # print(df.columns)
-
-#     mptcp_application_bytes = df.loc[df.redundant == False, "tcplen"].sum()
-
-#     print("MATT mptcp throughput ", stats.mptcp_throughput_bytes)
-#     for sf in stats.subflow_stats:
-#         log.debug("for tcpstream %d" % sf.tcpstreamid)
-#         # columns.get_loc(_first('abstime'))]
-#         df_sf = df[df.tcpstream == sf.tcpstreamid]
-#         # TODO eliminate retransmissions too
-
-#         # inexact, we should drop lost packets
-#         # tcplen ? depending on destination / _receiver/_sender
-#         # tcp_throughput = df_sf["tcplen"].sum()
-
-#         # won
-#         # seq_min = df_sf.tcpseq.min()
-#         # seq_max = df_sf.tcpseq.max()
-
-#         # tcp_byte_range = seq_max - seq_min
-
-#         # tcplen == 
-#         # _first / _second
-#         # or .loc
-#         # print ("DF.head")
-#         # print (df.head())
-#         # print ("columns", df.columns)
-#         non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
-#         # print(non_redundant_pkts)
-#         mptcp_application_bytes = non_redundant_pkts.sum()
-#         # print("mptcp_application_bytes" , mptcp_application_bytes)
-#         sf_mptcp_throughput = sf.throughput_bytes
-
-#         # sf.tcp_byte_range = tcp_byte_range;
-#         sf.mptcp_application_bytes = mptcp_application_bytes  # cumulative sum of nonredundant dsn packets
-
-#         # can be > 1 in case of redundant packets
-#         sf.throughput_contribution = sf_mptcp_throughput/stats.mptcp_throughput_bytes
-#         sf.goodput_contribution = mptcp_application_bytes/stats.mptcp_application_bytes
-
-#     return  MpTcpUnidirectionalStats(
-#         mptcpstreamid=mptcpstreamid,
-#         mptcp_application_bytes=dsn_range,
-#         subflow_stats=subflow_stats,
-#     )
