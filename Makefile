@@ -20,6 +20,12 @@ publish:
 	echo "  git tag -a VERSION -m 'version X'"
 	echo "  git push --tags"
 
+
+gen_transcripts:
+	# https://cmd2.readthedocs.io/en/latest/freefeatures.html#script-files
+	# startup_script
+	mptcpanalyzer "load tests/commands.txt" "quit"
+
 tests:
 	# Add -b to print standard output
 	# python -munittest tests/cache_test.py -b
@@ -37,4 +43,4 @@ man:
 	help2man -n "mptcpanalyzer - a multipath tcp pcap analysis tool" -o docs/mptcpanalyzer.man mptcpanalyzer
 
 
-.PHONY: doc tests
+.PHONY: doc tests gen_transcripts

@@ -148,6 +148,11 @@ class PlotTcpAttribute(plot.Matplotlib):
         # if dropsyn
         # tcpdf[field].iloc[3:]
 
+        # print("tcpdf")
+        # print(tcpdf)
+        # should be done when filtering the stream
+        tcpdf.tcp.fill_dest(pcapstream)
+
         labels = [] # type: List[str]
 
         # TODO le .iloc permet d'eliminer les syn/ack
@@ -160,18 +165,26 @@ class PlotTcpAttribute(plot.Matplotlib):
                 for field in fields:
                     # print("dest", dest, " in " , destinations)
 
+                    final = ddf[field].drop_duplicates()
                     print("dataframe to plot")
-                    print(ddf[field])
+                    print(final)
 
-                    log.debug("Plotting field %s" % field)
-                    ddf[field].plot.line(
+                    # log.debug("Plotting field %s" % field)
+                    # print("len len(ddf[field])=%d" % len(ddf[field]))
+                    if len(ddf[field]) <= 0:
+                        log.info("No datapoint to plot")
+                        continue
+
+                    # drop duplicate ?
+
+                    final.astype("int32").plot(
                         x=_sender("abstime"),
                         ax=axes,
-                        # use_index=False,
+                        use_index=False,
                         legend=False,
                         grid=True,
                     )
-                    labels.append("%s towards %s" % (self._attributes[field], dest))
+                    labels.append("%s towards %s" % (self._attributes[field], dest.name))
 
         axes.set_xlabel("Time (s)")
         if len(fields) == 1:
