@@ -758,20 +758,6 @@ def merge_mptcp_dataframes(
     ), None
 
 
-# def map_mptcp_roles():
-#     # TODO when looking into the cache, check for mptcpstream
-#     # prepare metadata
-#     # we should write mptcpdest before the column names change
-#     # finally we set the mptcp destination to help with further processing
-#     for destination in ConnectionRoles:
-#         q = main_connection.generate_direction_query(destination)
-#         df = df1.query(q).index
-#         df1.loc[df, 'mptcpdest' ] = destination
-#         # print("SELECTED %d for direction %s" % (len(df), destination))
-#         # print(df)
-#         # print(df[TCP_DEBUG_FIELDS].head(20))
-#         # print(df1[MPTCP_DEBUG_FIELDS + ['ipsrc', 'ipdst'] ].head())
-
 def merge_mptcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, MpTcpConnection],
     con2: Tuple[pd.DataFrame, MpTcpConnection]

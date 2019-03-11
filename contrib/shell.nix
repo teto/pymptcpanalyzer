@@ -52,6 +52,7 @@ let
       python-language-server
       pycodestyle
     ]);
+
   nvimConfig = neovimConfig (lib.mkMerge [
     neovimDefaultConfig
     {
@@ -62,10 +63,10 @@ let
   # wrapNeovim neovim-unwrapped
   my_nvim = wrapNeovim neovim-unwrapped (
     lib.mkMerge [
-    neovimDefaultConfig
-    {
-      extraPython3Packages = python3PackagesFun;
-    }
+      neovimDefaultConfig
+      {
+        extraPython3Packages = python3PackagesFun;
+      }
     ]
   );
 

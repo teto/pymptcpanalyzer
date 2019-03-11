@@ -80,6 +80,7 @@ setup(name="mptcpanalyzer",
         'mptcpanalyzer.plots': [
             'mptcp_attr = mptcpanalyzer.plots.dsn:PlotSubflowAttribute',
             'tcp_attr = mptcpanalyzer.plots.dsn:PlotTcpAttribute',
+            'reinject = mptcpanalyzer.plots.reinjections:PlotMpTcpReinjections',
             # # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
             # # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
             # # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',

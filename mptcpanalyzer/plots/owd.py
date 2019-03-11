@@ -62,6 +62,7 @@ could try to match both ids but for now you need
         # TODO a purer version would be best
 
 
+    # TODO simplify
     def default_parser(self, *args, **kwargs):
         parser = MpTcpAnalyzerParser(
             description="Plot One Way Delays"

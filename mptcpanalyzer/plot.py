@@ -10,6 +10,7 @@ from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_panda
 from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
+from mptcpanalyzer.parser import MpTcpAnalyzerParser
 from typing import List, Tuple, Collection, Dict
 from cmd2 import argparse_completer
 import copy
@@ -58,7 +59,7 @@ class Plot:
         parents=None,
         # input_pcaps: List[Tuple[str, PreprocessingActions]],
         **kwargs
-    ) -> argparse_completer.ACArgumentParser:
+        ) -> MpTcpAnalyzerParser:
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
@@ -77,7 +78,7 @@ class Plot:
         if parents is None:
             # as per the nice comment https://github.com/teto/mptcpanalyzer/issues/10
             parents = []
-        parser = argparse_completer.ACArgumentParser(
+        parser = MpTcpAnalyzerParser(
             parents=parents,
             add_help=(parents == []),
         )
@@ -175,12 +176,14 @@ class Matplotlib(Plot):
         """
         parser = super().default_parser(*args, **kwargs)
         parser.add_argument('--style', dest="styles", action="append", default=[],
-            help=("List matplotlib styles, you can specify several styles "
-                "via several --style items."
-                "The style should be either an absolute path or the "
-                "name of a style present in the folder "
-                "$XDG_CONFIG_HOME/matplotlib/stylelib."
-                "(matplotlib will merge it with $XDG_CONFIG_HOME/matplotlib/matplotlibrc).")
+            help=inspect.cleandoc("""
+                List matplotlib styles, you can specify several styles
+                via several --style items.
+                The style should be either an absolute path or the
+                name of a style present in the folder
+                $XDG_CONFIG_HOME/matplotlib/stylelib.
+                (matplotlib will merge it with $XDG_CONFIG_HOME/matplotlib/matplotlibrc).
+            """)
         )
         return parser
 
