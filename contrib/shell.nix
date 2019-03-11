@@ -22,9 +22,6 @@ let
       installCheckPhase = false;
     });
 
-  # gotten from my overlay
-  my_nvim = genNeovim [ mptcpanalyzer ] {};
-
   # TODO override pandas
   prog = (mptcpanalyzer.override({ inherit pandas; }) ).overridePythonAttrs (oa: {
 
@@ -45,6 +42,32 @@ let
   });
 
   # pythonLibs = with ps; ;
+
+  python3PackagesFun = ps: with ps; ([
+      jedi
+      # add rope for completion ?
+      urllib3
+      mypy
+      pyls-mypy # on le desactive sinon il genere des
+      python-language-server
+      pycodestyle
+    ]);
+  nvimConfig = neovimConfig (lib.mkMerge [
+    neovimDefaultConfig
+    {
+      extraPython3Packages = python3PackagesFun;
+    }
+  ]);
+
+  # wrapNeovim neovim-unwrapped
+  my_nvim = wrapNeovim neovim-unwrapped (
+    lib.mkMerge [
+    neovimDefaultConfig
+    {
+      extraPython3Packages = python3PackagesFun;
+    }
+    ]
+  );
 
 in
 # TODO generate our own nvim
