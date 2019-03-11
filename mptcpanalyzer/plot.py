@@ -16,6 +16,7 @@ from cmd2 import argparse_completer
 import copy
 import abc
 import logging
+import inspect
 
 log = logging.getLogger(__name__)
 

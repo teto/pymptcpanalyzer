@@ -14,6 +14,19 @@ pp = pprint.PrettyPrinter(indent=4)
 # register_series_accessor
 # pandas.api.extensions.register_index_accessor
 
+@pd.api.extensions.register_dataframe_accessor("merged")
+class MergedAccessor:
+    def __init__(self, pandas_obj):
+        self._obj = pandas_obj
+
+    def sender(self):
+        """ Return """
+        # look at columns that start with the prefix and others
+        # _sender()
+        pass
+
+    # def receiver(self):
+
 # StreamAccessor ?
 @pd.api.extensions.register_dataframe_accessor("tcp")
 class TcpAccessor:

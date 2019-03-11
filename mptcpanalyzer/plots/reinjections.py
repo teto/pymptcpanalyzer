@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 # PerSubflow
 # TODO plot cdf
 # classify_reinjections
+# https://stackoverflow.com/questions/25577352/plotting-cdf-of-a-pandas-series-in-python
 class PlotMpTcpReinjections(plot.Matplotlib):
     """
     Plot MPTCP level attributes
@@ -78,7 +79,7 @@ class PlotMpTcpReinjections(plot.Matplotlib):
             # TODO check destination
 
             # for idx, (streamid, ds) in enumerate(tcpstreams):
-            subdf[field].plot.line(
+            subdf[_sender("reinj_delta")].plot.line(
                 x="abstime",
                 ax=axes,
                 # use_index=False,
