@@ -43,32 +43,27 @@ let
 
   # pythonLibs = with ps; ;
 
-  python3PackagesFun = ps: with ps; ([
-      jedi
-      # add rope for completion ?
-      urllib3
-      mypy
-      pyls-mypy # on le desactive sinon il genere des
-      python-language-server
-      pycodestyle
-    ]);
+  projectConfig = {
+    extraPython3Packages = ps: with ps; ([
+        jedi
+        # add rope for completion ?
+        urllib3
+        mypy
+        pyls-mypy # on le desactive sinon il genere des
+        python-language-server
+        pycodestyle
+      ]);
+  };
 
-  nvimConfig = neovimConfig (lib.mkMerge [
-    neovimDefaultConfig
-    {
-      extraPython3Packages = python3PackagesFun;
-    }
-  ]);
+  # nvimConfig = neovimConfig (lib.mkMerge [
+  #   neovimDefaultConfig
+  #   {
+  #     extraPython3Packages = python3PackagesFun;
+  #   }
+  # ]);
 
   # wrapNeovim neovim-unwrapped
-  my_nvim = wrapNeovim neovim-unwrapped (
-    lib.mkMerge [
-      neovimDefaultConfig
-      {
-        extraPython3Packages = python3PackagesFun;
-      }
-    ]
-  );
+  my_nvim = genNeovim  [] projectConfig;
 
 in
 # TODO generate our own nvim
