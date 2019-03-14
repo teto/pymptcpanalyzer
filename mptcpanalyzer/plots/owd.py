@@ -65,7 +65,9 @@ could try to match both ids but for now you need
     # TODO simplify
     def default_parser(self, *args, **kwargs):
         parser = MpTcpAnalyzerParser(
-            description="Plot One Way Delays"
+            description=inspect.cleandoc("""
+                Plot One Way Delays"
+            """)
         )
 
         subparsers = parser.add_subparsers(dest="protocol",
@@ -92,7 +94,11 @@ could try to match both ids but for now you need
         ''')
 
         parser.epilog = inspect.cleandoc('''
-            plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
+            Example for TCP:
+            > plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
+
+            And for MPTCP:
+            > plot owd mptcp examples/client_2_filtered.pcapng 0 examples/client_2_filtered.pcapng 0 --display
         ''')
         return parser
 

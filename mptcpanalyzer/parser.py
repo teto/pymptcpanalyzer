@@ -3,9 +3,9 @@ import argparse
 import cmd2
 from cmd2 import argparse_completer
 from typing import Iterable, List, Dict, Callable, Optional, Any
-from .tshark import TsharkConfig
+from mptcpanalyzer.tshark import TsharkConfig
 # from .connection import
-from .data import (load_into_pandas, load_merged_streams_into_pandas)
+from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
             CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId)
 import mptcpanalyzer as mp
@@ -185,17 +185,12 @@ class AppendDestination(argparse.Action):
         # TODO pass the type as well
         print(args)
         print(kwargs)
-        kwargs.pop("choices", None)
-        kwargs.pop("type", None)
-        # kwargs.pop("option_strings", None)
-        super().__init__(
-            *args,
-            # name,
-            default=list(ConnectionRoles),
-            choices=CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
-            type=lambda x: ConnectionRoles.from_string(x),
-            **kwargs
-        )
+        kwargs.update({
+            "choices": CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
+            "type": lambda x: ConnectionRoles.from_string(x),
+            "default": list(ConnectionRoles),
+        })
+        super().__init__(*args, **kwargs)
         print("destinations", self.dest)
 
 
@@ -293,7 +288,9 @@ class MergePcaps(DataframeAction):
         )
 
         # todo actions
+        # TODO discard ?
         setattr(namespace, self.dest, values)
+        setattr(namespace, self.df_name + "stream", pcap1stream)
         # TODO add to merged_dataframes ?
         # setattr(namespace, self.dest + "_merged_df", df)
 
@@ -470,10 +467,9 @@ def gen_bicap_parser(protocol, dest=False):
         "pcap": actions,
     }
 
-    # protocol=protocol,
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
 
-# argparse_completer.ACArgumentParser
+
 class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
     '''
     Wrapper around cmd2 argparse completer

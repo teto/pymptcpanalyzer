@@ -103,6 +103,9 @@ setup(name="mptcpanalyzer",
         'cmd2>=0.9',  # to improve cmd capabilities
         # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
     ],
+    # TODO to work around pandas bugs: adjust
+    # https://stackoverflow.com/questions/3472430/how-can-i-make-setuptools-install-a-package-thats-not-on-pypi
+    dependency_links = ['http://github.com/teto/pandas/tarball/master#egg=gearman-2.0.0beta'],
     # test_suite="tests",
     cmdclass={
         "test": RunTests,

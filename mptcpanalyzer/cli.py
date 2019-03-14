@@ -1215,12 +1215,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             readline.set_history_length(histfile_size)
             readline.write_history_file(histfile)
 
-def main(arguments=None):
+def main(arguments: List[str] =None):
     """
     This is the entry point of the program
 
     Args:
-        arguments_to_parse (list parsable by argparse.parse_args.): Made as a parameter since it makes testing easier
+        arguments: Made as a parameter since it makes testing easier
 
     Returns:
         return value will be passed to sys.exit

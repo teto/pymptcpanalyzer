@@ -446,7 +446,7 @@ def load_into_pandas(
             # log.debug("Dtypes before load: %s" % (pp.pformat(dtypes)))
             # log.debug("Converters before load: %s" % (pp.pformat(converters)))
 
-            from .pdutils import read_csv_debug
+            from mptcpanalyzer.pdutils import read_csv_debug
             # fields = [f.fullname for _, f in config.fields.items()]
             # fields =[ "tcp.options.mptcp.sendkey" ]
             # data = read_csv_debug(fields,
@@ -924,7 +924,7 @@ def map_tcp_packets_via_hash(
     log.info("Merging packets via hash")
     debug_cols = ["packetid", "hash", "reltime"]
 
-    from .pdutils import debug_dataframe
+    from mptcpanalyzer.pdutils import debug_dataframe
     # debug_dataframe(sender_df, "sender_df", )
     # debug_dataframe(receiver_df, "receiver df")
     # print("sender_df dtype=", sender_df.dtypes.tcpdest)
@@ -1182,7 +1182,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     packets with reinjected_in_receiver are (at least they should) be the first DSN arrived.
 
     Returns
-        a new dataframe with an added column "redundant"
+        a new dataframe with an added column "redundant" and "time_delta"
     """
     log.debug("Classifying reinjections")
 
