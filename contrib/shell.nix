@@ -1,7 +1,6 @@
 # { pkgs ? import <nixpkgs> {} }:
 with import <nixpkgs> {};
 let
-
     pandas = python3Packages.pandas.overridePythonAttrs (oa: {
 
       src = fetchFromGitHub {
@@ -28,20 +27,20 @@ let
     propagatedBuildInputs = oa.propagatedBuildInputs ++ [
       # to publish on pypi
       pkgs.python3Packages.twine
+      # is not added to PATH ?!
+      my_nvim
     ];
 
     src = ../.;
-    # nvimConfig.python3Env
-    buildInputs = (oa.buildInputs or []) ++ [ my_nvim  ];
 
     postShellHook = ''
       export SOURCE_DATE_EPOCH=315532800
+      export PATH="${my_nvim}/bin:$PATH"
+      echo "importing a custom nvim ${my_nvim}"
 
     '';
 
   });
-
-  # pythonLibs = with ps; ;
 
   projectConfig = {
     extraPython3Packages = ps: with ps; ([
@@ -55,15 +54,7 @@ let
       ]);
   };
 
-  # nvimConfig = neovimConfig (lib.mkMerge [
-  #   neovimDefaultConfig
-  #   {
-  #     extraPython3Packages = python3PackagesFun;
-  #   }
-  # ]);
-
-  # wrapNeovim neovim-unwrapped
-  my_nvim = genNeovim  [] projectConfig;
+  my_nvim = genNeovim  [ mptcpanalyzer ] projectConfig;
 
 in
 # TODO generate our own nvim
