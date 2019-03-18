@@ -35,6 +35,12 @@ class PlotMpTcpReinjections(plot.Matplotlib):
     def default_parser(self, *args, **kwargs):
 
         parser = gen_bicap_parser("mptcp", True)
+        res = super().default_parser(
+            *args, parents=[parser],
+            # direction=True,
+            # skip_subflows=True,
+            **kwargs
+        )
         parser.description="Plot MPTCP subflow attributes over time"
         parser.epilog = inspect.cleandoc('''
             Example:
@@ -44,12 +50,6 @@ class PlotMpTcpReinjections(plot.Matplotlib):
             > plot reinject examples/client_2_redundant.pcapng 1 examples/server_2_redundant.pcapng 1 --display
         ''')
 
-        res = super().default_parser(
-            *args, parents=[parser],
-            # direction=True,
-            # skip_subflows=True,
-            **kwargs
-        )
         return res
 
 
@@ -93,13 +93,14 @@ class PlotMpTcpReinjections(plot.Matplotlib):
             print(df.head())
 
             # for idx, (streamid, ds) in enumerate(tcpstreams):
-            subdf[_sender("reinj_delta")].plot.line(
-                x="abstime",
-                ax=axes,
-                # use_index=False,
-                legend=False,
-                grid=True,
-            )
+            # subdf[_sender("reinj_delta")].plot.line(
+            #     x="abstime",
+            #     ax=axes,
+            #     # use_index=False,
+            #     legend=False,
+            #     grid=True,
+            # )
+            subdf[_sender("reinj_delta")].hist(cumulative=True, density=1, bins=100)
 
         axes.set_xlabel("Time (s)")
         axes.set_ylabel("Reinjection delay")
