@@ -169,13 +169,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             data:  dataframe currently in use
         """
 
-        self.shortcuts.update({
+        shortcuts = ({
             'lm': 'list_mptcp_connections',
             'lt': 'list_tcp_connections',
             'ls': 'list_subflows',
             'lr': 'list_reinjections'
         })
-        super().__init__(completekey='tab', stdin=stdin)
+        super().__init__(completekey='tab', stdin=stdin, shortcuts=shortcuts)
         self.prompt = FG_COLORS['blue'] + "Ready>" + color_off
         self.data = None  # type: pd.DataFrame
         self.config = cfg
