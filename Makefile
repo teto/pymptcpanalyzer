@@ -24,12 +24,15 @@ publish:
 gen_transcripts:
 	# https://cmd2.readthedocs.io/en/latest/freefeatures.html#script-files
 	# startup_script
-	mptcpanalyzer "load tests/commands.txt" "quit"
+	mptcpanalyzer "load tests/script_mptcp.txt -t tests/trans_mptcp.txt" "quit"
+	# mptcpanalyzer "load tests/script_mptcp.txt -t tests/trans_mptcp.txt" "quit"
 
 tests:
 	# Add -b to print standard output
 	# python -munittest tests/cache_test.py -b
-	tests/run_transcripts.sh
+	# tests/run_transcripts.sh
+	mptcpanalyzer --test tests/summary_server_2_filtered.txt
+	mptcpanalyzer --test tests/trans_mptcp.txt
 
 develop:
 	python setup.py develop --user

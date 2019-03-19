@@ -1,0 +1,3 @@
+load_pcap examples/server_2_filtered.pcapng
+summary 0 Server
+summary 0 Client
