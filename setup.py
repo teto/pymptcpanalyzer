@@ -58,7 +58,7 @@ setup(name="mptcpanalyzer",
     author="Matthieu Coudron",
     author_email="coudron@iij.ad.jp",
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 3 - Beta',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Intended Audience :: System Administrators',
         'Intended Audience :: Science/Research',
@@ -100,7 +100,7 @@ setup(name="mptcpanalyzer",
         'stevedore',  # to implement a plugin mechanism
         'matplotlib>=3.0.3',  # for plotting
         'pandas',  # because of Int64
-        'cmd2>=0.9',  # to improve cmd capabilities
+        'cmd2>=0.9.11',  # to improve cmd capabilities
         # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
     ],
     # TODO to work around pandas bugs: adjust
