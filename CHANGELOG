@@ -1,9 +1,9 @@
 
 
-mptcpanalyzer 0.3.1:
-- compatibility with cmd 0.9.7 (colorization/autocompletion)
+mptcpanalyzer 0.3.1 (dev):
+- compatibility with cmd 0.9.12 (colorization/autocompletion)
 - require python 3.7 to use @dataclass attribute. This allows better static checking
-- bumped requirement to pandas >= 0.24.1 because of Int64
+- bumped requirement to pandas >= 0.24.2 because of Int64 changes
 - added a tcp_summary command
 - renamed summary to mptcp_summary
 - now looks for SYNs and SYN/ACK specifically instead of assuming clocks are synchronized

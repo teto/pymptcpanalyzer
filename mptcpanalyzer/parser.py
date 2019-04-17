@@ -135,7 +135,8 @@ def with_argparser_test(
     def arg_decorator(func: Callable[[cmd2.Statement], Optional[bool]]):
         @functools.wraps(func)
         def cmd_wrapper(instance, cmdline):
-            lexed_arglist = cmd2.cmd2.parse_quoted_string(cmdline, preserve_quotes)
+            # StatementParser.shlex_split(line)
+            lexed_arglist = cmd2.parsing.shlex_split(cmdline)
             try:
                 # set as a parser attribute ?
 
