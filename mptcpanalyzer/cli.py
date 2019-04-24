@@ -578,22 +578,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # TODO need to compute dest
         df = df.mptcp.fill_dest(mptcpstream)
 
-        # print(df.loc[df.mptcpstream == mptcpstream, [ "mptcpdest", "tcpdest"] ].head())
-        # print(args)
 
-        # print("valid values", args.dest)
         for destination in args.dest:
             stats = mptcp_compute_throughput(
                 self.data, args.mptcpstream,
                 destination,
-                # TODO set to true
                 False
             )
 
             if args.json:
                 import json
-                # TODO use self.poutput
-                # or use a stream, it must just be testable
                 val = json.dumps(dataclasses.asdict(stats), ensure_ascii=False)
                 self.poutput(val)
                 return
@@ -602,7 +596,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             msg = "mptcpstream %d transferred %d bytes."
             self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes))
             for sf in stats.subflow_stats:
-                # subflow_load = sf_bytes/mptcp_transferred
+                log.log(mp.TRACE, "sf after computation: %r" % sf)
                 self.poutput(
                     "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
                     "accounting for {tput_ratio:.2f}%".format(

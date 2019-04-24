@@ -62,8 +62,6 @@ class MpTcpUnidirectionalStats:
     ''' max(dsn)- min(dsn) - 1'''
     mptcp_application_bytes: int
     subflow_stats: List[TcpUnidirectionalStats]
-    # TODO rename to global ?
-    # mptcp_goodput_bytes: int = None
 
     @property
     def mptcp_goodput_bytes(self):
@@ -80,11 +78,10 @@ def tcp_get_stats(
     tcpstreamid: TcpStreamId,
     destination: ConnectionRoles,
     mptcp=False
-    ):
+    ) -> TcpUnidirectionalStats:
     '''
     Expects df to have tcpdest set
     '''
-    # -> Tuple[TcpUnidirectionalStats, TcpUnidirectionalStats]:
     log.debug("Getting TCP stats for stream %d" % tcpstreamid)
     assert destination in ConnectionRoles, "destination is %r" % type(destination)
 
@@ -92,17 +89,9 @@ def tcp_get_stats(
     if df.empty:
         raise MpTcpException("No packet with tcp.stream == %d" % tcpstreamid)
 
-    # TODO do it only when needed
-    # con = TcpConnection.build_from_dataframe(df, tcpstreamid)
-    # df2 = Xcpdest_from_connections(df, con)
     df2 = df
 
     log.debug("df2 size = %d" % len(df2))
-    # q = con.generate_direction_query(destination)
-    # df = unidirectional_df = df.query(q, engine="python")
-    # return (TcpUnidirectionalStats(),  TcpUnidirectionalStats() )
-    # debug_dataframe(df2, "before connection", )
-    # for destination in ConnectionRoles:
     log.debug("Looking at role %s" % destination)
     # TODO assume it's already filtered ?
     sdf = df2[df2.tcpdest == destination]
@@ -115,17 +104,8 @@ def tcp_get_stats(
     msg = "tcp_byte_range ({}) , {} (seq_max) - {} (seq_min) - 1"
     log.debug(msg.format(tcp_byte_range, seq_max, seq_min))
 
-
-    # if mptcp:
-    #     print("do some extra work")
-        # res[destination] = TcpUnidirectionalStats(tcpstreamid, bytes_transferred, 0, 0)
-
-
-    # TODO put in the constructor
-    # print ("bytes_transferred ", bytes_transferred)
-    # print ("vs tcp_byte_range ", tcp_byte_range)
     assert tcp_byte_range is not None
-    assert bytes_transferred is not None
+    assert bytes_transferred >= 0
 
     return TcpUnidirectionalStats(
         tcpstreamid,
@@ -196,6 +176,7 @@ def mptcp_compute_throughput(
         # debug_dataframe(subdf, "subdf for stream %d" % tcpstream)
         dest = subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))]
         print("dest", dest)
+        print("size", len(subdf))
         sf_stats = tcp_get_stats(
             subdf, tcpstream,
             # work around pandas issue (since for now it's a float
@@ -204,17 +185,14 @@ def mptcp_compute_throughput(
         )
 
         fields = ["tcpdest", "mptcpdest", "dss_dsn", "dss_length"]
-        print(subdf[fields])
+        # debug_dataframe(subdf, "Debugging", usecols=[fields])
 
         # DSNs can be discontinuous, so we have to look at each packet
         # we drop duplicates
         transmitted_dsn_df = subdf.drop_duplicates(subset="dsn")
-        # print("transmitted_dsn_df")
-        # print(transmitted_dsn_df)
-        # print(transmitted_dsn_df["tcplen"].dropna())
 
         sf_stats.mptcp_application_bytes = transmitted_dsn_df["tcplen"].sum()
-        print(sf_stats.mptcp_application_bytes )
+        # print(sf_stats.mptcp_application_bytes)
 
         assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range, sf_stats
 
@@ -223,6 +201,15 @@ def mptcp_compute_throughput(
         )
 
     total_tput = sum(map(lambda x: x.throughput_bytes, subflow_stats))
+
+    for sf in subflow_stats:
+        # can be > 1 in case of redundant packets
+        if total_tput > 0:
+            sf.throughput_contribution = sf.throughput_bytes / total_tput
+        else:
+            sf.throughput_contribution = 0
+            log.warn("Total Throughput <= 0. Something fishy possibly ?")
+
 
     """
     If it's a merged df, then we can classify reinjections and give more results
@@ -248,13 +235,6 @@ def mptcp_compute_throughput(
             # print(dsn_range)
 
 
-            # can be > 1 in case of redundant packets
-            # try:
-            if total_tput > 0:
-                sf.throughput_contribution = sf.throughput_bytes / total_tput
-            else:
-                sf.throughput_contribution = 0
-                log.warn("Total Throughput <= 0. Something fishy possibly ?")
 
             sf.goodput_contribution = sf.mptcp_application_bytes / dsn_range
 

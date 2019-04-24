@@ -99,8 +99,8 @@ setup(name="mptcpanalyzer",
     install_requires=[
         'stevedore',  # to implement a plugin mechanism
         'matplotlib>=3.0.3',  # for plotting
-        'pandas',  # because of Int64
-        'cmd2>=0.9.11',  # to improve cmd capabilities
+        'pandas',  # >= 0.24.2 because of Int64
+        'cmd2>=0.9.12',  # to improve cmd capabilities
         # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
     ],
     # TODO to work around pandas bugs: adjust
