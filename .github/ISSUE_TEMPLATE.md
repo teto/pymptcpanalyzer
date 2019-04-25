@@ -1,10 +1,12 @@
-* mptcpanalyzer version ($ mptcpanalyzer --version):
-* tshark version ($ tshark --version):
+* mptcpanalyzer version (`$ mptcpanalyzer --version` or commit number):
+* tshark version (`$ tshark --version`, must be >= 3.X.X):
+* python version (`$ python --version`, must be >= 3.7):
 
-Output of mptcpanalyzer -dDEBUG:
+Output of mptcpanalyzer -dDEBUG (or -dTRACE ):
 ```
+	HERE
 ```
 
 # how to reproduce
 
-Link to the incriminated pcap (if possible/relevant):
+Link to the pcap (if possible/relevant):
