@@ -104,7 +104,7 @@ class SubflowThroughput(plot.Matplotlib):
         parser.epilog = """
             plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
         """
-        parser.add_argument("window", metavar="AVG_WINDOW", action="store", type=str, 
+        parser.add_argument("window", metavar="AVG_WINDOW", action="store", type=str,
                 default=3,
             help="Averaging window , for instance '1s' ")
         # return parser
@@ -188,7 +188,7 @@ class SubflowThroughput(plot.Matplotlib):
         if mptcp_plot:
             fields.append("mptcpdest")
             title = "MPTCP throughput/goodput"
-        
+
 
         for idx, subdf in dat.groupby(_sender(fields), sort=False):
 

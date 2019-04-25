@@ -22,17 +22,14 @@ https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
 log = logging.getLogger(__name__)
 
 
-# These should be unidirection
 @dataclass
 class TcpUnidirectionalStats:
     tcpstreamid: TcpStreamId
-    # bytes: int
     ''' sum of tcplen / should be the same for tcp/mptcp
     Include redundant packets contrary to '''
     throughput_bytes: int
 
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
-    # rename to byte range ?
     tcp_byte_range: int = None
 
     ''' application data = goodput = useful bytes '''
@@ -155,9 +152,7 @@ def mptcp_compute_throughput(
 
     con = rawdf.mptcp.connection(mptcpstreamid)
     q = con.generate_direction_query(destination)
-    # print("query q= %r" % q)
     df = unidirectional_df = rawdf.query(q, engine="python")
-    # print("unidirectional_df")
     # assert len(unidirectional_df["mptcpdest"]) == len(df["mptcpdest" == destination]), "wrong query"
     # print(unidirectional_df["mptcpdest"])
 
@@ -227,8 +222,8 @@ def mptcp_compute_throughput(
             df_sf = df[df.tcpstream == sf.tcpstreamid]
 
             non_redundant_pkts = df_sf.loc[df_sf.redundant == False, "tcplen"]
-            print("non_redundant_pkts")
-            print(non_redundant_pkts)
+            # print("non_redundant_pkts")
+            # print(non_redundant_pkts)
             sf.mptcp_application_bytes = non_redundant_pkts.sum()
             # print("sf.mptcp_application_bytes" , sf.mptcp_application_bytes)
             # print("mptcp_application_bytes:")

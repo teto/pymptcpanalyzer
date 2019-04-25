@@ -184,15 +184,15 @@ class AppendDestination(argparse.Action):
         self.already_called = False
         self.destinations = list(ConnectionRoles)
         # TODO pass the type as well
-        print(args)
-        print(kwargs)
+        # print(args)
+        # print(kwargs)
         kwargs.update({
             "choices": CustomConnectionRolesChoices([e.name for e in ConnectionRoles]),
             "type": lambda x: ConnectionRoles.from_string(x),
             "default": list(ConnectionRoles),
         })
         super().__init__(*args, **kwargs)
-        print("destinations", self.dest)
+        # print("destinations", self.dest)
 
 
     # TODO check if it's called several times
@@ -202,22 +202,22 @@ class AppendDestination(argparse.Action):
         if self.already_called is True:
             # TODO change the default ?
             # setattr(namespace, self.dest, [])
-            print("Already set")
-            print("setting value %r" % values)
+            # print("Already set")
+            # print("setting value %r" % values)
             # print("setting value %r" % self.destinations)
             # to make it unique
             self.destinations.append(values)
             self.destinations= list(set(self.destinations))
-            print("new result %r" % self.destinations)
+            # print("new result %r" % self.destinations)
         else:
-            print("Received first value %r" % values)
+            # print("Received first value %r" % values)
             self.destinations = [values]
         # else:
         #     self.destinations = list(ConnectionRoles)
 
         self.already_called = True
         # df_name + "destinations"
-        print("setting into %s" % self.dest)
+        # print("setting into %s" % self.dest)
         setattr(namespace, self.dest, self.destinations)
         # pcap1 = getattr(namespace, self.df_name + "1")
         # pcap2 = getattr(namespace, self.df_name + "2")
@@ -233,7 +233,7 @@ class AppendDestination(argparse.Action):
         #     # TODO do sthg like append
         #     setattr(namespace, self.dest, values)
         # else:
-        print("destination", values)
+        # print("destination", values)
 
 
         # df = namespace._dataframes[self.df_name]

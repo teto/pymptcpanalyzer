@@ -68,7 +68,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
             # x=0.1, y=.95,
             )
 
-        # il n'a pas encore eu les destinations !!
+        # no destinations yet !!
         print("DATASET HEAD")
         print(df.head())
         for idx, subdf in df.groupby(_sender(fields), sort=False):
@@ -155,7 +155,6 @@ class PlotTcpAttribute(plot.Matplotlib):
 
         labels = [] # type: List[str]
 
-        # TODO le .iloc permet d'eliminer les syn/ack
         for dest, ddf in tcpdf.groupby(_sender("tcpdest")):
             # print("dest %r in %r" %( dest , destinations))
             # TODO remove ?
