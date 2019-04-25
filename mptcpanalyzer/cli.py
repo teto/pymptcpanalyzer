@@ -197,7 +197,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # does not seem to work :s
         pd.set_option('compute.use_numexpr', False)
         pd.set_option('display.max_info_columns', 5)  # verbose dataframe.info
-        print("use numexpr?", pd.get_option('compute.use_numexpr', False))
+        log.debug("use numexpr?", pd.get_option('compute.use_numexpr', False))
 
         #  Load Plots
         ######################
@@ -240,7 +240,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             subparsers.add_parser(ext.name, parents=[parser], add_help=False)
 
         self.plot_mgr.map(register_plots, subparsers)
-        # # will raise NoMatches when no plot available
+        # will raise NoMatches when no plot available
 
         # if loading commands from a file, we disable prompt not to pollute output
         if stdin != sys.stdin:
@@ -249,14 +249,31 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.prompt = ""
             self.intro = ""
 
-        """
-        The optional arguments stdin and stdout specify the input and
-        output file objects that the Cmd instance or subclass instance will
-        use for input and output. If not specified, they will default to
-        sys.stdin and sys.stdout.
-        """
-        print("WARNING: mptcpanalyzer may require a custom wireshark. "
-              "Check github for mptcp patches streaming.")
+        self.poutput("Run `checkhealth` in case of issues")
+
+    def do_checkhealth(self, args):
+        if sys.hexversion <= 0x03070000:
+            self.perror("This program requires a newer python than %s" % sys.version)
+
+        try:
+            self.poutput("Checking tshark version ... You need tshark >= 3.X.X")
+
+            out = subprocess.check_output(["tshark", "--version"])
+            first_line = out.decode().splitlines()[0]
+            import re
+            m = re.search("([\d.])", first_line)
+            major_version = int(m.group(0))
+            self.poutput("found tshark major version %d" % major_version)
+            if major_version < 3:
+                self.poutput("Your tshark version seems too old ?!")
+            else:
+                self.poutput("Your tshark version looks fine")
+
+        except Exception as e:
+            self.poutput("An error happened while checking tshark version")
+            self.poutput("Run `tshark -v` and check it's >= 3.0.0")
+            self.perror("%s" % e)
+
 
     @property
     def plot_manager(self):
@@ -847,13 +864,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # print(result.columns)
         mpdata.print_weird_owds(result)
         # print(result[["owd"]].head(20))
-
-    def do_check_tshark(self, line):
-        """
-        Check your tshark/wireshark version
-        """
-        self.poutput("TODO implement automated check")
-        self.poutput("you need a wireshark > 19 June 2018 with commit dac91db65e756a3198616da8cca11d66a5db6db7...")
 
 
     parser = gen_bicap_parser("mptcp", dest=True)
