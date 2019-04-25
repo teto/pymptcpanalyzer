@@ -177,14 +177,12 @@ Normally, the test data is sent from the client to the server, and measures the 
 
 # Related tools
 
-If I have forgotten about your tool, file an issue, for know we are aware of:
-- [mptcptrace] with some examples [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)
-- [mptcpplot] with [generated output example](https://roland.grc.nasa.gov/~jishac/mptcpplot/)
+Similar software:
 
 | Tool             | Description                                                                       |
 |------------------------|-------------------------------------------------------------------------------|
-| mptcptrace             | C based                                               |
-| mptcpplot       | C based developed at NASA                                                 |
+| [mptcptrace]             | C based [here](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)                                               |
+| [mptcpplot]       | C based developed at NASA [generated output example](https://roland.grc.nasa.gov/~jishac/mptcpplot/)                                                 |
 
 [mptcptrace]: https://bitbucket.org/bhesmans/mptcptrace
 [mptcpplot]: https://github.com/nasa/multipath-tcp-tools/

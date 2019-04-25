@@ -73,6 +73,8 @@ class DSSOverTime(plot.Matplotlib):
         # can only be raw as there are no relative dss_dsn exported yet ?
         # parser.add_argument('--relative', action="store_true", default=False,
         #         help="Adds data acks to the graph")
+        parser.description = "TEST description"
+        parser.epilog = "test epilog"
         return parser
 
     def plot(self, rawdf, destination=None, dack=False, relative=None, **args):
@@ -147,12 +149,12 @@ class DSSOverTime(plot.Matplotlib):
             # markers = cycle(cycler)
 
             for tcpstream, df in df_backward.groupby('tcpstream'):
-                marker = next(markers)
+                # marker = next(markers)
                 if df.empty:
                     log.debug("No dack for tcpstream %d" % tcpstream)
                 else:
                     ax1 = df[dack_str].plot.line(ax=axes,
-                            style=marker,
+                            # style=marker,
                             legend=False
                     )
                     lines, labels = ax1.get_legend_handles_labels()

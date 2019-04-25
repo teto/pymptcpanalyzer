@@ -229,15 +229,27 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # not my first choice but to accomodate cmd2 constraints
         # see https://github.com/python-cmd2/cmd2/issues/498
         subparsers = MpTcpAnalyzerCmdApp.plot_parser.add_subparsers(
-            dest="plot_type", title="Subparsers", help='sub-command help',)
-        subparsers.required = True  # type: ignore
+            dest="plot_type", required=True,
+            title="Available plots",
+            # prog= "",
+            # description="",
+            parser_class=MpTcpAnalyzerParser,
+            help='Consult each plot\'s help via its plot <PLOT_TYPE> -h flag.',
+        )
 
         def register_plots(ext, subparsers):
             """Adds a parser per plot"""
             # check if dat is loaded
             parser = ext.obj.default_parser()
             assert parser, "Forgot to return parser"
-            subparsers.add_parser(ext.name, parents=[parser], add_help=False)
+            # we can pass an additionnal help
+            log.debug("Registering subparser for plot %s" % ext.name)
+            subparsers.add_parser(ext.name, parents=[parser],
+                # parents= just copies arguments, not the actual help !
+                description=parser.description,
+                epilog=parser.epilog,
+                add_help=False,
+            )
 
         self.plot_mgr.map(register_plots, subparsers)
         # will raise NoMatches when no plot available
@@ -787,7 +799,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser = MpTcpAnalyzerParser(
         description="Export a pcap that can be used with wireshark to debug ids"
     )
-    load_pcap1 = parser.add_argument("imported_pcap", type=str, help="Capture file to cleanup.")
+    load_pcap1 = parser.add_argument("imported_pcap", type=str,
+        help="Capture file to cleanup.")
     setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
     parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
 
@@ -835,8 +848,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput("Loading merged streams")
         df = args._dataframes["pcap"]
         result = df
-        print(result.head(10))
-        # print("%r" % result)
+        log.debug(result.head(10))
+        # debug_dataframe(result)
+
         # print(result[mpdata.TCP_DEBUG_FIELDS].head(20))
         # for key, subdf in df.groupby(_sender("tcpdest"))
 
@@ -845,7 +859,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # self.ppaged()
 
         if args.csv:
-            self.pfeedback("Exporting to csv")
+            self.poutput("Exporting to csv")
             with open(args.csv, "w") as fd:
                 df.to_csv(
                     fd,
@@ -859,9 +873,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # print("TODO display before doing plots")
         # TODO display errors
         print(result[["owd"]].head(20))
-        # print(result.columns)
         mpdata.print_weird_owds(result)
-        # print(result[["owd"]].head(20))
 
 
     parser = gen_bicap_parser("mptcp", dest=True)
@@ -1143,13 +1155,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         try:
             result = plotter.run(**dataframes, **dargs)
         except TypeError as e:
-            print("Problem when calling plotter.run")
-            print("We passed the following arguments:")
+            self.perror("Problem when calling plotter.run")
+            self.perror("We passed the following arguments:")
             print(dataframes)
             print(dargs)
             raise e
-
-
 
         print( "result %r", result)
         # to save to file for instance
@@ -1172,7 +1182,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         parser = argparse.ArgumentParser(description="dumps csv content")
         parser.add_argument('columns', default=[
-                            "ipsrc", "ipdst"], choices=self.data.columns, nargs="*")
+            "ipsrc", "ipdst"], choices=self.data.columns, nargs="*")
 
         parser.add_argument('-n', default=10, action="store",
                 help="Number of results to display")

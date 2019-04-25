@@ -72,9 +72,6 @@ class Plot:
             were sent towards the MPTCP client or the MPTCP server
             skip_subflows: Allow to hide some subflows from the plot
 
-        Return:
-            An argparse.ArgumentParser
-
         """
         if parents is None:
             # as per the nice comment https://github.com/teto/mptcpanalyzer/issues/10

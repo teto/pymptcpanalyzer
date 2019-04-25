@@ -8,6 +8,7 @@ mptcpanalyzer 0.3.1 (dev):
 - renamed `summary` to `mptcp_summary`
 - now looks for SYNs and SYN/ACK specifically instead of assuming clocks are synchronized
 - added a `checkhealth` command to check for python version/wireshark
+- plots now display their own help/examples instead of the generic one
 
 
 mptcpanalyzer 0.3:

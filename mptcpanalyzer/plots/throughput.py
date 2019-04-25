@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 from mptcpanalyzer.statistics import mptcp_compute_throughput
 from mptcpanalyzer.data import load_merged_streams_into_pandas
-from mptcpanalyzer.parser import gen_pcap_parser
+from mptcpanalyzer.parser import gen_pcap_parser, MpTcpAnalyzerParser
 import collections
 from typing import List
 import logging
 
 log = logging.getLogger(__name__)
 
-# field="ack"
+
 def compute_goodput(df, averaging_window):
     """
     wireshark example can be found in:
@@ -57,7 +57,7 @@ def compute_goodput(df, averaging_window):
         # so now it gets a series
         return (x.max() - x.min())/averaging_window_int
 
-    # TODO test 
+    # TODO test
     newdf= df.set_index("dt_abstime", drop=False)
 
     print(newdf[["abstime", "tcpack"]])
@@ -90,13 +90,9 @@ class SubflowThroughput(plot.Matplotlib):
     #     )
 
     def default_parser(self, *args, **kwargs):
-        # pcaps = {
-        #     "pcap1": plot.PreprocessingActions.DoNothing,
-        #     "pcap2": plot.PreprocessingActions.DoNothing,
-        # }
 
         # TODO use gen_pcap_parser
-        parser = argparse.ArgumentParser(
+        parser = MpTcpAnalyzerParser(
             description="Helps plotting Data sequence numbers"
         )
         parser.add_argument("protocol", choices=["tcp", "mptcp"], action="store",

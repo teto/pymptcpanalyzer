@@ -33,7 +33,6 @@ class PlotSubflowAttribute(plot.Matplotlib):
             "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterMpTcpStream
         }
 
-        # print("mptcp_attr parser")
         parser = gen_pcap_parser(pcaps, )
         parser.description="Plot MPTCP subflow attributes over time"
 
@@ -41,8 +40,6 @@ class PlotSubflowAttribute(plot.Matplotlib):
             help="Choose an mptcp attribute to plot")
         res = super().default_parser(
             *args, parents=[parser],
-            # direction=True,
-            # skip_subflows=True,
             **kwargs)
         # print("end of mptcp_attr parser")
         return res
@@ -53,9 +50,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
         getcallargs
         """
         fig = plt.figure()
-        # tcpstreams = dat.groupby('tcpstream')
 
-        # log.info("%d streams in the MPTCP flow" % len(tcpstreams))
         log.info("Plotting field %s" % field)
         log.info("len(df)= %d" % len(df))
 

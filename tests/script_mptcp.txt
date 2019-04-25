@@ -2,3 +2,4 @@ load_pcap examples/client_2.pcap
 list_mptcp_connections
 list_subflows 0
 list_subflows 1
+mptcp_summary 0

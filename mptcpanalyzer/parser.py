@@ -4,13 +4,13 @@ import cmd2
 from cmd2 import argparse_completer
 from typing import Iterable, List, Dict, Callable, Optional, Any
 from mptcpanalyzer.tshark import TsharkConfig
-# from .connection import
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
             CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId)
 import mptcpanalyzer as mp
 from functools import partial
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
+from mptcpanalyzer.pdutils import debug_dataframe
 
 log = logging.getLogger(__name__)
 
@@ -431,12 +431,11 @@ class FilterStream(DataframeAction):
 
         # if type(values) != list:
         #     streamids = list(values)
-        print("received values %r" % values)
 
         field = "tcpstream"
         if isinstance(values, MpTcpStreamId):
             field = "mptcpstream"
-            print("mptcp instance type ")
+            log.debug("Mptcp instance")
         elif isinstance(values, TcpStreamId):
             pass
         else:
@@ -447,11 +446,10 @@ class FilterStream(DataframeAction):
         query = self.query_tpl.format(field=field, streamid=values)
 
         log.log(mp.TRACE, "Applying query [%s]" % query)
-        print(df.head(5))
-        print(df.dtypes)
+        debug_dataframe(df, "after query")
 
         import pandas as pd
-        print("use numexpr?", pd.get_option('compute.use_numexpr', False))
+        log.log(mp.TRACE, "use numexpr?", pd.get_option('compute.use_numexpr', False))
         df.query(query, inplace=True, engine="python")
 
 
@@ -617,6 +615,4 @@ def gen_pcap_parser(
                         "it was filtered by iptables or else)"))
 
         return parser
-
-
 
