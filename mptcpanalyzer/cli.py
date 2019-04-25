@@ -256,7 +256,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.perror("This program requires a newer python than %s" % sys.version)
 
         try:
-            self.poutput("Checking tshark version ... You need tshark >= 3.X.X")
+            self.poutput("Checking for tshark version >= 3.X.X ...")
 
             out = subprocess.check_output(["tshark", "--version"])
             first_line = out.decode().splitlines()[0]
@@ -265,7 +265,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             major_version = int(m.group(0))
             self.poutput("found tshark major version %d" % major_version)
             if major_version < 3:
-                self.poutput("Your tshark version seems too old ?!")
+                self.perror("Your tshark version seems too old ?!")
             else:
                 self.poutput("Your tshark version looks fine")
 
@@ -592,9 +592,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df = self.data
         mptcpstream = args.mptcpstream
 
-        # TODO need to compute dest
         df = df.mptcp.fill_dest(mptcpstream)
-
 
         for destination in args.dest:
             stats = mptcp_compute_throughput(
@@ -1126,8 +1124,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # 'converts' the namespace to for the syntax define a dict
         dargs = vars(args)
 
-        # print("%s" % dargs)
-        dataframes = dargs.pop("_dataframes")
+        dataframes = dargs.pop("_dataframes", {})
         # print("DATAFRAMES %r" % dataframes)
         # workaround argparse limitations to set as default both directions
         # TODO replace that with an action ?
