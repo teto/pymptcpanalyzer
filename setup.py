@@ -43,11 +43,22 @@ with open(ver_path) as ver_file:
 class RunTests(Command):
     """ Run my command.
     """
-    description = 'generate images'
+    description = "Run tests from the shell"
+    user_options = [] # type: ignore
+
+    def initialize_options(self):
+        """init options"""
+        pass
+
+    def finalize_options(self):
+        """finalize options"""
+        pass
+
     def run(self):
         import os
         os.system("make tests")
         sys.exit(1)
+
 
 setup(name="mptcpanalyzer",
     version=version,
