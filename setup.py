@@ -103,7 +103,8 @@ setup(name="mptcpanalyzer",
 
             # TODO add gput versions that need merged pcaps
             'tcp_tput = mptcpanalyzer.plots.throughput:SubflowThroughput'
-            # 'mptcp_tput = mptcpanalyzer.plots.throughput:MptcpThroughput'
+            'mptcp_tput = mptcpanalyzer.plots.throughput:MptcpThroughput'
+            'mptcp_gput = mptcpanalyzer.plots.Goodput:MptcpGoodput'
         ],
         # namespace for plugins that monkey patch the main Cmd class
         'mptcpanalyzer.cmds': [

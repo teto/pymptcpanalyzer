@@ -51,12 +51,10 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
     df[_sender("dt_abstime")] = pd.to_datetime(df[_sender("abstime")], unit="s")
 
     print(df["dt_abstime"])
+
     # import re
-
-    # TODO 
     # string1 = averaging_window
-
-    # # TODO I should retreive the unit afterwards
+    # I should retreive the unit afterwards
     # averaging_window_int = int(re.search(r'\d+', string1).group())
 
     averaging_window_int = averaging_window
@@ -119,7 +117,7 @@ class SubflowThroughput(plot.Matplotlib):
             description="Helps plotting Data sequence numbers"
         )
         parser.epilog = """
-            plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
+            plot tcp_tput examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
         """
         # return parser
         res = super().default_parser(
@@ -137,6 +135,10 @@ class SubflowThroughput(plot.Matplotlib):
             type=int, default=3,
             help="Averaging window , for instance '1s' "
         )
+        final.add_argument("--goodput", metavar="GOODPUT", action="store_true",
+            default=False,
+            help="Drops retransmission from computation"
+        )
         return final
 
 
@@ -153,23 +155,8 @@ class SubflowThroughput(plot.Matplotlib):
         df = pcap
         window = kwargs.get("window")
         destinations = kwargs.get("pcap_destinations")
-        # success, ret = mptcp_compute_throughput(df, mptcpstream, destination)
-        # if success is not True:
-        #     print("Failure: %s", ret)
-        #     return
 
-        # data = map(lambda x: x['bytes'], ret['subflow_stats'])
-        # s = pd.DataFrame(data=pd.Series(data))
-        # print (s)
-
-
-        title = "TCP throughput/goodput"
-
-        # group by tcpstream
-        # fields = ["tcpdest", "tcpstream", ]
-        # if mptcp_plot:
-        #     fields.append("mptcpdest")
-        #     title = "MPTCP throughput/goodput"
+        title = "TCP throughput"
 
         print("Destinations", destinations)
 
@@ -177,11 +164,8 @@ class SubflowThroughput(plot.Matplotlib):
         con = df.tcp.connection(pcapstream)
         df = con.fill_dest(df)
 
-        # groups = df.groupby(_sender("tcpdest"), sort=False)
 
         debug_dataframe(df, "plotting throughput" )
-        # print("groups: %r" % groups)
-        # for idx, subdf in groups:
         for dest, subdf in df.groupby(_sender("tcpdest")):
             if dest not in destinations:
                 log.debug("Ignoring destination %s" % dest)
@@ -227,5 +211,43 @@ class SubflowThroughput(plot.Matplotlib):
 class MptcpThroughput(plot.Matplotlib):
     """
     """
-    pass
+    def default_parser(self, *args, **kwargs):
+
+        parser = MpTcpAnalyzerParser(
+            description="Helps plotting Data sequence numbers"
+        )
+        parser.epilog = """
+            plot tcp_tput examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
+        """
+        # return parser
+        res = super().default_parser(
+            *args, parents=[parser],
+            **kwargs
+        )
+
+        pcaps = {
+            "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterMpTcpStream
+        }
+        final = gen_pcap_parser(pcaps, parents=[res], direction=True)
+
+        # passed window 3 is not compatible with a datetimelike index
+        final.add_argument("window", metavar="AVG_WINDOW", action="store",
+            type=int, default=3,
+            help="Averaging window , for instance '1s' "
+        )
+        return final
+
+    def plot(self, pcap, pcapstream, **kwargs):
+        """
+        getcallargs
+        """
+        fig = plt.figure()
+        axes = fig.gca()
+
+        df = pcap
+        window = kwargs.get("window")
+        destinations = kwargs.get("pcap_destinations")
+
+        con = df.mptcp.connection(pcapstream)
+        df = con.fill_dest(df)
 
