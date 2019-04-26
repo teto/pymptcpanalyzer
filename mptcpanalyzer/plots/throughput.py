@@ -7,6 +7,7 @@ from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 from mptcpanalyzer.statistics import mptcp_compute_throughput
 from mptcpanalyzer.data import load_merged_streams_into_pandas
 from mptcpanalyzer.parser import gen_pcap_parser, MpTcpAnalyzerParser
+from mptcpanalyzer.pdutils import debug_dataframe
 import collections
 from typing import List
 import logging
@@ -15,7 +16,22 @@ log = logging.getLogger(__name__)
 
 
 def compute_goodput(df, averaging_window):
+    raise NotImplemented("Please implement me")
+
+def compute_throughput(df, averaging_window) -> pd.DataFrame:
     """
+    Args:
+        averaging_window:
+
+
+    Converts time series into pandas format so that we can use the rolling window 
+    algorithm on it
+
+    Adds following columns to the dataframe:
+    - tput
+    - gput 
+    - dt_abstime: abstime but in datetime format so that one can apply "rolling" features
+
     wireshark example can be found in:
     ui/qt/tcp_stream_dialog.cpp: void TCPStreamDialog::fillThroughput()
 
@@ -24,11 +40,6 @@ def compute_goodput(df, averaging_window):
 
     todo should make it work with dack/ack
     problem is we don't support sack :'(
-
-    Adds following columns to the dataframe:
-    - tput
-    - gput 
-    - dt_abstime: abstime but in datetime format so that one can apply "rolling" features
     """
     # df.rolling(on="bytes")
     # we can use mptcp.ack
@@ -40,35 +51,54 @@ def compute_goodput(df, averaging_window):
     df[_sender("dt_abstime")] = pd.to_datetime(df[_sender("abstime")], unit="s")
 
     print(df["dt_abstime"])
-    import re
-    string1 = averaging_window
-    # TODO I should retreive the unit afterwards
-    averaging_window_int = int(re.search(r'\d+', string1).group())
+    # import re
 
+    # TODO 
+    # string1 = averaging_window
+
+    # # TODO I should retreive the unit afterwards
+    # averaging_window_int = int(re.search(r'\d+', string1).group())
+
+    averaging_window_int = averaging_window
+    averaging_window_str = "%ss" % averaging_window
     # TODO use it as index to use the rolling ?
-    # win_type=
-    # rolling 
     def _compute_tput(x, ):
         """
         Not an exact one, does not account for TCP sack for instance
         """
         print("compute_tput called !!")
-        # print("%r" % x )
+        print("%s:\n%r" % (type(x), x))
         # so now it gets a series
+
+        print("max %f min %f average %d" % (x.max(), x.min(), averaging_window_int))
         return (x.max() - x.min())/averaging_window_int
 
     # TODO test
-    newdf= df.set_index("dt_abstime", drop=False)
+    newdf = df.set_index("dt_abstime", drop=False)
 
-    print(newdf[["abstime", "tcpack"]])
-    newdf["tput"] = newdf["tcpack"].rolling(
+    print(newdf[["dt_abstime", "abstime", "tcpack"]])
+
+    log.debug("Rolling over an interval of %s" % averaging_window_str)
+    temp = newdf["tcpack"].astype("float64").rolling(
+
         # 3,
-        averaging_window,
+        # can be a number of an offset for datetime based
+        window=averaging_window_str,
+        # interesting parameter too
+        # min_periods=
         # on="tcpack",
         # closed="right",
         # center=True
-    # ).mean()
-    ).apply(_compute_tput, raw=False, )  # args=(), kwargs={} 
+    )
+
+    # raw=False,
+    newdf["tput"] = temp.apply(
+        _compute_tput,
+        # pass the data as a Serie rather than a numpy array
+        raw=False,
+        #
+        # convert_dtype=False,
+    )
 
     print("AFTER rolling ")
     print(newdf[["abstime", "tcpack", "tput"]].head(5))
@@ -76,97 +106,54 @@ def compute_goodput(df, averaging_window):
 
 
 
+# TODO create 
 class SubflowThroughput(plot.Matplotlib):
     """
     Plot subflow throughput
     Mptcp throughput equals the sum of subflow contributions
     """
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(
-    #         *args,
-    #         input_pcaps=pcaps,
-    #         **kwargs
-    #     )
-
     def default_parser(self, *args, **kwargs):
 
-        # TODO use gen_pcap_parser
         parser = MpTcpAnalyzerParser(
             description="Helps plotting Data sequence numbers"
         )
-        parser.add_argument("protocol", choices=["tcp", "mptcp"], action="store",
-            help="what kind to plot")
         parser.epilog = """
             plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
         """
-        parser.add_argument("window", metavar="AVG_WINDOW", action="store", type=str,
-                default=3,
-            help="Averaging window , for instance '1s' ")
         # return parser
-        return super().default_parser(
+        res = super().default_parser(
             *args, parents=[parser],
-            # direction=True,
-            # skip_subflows=True,
             **kwargs
         )
 
-    #def preprocess(self, pcap1, pcap2, pcap1stream, pcap2stream, protocol, **kwargs):
-    #    """
-    #    This is trickier than in other modules: this plot generates intermediary results
-    #    to compute OWDs.
-    #    These results can be cached in which  case it's not necessary
-    #    to load the original pcaps.
+        pcaps = {
+            "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterStream
+        }
+        final = gen_pcap_parser(pcaps, parents=[res], direction=True)
 
-    #    First we get the cachename associated with the two pcaps. If it's cached we load
-    #    directly this cache else we proceed as usual
-
-    #    """
-    #    log.debug("Preprocessing")
-    #    # if we can't load that file from cache
-    #    try:
-
-    #        #TODO pass clockoffsets
-    #        # Need to add the stream ids too !
-    #        merged_df = load_merged_streams_into_pandas(
-    #            pcap1,
-    #            pcap2,
-    #            pcap1stream,
-    #            pcap2stream,
-    #            # kwargs.get(""),
-    #            # kwargs.get("stream2"),
-    #            protocol == "mptcp",
-    #            # TODO how does it get the config
-    #            self.tshark_config,
-    #        )
-
-    #        # first test on TCP
+        # passed window 3 is not compatible with a datetimelike index
+        final.add_argument("window", metavar="AVG_WINDOW", action="store",
+            type=int, default=3,
+            help="Averaging window , for instance '1s' "
+        )
+        return final
 
 
-    #        # then we need to process throughput/goodput
-    #        # Later move it to utils so that it can be used in
-    #        # summary_extended (to plot average/min/max)
-    #        # for idx, subdf in df.groubpy(_sender(["tcpstream", "tcpdest"])):
-    #        #     print("computing tput")
-
-    #        #     compute_df(subdf)
-    #        return merged_df
-
-    #    except Exception as e:
-    #        logging.exception("Error while plotting throughput")
-    #        raise e
-    #        # log.debug("Could not load cached results %s" % cachename)
-
-
-    def plot(self, dat, destinations, protocol, **kwargs):
+    # TODO add window / destinations ?
+    # dat, destinations,
+    def plot(self, pcap, pcapstream, **kwargs):
         """
         getcallargs
         """
 
         fig = plt.figure()
         axes = fig.gca()
-        mptcp_plot = (protocol == "mptcp")
-        # success, ret = mptcp_compute_throughput(dat, mptcpstream, destination)
+
+        df = pcap
+        window = kwargs.get("window")
+        destinations = kwargs.get("pcap_destinations")
+        # success, ret = mptcp_compute_throughput(df, mptcpstream, destination)
         # if success is not True:
         #     print("Failure: %s", ret)
         #     return
@@ -175,27 +162,39 @@ class SubflowThroughput(plot.Matplotlib):
         # s = pd.DataFrame(data=pd.Series(data))
         # print (s)
 
-        # gca = get current axes (Axes), create one if necessary
-        axes = fig.gca()
 
         title = "TCP throughput/goodput"
 
-        fields = ["tcpdest", "tcpstream", ]
-        if mptcp_plot:
-            fields.append("mptcpdest")
-            title = "MPTCP throughput/goodput"
+        # group by tcpstream
+        # fields = ["tcpdest", "tcpstream", ]
+        # if mptcp_plot:
+        #     fields.append("mptcpdest")
+        #     title = "MPTCP throughput/goodput"
+
+        print("Destinations", destinations)
 
 
-        for idx, subdf in dat.groupby(_sender(fields), sort=False):
+        con = df.tcp.connection(pcapstream)
+        df = con.fill_dest(df)
 
-            # filler in case 
-            stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
+        # groups = df.groupby(_sender("tcpdest"), sort=False)
 
-            filtereddest = mptcpdest if mptcp_plot else tcpdest
-            if filtereddest not in kwargs.get("destinations"):
+        debug_dataframe(df, "plotting throughput" )
+        # print("groups: %r" % groups)
+        # for idx, subdf in groups:
+        for dest, subdf in df.groupby(_sender("tcpdest")):
+            if dest not in destinations:
+                log.debug("Ignoring destination %s" % dest)
                 continue
 
-            tput_df = compute_goodput(subdf, kwargs.get("window"))
+            log.debug("Plotting destination %s" % dest)
+
+            # filler in case
+            # stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
+
+            # log.debug("filtereddest == %s" % filtereddest)
+
+            tput_df = compute_throughput(subdf, window)
             tput_df.plot.line(
                 ax=axes,
                 legend=True,
@@ -203,7 +202,7 @@ class SubflowThroughput(plot.Matplotlib):
                 x=_sender("dt_abstime"),
                 y="tput",
                 # y="gput",
-                label="Xput towards %s" % filtereddest, # seems to be a bug
+                label="Xput towards %s" % dest, # seems to be a bug
             )
 
 
@@ -223,3 +222,10 @@ class SubflowThroughput(plot.Matplotlib):
         # )
 
         return fig
+
+
+class MptcpThroughput(plot.Matplotlib):
+    """
+    """
+    pass
+

@@ -1,7 +1,8 @@
 import logging
 import argparse
 import cmd2
-from cmd2 import argparse_completer
+import os.path
+# from cmd2 import argparse_completer
 from typing import Iterable, List, Dict, Callable, Optional, Any
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
@@ -62,7 +63,7 @@ class LoadSinglePcap(DataframeAction):
     def __init__(self, loader = TsharkConfig(), **kwargs) -> None:
         super().__init__(df_name=kwargs.get("dest"),  **kwargs)
         self.loader = loader
-        setattr(self, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', (lambda x: True)))
+        setattr(self, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
 
     def __call__(self, parser, namespace, values, option_string=None):
         if type(values) == list:
@@ -469,7 +470,7 @@ def gen_bicap_parser(protocol, dest=False):
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
 
 
-class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
+class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
     '''
     Wrapper around cmd2 argparse completer
     Should allow to switch backends easily. 
@@ -505,8 +506,8 @@ class MpTcpAnalyzerParser(argparse_completer.ACArgumentParser):
         # TODO pass along known, dataframes ?
         return (known, unknown)
 
-
 # map pcaps to a group
+# todo pass a dict of @dataclass instead
 def gen_pcap_parser(
         # rename input_pcaps to load_dataframes
         input_pcaps: Dict[str, PreprocessingActions],
@@ -521,14 +522,13 @@ def gen_pcap_parser(
         This parser can be completed or overridden by its children.
 
         Args:
-            mptcpstream: to accept an mptcp.stream id
             available_dataframe: True if a pcap was preloaded at start
             direction: Enable filtering the stream depending if the packets
             were sent towards the MPTCP client or the MPTCP server
             skip_subflows: Allow to hide some subflows from the plot
 
         Return:
-            An argparse.ArgumentParser
+            An argparse.ArgumentParser derivative
 
         """
         parser = MpTcpAnalyzerParser(
@@ -544,7 +544,7 @@ def gen_pcap_parser(
             def _pcap(name, pcapAction="store", filterAction="store"):
                 # TODO change the type to expand things etc. like argparse.FileType
                 load_pcap = parser.add_argument(name, action=pcapAction, type=str, help='Pcap file')
-                setattr(load_pcap, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+                setattr(load_pcap, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
                 # TODO add action AddClockOffset
                 # parser.add_argument("--clock-offset" + name, action="store", type=int,
                 #     help='Offset compared to epoch (in nanoseconds)')

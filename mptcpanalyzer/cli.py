@@ -553,7 +553,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
     @is_loaded
     def do_tcp_summary(self, args, unknown):
-        print("Summary of TCP connection " )
+        self.poutput("Summary of TCP connection " )
         df = self.data
 
         con = df.tcp.connection(0)
@@ -1153,6 +1153,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         assert dataframes is not None, "Preprocess must return a list"
         # pass unknown_args too ?
         try:
+            # TODO pretty print
+            # pp = pprint.PrettyPrinter(indent=4)
+            log.debug("Calling plot with dataframes:\n%s and dargs %s" % (
+                dataframes.keys(), dargs
+            ))
             result = plotter.run(**dataframes, **dargs)
         except TypeError as e:
             self.perror("Problem when calling plotter.run")
@@ -1161,7 +1166,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             print(dargs)
             raise e
 
-        print( "result %r", result)
+        self.pfeedback("result %r" % result)
         # to save to file for instance
         plotter.postprocess(result, **dargs)
 

@@ -92,21 +92,24 @@ setup(name="mptcpanalyzer",
             'mptcp_attr = mptcpanalyzer.plots.dsn:PlotSubflowAttribute',
             'tcp_attr = mptcpanalyzer.plots.dsn:PlotTcpAttribute',
             'reinject = mptcpanalyzer.plots.reinjections:PlotMpTcpReinjections',
-            # # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
-            # # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
-            # # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
+            # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
+            # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
+            # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
             'dss = mptcpanalyzer.plots.dss:DSSOverTime',
             'owd = mptcpanalyzer.plots.owd:TcpOneWayDelay',
-            # # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
-            # # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
-            # # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
-            'throughput = mptcpanalyzer.plots.throughput:SubflowThroughput'
-            ],
+            # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
+            # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
+            # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
+
+            # TODO add gput versions that need merged pcaps
+            'tcp_tput = mptcpanalyzer.plots.throughput:SubflowThroughput'
+            # 'mptcp_tput = mptcpanalyzer.plots.throughput:MptcpThroughput'
+        ],
         # namespace for plugins that monkey patch the main Cmd class
         'mptcpanalyzer.cmds': [
             'stats = mptcpanalyzer.command_example:CommandExample',
-            ]
-        },
+        ]
+    },
     install_requires=[
         'stevedore',  # to implement a plugin mechanism
         'matplotlib>=3.0.3',  # for plotting
