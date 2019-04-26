@@ -5,6 +5,7 @@ import pandas as pd
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 import mptcpanalyzer as mp
 from mptcpanalyzer import TcpFlags
+from mptcpanalyzer.data import classify_reinjections
 
 
 log = logging.getLogger(__name__)
@@ -24,6 +25,12 @@ class MergedAccessor:
         # look at columns that start with the prefix and others
         # _sender()
         pass
+
+    def classify_reinjections(self):
+        """
+        not a copy
+        """
+        return classify_reinjections(self._obj)
 
     # def receiver(self):
 
@@ -78,12 +85,12 @@ class MpTcpAccessor:
     def connection(self, streamid) -> MpTcpConnection:
         return MpTcpConnection.build_from_dataframe(self._obj, streamid)
 
+    # TODO rename to stream
     def filter(self, streamid) -> MpTcpConnection:
         return self._obj.where(self._obj.mptcpstream == streamid)
 
     def fill_dest(self, streamid):
-        '''
-        '''
+        ''' '''
         con = self.connection(streamid)
         return con.fill_dest(self._obj)
 

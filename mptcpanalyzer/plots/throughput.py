@@ -133,7 +133,7 @@ class SubflowThroughput(plot.Matplotlib):
             type=int, default=3,
             help="Averaging window , for instance '1s' "
         )
-        final.add_argument("--goodput", metavar="GOODPUT", action="store_true",
+        final.add_argument("--goodput", action="store_true",
             default=False,
             help="Drops retransmission from computation"
         )

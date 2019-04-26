@@ -1120,9 +1120,8 @@ def map_mptcp_connection_from_known_streams(
             # generates a list (subflow, score)
             scores = list(map(lambda x: TcpMapping(x, sf.score(x)), mapped.subflows()))
             scores.sort(key=lambda x: x[1], reverse=True)
-            # print("sorted scores when mapping %s:\n %r" % (sf, scores))
+            log.log(mp.TRACE, "sorted scores when mapping %s:\n %r" % (sf, scores))
             mapped_subflows.append((sf, scores[0]))
-            # TODO might want to remove the selected subflow from the pool of candidates
         return mapped_subflows
 
     mptcpscore = main.score(other)
@@ -1132,7 +1131,7 @@ def map_mptcp_connection_from_known_streams(
         mapped_subflows = _map_subflows(main, other)
 
     mapping = MpTcpMapping(mapped=other, score=mptcpscore, subflow_mappings=mapped_subflows)
-    # print("mptcp mapping %s" % (mapping,))
+    log.log(mp.TRACE, "mptcp mapping %s" % (mapping,))
     return mapping
 
 
@@ -1152,22 +1151,12 @@ def map_mptcp_connection(
     log.warning("mapping between datasets is not considered trustable yet")
     results = []  # type: List[MpTcpMapping]
 
-    # mappings = {}  # type: Dict[int,Tuple[Any, float]]
-
     score = -1  # type: float
     results = []
-
-    # print("%r" % main)
-    # print(rawdf2["mptcpstream"].unique().dropna())
 
     for mptcpstream2 in rawdf2[_sender("mptcpstream")].dropna().unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
         mapping = map_mptcp_connection_from_known_streams(main, other)
-        # score = main.score(other)
-        # if score > float('-inf'):
-        #     # (other, score)
-        #     mapped_subflows = _map_subflows(main, other)
-        #     mapping = MpTcpMapping(mapped=other, score=score, subflow_mappings=mapped_subflows)
         results.append(mapping)
 
     # sort based on the score
@@ -1178,23 +1167,17 @@ def map_mptcp_connection(
 
 def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
-    here the idea is to look at reinjections on the receiver side, see which one is first
+    look at reinjections on the receiver side, see which one is first
     packets with reinjected_in_receiver are (at least they should) be the first DSN arrived.
 
-    Returns
+    Returns:
         a new dataframe with an added column "redundant" and "time_delta"
     """
     log.debug("Classifying reinjections")
 
-
-    # print("is_copy ?", df_all.is_copy) # returns "weakref"
     # use assign
     df_all = df_all.assign(redundant=False, reinj_delta=np.nan)
 
-    # df_all["redundant"] = False
-    # df_all["reinj_delta"] = np.nan
-
-    # rename to df_both ?
     df = df_all[df_all.merge_status == "both"]
 
     # print(df_all[ pd.notnull(df_all[_sender("reinjection_of")])] [
@@ -1237,7 +1220,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
             # TODO why reinjection._merge doesn't exist ?
             if reinjection.merge_status != "both":
                 # TODO count missed classifications ?
-                log.debug("reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
+                log.log(mp.TRACE, "reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
                 continue
 
             # print("%r" % reinjection.reinjection_of)
@@ -1248,7 +1231,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             if original_packet.merge_status != "both":
                 # TODO count missed classifications ?
-                log.debug("Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
+                log.log(mp.TRACE, "Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
                 continue
 
             orig_arrival = getattr(original_packet, _receiver("reltime"))
