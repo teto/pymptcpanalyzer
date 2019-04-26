@@ -24,12 +24,11 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
         averaging_window:
 
 
-    Converts time series into pandas format so that we can use the rolling window 
+    Converts time series into pandas format so that we can use the rolling window
     algorithm on it
 
     Adds following columns to the dataframe:
     - tput
-    - gput 
     - dt_abstime: abstime but in datetime format so that one can apply "rolling" features
 
     wireshark example can be found in:
@@ -89,12 +88,11 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
         # center=True
     )
 
-    # raw=False,
     newdf["tput"] = temp.apply(
         _compute_tput,
         # pass the data as a Serie rather than a numpy array
         raw=False,
-        #
+        # generates an unexpected keyword error ??!!!
         # convert_dtype=False,
     )
 
@@ -104,7 +102,7 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
 
 
 
-# TODO create 
+# TODO create
 class SubflowThroughput(plot.Matplotlib):
     """
     Plot subflow throughput
@@ -182,7 +180,7 @@ class SubflowThroughput(plot.Matplotlib):
             tput_df.plot.line(
                 ax=axes,
                 legend=True,
-                # TODO should depend from 
+                # TODO should depend from
                 x=_sender("dt_abstime"),
                 y="tput",
                 # y="gput",
@@ -210,6 +208,7 @@ class SubflowThroughput(plot.Matplotlib):
 
 class MptcpThroughput(plot.Matplotlib):
     """
+    Plots aggregated tput
     """
     def default_parser(self, *args, **kwargs):
 
@@ -217,7 +216,7 @@ class MptcpThroughput(plot.Matplotlib):
             description="Helps plotting Data sequence numbers"
         )
         parser.epilog = """
-            plot tcp_tput examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
+            plot mptcp_tput examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3
         """
         # return parser
         res = super().default_parser(
@@ -237,17 +236,48 @@ class MptcpThroughput(plot.Matplotlib):
         )
         return final
 
-    def plot(self, pcap, pcapstream, **kwargs):
+
+    def plot(self, pcap, pcapstream, window, **kwargs):
         """
-        getcallargs
+        TODO for now only plots subflows
+        plots the mptcp aggregate or mptcpack instead ?
         """
         fig = plt.figure()
         axes = fig.gca()
 
+        title = "MPTCP Tput title"
         df = pcap
-        window = kwargs.get("window")
+        # window = kwargs.get("window")
         destinations = kwargs.get("pcap_destinations")
 
         con = df.mptcp.connection(pcapstream)
         df = con.fill_dest(df)
+
+        fields = ["tcpstream", "tcpdest", "mptcpdest"]
+        for idx, subdf in df.groupby(_sender(fields)):
+            tcpdest, tcpstream, mptcpdest = idx
+            if tcpdest not in destinations:
+                log.debug("Ignoring destination %s" % tcpdest)
+                continue
+
+            log.debug("Plotting destination %s" % tcpdest)
+
+            tput_df = compute_throughput(subdf, window)
+            tput_df.plot.line(
+                ax=axes,
+                legend=True,
+                # TODO should depend from
+                x=_sender("dt_abstime"),
+                y="tput",
+                # y="gput",
+                label="Xput towards %s" % tcpdest, # seems to be a bug
+            )
+
+
+        # TODO plot on one y the throughput; on the other the goodput
+        axes.set_xlabel("Time (s)")
+        axes.set_ylabel("Tput")
+        fig.suptitle(title)
+
+        return fig
 

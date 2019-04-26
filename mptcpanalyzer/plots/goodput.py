@@ -25,12 +25,15 @@ log = logging.getLogger(__name__)
 
 class MptcpGoodput(plot.Matplotlib):
     """
+
+    Classify reinjections and ditch packets which are useless, otherwise, do the same as
+    as throughput
     """
     def default_parser(self, *args, **kwargs):
 
         parser = MpTcpAnalyzerParser(
             description=inspect.cleandoc("""
-                Plot One Way Delays"
+                Plot goodput (discard reinjections etc) of subflows and of the aggregated
             """)
         )
 
