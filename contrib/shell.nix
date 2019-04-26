@@ -26,7 +26,7 @@ let
     # inherit pandas;
   }) ).overridePythonAttrs (oa: {
 
-    propagatedBuildInputs = oa.propagatedBuildInputs ++ [
+    nativeBuildInputs = oa.propagatedBuildInputs ++ [
       # to publish on pypi
       pkgs.python3Packages.twine
       # is not added to PATH ?!

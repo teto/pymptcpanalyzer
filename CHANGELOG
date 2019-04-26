@@ -1,6 +1,7 @@
 
+mptcpanalyzer 0.3.2 (dev):
 
-mptcpanalyzer 0.3.1 (dev):
+mptcpanalyzer 0.3.1:
 - compatibility with cmd 0.9.12 (colorization/autocompletion)
 - require python 3.7 to use @dataclass attribute. This allows better static checking
 - bumped requirement to pandas >= 0.24.2 because of Int64 changes
@@ -9,6 +10,7 @@ mptcpanalyzer 0.3.1 (dev):
 - now looks for SYNs and SYN/ACK specifically instead of assuming clocks are synchronized
 - added a `checkhealth` command to check for python version/wireshark
 - plots now display their own help/examples instead of the generic one
+- added a tcp_throughput plot
 
 
 mptcpanalyzer 0.3:

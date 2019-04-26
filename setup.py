@@ -69,7 +69,7 @@ setup(name="mptcpanalyzer",
     author="Matthieu Coudron",
     author_email="coudron@iij.ad.jp",
     classifiers=[
-        'Development Status :: 3 - Beta',
+        'Development Status :: 4 - Beta',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Intended Audience :: System Administrators',
         'Intended Audience :: Science/Research',
