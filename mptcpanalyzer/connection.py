@@ -2,7 +2,8 @@ import pandas as pd
 import logging
 import math
 import numpy as np
-from mptcpanalyzer import ConnectionRoles, MpTcpException, TcpStreamId, MpTcpStreamId, TcpFlags
+from mptcpanalyzer import ConnectionRoles, MpTcpException, MpTcpMissingKey, \
+    TcpStreamId, MpTcpStreamId, TcpFlags
 import mptcpanalyzer as mp
 from typing import List, NamedTuple, Tuple, Dict, Union
 from enum import Enum
@@ -372,10 +373,10 @@ class MpTcpConnection:
 
 
         if len(syn_mpcapable_df) < 1:
-            raise MpTcpException("Could not find the client MPTCP key")
+            raise MpTcpMissingKey("Could not find the client MPTCP key")
 
         if len(synack_mpcapable_df) < 1:
-            raise MpTcpException("Could not find the server MPTCP key")
+            raise MpTcpMissingKey("Could not find the server MPTCP key")
 
 
         # not really rows but index

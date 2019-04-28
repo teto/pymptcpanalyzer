@@ -173,6 +173,12 @@ class MpTcpException(Exception):
     """
     pass
 
+class MpTcpMissingKey(MpTcpException):
+    """
+    Exceptions thrown by this module should inherit this in order to let the cli
+    filter exceptions
+    """
+    pass
 
 class DataframeCharacteristic(enum.Flag):
     Mptcp      = enum.auto()

@@ -397,23 +397,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput(msg % (mptcpstreamid, len(con.subflows())))
             for sf in con.subflows():
                 self.poutput("\t%s" % sf)
+        except mp.MpTcpMissingKey as e:
+            self.poutput(e)
         except mp.MpTcpException as e:
             self.perror(e)
 
-    # def help_list_subflows(self):
-    #     print("Use parser -h")
 
-    # def complete_list_subflows(self, text, line, begidx, endidx):
-    #     """ help to complete the args """
-    #     # conversion to set removes duplicate keys
-    #     l = list(set(self.data["mptcpstream"]))
-    #     # convert items to str else it won't be used for completion
-    #     l = [str(x) for x in l]
-
-    #     return l
-
-    # parser = gen_pcap_parser({"pcap":
-    # PreprocessingActions.FilterStream | PreprocessingActions.Merge }, protocol="tcp")
     parser = argparse_completer.ACArgumentParser(
         description='''
         This function tries to map a tcp.stream id from one pcap
@@ -1246,7 +1235,8 @@ def main(arguments: List[str] =None):
         arguments = sys.argv[1:]
 
     parser = argparse.ArgumentParser(
-        description='Generate MPTCP (Multipath Transmission Control Protocol) stats & plots'
+        description='Generate MPTCP (Multipath Transmission Control Protocol) stats & plots',
+        epilog="You can report issues at https://github.com/teto/mptcpanalyzer",
     )
 
     parser.add_argument(
@@ -1308,6 +1298,9 @@ def main(arguments: List[str] =None):
     try:
 
         analyzer = MpTcpAnalyzerCmdApp(config, **vars(args))
+
+        # enable cmd2 debug only when required
+        analyzer.debug = logLevels[args.debug] <= logging.DEBUG
 
         # could be moved to the class ?
         if args.input_file:
