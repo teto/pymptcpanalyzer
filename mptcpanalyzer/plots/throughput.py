@@ -7,7 +7,7 @@ from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 from mptcpanalyzer.statistics import mptcp_compute_throughput
 from mptcpanalyzer.data import load_merged_streams_into_pandas
 from mptcpanalyzer.parser import gen_pcap_parser, MpTcpAnalyzerParser
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 import collections
 from typing import List
 import logging

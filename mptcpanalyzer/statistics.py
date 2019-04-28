@@ -5,7 +5,7 @@ import mptcpanalyzer as mp
 from mptcpanalyzer.data import classify_reinjections
 from mptcpanalyzer import (_sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcpException,
     _first, _second)
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 import math
 import logging
 from dataclasses import dataclass, field

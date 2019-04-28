@@ -54,7 +54,7 @@ from enum import Enum, auto
 import mptcpanalyzer.pdutils
 import dataclasses
 from colorama import Fore, Back
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 from stevedore import extension
 
 plugin_logger = logging.getLogger("stevedore")
@@ -197,7 +197,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # does not seem to work :s
         pd.set_option('compute.use_numexpr', False)
         pd.set_option('display.max_info_columns', 5)  # verbose dataframe.info
-        log.debug("use numexpr?", pd.get_option('compute.use_numexpr', False))
+        log.debug("use numexpr? %d" % pd.get_option('compute.use_numexpr', False))
 
         #  Load Plots
         ######################

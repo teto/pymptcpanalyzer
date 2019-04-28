@@ -15,7 +15,7 @@ from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, MpTcpAnalyze
 from cmd2 import argparse_completer
 from typing import Iterable, List #, Any, Tuple, Dict, Callable
 from itertools import cycle
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 
 # global log and specific log
 log = logging.getLogger(__name__)

@@ -11,7 +11,7 @@ from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationCho
 import mptcpanalyzer as mp
 from functools import partial
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 
 log = logging.getLogger(__name__)
 

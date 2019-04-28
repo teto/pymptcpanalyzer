@@ -17,7 +17,7 @@ import tempfile
 import pprint
 from enum import Enum, auto
 import functools
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 
 log = logging.getLogger(__name__)
 
@@ -446,7 +446,7 @@ def load_into_pandas(
             # log.debug("Dtypes before load: %s" % (pp.pformat(dtypes)))
             # log.debug("Converters before load: %s" % (pp.pformat(converters)))
 
-            from mptcpanalyzer.pdutils import read_csv_debug
+            from mptcpanalyzer.debug import read_csv_debug
             # fields = [f.fullname for _, f in config.fields.items()]
             # fields =[ "tcp.options.mptcp.sendkey" ]
             # data = read_csv_debug(fields,
@@ -924,7 +924,7 @@ def map_tcp_packets_via_hash(
     log.info("Merging packets via hash")
     debug_cols = ["packetid", "hash", "reltime"]
 
-    from mptcpanalyzer.pdutils import debug_dataframe
+    from mptcpanalyzer.debug import debug_dataframe
     # debug_dataframe(sender_df, "sender_df", )
     # debug_dataframe(receiver_df, "receiver df")
     # print("sender_df dtype=", sender_df.dtypes.tcpdest)

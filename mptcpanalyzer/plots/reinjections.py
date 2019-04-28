@@ -9,7 +9,7 @@ from typing import List, Any, Tuple, Dict, Callable, Set
 from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, MpTcpAnalyzerParser
 from mptcpanalyzer.data import classify_reinjections
-from mptcpanalyzer.pdutils import debug_dataframe
+from mptcpanalyzer.debug import debug_dataframe
 
 
 log = logging.getLogger(__name__)
