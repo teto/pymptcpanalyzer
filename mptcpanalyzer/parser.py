@@ -253,6 +253,8 @@ class MergePcaps(DataframeAction):
         loader = TsharkConfig(),
         **kwargs
         ) -> None:
+        """
+        """
         self.loader = loader
         self.protocol = protocol
         DataframeAction.__init__(self, df_name=name, **kwargs)
@@ -276,21 +278,15 @@ class MergePcaps(DataframeAction):
         assert pcap1stream is not None
         # assert pcap2stream is not None
 
-
-        #TODO pass clockoffsets
-        # Need to add the stream ids too !
         df = load_merged_streams_into_pandas(
             pcap1,
             pcap2,
             pcap1stream,
             pcap2stream,
             self.protocol == "mptcp",
-            # TODO how does it get the config
             self.loader,
         )
 
-        # todo actions
-        # TODO discard ?
         setattr(namespace, self.dest, values)
         setattr(namespace, self.df_name + "stream", pcap1stream)
         # TODO add to merged_dataframes ?
@@ -311,15 +307,6 @@ class MergePcaps(DataframeAction):
 #             print()
 
 
-# actually I could use Mptcp vs Tcp filters
-# TODO class ExcludeStream
-# class ExcludeStream(DataframeAction):
-
-# class QueryAction(argparse.Action):
-#     def
-
-# class ExcludeStream(argparse.Action):
-#     def __
 
 # don't need the Mptcp flag anymore
 def exclude_stream(df_name):

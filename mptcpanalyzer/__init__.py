@@ -21,7 +21,8 @@ __CACHE__ = None  # type: 'Cache'
 """
 Used when dealing with the merge of dataframes
 """
-SENDER_SUFFIX  = "" # "_sender"
+# "" # 
+SENDER_SUFFIX  = "_sender"
 RECEIVER_SUFFIX= "_receiver"
 
 # we can't let it empty else we can't rename fields

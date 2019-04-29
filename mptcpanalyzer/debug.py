@@ -9,7 +9,7 @@ def debug_dataframe(
         # intro="Debugging dataframe", 
         nrows=5,
         usecols=None,
-        **kwargs
+        # **kwargs
     ):
     '''
     test
@@ -20,14 +20,12 @@ def debug_dataframe(
     # pd.set_option('display.max_colwidth', -1)
     # verbose=True
     intro = """
-    === Debug dataframe ===
-    {msg}
+    === Debug dataframe : {msg} ===
     """
     print(intro.format(msg=msg))
-    print(df.info())
+    # print(df.info())
     # print(df.columns)
-    # print(df.dtypes)
-    print(pp.pformat(df.dtypes))
+    # print(pp.pformat(df.dtypes))
     with pd.option_context('float_format', '{:f}'.format):
         sdf = df
         if usecols:
@@ -74,3 +72,9 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
             fd.seek(0)
 
 
+# def save_dataframe_to_xls():
+    # if log level >= DEBUG then save to xls too !
+    # if True:
+    #     filename = cachename + ".xls"
+    #     logging.debug("Saved a debug excel copy at %s" % filename)
+    #     merged_df.to_excel(filename)

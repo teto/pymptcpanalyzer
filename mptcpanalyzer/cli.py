@@ -549,16 +549,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         con.fill_dest(df)
 
         for dest in ConnectionRoles:
-            # TODO do it only when needed
-            # con = TcpConnection.build_from_dataframe(df, tcpstreamid)
-            # df2 = tcpdest_from_connections(df, con)
             res = tcp_get_stats(
                 self.data, args.tcpstream,
                 dest,
                 False
             )
 
-            # print("TEMP")
             print(res)
 
 
@@ -629,7 +625,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser.epilog = '''
 
     '''
-    # faut qu'il prenne le pcap ici sinon je ne peux pas autofiltrer :
     parser.add_argument("output", action="store", help="Output filename")
 
     group = parser.add_mutually_exclusive_group(required=False)
@@ -654,7 +649,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         df = self.data
         # need to compute the destinations before dropping syn from the dataframe
-        # df['tcpdest'] = np.nan;
         for streamid, subdf in df.groupby("tcpstream"):
             con = df.tcp.connection(streamid)
             df = con.fill_dest(df)
@@ -690,7 +684,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         For now it is naive, does not look at retransmissions ?
         """
 
-        print("Summary extended of mptcp connection ")
+        self.poutput("Summary extended of mptcp connection ")
         # print("Summary extended resume %r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
@@ -837,8 +831,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput("Loading merged streams")
         df = args._dataframes["pcap"]
         result = df
-        log.debug(result.head(10))
-        # debug_dataframe(result)
+        debug_dataframe(result, "merged stream")
 
         # print(result[mpdata.TCP_DEBUG_FIELDS].head(20))
         # for key, subdf in df.groupby(_sender("tcpdest"))
@@ -861,7 +854,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print("print_owds finished")
         # print("TODO display before doing plots")
         # TODO display errors
-        print(result[["owd"]].head(20))
+        # with pd.set_option('precision', 20):
+        # with pd.option_context('float_format', '{:f}'.format):
+        with pd.option_context('precision', 10):
+            print(result[["owd"]].head(20))
         mpdata.print_weird_owds(result)
 
 
@@ -890,7 +886,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
 
         print("Qualifying reinjections for stream in destination:")
-        # destinations = [ ConnectionRoles.Server ]
         destinations = args.pcap_destinations
         print("Looking at destinations %s" % destinations)
 
