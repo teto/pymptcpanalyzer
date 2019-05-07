@@ -676,7 +676,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
-
     @with_argparser_test(sumext_parser, preload_pcap=False) # type: ignore
     def do_summary_extended(self, args, unknown):
         """

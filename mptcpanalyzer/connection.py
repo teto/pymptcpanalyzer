@@ -492,7 +492,7 @@ class MpTcpConnection:
 
         score = 0
         if len(self.subflows()) != len(other.subflows()):
-            log.debug("FISHY: Datasets contain a different number of subflows (d vs d)" % ())
+            log.warn("Fishy ?! Datasets contain a different number of subflows (d vs d)" % ())
             score -= 5
 
         common_sf = []
@@ -522,7 +522,7 @@ class MpTcpConnection:
 
     def __repr__(self):
         res = """
-            Server key/token: {skey:>64.0f}/{stoken}
+            Server key/token: {skey}/{stoken}
             Client key/token: {ckey}/{ctoken}
             """.format(
             skey=self.keys[ConnectionRoles.Server],
