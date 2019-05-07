@@ -1005,7 +1005,7 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]
             results.append(mapping)
 
     # decreasing sort based on the score
-    results.sort(key=lambda x: x[1], reverse=True)
+    results.sort(key=lambda x: x.score, reverse=True)
 
     return results
 
@@ -1024,7 +1024,7 @@ def map_mptcp_connection_from_known_streams(
 
             # generates a list (subflow, score)
             scores = list(map(lambda x: TcpMapping(x, sf.score(x)), mapped.subflows()))
-            scores.sort(key=lambda x: x[1], reverse=True)
+            scores.sort(key=lambda x: x.score, reverse=True)
             log.log(mp.TRACE, "sorted scores when mapping %s:\n %r" % (sf, scores))
             mapped_subflows.append((sf, scores[0]))
         return mapped_subflows
@@ -1078,9 +1078,8 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     Returns:
         a new dataframe with an added column "redundant" and "time_delta"
     """
-    log.debug("Classifying reinjections")
+    log.info("Classifying reinjections")
 
-    # use assign
     df_all = df_all.assign(redundant=False, reinj_delta=np.nan)
 
     df = df_all[df_all.merge_status == "both"]
@@ -1100,8 +1099,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
         # select only packets that have been reinjected
 
-        # print("%d sender_df packets" % len(sender_df))
-        # print(sender_df["reinjection_of"])
+        # debug_dataframe(sender_df, "reinjections", usecols=["reinjection_of"])
         reinjected_packets = sender_df.dropna(axis='index', subset=[_sender("reinjection_of")])
 
         log.debug("%d reinjected packets" % len(reinjected_packets))

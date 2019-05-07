@@ -3,3 +3,4 @@ list_mptcp_connections
 list_subflows 0
 list_subflows 1
 mptcp_summary 0
+list_reinjections 0

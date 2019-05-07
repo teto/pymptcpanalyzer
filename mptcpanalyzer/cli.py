@@ -545,7 +545,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput("Summary of TCP connection " )
         df = self.data
 
-        con = df.tcp.connection(0)
+        con = df.tcp.connection(args.tcpstream)
         con.fill_dest(df)
 
         for dest in ConnectionRoles:
@@ -555,7 +555,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 False
             )
 
-            print(res)
+            self.poutput(res)
 
 
     summary_parser = MpTcpAnalyzerParser(
@@ -685,12 +685,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
 
         self.poutput("Summary extended of mptcp connection ")
-        # print("Summary extended resume %r" % args)
         df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
         destinations = args.pcap_destinations
-        # print("test %r" % type(destinations[0]))
         # or list(mp.ConnectionRoles)
 
         # TODO already be done BUT NOT THE CASE FOR GOD's SAKE !
@@ -704,14 +702,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.tshark_config
         )
 
-        # if True:
-        #     filename = "toto" + ".xls"
-        #     logging.debug("Saved a debug excel copy at %s" % filename)
-        #     df.to_excel(filename)
-        # debug_dataframe(df, "checking just after merge", ) # usecols=["tcpdest", "mptcpdest"])
 
-
-        # print("NANI ? %r" % destinations )
         for destination in destinations:
 
             stats = mptcp_compute_throughput(
@@ -727,8 +718,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.poutput(val)
                 return
 
-            # TODO display goodput/ratio
-            # TODO display direction
             total_transferred = stats.mptcp_throughput_bytes
             msg = ("mptcpstream {c.mptcpstreamid} towards {destination} forwarded "
                    "{c.mptcp_throughput_bytes} bytes with a goodput of {c.mptcp_goodput_bytes}")
@@ -736,14 +725,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             for subflow in stats.subflow_stats:
 
-                # TODO print subflow
                 msg = inspect.cleandoc("""
                 tcpstream {sf.tcpstreamid} analysis:
                 - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
                 - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
                 """)
 
-                # print(subflow)
                 self.poutput(
                     msg.format(
                         mptcp=stats, sf=subflow,
@@ -862,11 +849,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
     parser = gen_bicap_parser("mptcp", dest=True)
-    parser.description = """
+    parser.description = inspect.cleandoc("""
         Qualify reinjections of the connection.
         You might want to run map_mptcp_connection first to find out
         what map to which
-        """
+    """)
     parser.add_argument("--failed", action="store_true", default=False,
         help="List failed reinjections too.")
     parser.add_argument("--csv", action="store_true", default=False,
@@ -876,13 +863,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     @with_argparser_and_unknown_args(parser)
     @with_category(CAT_MPTCP)
-    @experimental
     def do_qualify_reinjections(self, args, unknown):
         """
         test with:
-            mp qualify_reinjections 0
+            > qualify_reinjections 0
 
-        TODO move the code into a proper function
         """
 
         print("Qualifying reinjections for stream in destination:")
@@ -906,9 +891,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         #     _sender(["reinjection_of", "reinjected_in", "packetid", "reltime"]) +
         #     _receiver(["packetid", "reltime"])
         # ])
-
-        # to help debug
-        # df.to_excel("temp.xls")
 
         def _print_reinjection_comparison(original_packet, reinj, ):
             """
@@ -960,8 +942,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.pfeedback("Exporting to csv")
             # keep redundant
             # only export a subset ?
-            # for
-            # df1 = df[['a','d']]
             # smalldf = df.drop()
             columns = _sender(["abstime", "reinjection_of", "reinjected_in", "packetid", "tcpstream", "mptcpstream", "tcpdest", "mptcpdest"])
             columns += _receiver(["abstime", "packetid"])
@@ -1037,9 +1017,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput("No packet with mptcp.stream == %d" % args.mptcpstream)
             return
 
-        # known : Set[int] = set()
-        # print(df.columns)
-
         # TODO move to outer function ?
         # TODO use ppaged
         reinjections = df.dropna(axis=0, subset=["reinjection_of"] )
@@ -1067,7 +1044,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         help="Either a pcap or a csv file."
         "When a pcap is passed, mptcpanalyzer looks for a cached csv"
         "else it generates a "
-        "csv from the pcap with the external tshark program.")
+        "csv from the pcap with the external tshark program."
+    )
     @with_argparser(parser)
     def do_load_pcap(self, args):
         """

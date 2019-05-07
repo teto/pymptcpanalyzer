@@ -19,10 +19,6 @@ def compute_goodput(df, averaging_window):
     raise NotImplemented("Please implement me")
 
 
-def compute_subflow_throughput():
-    pass
-
-
 def tput_parser(parser):
     parser.add_argument("--window", "-w", metavar="AVG_WINDOW", action="store",
         type=int, default=3,
@@ -231,24 +227,7 @@ class SubflowThroughput(plot.Matplotlib):
 
             log.debug("Plotting destination %s" % dest)
 
-        #     # filler in case
-        #     # stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
-
-        #     # log.debug("filtereddest == %s" % filtereddest)
-
             plot_tput(fig, subdf["tcpack"], subdf["abstime"], window)
-            # tput_df = compute_throughput(subdf["tcpack"], subdf["abstime"], window)
-            # print("tput_df")
-            # print(tput_df)
-            # tput_df.plot.line(
-            #     ax=axes,
-            #     legend=True,
-            #     # TODO should depend from
-            #     # x="dt_abstime",
-            #     y="tput",
-            #     # y="gput",
-            #     label="Xput towards %s" % dest, # seems to be a bug
-            # )
 
 
         # TODO plot on one y the throughput; on the other the goodput
@@ -353,7 +332,7 @@ class MptcpThroughput(plot.Matplotlib):
                 # x=_sender("dt_abstime"),
                 y="tput",
                 # y="gput",
-                label="MPTCP Xput towards %s" % tcpdest, # seems to be a bug
+                label="MPTCP Xput towards %s" % mptcpdest, # seems to be a bug
             )
 
 

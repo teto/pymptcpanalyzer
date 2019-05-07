@@ -10,7 +10,6 @@ rst:
 	cat README.md | pandoc -f markdown -t rst > README.rst
 
 
-# 
 publish:
 	# new system is setup.py sdist bdist_wheel
 	python setup.py sdist bdist_wheel
@@ -24,15 +23,18 @@ publish:
 gen_transcripts:
 	# https://cmd2.readthedocs.io/en/latest/freefeatures.html#script-files
 	# startup_script
-	mptcpanalyzer "load tests/script_mptcp.txt -t tests/trans_mptcp.txt" "quit"
 	# mptcpanalyzer "load tests/script_mptcp.txt -t tests/trans_mptcp.txt" "quit"
+	tests/gen_transcripts.sh
 
 tests:
 	# Add -b to print standard output
 	# python -munittest tests/cache_test.py -b
 	# tests/run_transcripts.sh
-	mptcpanalyzer --test tests/summary_server_2_filtered.txt
+	# mptcpanalyzer --test tests/summary_server_2_filtered.txt
+	mptcpanalyzer --test tests/trans_tcp.txt
 	mptcpanalyzer --test tests/trans_mptcp.txt
+	mptcpanalyzer --test tests/trans_tcp_plots.txt
+	mptcpanalyzer --test tests/trans_mptcp_plots.txt
 
 develop:
 	python setup.py develop --user

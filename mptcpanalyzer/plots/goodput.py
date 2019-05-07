@@ -18,7 +18,7 @@ from typing import Iterable, List #, Any, Tuple, Dict, Callable
 from itertools import cycle
 from mptcpanalyzer.debug import debug_dataframe
 from mptcpanalyzer.data import classify_reinjections
-from mptcpanalyzer.plots.throughput import compute_throughput
+from mptcpanalyzer.plots.throughput import compute_throughput, tput_parser
 
 
 log = logging.getLogger(__name__)
@@ -48,12 +48,14 @@ class MptcpGoodput(plot.Matplotlib):
         ''')
 
         parser.epilog = inspect.cleandoc('''
-            > plot mptcp_gput examples/client_2_filtered.pcapng 0 examples/client_2_filtered.pcapng 0 --display
+            > plot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
         ''')
-        return parser
+
+        temp = tput_parser(temp)
+        return temp
 
 
-    def plot(self, pcap, pcapstream, fields, **kwargs):
+    def plot(self, pcap, pcapstream, **kwargs):
         """
 
         """
@@ -62,13 +64,15 @@ class MptcpGoodput(plot.Matplotlib):
         fields = ["tcpdest", "tcpstream", "mptcpdest"]
         df = pcap
 
-        df.mptcp.fill_dest(pcapstream)
-        # df = df[ df.mptcpstream == ]
+        # hopefully it is already sorted, also
+        # this won't work
+        # df.mptcp.fill_dest(pcapstream)
 
         dfc = classify_reinjections(df)
 
         # then it's the same as for throughput
-        dfc = dfc[ dfc.redundant == False ]
+        log.debug("Dropping redundant packets")
+        dfc = dfc[dfc.redundant == False]
 
 
         for idx, subdf in df.groupby(_sender(fields), sort=False):
@@ -81,23 +85,6 @@ class MptcpGoodput(plot.Matplotlib):
             #     log.debug("skipping TCP dest %s" % tcpdest)
             #     continue
 
-
-            # if tcpdest
-            # df = debug_convert(df)
-            pplot = subdf.plot(
-                # gca = get current axes (Axes), create one if necessary
-                ax=axes,
-                legend=True,
-                # TODO should depend from
-                x=_sender("abstime"),
-                y="owd",
-                label="Subflow %d towards tcp %s" % (tcpstream, tcpdest), # seems to be a bug
-                # grid=True,
-                # xticks=tcpstreams["reltime"],
-                # rotation for ticks
-                # rot=45,
-                # lw=3
-            )
 
 
 

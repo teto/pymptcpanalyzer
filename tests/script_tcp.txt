@@ -1,3 +1,4 @@
 load_pcap examples/server_2_filtered.pcapng
-summary 0 Server
-summary 0 Client
+tcp_summary 0 Server
+tcp_summary 0 Client
+map_tcp_connection examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 1

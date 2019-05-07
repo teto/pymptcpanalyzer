@@ -1,7 +1,8 @@
 
 mptcpanalyzer 0.3.2 (dev):
+- 
 
-mptcpanalyzer 0.3.1:
+mptcpanalyzer 0.3.1 (26/03/2019):
 - compatibility with cmd 0.9.12 (colorization/autocompletion)
 - require python 3.7 to use @dataclass attribute. This allows better static checking
 - bumped requirement to pandas >= 0.24.2 because of Int64 changes

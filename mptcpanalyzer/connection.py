@@ -72,12 +72,8 @@ class TcpConnection:
         pass
 
     def format_mapping(self, mapping: 'TcpMapping', verbose=False):
-        # res = "tcp stream {c1.tcpstreamid} <-> {c2.tcpstreamid} with score={score}".format(
-        res = "{c1} mapped to {c2} with score={score}".format(
-                c1=self, c2=mapping[0], score=mapping[1])
-
-        # print(res)
-        return res
+        res = "{c1} mapped to {m.mapped} with score={m.score}"
+        return res.format(c1=self, m=mapping)
 
     def score(self, other: 'TcpConnection'):
         """
@@ -107,23 +103,18 @@ class TcpConnection:
             log.debug("Looking at destination %s" % dest)
             q = self.generate_direction_query(dest)
             df_dest = df.query(q, engine="python")
-            print("tcpdest %r" % dest)
             df.loc[df_dest.index, 'tcpdest'] = dest
 
-        # print(df.tcpdest.head())
         # assert df['tcpdest'].notnull() == , "every packet should have tcpdest set"
         return df
 
 
     def __eq__(self, other):
         """
-        Ignores
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         Should implement __neq__ ?
         """
-        # print("self=%r"% self)
-        # print("other=%r"% other)
         if type(other) is type(self):
             return self.score(other) == float('inf')
         return False
@@ -531,9 +522,9 @@ class MpTcpConnection:
 
     def __repr__(self):
         res = """
-    Server key/token: {skey:>64.0f}/{stoken}
-    Client key/token: {ckey}/{ctoken}
-    """.format(
+            Server key/token: {skey:>64.0f}/{stoken}
+            Client key/token: {ckey}/{ctoken}
+            """.format(
             skey=self.keys[ConnectionRoles.Server],
             stoken=self.tokens[ConnectionRoles.Server],
             ckey=self.keys[ConnectionRoles.Client],
@@ -544,25 +535,23 @@ class MpTcpConnection:
         return res
 
 
-# TODO replace with dataclass
-TcpMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
-
-MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float),
-    # make it a dict rather
-        ("subflow_mappings", List[Tuple[MpTcpSubflow,TcpMapping]])
-    ])
-
-# @dataclass
-# class MpTcpMapping:
-#     mapped: MpTcpConnection
-#     score: float
-#     subflow_mappings: List[Tuple[MpTcpSubflow,TcpMapping]]
+@dataclass
+class TcpMapping:
+    mapped: TcpConnection
+    score: float
 
 
-# @dataclass
-# class TcpMapping:
-#     mapped: TcpConnection
-#     score: float
+# # TODO replace with dataclass
+# MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float),
+#         # make it a dict rather
+#         ("subflow_mappings", List[Tuple[MpTcpSubflow,TcpMapping]])
+#     ])
+
+@dataclass
+class MpTcpMapping:
+    mapped: MpTcpConnection
+    score: float
+    subflow_mappings: List[Tuple[MpTcpSubflow,TcpMapping]]
 
 
 # MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
