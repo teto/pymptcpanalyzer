@@ -18,6 +18,7 @@ from typing import Iterable, List #, Any, Tuple, Dict, Callable
 from itertools import cycle
 from mptcpanalyzer.debug import debug_dataframe
 from mptcpanalyzer.data import classify_reinjections
+from mptcpanalyzer.plots.throughput import compute_throughput
 
 
 log = logging.getLogger(__name__)
@@ -25,7 +26,6 @@ log = logging.getLogger(__name__)
 
 class MptcpGoodput(plot.Matplotlib):
     """
-
     Classify reinjections and ditch packets which are useless, otherwise, do the same as
     as throughput
     """

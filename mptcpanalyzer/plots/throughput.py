@@ -22,6 +22,18 @@ def compute_goodput(df, averaging_window):
 def compute_subflow_throughput():
     pass
 
+
+def tput_parser(parser):
+    parser.add_argument("--window", "-w", metavar="AVG_WINDOW", action="store",
+        type=int, default=3,
+        help="Averaging window (in seconds), for instance '1'"
+    )
+    parser.add_argument("--goodput", action="store_true",
+        default=False,
+        help="Drops retransmission from computation"
+    )
+    return parser
+
 # TODO wrap it
 def compute_throughput(seq_col, time_col, averaging_window ) -> pd.DataFrame:
     """
@@ -53,7 +65,6 @@ def compute_throughput(seq_col, time_col, averaging_window ) -> pd.DataFrame:
     # rolling window can use offset
 
     # assert (field == "tcpack" or field "dack")
-    
 
     # pdtime = "dt_abstime"
     # TODO newdf Dataframe
@@ -116,6 +127,41 @@ def compute_throughput(seq_col, time_col, averaging_window ) -> pd.DataFrame:
     return newdf
 
 
+def plot_tput(fig, *args):
+    """
+    Expects a dataframe with a certain format
+    todo how to deal with legends
+    Args:
+
+    TODO generate legends ourselves
+    """
+    axes = fig.gca()
+    # seq["abstime"] in df.
+    # for dest, subdf in groups:
+    #     if dest not in destinations:
+    #         log.debug("Ignoring destination %s" % dest)
+    #         continue
+
+    log.debug("Plotting tput")
+
+    # filler in case
+    # stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
+
+    # log.debug("filtereddest == %s" % filtereddest)
+
+    tput_df = compute_throughput(*args)
+    print("tput_df")
+    print(tput_df)
+    tput_df.plot.line(
+        ax=axes,
+        legend=True,
+        # TODO should depend from
+        # x="dt_abstime",
+        y="tput",
+        # y="gput",
+        label="Xput towards %s" % "FIX", # seems to be a bug
+    )
+
 # class TcpThroughput(plot.Matplotlib):
 
 # TODO create
@@ -146,14 +192,11 @@ class SubflowThroughput(plot.Matplotlib):
 
         # passed window 3 is not compatible with a datetimelike index
         # -w
-        final.add_argument("--window", "-w", metavar="AVG_WINDOW", action="store",
-            type=int, default=3,
-            help="Averaging window (in seconds), for instance '1'"
-        )
-        final.add_argument("--goodput", action="store_true",
-            default=False,
-            help="Drops retransmission from computation"
-        )
+        # final.add_argument("--goodput", action="store_true",
+        #     default=False,
+        #     help="Drops retransmission from computation"
+        # )
+        final = tput_parser(final)
         return final
 
 
@@ -188,23 +231,24 @@ class SubflowThroughput(plot.Matplotlib):
 
             log.debug("Plotting destination %s" % dest)
 
-            # filler in case
-            # stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
+        #     # filler in case
+        #     # stream, tcpdest, mptcpdest, _catchall = (*idx, "filler1", "filler2") # type: ignore
 
-            # log.debug("filtereddest == %s" % filtereddest)
+        #     # log.debug("filtereddest == %s" % filtereddest)
 
-            tput_df = compute_throughput(subdf["tcpack"], subdf["abstime"], window)
-            print("tput_df")
-            print(tput_df)
-            tput_df.plot.line(
-                ax=axes,
-                legend=True,
-                # TODO should depend from
-                # x="dt_abstime",
-                y="tput",
-                # y="gput",
-                label="Xput towards %s" % dest, # seems to be a bug
-            )
+            plot_tput(fig, subdf["tcpack"], subdf["abstime"], window)
+            # tput_df = compute_throughput(subdf["tcpack"], subdf["abstime"], window)
+            # print("tput_df")
+            # print(tput_df)
+            # tput_df.plot.line(
+            #     ax=axes,
+            #     legend=True,
+            #     # TODO should depend from
+            #     # x="dt_abstime",
+            #     y="tput",
+            #     # y="gput",
+            #     label="Xput towards %s" % dest, # seems to be a bug
+            # )
 
 
         # TODO plot on one y the throughput; on the other the goodput
@@ -223,6 +267,12 @@ class SubflowThroughput(plot.Matplotlib):
         # )
 
         return fig
+
+class ThroughputPlot(plot.Matplotlib):
+    """
+    Defines a few key functions
+    """
+    pass
 
 
 class MptcpThroughput(plot.Matplotlib):
@@ -249,10 +299,7 @@ class MptcpThroughput(plot.Matplotlib):
         final = gen_pcap_parser(pcaps, parents=[res], direction=True)
 
         # passed window 3 is not compatible with a datetimelike index
-        final.add_argument("window", metavar="AVG_WINDOW", action="store",
-            type=int, default=3,
-            help="Averaging window , for instance '1s' "
-        )
+        final = tput_parser(final)
         return final
 
 
@@ -272,26 +319,41 @@ class MptcpThroughput(plot.Matplotlib):
         con = df.mptcp.connection(pcapstream)
         df = con.fill_dest(df)
 
+
+        ### plot subflows first...
+        ##################################################
         fields = ["tcpstream", "tcpdest", "mptcpdest"]
-        for idx, subdf in df.groupby(_sender(fields)):
+        for idx, subdf in df.groupby(fields):
             tcpdest, tcpstream, mptcpdest = idx
-            if tcpdest not in destinations:
-                log.debug("Ignoring destination %s" % tcpdest)
+            if mptcpdest not in destinations:
+                log.debug("Ignoring MPTCP destination %s" % tcpdest)
                 continue
 
-            log.debug("Plotting destination %s" % tcpdest)
+            log.debug("Plotting tcp destination %s" % tcpdest)
 
-            tput_df = compute_throughput(subdf, window)
-            print("tput_df")
-            print(tput_df)
-            tput_df.plot.line(
+            # basically the same as for tcp
+            plot_tput(fig, subdf[("tcpack")], subdf[("abstime")], window)
+
+        ### then plots MPTCP level throughput
+        ##################################################
+        for mptcpdest, subdf in df.groupby("mptcpdest"):
+            # tcpdest, tcpstream, mptcpdest = idx
+            if mptcpdest not in destinations:
+                log.debug("Ignoring destination %s" % mptcpdest)
+                continue
+
+            log.debug("Plotting mptcp destination %s" % mptcpdest)
+
+
+            mptcp_tput_df = compute_throughput(subdf[("dack")], subdf[("abstime")], window)
+            mptcp_tput_df.plot.line(
                 ax=axes,
-                legend=True,
+                legend=False,
                 # TODO should depend from
-                x=_sender("dt_abstime"),
+                # x=_sender("dt_abstime"),
                 y="tput",
                 # y="gput",
-                label="Xput towards %s" % tcpdest, # seems to be a bug
+                label="MPTCP Xput towards %s" % tcpdest, # seems to be a bug
             )
 
 

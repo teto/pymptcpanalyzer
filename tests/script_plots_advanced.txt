@@ -1,0 +1,2 @@
+plot tcp_tput examples/client_2.pcap 0 3
+plot mptcp_tput examples/client_2.pcap 0 3

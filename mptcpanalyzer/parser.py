@@ -493,6 +493,10 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
         # TODO pass along known, dataframes ?
         return (known, unknown)
 
+    def add_single_pcap(self):
+        pass
+
+
 # map pcaps to a group
 # todo pass a dict of @dataclass instead
 def gen_pcap_parser(

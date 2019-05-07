@@ -171,7 +171,7 @@ class PlotTcpAttribute(plot.Matplotlib):
                     legend=False,
                     grid=True,
                 )
-                labels.append("%s towards %s" % (self._attributes[field], dest.name))
+                labels.append("%s towards %s" % (self._attributes[field], str(dest)))
 
         axes.set_xlabel("Time (s)")
         if len(fields) == 1:
