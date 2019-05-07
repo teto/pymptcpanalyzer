@@ -1,36 +1,37 @@
 import pandas as pd
 import pprint
+import logging
 
 pp = pprint.PrettyPrinter(indent=4)
+
+log = logging.getLogger(__name__)
 
 def debug_dataframe(
         df: pd.DataFrame,
         msg,
-        # intro="Debugging dataframe", 
+        # intro="Debugging dataframe",
         nrows=5,
         usecols=None,
         # **kwargs
     ):
     '''
-    test
+    Help diagnose issues with dataframes
     '''
-    # if use_cols is None:
-    #     use_cols=[]
     # pd.set_option('display.max_rows', 200)
     # pd.set_option('display.max_colwidth', -1)
     # verbose=True
     intro = """
     === Debug dataframe : {msg} ===
     """
-    print(intro.format(msg=msg))
-    # print(df.info())
-    # print(df.columns)
-    # print(pp.pformat(df.dtypes))
+    log.debug(intro.format(msg=msg))
+    # log.debug(df.info())
+    # log.debug(df.columns)
+    # log.debug(pp.pformat(df.dtypes))
     with pd.option_context('float_format', '{:f}'.format):
         sdf = df
         if usecols:
             sdf = df[usecols]
-        print(sdf.head(nrows, ))
+        log.debug(sdf.head(nrows, ))
 
 # https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):

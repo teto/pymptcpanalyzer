@@ -90,19 +90,15 @@ def tcp_get_stats(
 
     log.debug("df2 size = %d" % len(df2))
     log.debug("Looking at role %s" % destination)
-    # TODO assume it's already filtered ?
+    # assume it's already filtered ?
     sdf = df2[df2.tcpdest == destination]
     bytes_transferred = sdf["tcplen"].sum()
-    # sdf["tcplen"].sum()
-    # print("bytes_transferred ", bytes_transferred)
+    assert bytes_transferred >= 0
 
-    # -1 to accoutn for SYN
+    # -1 to account for SYN
     tcp_byte_range, seq_max, seq_min = transmitted_seq_range(sdf, "tcpseq")
-    msg = "tcp_byte_range ({}) , {} (seq_max) - {} (seq_min) - 1"
-    log.debug(msg.format(tcp_byte_range, seq_max, seq_min))
 
     assert tcp_byte_range is not None
-    assert bytes_transferred >= 0
 
     return TcpUnidirectionalStats(
         tcpstreamid,
@@ -126,6 +122,7 @@ def transmitted_seq_range(df, seq_name):
         + sorted_seq.loc[last_valid_index, "tcplen"]
 
     # -1 because of SYN
+    # seq_range = seq_max - seq_min - 1
     seq_range = seq_max - seq_min - 1
 
     msg = "seq_range ({}) = {} (seq_max) - {} (seq_min) - 1"
@@ -153,25 +150,24 @@ def mptcp_compute_throughput(
     con = rawdf.mptcp.connection(mptcpstreamid)
     q = con.generate_direction_query(destination)
     df = unidirectional_df = rawdf.query(q, engine="python")
-    # assert len(unidirectional_df["mptcpdest"]) == len(df["mptcpdest" == destination]), "wrong query"
-    # print(unidirectional_df["mptcpdest"])
 
     # -1 because of syn
     dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dsn")
 
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
-    log.debug(msg.format( dsn_range, dsn_max, dsn_min))
+    log.debug(msg.format(dsn_range, dsn_max, dsn_min))
 
+    _col = _sender if merged_df else lambda x: x
+
+    print("test _sender %s" % _col("toto"))
     # Could groupby destination as well
-    groups = df.groupby(_sender('tcpstream'))
+    groups = df.groupby(_col('tcpstream'))
 
     subflow_stats: List[TcpUnidirectionalStats] = []
     for tcpstream, subdf in groups:
         # subdf.iloc[0, subdf.columns.get_loc(_second('abstime'))]
         # debug_dataframe(subdf, "subdf for stream %d" % tcpstream)
-        dest = subdf.iloc[0, subdf.columns.get_loc(_sender('tcpdest'))]
-        print("dest", dest)
-        print("size", len(subdf))
+        dest = subdf.iloc[0, subdf.columns.get_loc(_col('tcpdest'))]
         sf_stats = tcp_get_stats(
             subdf, tcpstream,
             # work around pandas issue (since for now it's a float
@@ -189,7 +185,8 @@ def mptcp_compute_throughput(
         sf_stats.mptcp_application_bytes = transmitted_dsn_df["tcplen"].sum()
         # print(sf_stats.mptcp_application_bytes)
 
-        assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range, sf_stats
+        # + 1 to deal with syn oddity
+        assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range + 1, sf_stats
 
         subflow_stats.append(
             sf_stats

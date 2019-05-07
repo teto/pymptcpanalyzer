@@ -18,10 +18,17 @@ log = logging.getLogger(__name__)
 def compute_goodput(df, averaging_window):
     raise NotImplemented("Please implement me")
 
-def compute_throughput(df, averaging_window) -> pd.DataFrame:
+
+def compute_subflow_throughput():
+    pass
+
+# TODO wrap it
+def compute_throughput(seq_col, time_col, averaging_window ) -> pd.DataFrame:
     """
     Args:
         averaging_window:
+        time_col: Name of the time column
+        seq_col: Name of the time column
 
 
     Converts time series into pandas format so that we can use the rolling window
@@ -46,10 +53,13 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
     # rolling window can use offset
 
     # assert (field == "tcpack" or field "dack")
+    
 
-    df[_sender("dt_abstime")] = pd.to_datetime(df[_sender("abstime")], unit="s")
+    # pdtime = "dt_abstime"
+    # TODO newdf Dataframe
+    pdtime = pd.to_datetime(time_col, unit="s")
 
-    print(df["dt_abstime"])
+    print(pdtime)
 
     # import re
     # string1 = averaging_window
@@ -71,17 +81,22 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
         return (x.max() - x.min())/averaging_window_int
 
     # TODO test
-    newdf = df.set_index("dt_abstime", drop=False)
+    newdf = pd.DataFrame(data={"seq": seq_col},) # index=pdtime)
+    newdf["seq"] = seq_col
+    newdf.set_index(pdtime, drop=False, inplace=True)
 
-    print(newdf[["dt_abstime", "abstime", "tcpack"]])
+    # print(newdf[["dt_abstime", "abstime", "tcpack"]])
+    print("newdf")
+    print(newdf)
+    # print("seq_col", type(seq_col))
+    # print(seq_col)
 
     log.debug("Rolling over an interval of %s" % averaging_window_str)
-    temp = newdf["tcpack"].astype("float64").rolling(
-
+    temp = newdf["seq"].astype("float64").rolling(
         # 3,
-        # can be a number of an offset for datetime based
+        # can be a number of an offset if index is datetime
         window=averaging_window_str,
-        # interesting parameter too
+        # parameters of interest too
         # min_periods=
         # on="tcpack",
         # closed="right",
@@ -97,10 +112,11 @@ def compute_throughput(df, averaging_window) -> pd.DataFrame:
     )
 
     print("AFTER rolling ")
-    print(newdf[["abstime", "tcpack", "tput"]].head(5))
+    # print(newdf[["abstime", "tcpack", "tput"]].head(5))
     return newdf
 
 
+# class TcpThroughput(plot.Matplotlib):
 
 # TODO create
 class SubflowThroughput(plot.Matplotlib):
@@ -124,14 +140,15 @@ class SubflowThroughput(plot.Matplotlib):
         )
 
         pcaps = {
-            "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterStream
+            "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterTcpStream
         }
         final = gen_pcap_parser(pcaps, parents=[res], direction=True)
 
         # passed window 3 is not compatible with a datetimelike index
-        final.add_argument("window", metavar="AVG_WINDOW", action="store",
+        # -w
+        final.add_argument("--window", "-w", metavar="AVG_WINDOW", action="store",
             type=int, default=3,
-            help="Averaging window , for instance '1s' "
+            help="Averaging window (in seconds), for instance '1'"
         )
         final.add_argument("--goodput", action="store_true",
             default=False,
@@ -164,7 +181,7 @@ class SubflowThroughput(plot.Matplotlib):
 
 
         debug_dataframe(df, "plotting throughput" )
-        for dest, subdf in df.groupby(_sender("tcpdest")):
+        for dest, subdf in df.groupby("tcpdest"):
             if dest not in destinations:
                 log.debug("Ignoring destination %s" % dest)
                 continue
@@ -176,12 +193,14 @@ class SubflowThroughput(plot.Matplotlib):
 
             # log.debug("filtereddest == %s" % filtereddest)
 
-            tput_df = compute_throughput(subdf, window)
+            tput_df = compute_throughput(subdf["tcpack"], subdf["abstime"], window)
+            print("tput_df")
+            print(tput_df)
             tput_df.plot.line(
                 ax=axes,
                 legend=True,
                 # TODO should depend from
-                x=_sender("dt_abstime"),
+                # x="dt_abstime",
                 y="tput",
                 # y="gput",
                 label="Xput towards %s" % dest, # seems to be a bug
@@ -190,7 +209,7 @@ class SubflowThroughput(plot.Matplotlib):
 
         # TODO plot on one y the throughput; on the other the goodput
         axes.set_xlabel("Time (s)")
-        axes.set_ylabel("contribution")
+        axes.set_ylabel("Throughput (Average window of %s)" % "FIX")
         fig.suptitle(title)
 
         # handles, labels = axes.get_legend_handles_labels()
@@ -263,6 +282,8 @@ class MptcpThroughput(plot.Matplotlib):
             log.debug("Plotting destination %s" % tcpdest)
 
             tput_df = compute_throughput(subdf, window)
+            print("tput_df")
+            print(tput_df)
             tput_df.plot.line(
                 ax=axes,
                 legend=True,
