@@ -870,16 +870,12 @@ def map_tcp_packets_via_hash(
 
     debug_dataframe(host1_df, "host1_df", )
     debug_dataframe(host2_df, "host2 df")
-    # print("host1_df dtype=", host1_df.dtypes.tcpdest)
-    # print("host2_df dtype=", host2_df.dtypes.tcpdest)
 
     # todo we could now use merge_asof
     # TODO here we should be able to drop some columns in double
     try:
         # first check hashes are identical
         # check hashes are different
-
-
 
         host1_df = deal_with_duplicated_hash(host1_df)
         host2_df = deal_with_duplicated_hash(host2_df)
@@ -904,7 +900,6 @@ def map_tcp_packets_via_hash(
         print(e)
         raise e
 
-
     # TCP_DEBUG_FIELDS
     debug_cols = _first(TCP_DEBUG_FIELDS) + _second(TCP_DEBUG_FIELDS)
     debug_dataframe(res, "Result of merging by hash", usecols=debug_cols)
@@ -915,8 +910,8 @@ def map_tcp_packets_score_based(
     sender_df, receiver_df,
     explain=[],
     mode="hash"
-        # con1: TcpConnection, con2: TcpConnection
-        ) -> pd.DataFrame:
+    # con1: TcpConnection, con2: TcpConnection
+    ) -> pd.DataFrame:
     """
     Stream ids must already mapped
     Args:
@@ -1015,14 +1010,12 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]
     return results
 
 def map_mptcp_connection_from_known_streams(
-    # rawdf2: pd.DataFrame,
     main: MpTcpConnection,
     other: MpTcpConnection
     ) -> MpTcpMapping:
     """
     Attempts to map subflows only if score is high enough
     """
-    # other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
     def _map_subflows(main: MpTcpConnection, mapped: MpTcpConnection):
         """
         """
