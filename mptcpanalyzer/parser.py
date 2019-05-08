@@ -3,7 +3,7 @@ import argparse
 import cmd2
 import os.path
 # from cmd2 import argparse_completer
-from typing import Iterable, List, Dict, Callable, Optional, Any
+from typing import Iterable, List, Dict, Callable, Optional, Any, Union
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
@@ -117,8 +117,10 @@ class LoadSinglePcap(DataframeAction):
 
 #     return arg_decorator
 
+# with_argparser_and_unknown_args
+# def with_argparser_test(
 
-# see cmd2/cmd2.py for the original
+# see cmd2/cmd2.py for the original with_argparser_and_unknown_args
 # goal here is to be able to pass a custom namespace
 # see https://github.com/python-cmd2/cmd2/issues/596
 def with_argparser_test(
@@ -133,43 +135,38 @@ def with_argparser_test(
     import functools
 
     # noinspection PyProtectedMember
-    def arg_decorator(func: Callable[[cmd2.Statement], Optional[bool]]):
+    def arg_decorator(func: Callable):
         @functools.wraps(func)
-        def cmd_wrapper(instance, cmdline):
-            # StatementParser.shlex_split(line)
-            lexed_arglist = cmd2.parsing.shlex_split(cmdline)
+        def cmd_wrapper(cmd2_instance, statement: Union[cmd2.Statement, str]):
+            statement, parsed_arglist = cmd2_instance.statement_parser.get_command_arg_list(command_name,
+                                                                                            statement,
+                                                                                            preserve_quotes)
             try:
-                # set as a parser attribute ?
-
                 myNs = argparse.Namespace()
                 if preload_pcap:
-                    myNs._dataframes = {"pcap": instance.data}
+                    myNs._dataframes = {"pcap": cmd2_instance.data}
 
-                args, unknown = argparser.parse_known_args(lexed_arglist, myNs)
+                args, unknown = argparser.parse_known_args(parsed_arglist, myNs)
                 # print("namespace: %r" % args)
             except SystemExit:
                 return
             else:
                 # original cmd2 has the same warning
-                return func(instance, args, unknown) # type:ignore
-            # return func(instance, argparser, lexed_arglist)
+                return func(cmd2_instance, args, unknown) # type:ignore
 
-        # argparser defaults the program name to sys.argv[0]
-        # we want it to be the name of our command
-        # argparser.prog = func.__name__[len(COMMAND_FUNC_PREFIX):]
+        # cmd2.COMMAND_FUNC_PREFIX
+        command_name = func.__name__[len("do_"):]
+        argparser.prog = command_name
 
         # If the description has not been set, then use the method docstring if one exists
         if argparser.description is None and func.__doc__:
             argparser.description = func.__doc__
 
         # Set the command's help text as argparser.description (which can be None)
-        # cmd_wrapper.__doc__ = argparser.description
-        # if preloaded_pcap:
-        #     argparser.preload_pcap = True
+        cmd_wrapper.__doc__ = argparser.description
 
         # Mark this function as having an argparse ArgumentParser
         setattr(cmd_wrapper, 'argparser', argparser)
-        # setattr(cmd_wrapper, 'custom_namespace', argparser)
 
         return cmd_wrapper
 
@@ -401,24 +398,15 @@ class FilterStream(DataframeAction):
     To keep a specific stream id
     '''
     def __init__(self, query: str, df_name: str, **kwargs) -> None:
-        # self.df_name = df_name
         self.query_tpl = query
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
 
-        # TODO move to function
-        # if self.df_name not in namespace._dataframes:
-        #     parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
-        #     # TODO set dest
-
         # make sure result
         df = namespace._dataframes[self.df_name]
 
         log.debug("Filtering stream %s" % (values))
-
-        # if type(values) != list:
-        #     streamids = list(values)
 
         field = "tcpstream"
         if isinstance(values, MpTcpStreamId):
@@ -456,17 +444,18 @@ def gen_bicap_parser(protocol, dest=False):
 
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
 
-
+# map pcaps to a group
+# TODO pass a dict of @dataclass instead
+# add subnamespace ?
 class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
     '''
     Wrapper around cmd2 argparse completer
-    Should allow to switch backends easily. 
+    Should allow to switch backends easily.
     Also allows to do some postprocessing once the arguments are parsed
     like loading dataframes etc
 
     '''
 
-    # def _parse_known_args(self, arg_strings, namespace):
     def parse_known_args(self, args=None, namespace=None):
         """
         override it just to postprocess arguments
@@ -474,7 +463,6 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
 
         # returns a 2-item tuple
         known, unknown = super().parse_known_args(args, namespace)
-        # print("res", res)
 
         # TODO call filter_dataframe ?
         if getattr(known, "_dataframes", None):
@@ -493,12 +481,16 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
         # TODO pass along known, dataframes ?
         return (known, unknown)
 
-    def add_single_pcap(self):
-        pass
+    def add_single_pcap(self, name, ):
+        # pass
+        load_pcap = self.add_argument(name, action=LoadSinglePcap, type=str, help='Pcap file')
+        setattr(load_pcap, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
+
+    # with add_argument_group for instance ?
+    # https://stackoverflow.com/questions/18668227/argparse-subcommands-with-nested-namespaces
+    # def add_single_pcap(self, name, ):
 
 
-# map pcaps to a group
-# todo pass a dict of @dataclass instead
 def gen_pcap_parser(
         # rename input_pcaps to load_dataframes
         input_pcaps: Dict[str, PreprocessingActions],
@@ -528,8 +520,6 @@ def gen_pcap_parser(
         )
 
         # TODO we should make this cleaner
-        # with add_argument_group for instance ?
-        # https://stackoverflow.com/questions/18668227/argparse-subcommands-with-nested-namespaces
         for df_name, bitfield in input_pcaps.items():
 
             def _pcap(name, pcapAction="store", filterAction="store"):
@@ -549,7 +539,7 @@ def gen_pcap_parser(
                         metavar= name + "_" + protocol + "stream",
                         action=filterAction,
                         type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
-                        help= protocol + '.stream wireshark id')
+                        help=protocol + '.stream wireshark id')
 
 
             if bitfield & PreprocessingActions.Merge:
@@ -600,6 +590,7 @@ def gen_pcap_parser(
                 parser.add_argument(
                     '--skip', dest=df_name + "skipped_subflows", type=TcpStreamId,
                     action=exclude_stream(df_name,),
+                    # TODO careful this won't work as a default, need a special action
                     default=[],
                     help=("You can type here the tcp.stream of a subflow "
                         "not to take into account (because"

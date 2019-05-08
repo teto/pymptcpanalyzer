@@ -2,6 +2,7 @@ import argparse
 import os
 import tempfile
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import mptcpanalyzer as mp
 from mptcpanalyzer import PreprocessingActions
 from mptcpanalyzer.parser import gen_pcap_parser
@@ -17,6 +18,7 @@ import copy
 import abc
 import logging
 import inspect
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
@@ -34,10 +36,16 @@ class Plot:
         title (str): title to give to the plot
         enabel_preprocessing (bool): Automatically filters dataframes beforehand
     """
+    # title: str
+    # x_label: str
+    # y_label: str
+
     def __init__(
         self,
         exporter: TsharkConfig,
         title: str = None,
+        x_label: str=None,
+        y_label: str=None,
         *args, **kwargs
     ) -> None:
         """
@@ -48,13 +56,10 @@ class Plot:
         # python shallow copies objects by default
         self.tshark_config = copy.deepcopy(exporter)
         # self.tshark_config.read_filter = protocol + " and not icmp"
-        self.init(*args, **kwargs)
+        self.x_label = x_label
+        self.y_label = y_label
 
-    def init(self, *args, **kwargs):
-        pass
 
-    # static ?
-    # rename to plot_attrs ?
     def default_parser(
         self,
         parents=None,
@@ -152,6 +157,7 @@ class Plot:
         os.system(cmd)
 
 
+
 class Matplotlib(Plot):
     """
     This class is specifically designed to generate matplotlib-based plots
@@ -185,6 +191,10 @@ class Matplotlib(Plot):
         )
         return parser
 
+    @abc.abstractmethod
+    def plot(self, **kwargs) -> mpl.figure.Figure:
+        pass
+
 
     def postprocess(self, v, display: bool=False, out=None, **opt):
         """
@@ -201,11 +211,16 @@ class Matplotlib(Plot):
         if title and title != "none":
             v.suptitle(title)
 
+        # TODO check it works without title
+        axes = v.gca()
+        axes.set_xlabel(self.x_label)
+        axes.set_ylabel(self.y_label)
+
         if out:
             self.savefig(v, out)
 
 
-        print("v %r" % v)
+        log.debug("v %r" % v)
 
         if display:
             if out is None:
@@ -218,6 +233,7 @@ class Matplotlib(Plot):
                 self.display(out)
 
         super().postprocess(v, **opt)
+
 
     def run(self, styles=[], *pargs, **kwargs):
         """
@@ -235,6 +251,7 @@ class Matplotlib(Plot):
         with plt.style.context(styles):
             # print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
             fig = self.plot(*pargs, styles=styles, **kwargs)
+            assert fig, "'plot' method must return sthg"
 
         return fig
 

@@ -513,7 +513,6 @@ class MpTcpConnection:
                 log.debug("subflows %s doesn't seem to exist in other " % (sf))
 
         # TODO compare start times supposing cloak are insync ?
-        # print( " score of %r" % score)
         return score
 
 
@@ -540,12 +539,6 @@ class TcpMapping:
     mapped: TcpConnection
     score: float
 
-
-# # TODO replace with dataclass
-# MpTcpMapping = NamedTuple('MpTcpMapping', [('mapped', MpTcpConnection), ("score", float),
-#         # make it a dict rather
-#         ("subflow_mappings", List[Tuple[MpTcpSubflow,TcpMapping]])
-#     ])
 
 @dataclass
 class MpTcpMapping:

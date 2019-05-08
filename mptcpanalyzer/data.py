@@ -1056,16 +1056,12 @@ def map_mptcp_connection(
     log.warning("mapping between datasets is not considered trustable yet")
     results = []  # type: List[MpTcpMapping]
 
-    score = -1  # type: float
-    results = []
-
     for mptcpstream2 in rawdf2[_sender("mptcpstream")].dropna().unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
         mapping = map_mptcp_connection_from_known_streams(main, other)
         results.append(mapping)
 
-    # sort based on the score
-    results.sort(key=lambda x: x[1], reverse=True)
+    results.sort(key=lambda x: x.score, reverse=True)
 
     return results
 

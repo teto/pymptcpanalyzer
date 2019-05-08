@@ -18,7 +18,7 @@ from typing import Iterable, List #, Any, Tuple, Dict, Callable
 from itertools import cycle
 from mptcpanalyzer.debug import debug_dataframe
 from mptcpanalyzer.data import classify_reinjections
-from mptcpanalyzer.plots.throughput import compute_throughput, tput_parser
+from mptcpanalyzer.plots.throughput import compute_throughput, tput_parser, plot_tput
 
 
 log = logging.getLogger(__name__)
@@ -29,6 +29,16 @@ class MptcpGoodput(plot.Matplotlib):
     Classify reinjections and ditch packets which are useless, otherwise, do the same as
     as throughput
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args,
+            title="MPTCP goodput",
+            x_label="Time (s)",
+            y_label="Goodput (bytes/s)",
+            **kwargs
+        )
+
     def default_parser(self, *args, **kwargs):
 
         parser = MpTcpAnalyzerParser(
@@ -41,50 +51,61 @@ class MptcpGoodput(plot.Matplotlib):
             "pcap": PreprocessingActions.MergeMpTcp | PreprocessingActions.FilterDestination,
         }
 
-        temp = gen_pcap_parser(input_pcaps=expected_pcaps, parents=[super().default_parser()])
+        temp = gen_pcap_parser(
+            input_pcaps=expected_pcaps, parents=[super().default_parser()]
+        )
 
         parser.description = inspect.cleandoc('''
             MPTCP goodput
         ''')
 
         parser.epilog = inspect.cleandoc('''
-            > plot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
+            > plot mptcp_gput examples/client_2_filtered.pcapng 1 examples/server_2_filtered.pcapng 1 --display
         ''')
 
         temp = tput_parser(temp)
         return temp
 
 
-    def plot(self, pcap, pcapstream, **kwargs):
+    def plot(self, pcap, pcapstream, window, **kwargs):
         """
+        Should be very similar to the thoughput one, except with
 
         """
         fig = plt.figure()
         axes = fig.gca()
         fields = ["tcpdest", "tcpstream", "mptcpdest"]
+        # TODO this should be configured in the parser
+        destinations = kwargs.get("destinations", list(mp.ConnectionRoles))
+        skipped = kwargs.get("skipped_subflows", [])
         df = pcap
-
-        # hopefully it is already sorted, also
-        # this won't work
-        # df.mptcp.fill_dest(pcapstream)
 
         dfc = classify_reinjections(df)
 
         # then it's the same as for throughput
         log.debug("Dropping redundant packets")
-        dfc = dfc[dfc.redundant == False]
+        dfc = dfc[dfc.redundant == True]
 
 
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
-            print("t= %r" % (idx,))
-            print("len= %r" % len(subdf))
+            # print("len= %r" % len(subdf))
             tcpdest, tcpstream, mptcpdest = idx
 
-            # if protocol == tcpdest not in kwargs.destinations:
-            #     log.debug("skipping TCP dest %s" % tcpdest)
-            #     continue
+            if mptcpdest not in destinations:
+                log.debug("skipping MPTCP dest %s" % tcpdest)
+                continue
+
+            if tcpstream in skipped:
+                log.debug("skipping subflow %d" % tcpstream)
+                continue
+
+            # log.debug("plotting MPTCP dest %s" % tcpdest)
+            plot_tput(
+                fig, subdf[("dack")], subdf[("abstime")], window,
+                label="Subflow %d towards MPTCP %s" % (tcpstream, mptcpdest),
+            )
 
 
-
+        return fig
 

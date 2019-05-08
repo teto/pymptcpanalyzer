@@ -139,6 +139,10 @@ class ConnectionRoles(IntEnum):
         else:
             return ConnectionRoles.Client
 
+# TODO Use it later on
+# TypeError("Cannot extend enumerations")
+# class MptcpConnectionRoles(ConnectionRoles):
+#     pass
 
 # TODO create an action instead
 # TODO should be able to do without
@@ -151,11 +155,6 @@ class CustomConnectionRolesChoices(list):
 DestinationChoice = CustomConnectionRolesChoices([e.name for e in ConnectionRoles])
 
 
-
-
-# merged, name
-# DataframeDescriptor = NamedTuple()
-
 def reverse_destination(dest: ConnectionRoles):
 
     if dest == ConnectionRoles.Client:
@@ -164,9 +163,6 @@ def reverse_destination(dest: ConnectionRoles):
         return ConnectionRoles.Client
 
     raise Exception()
-    # else:
-    #     # or assert .
-    #     return ConnectionRoles.Both
 
 class MpTcpException(Exception):
     """
@@ -180,6 +176,9 @@ class MpTcpMissingKey(MpTcpException):
     Exceptions thrown by this module should inherit this in order to let the cli
     filter exceptions
     """
+    pass
+
+class MpTcpMissingPcap(MpTcpException):
     pass
 
 class DataframeCharacteristic(enum.Flag):
@@ -208,8 +207,6 @@ TRACE = 5
 
 logging.addLevelName(TRACE, 'TRACE')
 
-class MpTcpMissingPcap(MpTcpException):
-    pass
 
 __all__ = [
     'List',

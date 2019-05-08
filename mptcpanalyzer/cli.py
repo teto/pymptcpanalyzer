@@ -119,11 +119,13 @@ def is_loaded(f):
     """
     @functools.wraps(f)
     def wrapped(self, *args):
+
+        log.debug("Cheking if a pcap was already loaded")
         if self.data is not None:
             return f(self, *args)
         else:
             raise mp.MpTcpException("Please load a pcap with `load_pcap` first")
-        return None
+        return
     return wrapped
 
 
@@ -132,6 +134,7 @@ def experimental(f):
     Decorator checking that dataset has correct columns
     """
 
+    @functools.wraps(f)
     def wrapped(self, *args, **kwargs):
         print("WORK IN PROGRESS, RESULTS MAY BE WRONG")
         return f(self, *args, **kwargs)
@@ -482,7 +485,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     '''
     @with_argparser(parser)
     @with_category(CAT_MPTCP)
-    @experimental
     def do_map_mptcp_connection(self, args):
         """
         Tries to map mptcp.streams from different pcaps.
@@ -539,8 +541,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     summary_parser.epilog = inspect.cleandoc('''
         Similar to wireshark's "Follow -> TCP stream"
     ''')
-    @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
-    @is_loaded
+    # TODO fix that
+    @is_loaded # type: ignore
+    @with_argparser_test(summary_parser, preload_pcap=True)
     def do_tcp_summary(self, args, unknown):
         self.poutput("Summary of TCP connection " )
         df = self.data
@@ -578,8 +581,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     summary_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
 
-    @with_argparser_test(summary_parser, preload_pcap=True) # type: ignore
-    @is_loaded
+    @is_loaded  # type: ignore
+    @with_argparser_test(summary_parser, preload_pcap=True)
     def do_mptcp_summary(self, args, unknown):
         """
         Naive summary contributions of the mptcp connection
@@ -604,7 +607,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.poutput(val)
                 return
 
-            # mptcp_transferred = ret.mptcp_throughput_bytes
             msg = "mptcpstream %d transferred %d bytes."
             self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes))
             for sf in stats.subflow_stats:
@@ -616,7 +618,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     mptcp_tput=stats.mptcp_throughput_bytes,
                     tput_ratio=sf.throughput_contribution*100
                 ))
-
 
 
 
