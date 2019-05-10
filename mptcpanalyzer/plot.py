@@ -196,7 +196,7 @@ class Matplotlib(Plot):
         pass
 
 
-    def postprocess(self, v, display: bool=False, out=None, **opt):
+    def postprocess(self, v, display: bool=False, out=None, **kwargs):
         """
 
         Args:
@@ -205,10 +205,14 @@ class Matplotlib(Plot):
             out: if the file was saved to a file
 
         """
-        title = opt.get('title', self.title)
+        user_title = kwargs.get('title')
 
-        log.info("User passed title [%s]" % title)
+        if user_title:
+            log.info("User passed title [%s]" % user_title)
+
+        title = user_title or self.title
         if title and title != "none":
+            log.info("Setting plot title to %s" % title)
             v.suptitle(title)
 
         # TODO check it works without title
@@ -232,10 +236,10 @@ class Matplotlib(Plot):
             else:
                 self.display(out)
 
-        super().postprocess(v, **opt)
+        super().postprocess(v, **kwargs)
 
 
-    def run(self, styles=[], *pargs, **kwargs):
+    def run(self, styles=None, *pargs, **kwargs):
         """
         user should override plot() -> TODO plot
 
@@ -248,10 +252,13 @@ class Matplotlib(Plot):
         """
         log.debug("Using matplotlib styles: %s" % styles)
 
+        if styles == None:
+            styles = []
+
         with plt.style.context(styles):
             # print("dataframes", dataframes, "styles=", styles, " and kwargs=", kwargs)
             fig = self.plot(*pargs, styles=styles, **kwargs)
-            assert fig, "'plot' method must return sthg"
+            assert fig, "'plot' method must return something"
 
         return fig
 
