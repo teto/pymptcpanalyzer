@@ -75,8 +75,10 @@ class MptcpGoodput(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
         fields = ["tcpdest", "tcpstream", "mptcpdest"]
+
         # TODO this should be configured in the parser
-        destinations = kwargs.get("destinations", list(mp.ConnectionRoles))
+        # destinations = kwargs.get("destinations", list(mp.ConnectionRoles))
+        destinations = kwargs.get("pcap_destinations")
         skipped = kwargs.get("skipped_subflows", [])
         df = pcap
 
@@ -86,6 +88,10 @@ class MptcpGoodput(plot.Matplotlib):
         log.debug("Dropping redundant packets")
         dfc = dfc[dfc.redundant == True]
 
+        suffix = ""
+        if len(destinations) == 1:
+            suffix = " towards MPTCP %s" % (destinations[0].to_string())
+            self.title = self.title + suffix
 
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
@@ -101,11 +107,16 @@ class MptcpGoodput(plot.Matplotlib):
                 continue
 
             # log.debug("plotting MPTCP dest %s" % tcpdest)
+            label_fmt="Subflow {tcpstream}"
+            if len(destinations) >= 2:
+                label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
+
             plot_tput(
                 fig, subdf[("dack")], subdf[("abstime")], window,
-                label="Subflow %d towards MPTCP %s" % (tcpstream, mptcpdest),
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string()),
             )
 
+        print("dest: " % destinations)
 
         return fig
 

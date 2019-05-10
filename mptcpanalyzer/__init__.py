@@ -126,6 +126,11 @@ class ConnectionRoles(IntEnum):
     #     # the human readable (values) of Color
     #     return self.name
 
+    def to_string(self):
+        # using __str__ braks pandas to_csv/from_csv cycle
+        return self.name
+
+
     # @staticmethod
     def from_string(s):
         try:

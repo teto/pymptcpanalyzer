@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
+import mptcpanalyzer as mp
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
@@ -79,7 +80,6 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
         """
         Not an exact one, does not account for TCP sack for instance
         """
-        print("compute_tput called !!")
         # print("%s:\n%r" % (type(x), x))
         # so now it gets a series
 
@@ -219,7 +219,7 @@ class SubflowThroughput(plot.Matplotlib):
 
 
         # TODO plot on one y the throughput; on the other the goodput
-        self.y_label = "Throughput (Average window of %s)" % "FIX"
+        self.y_label = "Throughput (Average window of %s)" % window
 
         # handles, labels = axes.get_legend_handles_labels()
 
@@ -292,22 +292,29 @@ class MptcpThroughput(plot.Matplotlib):
         con = df.mptcp.connection(pcapstream)
         df = con.fill_dest(df)
 
+        if len(destinations) == 1:
+            suffix = " towards MPTCP %s" % (destinations[0].to_string())
+            self.title = self.title + suffix
 
         ### plot subflows first...
         ##################################################
         fields = ["tcpstream", "tcpdest", "mptcpdest"]
-        for idx, subdf in df.groupby(fields):
-            tcpdest, tcpstream, mptcpdest = idx
+        for idx, subdf in df.groupby(fields, sort=False):
+            tcpstream, tcpdest, mptcpdest = idx
             if mptcpdest not in destinations:
                 log.debug("Ignoring MPTCP destination %s" % tcpdest)
                 continue
 
             log.debug("Plotting tcp destination %s" % tcpdest)
 
+            label_fmt="Subflow {tcpstream}"
+            if len(destinations) >= 2:
+                label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
+
             # basically the same as for tcp
             plot_tput(
-                fig, subdf[("tcpack")], subdf[("abstime")], window,
-                label="Subflow %d towards %s" % (tcpstream, mptcpdest)
+                fig, subdf["tcpack"], subdf["abstime"], window,
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
             )
 
         ### then plots MPTCP level throughput
@@ -321,14 +328,9 @@ class MptcpThroughput(plot.Matplotlib):
             log.debug("Plotting mptcp destination %s" % mptcpdest)
 
             plot_tput(
-                fig, subdf[("dack")], subdf[("abstime")], window,
+                fig, subdf["dack"], subdf["abstime"], window,
                 label="MPTCP towards %s" % mptcpdest
             )
-
-
-        # TODO plot on one y the throughput; on the other the goodput
-        # axes.set_xlabel("Time (s)")
-        # axes.set_ylabel("Throughput (bytes/s)")
 
         return fig
 
