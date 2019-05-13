@@ -86,12 +86,20 @@ class TcpFlags(IntFlag):
     ECE = 64
     CWR = 128
 
+
+class Protocol(IntEnum):
+    # TODO setup __str__ to return lowercase .name
+    TCP = 0
+    MPTCP = 1
+
+    def to_string(self):
+        return self.name.lower()
+
 class MpTcpOptions(IntEnum):
     """
     Real value of the options.
     Useful to filter the dataframe
     """
-
     MP_CAPABLE = 0
     MP_JOIN    = 1
     MP_DSS =  2

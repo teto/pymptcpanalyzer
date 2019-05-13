@@ -31,36 +31,22 @@ class TcpOneWayDelay(plot.Matplotlib):
     and the server.
     To do this, you need to capture a communication at both ends, client and server.
 
-    Wireshark assigns an id (mptcp.stream) to each mptcp communications, ideally this plugin
-could try to match both ids but for now you need
-
     .. note:: both hosts should have their clock synchronized. If this can be hard
     with real hosts, perfect synchronization is available in network simulators
     such as ns3.
 
-
-    This format allows
-
-    .. _owd-cache-format:
-        It creates an intermediate cache file of the form
-        host1pktId, host2pktId, score, owd, ipsrc_h1, ipsrc_h2, etc...
-
-
-    .. warning:: This plugin is experimental.
     """
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(
             *args,
-            # input_pcaps=expected_pcaps,
             **kwargs
         )
+        self.x_label =  "Time (s)"
+        self.y_label = "One Way Delay (s)"
 
-        self.tshark_config.filter = "tcp";
-        # print("owd tcp", self.tshark_config.fields)
-        # TODO a purer version would be best
-
+        # self.tshark_config.filter = "tcp";
 
     # TODO simplify
     def default_parser(self, *args, **kwargs):
@@ -128,7 +114,6 @@ could try to match both ids but for now you need
 
         df = res
 
-        print("STARTING LOOP")
         print("DESTINATION=%r" % kwargs.get("pcapdestinations", []))
         # df= df[df.owd > 0.010]
 
@@ -141,8 +126,8 @@ could try to match both ids but for now you need
 
 
         # TODO add units
-        axes.set_xlabel("Time (s)")
-        axes.set_ylabel("One Way Delay (s)")
+        # axes.set_xlabel("Time (s)")
+        # axes.set_ylabel("One Way Delay (s)")
 
         self.title = "One Way Delays for {} streams {} <-> {} {dest}".format(
             protocol,
@@ -170,8 +155,9 @@ could try to match both ids but for now you need
             # print("=== less than 0\n", subdf.tail())
 
             # if tcpdest
-            # df = debug_convert(df)
             debug_dataframe(subdf, "subdf stream %d destination %r" % (tcpstream, tcpdest))
+
+            label_fmt = "Stream {tcpstream} towards {tcpdest}"
             pplot = subdf.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
@@ -179,12 +165,7 @@ could try to match both ids but for now you need
                 # TODO should depend from
                 x=_sender("abstime"),
                 y="owd",
-                label="Stream %d towards %s" % (tcpstream, tcpdest), # seems to be a bug
-                # grid=True,
-                # xticks=tcpstreams["reltime"],
-                # rotation for ticks
-                # rot=45,
-                # lw=3
+                label=label_fmt.format(tcpstream=tcpstream, tcpdest=tcpdest),
             )
 
     def plot_mptcp(self, df, fig, fields, **kwargs):
@@ -193,8 +174,6 @@ could try to match both ids but for now you need
 
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
-            print("t= %r" % (idx,))
-            print("len= %r" % len(subdf))
             tcpdest, tcpstream, mptcpdest = idx
 
             # if protocol == tcpdest not in kwargs.destinations:
@@ -202,8 +181,6 @@ could try to match both ids but for now you need
             #     continue
 
 
-            # if tcpdest
-            # df = debug_convert(df)
             pplot = subdf.plot(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
@@ -212,11 +189,6 @@ could try to match both ids but for now you need
                 x=_sender("abstime"),
                 y="owd",
                 label="Subflow %d towards tcp %s" % (tcpstream, tcpdest), # seems to be a bug
-                # grid=True,
-                # xticks=tcpstreams["reltime"],
-                # rotation for ticks
-                # rot=45,
-                # lw=3
             )
 
 

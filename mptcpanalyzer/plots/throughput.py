@@ -22,8 +22,29 @@ def compute_goodput(df, averaging_window):
 
 def tput_parser(parser):
     parser.add_argument("--window", "-w", metavar="AVG_WINDOW", action="store",
-        type=int, default=3,
+        type=int, default=1,
         help="Averaging window (in seconds), for instance '1'"
+    )
+    # boxcar
+    # triang
+    # blackman
+    # hamming
+    # bartlett
+    # parzen
+    # bohman
+    # blackmanharris
+    # nuttall
+    # barthann
+    # kaiser (needs beta)
+    # gaussian (needs std)
+    # general_gaussian (needs power, width)
+    # slepian (needs width).
+
+    parser.add_argument("--window-type", action="store",
+        # as listed in pandas
+        choices= [ "boxcar", "triang", "blackman", "hamming", "bartlett", "parzen", "bohman"],
+        default="boxcar",
+        help="Windowing algorithm"
     )
     parser.add_argument("--goodput", action="store_true",
         default=False,
@@ -143,11 +164,10 @@ def plot_tput(fig, *args, label=None):
         # "Xput towards %s" % "FIX", # seems to be a bug
     )
 
-# class TcpThroughput(plot.Matplotlib):
 
-class SubflowThroughput(plot.Matplotlib):
+class TcpThroughput(plot.Matplotlib):
     """
-    Plot subflow throughput
+    Plot Tcp throughput
     Mptcp throughput equals the sum of subflow contributions
     """
     def __init__(self, *args, **kwargs):
@@ -155,7 +175,6 @@ class SubflowThroughput(plot.Matplotlib):
                 *args,
                 title="TCP throughput",
                 x_label="Time (s)",
-                y_label="",
                 **kwargs
             )
 
@@ -177,18 +196,9 @@ class SubflowThroughput(plot.Matplotlib):
         }
         final = gen_pcap_parser(pcaps, parents=[res], direction=True)
 
-        # passed window 3 is not compatible with a datetimelike index
-        # -w
-        # final.add_argument("--goodput", action="store_true",
-        #     default=False,
-        #     help="Drops retransmission from computation"
-        # )
         final = tput_parser(final)
         return final
 
-
-    # TODO add window / destinations ?
-    # dat, destinations,
     def plot(self, pcap, pcapstream, **kwargs):
         """
         getcallargs
@@ -215,11 +225,22 @@ class SubflowThroughput(plot.Matplotlib):
 
             log.debug("Plotting destination %s" % dest)
 
-            plot_tput(fig, subdf["tcpack"], subdf["abstime"], window)
+            label_fmt = "TCP stream {stream}"
+            if len(destinations) >= 2:
+                label_fmt = label_fmt + " towards TCP {dest}"
 
+            plot_tput(
+                fig, subdf["tcpack"], subdf["abstime"],
+                window,
+                label=label_fmt.format(stream=pcapstream, dest=dest)
+            )
 
         # TODO plot on one y the throughput; on the other the goodput
-        self.y_label = "Throughput (Average window of %s)" % window
+        self.y_label = "Throughput (bytes/second)"
+
+        # TODO pass con towards a direction ?
+        self.title = "TCP Throughput (Average window of %s) for con:\n%s" % (window, con)
+        # self.title = "TCP Throughput (Average window of %s)" % window
 
         # handles, labels = axes.get_legend_handles_labels()
 
@@ -234,11 +255,24 @@ class SubflowThroughput(plot.Matplotlib):
         return fig
 
 
-# class ThroughputPlot(plot.Matplotlib):
-#     """
-#     Defines a few key functions
-#     """
-#     pass
+class SubflowThroughput(TcpThroughput):
+    """
+    Plot subflow throughput
+    Mptcp throughput equals the sum of subflow contributions
+    """
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(
+    #             *args,
+    #             title="TCP throughput",
+    #             x_label="Time (s)",
+    #             **kwargs
+    #         )
+
+
+    # TODO add window / destinations ?
+    # dat, destinations,
+    def plot_dest(self, pcap, pcapstream, dest : mp.ConnectionRoles, **kwargs):
+        pass
 
 
 class MptcpThroughput(plot.Matplotlib):

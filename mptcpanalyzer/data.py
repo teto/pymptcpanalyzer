@@ -201,9 +201,6 @@ def load_merged_streams_into_pandas(
                 main_connection = MpTcpConnection.build_from_dataframe(df1, MpTcpStreamId(streamid1))
                 other_connection = MpTcpConnection.build_from_dataframe(df2, MpTcpStreamId(streamid2))
 
-                # TODO generate
-                # map_mptcp_connection()
-
                 # for now we use known streams exclusively
                 # might be interested to use merge_tcp_dataframes later
                 merged_df = merge_mptcp_dataframes_known_streams(
@@ -268,14 +265,12 @@ def load_merged_streams_into_pandas(
 
             def _gen_converters() -> Dict[str, Callable]:
 
-                # converters = {}   # type: Dict[str, Any]
                 fields = dict(tshark_config.fields)
                 fields.update(per_pcap_artificial_fields)
                 converters = {}
                 # tcpflags is already in good format
                 default_converters = {name: f.converter for name, f in fields.items()
                     if f.converter and name != "tcpflags"}
-                # converters.update({ name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
                 for name, converter in default_converters.items():
                     converters.update({_first(name): converter, _second(name): converter})
 
@@ -300,7 +295,7 @@ def load_merged_streams_into_pandas(
                     converters=converters,
                 )
                 # at this stage, destinatiosn are nan
-                # debug_dataframe(merged_df, "Merged dataframe", )
+                debug_dataframe(merged_df, "Merged dataframe", )
 
                 # workaround bug https://github.com/pandas-dev/pandas/issues/25448
                 def _convert_to_enums():
@@ -308,7 +303,6 @@ def load_merged_streams_into_pandas(
                     for col in [ _first("tcpdest"), _first("mptcpdest"), _second("tcpdest"), _second("mptcpdest")]:
                         merged_df[col] = merged_df[col].apply(_convert_role, convert_dtype=False)
 
-                # log.debug("Column names after loading from cache: %s", merged_df.columns)
 
         # we fix the clocks a posteriori so that the cache is still usable
         log.debug("Postprocessing clock if needed")
@@ -316,11 +310,10 @@ def load_merged_streams_into_pandas(
         merged_df[_second('abstime')] += clock_offset2
 
         log.debug("Converting dataframes to be sender/receiver based...")
+
         # in both cases
         # TODO here we should attribute the definite mptcprole
-        # compute owd
         if mptcp:
-            print("Should be merging OWDs")
             log.error("We should correct the clocks if the argument is passed !")
             # raise mp.MpTcpException("Implement mptcp merge")
 
@@ -331,14 +324,11 @@ def load_merged_streams_into_pandas(
 
         # log.debug("Sorting by sender abstime")
         # merged_df.sort_values(by=_sender("abstime"), ascending=True, inplace=True)
-
         # debug_dataframe(res, "checking merge", usecols=["merge_status"])
         # print("%d nan values" % len(res[res.merge_status == np.nan]))
 
-        # log.debug("Column names: %s", res.columns)
-        # log.debug("Dtypes after load:%s\n" % dict(res.dtypes))
-
         log.debug("Computing owds")
+
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
 
@@ -453,7 +443,6 @@ def load_into_pandas(
             # we want packetid column to survive merges/dataframe transformation so keepit as a column
             # TODO remove ? let other functions do it ?
             data.set_index("packetid", drop=False, inplace=True)
-            # log.debug("Column names: %s" % data.columns)
 
             hashing_fields = [name for name, field in config.fields.items() if field.hash]
             log.debug("Hashing over fields %s" % hashing_fields)

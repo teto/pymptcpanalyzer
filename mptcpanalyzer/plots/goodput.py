@@ -90,6 +90,7 @@ class MptcpGoodput(plot.Matplotlib):
 
         suffix = ""
         if len(destinations) == 1:
+            # TODO as we look at acks, it should be swapped !
             suffix = " towards MPTCP %s" % (destinations[0].to_string())
             self.title = self.title + suffix
 

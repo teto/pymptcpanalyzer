@@ -176,17 +176,38 @@ class TcpConnection:
     def __repr__(self):
         return self.__str__()
 
+    # TODO provide a default format
+    def __format__(self, format_spec="ps"):
+        """
+        "{con:s2c}".format(con)
+        p => prefix
+        s => towards server
+        c => towards client
+        b => bidirectional
+        """
+        fmt = ""
+        if "p" in format_spec:
+            fmt = "tcp.stream {s.tcpstreamid:.0f}: "
+
+        client_fmt = "{s.tcpclient_ip}:{s.client_port:0>5.0f}"
+        server_fmt = "{s.tcpserver_ip}:{s.server_port:0>5.0f}"
+        dest = ConnectionRoles.Client
+        if dest == ConnectionRoles.Client:
+            fmt = fmt + server_fmt + " -> " + client_fmt
+        else:
+            arrow = " -> "
+            if dest is None:
+                arrow = " <-> "
+            fmt = fmt + client_fmt + arrow + server_fmt
+
+        return fmt.format(s=self)
+
     def __str__(self):
         # :>5d
         # TODO should be converted to int instead, would spare some memory
-        line = ("tcp.stream {s.tcpstreamid:.0f}: {s.tcpclient_ip}:{s.client_port:0>5.0f} "
-                " -> {s.tcpserver_ip}:{s.server_port:0>5.0f} ").format(s=self,
-                        # tcpstreamid=self.tcpstreamid
-                        )
-        return line
+        return self.__format__()
 
 
-# should it ?
 @dataclass
 class MpTcpSubflow(TcpConnection):
     """
@@ -196,14 +217,6 @@ class MpTcpSubflow(TcpConnection):
     """ to which mptcp side belongs the tcp server"""
     mptcpdest: ConnectionRoles = None
     addrid: int = None
-
-    # def __init__(self, mptcpdest: ConnectionRoles, addrid=None, **kwargs) -> None:
-    #     super().__init__(**kwargs)
-    #     self.addrid = addrid
-    #     # self.rcv_token = rcv_token
-    #     # token_owner ?
-    #     """ to which mptcp side belongs the tcp server"""
-    #     self.mptcpdest = mptcpdest
 
     @staticmethod
     def create_subflow(**kwargs):
@@ -244,23 +257,15 @@ class MpTcpSubflow(TcpConnection):
 
         return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
 
-    def __str__(self):
-        """ Plot destination on top of it """
+
+    def to_string(self):
         res = super().__str__()
         res += " (mptcpdest: %s)" % self.mptcpdest
         return res
-            #
-            # return super(TcpConnection).generate_direction_query()
-        # if dest == ConnectionRoles.Client:
-        #     ipsrc = self.tcpserver_ip
-        #     server_port = self.server_port
-        # else:
-        #     ipsrc = self.tcpclient_ip
-        #     server_port = self.client_port
 
-        # q += " and ipsrc=='%s' and server_port==(%d) " % (ipsrc, server_port)
-        # return q
-
+    def __str__(self):
+        """ Plot destination on top of it """
+        return self.to_string()
 
 
 # TODO provide as a dataclass
@@ -315,7 +320,6 @@ class MpTcpConnection:
             queries.append(q)
         result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
 
-        # print(result)
         return result
 
 
@@ -546,6 +550,4 @@ class MpTcpMapping:
     score: float
     subflow_mappings: List[Tuple[MpTcpSubflow,TcpMapping]]
 
-
 # MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])
-

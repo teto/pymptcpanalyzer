@@ -246,7 +246,7 @@ class MergePcaps(DataframeAction):
     def __init__(
         self,
         name: str,
-        protocol: str, # mptcp or tcp ?
+        protocol: mp.Protocol,
         loader = TsharkConfig(),
         **kwargs
         ) -> None:
@@ -280,7 +280,7 @@ class MergePcaps(DataframeAction):
             pcap2,
             pcap1stream,
             pcap2stream,
-            self.protocol == "mptcp",
+            self.protocol == mp.Protocol.MPTCP,
             self.loader,
         )
 
@@ -418,15 +418,17 @@ class FilterStream(DataframeAction):
             parser.error("Unsupported 'type' %s. Set it to TcpStreamId or MpTcpStreamId" % type(values))
 
         # super(argparse.Action).__call__(parser, namespace, values, option_string)
+        log.debug("Assign filter to %s" % (self.dest))
         setattr(namespace, self.dest, values)
         query = self.query_tpl.format(field=field, streamid=values)
 
         log.log(mp.TRACE, "Applying query [%s]" % query)
-        debug_dataframe(df, "after query")
+        debug_dataframe(df, "after query")  # usecolds ['tcpstream']
 
         import pandas as pd
         log.log(mp.TRACE, "use numexpr?", pd.get_option('compute.use_numexpr', False))
         df.query(query, inplace=True, engine="python")
+        # TODO build dest automatically
 
 
 def gen_bicap_parser(protocol, dest=False):
@@ -481,14 +483,66 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
         # TODO pass along known, dataframes ?
         return (known, unknown)
 
-    def add_single_pcap(self, name, ):
+    def add_pcap(self, name, **kwargs):
         # pass
-        load_pcap = self.add_argument(name, action=LoadSinglePcap, type=str, help='Pcap file')
+        params = {
+            'action': LoadSinglePcap,
+            'help': 'Pcap file'
+        }
+        params.update(**kwargs)
+        load_pcap = self.add_argument(name, type=str, **params)
         setattr(load_pcap, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
+        return load_pcap
 
     # with add_argument_group for instance ?
     # https://stackoverflow.com/questions/18668227/argparse-subcommands-with-nested-namespaces
     # def add_single_pcap(self, name, ):
+    def filter_destination(self, *args, **kwargs):
+
+        params = {
+            'action': AppendDestination,
+        }
+        params.update(**kwargs)
+        return self.add_argument(
+            *args,
+            '--dest',
+            metavar="destination",
+            # see preprocess functions to see how destinations is handled when empty
+            # Both are already taken care of
+            # TODO check how it works/FilterDest
+            help='Filter flows according to their direction'
+            '(towards the client or the server)',
+            **params
+        )
+
+    def skip_subflow(self, df_name, **kwargs):
+        return self.add_argument('--skip',  type=TcpStreamId,
+            action=exclude_stream(df_name,),
+            # TODO careful this won't work as a default, need a special action
+            default=[],
+            help=("You can type here the tcp.stream of a subflow "
+                "not to take into account (because"
+                "it was filtered by iptables or else)")
+        )
+
+
+    def filter_stream(self, name, *args, protocol=None, **kwargs):
+        assert protocol is not None, protocol
+
+        proto_str = protocol.to_string()
+        params = {
+            'action': "store",
+            'help': proto_str + '.stream wireshark id'
+        }
+        params.update(**kwargs)
+
+        return self.add_argument(
+                name,
+            # name + 'stream',
+            metavar= (name + "_{}stream").format(proto_str),
+            type=MpTcpStreamId if protocol == mp.Protocol.MPTCP else TcpStreamId,
+            **params
+        )
 
 
 def gen_pcap_parser(
@@ -522,34 +576,30 @@ def gen_pcap_parser(
         # TODO we should make this cleaner
         for df_name, bitfield in input_pcaps.items():
 
-            def _pcap(name, pcapAction="store", filterAction="store"):
-                # TODO change the type to expand things etc. like argparse.FileType
-                load_pcap = parser.add_argument(name, action=pcapAction, type=str, help='Pcap file')
-                setattr(load_pcap, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
-                # TODO add action AddClockOffset
-                # parser.add_argument("--clock-offset" + name, action="store", type=int,
-                #     help='Offset compared to epoch (in nanoseconds)')
 
-                if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
-                    # difficult to change the varname here => change it everywhere
-                    mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
-                    protocol = "mptcp" if mptcp else "tcp"
-                    parser.add_argument(
-                        name + 'stream',
-                        metavar= name + "_" + protocol + "stream",
-                        action=filterAction,
-                        type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
-                        help=protocol + '.stream wireshark id')
+                # if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
+                #     # difficult to change the varname here => change it everywhere
+                #     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
+                #     protocol = "mptcp" if mptcp else "tcp"
+                #     parser.filter_stream(name + 'stream',)
+                    # parser.add_argument(
+                    #     name + 'stream',
+                    #     metavar= name + "_" + protocol + "stream",
+                    #     action=filterAction,
+                    #     type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
+                    #     help=protocol + '.stream wireshark id')
 
 
             if bitfield & PreprocessingActions.Merge:
-                protocol = "mptcp" if bitfield & PreprocessingActions.MergeMpTcp else "tcp"
-                _pcap(df_name+"1")
-                _pcap(df_name+"2",
-                    filterAction=partial(MergePcaps,
-                        name=df_name,
-                        # name1=df_name + "1", name2=df_name + "2",
-                    protocol=protocol),
+                # mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
+                # protocol = "mptcp" if mptcp else "tcp"
+                protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.MergeMpTcp else mp.Protocol.TCP
+                parser.add_pcap(df_name+"1")
+                parser.filter_stream(df_name+"1stream", protocol=protocol,)
+
+                parser.add_pcap(df_name+"2")
+                parser.filter_stream(df_name+"2stream", protocol=protocol,
+                    action=partial(MergePcaps, name=df_name, protocol=protocol),
                 )
 
                 # hidden
@@ -559,42 +609,36 @@ def gen_pcap_parser(
                 #     help=argparse.SUPPRESS)
                 # merge_pcap.default = "TEST"
             else:
-                _pcap(df_name,
-                    # use an alternate dest so that it doesn't collapse
-                    pcapAction=LoadSinglePcap,
-                    filterAction=retain_stream(df_name,
-                    # mptcp = bool(bitfield & PreprocessingActions.FilterMpTcpStream)
-                        )
-                )
+                # TODO check for Preload
+                # TODO set action to str if there is no Preload flag ?!
+                parser.add_pcap(df_name, )
+
+                # TODO enforce a protocol !!
+                protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.FilterMpTcpStream else mp.Protocol.TCP
+                parser.filter_stream(df_name + 'stream', protocol=protocol, action=retain_stream(df_name,))
 
             if bitfield & PreprocessingActions.FilterDestination or direction :
                 # this one is full of tricks: we want the object to be of the Enum type
                 # but we want to display the user readable version
                 # so we subclass list to convert the Enum to str value first.
                 # TODO setup our own custom actions to get rid of our hacks
-                parser.add_argument(
-                    '--dest',
-                    metavar="destination",
-                    dest=df_name + "_destinations",
-                    # see preprocess functions to see how destinations is handled when empty
-                    # Both are already taken care of
-                    # TODO check how it works/FilterDest
-                    action=AppendDestination,
-                    help='Filter flows according to their direction'
-                    '(towards the client or the server)'
-                    'Depends on mptcpstream')
+                parser.filter_destination(dest=df_name + "_destinations")
+                # add_argument(
+                #     '--dest',
+                #     metavar="destination",
+                    
+                #     # see preprocess functions to see how destinations is handled when empty
+                #     # Both are already taken care of
+                #     # TODO check how it works/FilterDest
+                #     action=AppendDestination,
+                #     help='Filter flows according to their direction'
+                #     '(towards the client or the server)'
+                #     'Depends on mptcpstream')
 
 
             # TODO add as an action
             if skip_subflows:
-                parser.add_argument(
-                    '--skip', dest=df_name + "skipped_subflows", type=TcpStreamId,
-                    action=exclude_stream(df_name,),
-                    # TODO careful this won't work as a default, need a special action
-                    default=[],
-                    help=("You can type here the tcp.stream of a subflow "
-                        "not to take into account (because"
-                        "it was filtered by iptables or else)"))
+                parser.skip_subflow(dest=df_name + "skipped_subflows", df_name=df_name)
 
         return parser
 
