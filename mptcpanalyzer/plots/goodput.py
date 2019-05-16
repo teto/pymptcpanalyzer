@@ -19,7 +19,7 @@ from itertools import cycle
 from mptcpanalyzer.debug import debug_dataframe
 from mptcpanalyzer.data import classify_reinjections
 from mptcpanalyzer.plots.throughput import compute_throughput, tput_parser, plot_tput
-
+from functools import partial
 
 log = logging.getLogger(__name__)
 
@@ -82,22 +82,33 @@ class MptcpGoodput(plot.Matplotlib):
         skipped = kwargs.get("skipped_subflows", [])
         df = pcap
 
-        dfc = classify_reinjections(df)
+        # df Classified
+        df_classified = classify_reinjections(df)
 
         # then it's the same as for throughput
         log.debug("Dropping redundant packets")
-        dfc = dfc[dfc.redundant == True]
+        df_useful = df_classified[df_classified.redundant == False]
 
-        suffix = ""
+        # to prevent "ValueError: index must be monotonic" when rolling
+
+        # DataFrame.
+        pd_abstime = pd.to_datetime(df_useful[_sender("abstime")], unit="s")
+        df_useful.set_index(pd_abstime, inplace=True)
+        df_useful.sort_index(inplace=True)
+
+        suffix = " towards MPTCP %s" % (destinations[0].to_string())
+        label_suffix = ""
         if len(destinations) == 1:
             # TODO as we look at acks, it should be swapped !
-            suffix = " towards MPTCP %s" % (destinations[0].to_string())
             self.title = self.title + suffix
+        else:
+            label_suffix = suffix
 
-        for idx, subdf in df.groupby(_sender(fields), sort=False):
+        for idx, subdf in df_useful.groupby(_sender(fields), as_index=False, sort=False):
 
             # print("len= %r" % len(subdf))
             tcpdest, tcpstream, mptcpdest = idx
+            print("tcpdest= %r, tcpstream %r mptcpdest %r" % (tcpdest, tcpstream, mptcpdest))
 
             if mptcpdest not in destinations:
                 log.debug("skipping MPTCP dest %s" % tcpdest)
@@ -108,13 +119,37 @@ class MptcpGoodput(plot.Matplotlib):
                 continue
 
             # log.debug("plotting MPTCP dest %s" % tcpdest)
-            label_fmt="Subflow {tcpstream}"
-            if len(destinations) >= 2:
-                label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
+            label_fmt="Subflow {tcpstream}" + label_suffix
+            # if len(destinations) >= 2:
+            #     label_fmt = label_fmt + suffix
 
             plot_tput(
-                fig, subdf[("dack")], subdf[("abstime")], window,
-                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string()),
+                fig,
+                # subdf["dack"],
+                subdf["tcplen"],
+                subdf.index, # no need
+                window,
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
+            )
+
+        ### then plots MPTCP level throughput
+        ##################################################
+        for mptcpdest, subdf in df_useful.groupby("mptcpdest"):
+            # tcpdest, tcpstream, mptcpdest = idx
+            if mptcpdest not in destinations:
+                log.debug("Ignoring destination %s" % mptcpdest)
+                continue
+
+            log.debug("Plotting mptcp destination %s" % mptcpdest)
+
+            # add id
+            label_fmt = "MPTCP stream" + label_suffix
+            plot_tput(
+                fig,
+                subdf["tcplen"],
+                subdf["abstime"],
+                window,
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
             )
 
         print("dest: " % destinations)

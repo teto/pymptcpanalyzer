@@ -108,8 +108,10 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
 
     # pdtime = "dt_abstime"
     # TODO newdf Dataframe
-    pdtime = pd.to_datetime(time_col, unit="s")
+    # pdtime = pd.to_datetime(time_col, unit="s")
+    pdtime = time_col
 
+    # print("Abstime")
     # print(pdtime)
 
     # import re
@@ -122,15 +124,20 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     # TODO use it as index to use the rolling ?
 
     # TODO test
-    newdf = pd.DataFrame(data={"seq": seq_col},) # index=pdtime)
-    newdf["seq"] = seq_col
-    newdf.set_index(pdtime, drop=False, inplace=True)
+    newdf = seq_col
+    print("seq_col")
+    print(seq_col)
+    # newdf = pd.DataFrame(data={"seq": seq_col},) # index=pdtime)
+    newdf = pd.DataFrame(seq_col) # index=pdtime)
+    # newdf["seq"] = seq_col
+    # newdf.set_index(pdtime, drop=False, inplace=True)
 
-    # print("newdf")
-    # print(newdf)
+    print("newdf")
+    print(newdf.head())
 
     log.debug("Rolling over an interval of %s" % averaging_window_str)
-    temp = newdf["seq"].astype("float64").rolling(
+    # .astype("float64")
+    temp = newdf.rolling(
         # 3,
         # can be a number of an offset if index is datetime
         window=averaging_window_str,
@@ -141,13 +148,14 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
         # center=True
     )
 
-    newdf["tput"] = temp.apply(
-        partial(_compute_tput , averaging_window_int=averaging_window),
-        # pass the data as a Serie rather than a numpy array
-        raw=False,
-        # generates an unexpected keyword error ??!!!
-        # convert_dtype=False,
-    )
+    newdf["tput"] = temp.mean()
+    # newdf["tput"] = temp.apply(
+    #     partial(_compute_tput , averaging_window_int=averaging_window_int),
+    #     # pass the data as a Serie rather than a numpy array
+    #     raw=False,
+    #     # generates an unexpected keyword error ??!!!
+    #     # convert_dtype=False,
+    # )
 
     return newdf
 
@@ -351,6 +359,10 @@ class MptcpThroughput(plot.Matplotlib):
             suffix = " towards MPTCP %s" % (destinations[0].to_string())
             self.title = self.title + suffix
 
+        pd_abstime = pd.to_datetime(df[_sender("abstime")], unit="s")
+        df.set_index(pd_abstime, inplace=True)
+        df.sort_index(inplace=True)
+
         ### plot subflows first...
         ##################################################
         fields = ["tcpstream", "tcpdest", "mptcpdest"]
@@ -368,7 +380,10 @@ class MptcpThroughput(plot.Matplotlib):
 
             # basically the same as for tcp
             plot_tput(
-                fig, subdf["tcpack"], subdf["abstime"], window,
+                fig,
+                subdf["tcplen"],
+                subdf.index, # subdf["abstime"],
+                window,
                 label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
             )
 
@@ -383,7 +398,7 @@ class MptcpThroughput(plot.Matplotlib):
             log.debug("Plotting mptcp destination %s" % mptcpdest)
 
             plot_tput(
-                fig, subdf["dack"], subdf["abstime"], window,
+                fig, subdf["tcplen"], subdf["abstime"], window,
                 label="MPTCP towards %s" % mptcpdest
             )
 
