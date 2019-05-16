@@ -22,20 +22,6 @@ def tput_parser(parser):
         type=int, default=1,
         help="Averaging window (in seconds), for instance '1'"
     )
-    # boxcar
-    # triang
-    # blackman
-    # hamming
-    # bartlett
-    # parzen
-    # bohman
-    # blackmanharris
-    # nuttall
-    # barthann
-    # kaiser (needs beta)
-    # gaussian (needs std)
-    # general_gaussian (needs power, width)
-    # slepian (needs width).
 
     parser.add_argument("--window-type", action="store",
         # as listed in pandas
@@ -194,11 +180,11 @@ class TcpThroughput(plot.Matplotlib):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(
-                *args,
-                title="TCP throughput",
-                x_label="Time (s)",
-                **kwargs
-            )
+            *args,
+            title="TCP throughput",
+            x_label="Time (s)",
+            **kwargs
+        )
 
     def default_parser(self, *args, **kwargs):
 
@@ -220,6 +206,7 @@ class TcpThroughput(plot.Matplotlib):
 
         final = tput_parser(final)
         return final
+
 
     def plot(self, pcap, pcapstream, **kwargs):
         """
@@ -338,6 +325,7 @@ class MptcpThroughput(plot.Matplotlib):
 
         # passed window 3 is not compatible with a datetimelike index
         final = tput_parser(final)
+        final.add_argument('--skip-mptcp', action="store_true", default=False, help="")
         return final
 
 
@@ -366,6 +354,11 @@ class MptcpThroughput(plot.Matplotlib):
         ### plot subflows first...
         ##################################################
         fields = ["tcpstream", "tcpdest", "mptcpdest"]
+
+        label_fmt="Subflow {tcpstream}"
+        if len(destinations) >= 2:
+            label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
+
         for idx, subdf in df.groupby(fields, sort=False):
             tcpstream, tcpdest, mptcpdest = idx
             if mptcpdest not in destinations:
@@ -374,9 +367,6 @@ class MptcpThroughput(plot.Matplotlib):
 
             log.debug("Plotting tcp destination %s" % tcpdest)
 
-            label_fmt="Subflow {tcpstream}"
-            if len(destinations) >= 2:
-                label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
 
             # basically the same as for tcp
             plot_tput(
@@ -389,7 +379,11 @@ class MptcpThroughput(plot.Matplotlib):
 
         ### then plots MPTCP level throughput
         ##################################################
-        for mptcpdest, subdf in df.groupby("mptcpdest"):
+        label_fmt = "MPTCP"
+        if len(destinations) >= 2:
+            label_fmt = label_fmt + " towards {mptcpdest}"
+
+        for mptcpdest, subdf in df.groupby(_sender("mptcpdest")):
             # tcpdest, tcpstream, mptcpdest = idx
             if mptcpdest not in destinations:
                 log.debug("Ignoring destination %s" % mptcpdest)
@@ -398,8 +392,11 @@ class MptcpThroughput(plot.Matplotlib):
             log.debug("Plotting mptcp destination %s" % mptcpdest)
 
             plot_tput(
-                fig, subdf["tcplen"], subdf["abstime"], window,
-                label="MPTCP towards %s" % mptcpdest
+                fig,
+                subdf["tcplen"],
+                subdf["abstime"],
+                window,
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
             )
 
         return fig

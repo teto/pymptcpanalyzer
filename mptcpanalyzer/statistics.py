@@ -154,12 +154,13 @@ def mptcp_compute_throughput(
     # -1 because of syn
     dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dsn")
 
+    # TODO use fstring
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
     log.debug(msg.format(dsn_range, dsn_max, dsn_min))
 
     _col = _sender if merged_df else lambda x: x
 
-    print("test _sender %s" % _col("toto"))
+    # print("test _sender %s" % _col("toto"))
     # Could groupby destination as well
     groups = df.groupby(_col('tcpstream'))
 

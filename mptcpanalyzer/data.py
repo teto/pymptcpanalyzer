@@ -156,6 +156,7 @@ def load_merged_streams_into_pandas(
     pcap2: str,
     streamid1: int,
     streamid2: int,
+    # TODO changed to protocol
     mptcp: bool,
     tshark_config: TsharkConfig,
     clock_offset1: int = 0,
@@ -172,12 +173,13 @@ def load_merged_streams_into_pandas(
     Returns
         a dataframe with columns... owd ?
     """
-    log.debug("Asked to load merged tcp streams %d and %d from pcaps %s and %s"
-        % (streamid1, streamid2, pcap1, pcap2)
+    # TODO use fstring
+    protocolStr = "mptcp" if mptcp else "tcp"
+    log.debug(f"Asked to load {protocolStr} merged streams {streamid1} and "
+        "{streamid2} from pcaps {pcap1} and {pcap2}"
     )
 
     cache = mp.get_cache()
-    protocolStr = "mptcp" if mptcp else "tcp"
 
     cacheid = cache.cacheuid("merged", [ getrealpath(pcap1), getrealpath(pcap2),],
         protocolStr + "_" + str(streamid1) + "_" + str(streamid2) + ".csv")
@@ -295,7 +297,10 @@ def load_merged_streams_into_pandas(
                     converters=converters,
                 )
                 # at this stage, destinatiosn are nan
-                debug_dataframe(merged_df, "Merged dataframe", )
+
+                debug_fields = ["abstime", "tcpstream", "tcpdest", "mptcpdest"]
+                debug_dataframe(merged_df, "Merged dataframe",
+                    usecols=(_first(debug_fields) + _second(debug_fields)))
 
                 # workaround bug https://github.com/pandas-dev/pandas/issues/25448
                 def _convert_to_enums():
@@ -318,6 +323,7 @@ def load_merged_streams_into_pandas(
             # raise mp.MpTcpException("Implement mptcp merge")
 
             res = convert_to_sender_receiver(merged_df)
+            # fill MPTCP dest ?
         else:
             # tcp
             res = convert_to_sender_receiver(merged_df)
@@ -511,11 +517,11 @@ def convert_to_sender_receiver(
 
 
             # total = pd.concat([total, subdf], ignore_index=True)
+        log.debug(f"Comparing {min_h1} (h1) with {min_h2} (h2)")
 
-        assert min_h1 != min_h2, ("Same sending and receiving time."
+        assert min_h1 != min_h2, (f"Same sending {min_h1} and receiving time {min_h2}."
             "Either the clock is not precise enough or it's a bug"
             " (more likely)")
-        log.debug("Comparing %f (h1) with %f (h2)" % (min_h1, min_h2))
         if min_h1 < min_h2:
             log.debug("Looks like h1 is the tcp client")
             # suffixes = { HOST1_SUFFIX: SENDER_SUFFIX, HOST2_SUFFIX: RECEIVER_SUFFIX }
@@ -542,12 +548,16 @@ def convert_to_sender_receiver(
 
             log.debug("total df size = %d" % len(total))
             with pd.option_context('precision', 20):
-                print(tdf[ _first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"])] )
+                debug_cols = _first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"])
+                log.log(mp.TRACE, "before rename \n%s" % tdf[ debug_cols] )
                 tdf = tdf.rename(columns=rename_func, copy=True, inplace=False)
-                print(tdf[ _sender(["abstime", "tcpdest"]) + _receiver(["abstime", "tcpdest"]) ])
+
+                debug_cols = _sender(["abstime", "tcpdest"]) + _receiver(["abstime", "tcpdest"])
+                log.log(mp.TRACE, "After rename \n%s" % tdf[debug_cols] )
+                # print(tdf[debug_cols])
                 # debug_dataframe(tdf, "temporary dataframe")
                 total = pd.concat([total, tdf], ignore_index=True, sort=False, )
-                print("total df size = %d" % len(total))
+                # print("total df size = %d" % len(total))
 
         # subdf[ _first("tcpdest") == ConnectionRole.Client] .rename(columns=_rename_cols, inplace=True)
         # print(subdf.columns)
@@ -615,17 +625,21 @@ def merge_tcp_dataframes_known_streams(
         res[_second('tcpdest')][:] = tcpdest
 
         # generate_mptcp_direction_query
+        # TODO this is not always reached ?
+        log.info("con of TYPE %r" % main_connection)
         if isinstance(main_connection, MpTcpSubflow):
 
             log.debug("This is a subflow, setting mptcp destinations...")
             mptcpdest = main_connection.mptcp_dest_from_tcpdest(tcpdest)
+            log.debug("Setting mptcpdest to {mptcpdest}")
             res[_first('mptcpdest')][:] = mptcpdest
             res[_second('mptcpdest')][:] = mptcpdest
 
             log.debug("Setting mptcpdest to %s" % mptcpdest)
 
         total = pd.concat([res, total])
-        debug_dataframe(total, "concatenated df", usecols=_first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"]))
+        debugcols = _first(["abstime", "tcpdest", "mptcpdest"]) + _second(["abstime", "tcpdest", "mptcpdest"])
+        debug_dataframe(total, "concatenated df", usecols=debugcols)
 
     log.info("Resulting merged tcp dataframe of size {} ({} mapped packets vs {} unmapped)"
             "with input dataframes of size {} and {}.".format(
@@ -662,11 +676,11 @@ def merge_mptcp_dataframes(
     if len(mappings) <= 0:
         return None, "Could not find a match in the second pcap for tcpstream %d" % df1_mptcpstream
 
-    print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
+    # print("len(df1)=", len(df1), " len(rawdf2)=", len(df2))
     mapped_connection = mappings[0].mapped
     log.debug("Found mappings %s" % mappings)
     for mapping in mappings:
-        print("Con: %s" % (mapping.mapped))
+        log.debug("Con: %s" % (mapping.mapped))
 
     return merge_mptcp_dataframes_known_streams(
         (df1, main_connection),
@@ -691,12 +705,14 @@ def merge_mptcp_dataframes_known_streams(
     df1, main_connection = con1
     df2, mapped_connection = con2
 
-    log.info("Merging %s with %s" % (main_connection, mapped_connection,))
+    log.info("Merging mptcp %s with %s" % (main_connection, mapped_connection,))
 
+    df1 = main_connection.fill_dest(df1)
+    print(df1["mptcpdest"].head())
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
 
     # todo should be inplace
-    df_total = None  # type: pd.DataFrame
+    df_total = pd.DataFrame()
     for sf, mapped_sf in mapping.subflow_mappings:
 
         df_temp = merge_tcp_dataframes_known_streams(
@@ -1055,6 +1071,7 @@ def map_mptcp_connection(
     return results
 
 
+# TODO pass a verbosity level/some stats
 def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
     look at reinjections on the receiver side, see which one is first
@@ -1130,8 +1147,11 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
             df_all.loc[reinj_pktid, "reinj_delta"] = reinj_delta
 
             if reinj_delta < 0:
-                # print("GOT A MATCH")
+                # print("GOT A failed reinjection")
                 df_all.loc[df_all[_sender("packetid")] == reinjection.packetid, "redundant"] = True
                 #TODO set reinj_delta for reinjection.packetid
+            else:
+                # print("GOT a successful reinjection")
+                pass
 
     return df_all

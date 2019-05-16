@@ -31,7 +31,8 @@ def debug_dataframe(
         sdf = df
         if usecols:
             sdf = df[usecols]
-        log.debug(sdf.head(nrows, ))
+        print(sdf.head(nrows, ))
+        # log.debug(sdf.head(nrows, ))
 
 # https://stackoverflow.com/questions/52686559/read-csv-get-the-line-where-exception-occured
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):

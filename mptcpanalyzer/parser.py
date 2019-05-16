@@ -7,7 +7,7 @@ from typing import Iterable, List, Dict, Callable, Optional, Any, Union
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
-            CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId)
+            CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId, Protocol)
 import mptcpanalyzer as mp
 from functools import partial
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -144,9 +144,10 @@ def with_argparser_test(
             try:
                 myNs = argparse.Namespace()
                 if preload_pcap:
-                    myNs._dataframes = {"pcap": cmd2_instance.data}
+                    myNs._dataframes = {"pcap": cmd2_instance.data.copy()}
 
                 args, unknown = argparser.parse_known_args(parsed_arglist, myNs)
+
                 # print("namespace: %r" % args)
             except SystemExit:
                 return
@@ -246,7 +247,7 @@ class MergePcaps(DataframeAction):
     def __init__(
         self,
         name: str,
-        protocol: mp.Protocol,
+        protocol: Protocol,
         loader = TsharkConfig(),
         **kwargs
         ) -> None:
@@ -280,7 +281,7 @@ class MergePcaps(DataframeAction):
             pcap2,
             pcap1stream,
             pcap2stream,
-            self.protocol == mp.Protocol.MPTCP,
+            self.protocol == Protocol.MPTCP,
             self.loader,
         )
 
@@ -431,7 +432,7 @@ class FilterStream(DataframeAction):
         # TODO build dest automatically
 
 
-def gen_bicap_parser(protocol, dest=False):
+def gen_bicap_parser(protocol: mp.Protocol, dest=False):
     """
     protocol in ["mptcp", "tcp"]
     """
@@ -476,6 +477,14 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
                 # TODO here we should filter the destinations
         else:
             log.debug("No dataframe in namespace")
+
+        # dataframes = dargs.pop("_dataframes", {})
+
+        # # TODO move to parser
+        # for pcap, df in dataframes.items():
+        #     res = dargs.pop(pcap, None)
+        #     if res:
+        #         log.debug("Popping %s to prevent a duplicate with the one from _dataframes" % pcap)
 
         # postprocessing for filtering destination
 
@@ -531,6 +540,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
 
         proto_str = protocol.to_string()
         params = {
+                # retain stream 
             'action': "store",
             'help': proto_str + '.stream wireshark id'
         }
@@ -618,22 +628,7 @@ def gen_pcap_parser(
                 parser.filter_stream(df_name + 'stream', protocol=protocol, action=retain_stream(df_name,))
 
             if bitfield & PreprocessingActions.FilterDestination or direction :
-                # this one is full of tricks: we want the object to be of the Enum type
-                # but we want to display the user readable version
-                # so we subclass list to convert the Enum to str value first.
-                # TODO setup our own custom actions to get rid of our hacks
                 parser.filter_destination(dest=df_name + "_destinations")
-                # add_argument(
-                #     '--dest',
-                #     metavar="destination",
-                    
-                #     # see preprocess functions to see how destinations is handled when empty
-                #     # Both are already taken care of
-                #     # TODO check how it works/FilterDest
-                #     action=AppendDestination,
-                #     help='Filter flows according to their direction'
-                #     '(towards the client or the server)'
-                #     'Depends on mptcpstream')
 
 
             # TODO add as an action

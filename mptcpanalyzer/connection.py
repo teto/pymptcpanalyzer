@@ -173,8 +173,8 @@ class TcpConnection:
             self.server_port, self.client_port,
         )
 
-    def __repr__(self):
-        return self.__str__()
+    # def __repr__(self):
+    #     return self.__str__()
 
     # TODO provide a default format
     def __format__(self, format_spec="ps"):
@@ -186,17 +186,17 @@ class TcpConnection:
         b => bidirectional
         """
         fmt = ""
+        # print ( "format_spec = ", format_spec)
         if "p" in format_spec:
             fmt = "tcp.stream {s.tcpstreamid:.0f}: "
 
         client_fmt = "{s.tcpclient_ip}:{s.client_port:0>5.0f}"
         server_fmt = "{s.tcpserver_ip}:{s.server_port:0>5.0f}"
-        dest = ConnectionRoles.Client
-        if dest == ConnectionRoles.Client:
+        if "c" in format_spec:
             fmt = fmt + server_fmt + " -> " + client_fmt
         else:
             arrow = " -> "
-            if dest is None:
+            if "b" in format_spec:
                 arrow = " <-> "
             fmt = fmt + client_fmt + arrow + server_fmt
 
@@ -205,7 +205,7 @@ class TcpConnection:
     def __str__(self):
         # :>5d
         # TODO should be converted to int instead, would spare some memory
-        return self.__format__()
+        return self.__format__("ps")
 
 
 @dataclass
@@ -262,6 +262,9 @@ class MpTcpSubflow(TcpConnection):
         res = super().__str__()
         res += " (mptcpdest: %s)" % self.mptcpdest
         return res
+
+    def __repr__(self):
+        return "MpTcpSubflow" + self.__str__()
 
     def __str__(self):
         """ Plot destination on top of it """
@@ -323,18 +326,17 @@ class MpTcpConnection:
         return result
 
 
-    # never used ?
     def fill_dest(self, df) -> pd.DataFrame:
         '''
-        TODO it should set it also for subflows as well
+        set 
         '''
+        log.debug("Filling mptcp destinations")
 
         for dest in ConnectionRoles:
 
             log.log(mp.TRACE, "Looking at mptcp destination %s" % dest)
             q = self.generate_direction_query(dest)
             df_dest = df.query(q, engine="python")
-            # print("mptcpdest %r" % dest)
             df.loc[df_dest.index, 'mptcpdest'] = dest
 
         for sf in self.subflows():
@@ -386,12 +388,9 @@ class MpTcpConnection:
         # TODO now add a check on abstime
         if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
             log.error("Clocks are not synchronized correctly")
-            # print("")
 
-        # print("line with key:")
         # print("client key = %r" % client_key)
         # print("server key = %r" % server_key)
-        # print(ds.iloc[res[1], ])
         log.debug("Server token = %r" % server_token)
         assert math.isfinite(int(server_token))
         # assert math.isnan(server_token) == False
@@ -548,6 +547,6 @@ class TcpMapping:
 class MpTcpMapping:
     mapped: MpTcpConnection
     score: float
-    subflow_mappings: List[Tuple[MpTcpSubflow,TcpMapping]]
+    subflow_mappings: List[Tuple[MpTcpSubflow, TcpMapping]]
 
 # MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])

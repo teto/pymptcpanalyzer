@@ -102,6 +102,7 @@ class TcpOneWayDelay(plot.Matplotlib):
         fig = plt.figure()
         axes = fig.gca()
         res = pcap
+        destinations = kwargs.get("pcap_destinations")
         res[_sender("abstime")] = pd.to_datetime(res[_sender("abstime")], unit="s")
 
 
@@ -114,7 +115,7 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         df = res
 
-        print("DESTINATION=%r" % kwargs.get("pcapdestinations", []))
+        print("DESTINATION=%r" % destinations)
         # df= df[df.owd > 0.010]
 
         fields = ["tcpdest", "tcpstream", ]
@@ -129,7 +130,9 @@ class TcpOneWayDelay(plot.Matplotlib):
         # axes.set_xlabel("Time (s)")
         # axes.set_ylabel("One Way Delay (s)")
 
-        self.title = "One Way Delays for {} streams {} <-> {} {dest}".format(
+        self.title = ("One Way Delays for {}"
+            # "streams {} <-> {} {dest}"
+            ).format(
             protocol,
             kwargs.get("pcap1stream"),
             kwargs.get("pcap2stream"),
@@ -168,19 +171,19 @@ class TcpOneWayDelay(plot.Matplotlib):
                 label=label_fmt.format(tcpstream=tcpstream, tcpdest=tcpdest),
             )
 
-    def plot_mptcp(self, df, fig, fields, **kwargs):
+    def plot_mptcp(self, df, fig, fields, pcap_destinations, **kwargs):
         axes = fig.gca()
         fields = ["tcpdest", "tcpstream", "mptcpdest"]
+        destinations = pcap_destinations
 
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
             tcpdest, tcpstream, mptcpdest = idx
+            if mptcpdest not in destinations:
+                log.debug("Ignoring destination %s" % mptcpdest)
+                continue
 
-            # if protocol == tcpdest not in kwargs.destinations:
-            #     log.debug("skipping TCP dest %s" % tcpdest)
-            #     continue
-
-
+            label_fmt = ""
             pplot = subdf.plot(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
