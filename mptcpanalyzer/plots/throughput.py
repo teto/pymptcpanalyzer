@@ -52,6 +52,29 @@ def tput_parser(parser):
     )
     return parser
 
+
+# def _compute_tput(x, ):
+#     """
+#     Compares ack
+#     Not an exact one, does not account for TCP sack for instance
+#     """
+#     # print("%s:\n%r" % (type(x), x))
+#     # so now it gets a series
+
+#     # print("max %f min %f average %d" % (x.max(), x.min(), averaging_window_int))
+#     return (x.max() - x.min())/averaging_window_int
+
+def _compute_tput(x, averaging_window_int):
+    """
+    Not an exact one, does not account for TCP sack for instance
+    """
+    # print("%s:\n%r" % (type(x), x))
+    # so now it gets a series
+
+    # print("max %f min %f average %d" % (x.max(), x.min(), averaging_window_int))
+    return x.sum() /averaging_window_int
+    # return (x.max() - x.min())/averaging_window_int
+
 def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     """
     Args:
@@ -97,15 +120,6 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     averaging_window_int = averaging_window
     averaging_window_str = "%ss" % averaging_window
     # TODO use it as index to use the rolling ?
-    def _compute_tput(x, ):
-        """
-        Not an exact one, does not account for TCP sack for instance
-        """
-        # print("%s:\n%r" % (type(x), x))
-        # so now it gets a series
-
-        # print("max %f min %f average %d" % (x.max(), x.min(), averaging_window_int))
-        return (x.max() - x.min())/averaging_window_int
 
     # TODO test
     newdf = pd.DataFrame(data={"seq": seq_col},) # index=pdtime)
@@ -128,7 +142,7 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     )
 
     newdf["tput"] = temp.apply(
-        _compute_tput,
+        partial(_compute_tput , averaging_window_int=averaging_window),
         # pass the data as a Serie rather than a numpy array
         raw=False,
         # generates an unexpected keyword error ??!!!
@@ -229,19 +243,24 @@ class TcpThroughput(plot.Matplotlib):
 
             label_fmt = "TCP stream {stream}"
             if len(destinations) >= 2:
-                label_fmt = label_fmt + " towards TCP {dest}"
+                label_fmt = label_fmt + " towards {dest}"
 
             plot_tput(
-                fig, subdf["tcpack"], subdf["abstime"],
+                fig,
+                subdf["tcpseq"],
+                # subdf["tcpack"],
+                subdf["abstime"],
                 window,
-                label=label_fmt.format(stream=pcapstream, dest=dest)
+                label=label_fmt.format(stream=pcapstream, dest=mp.ConnectionRoles(dest).to_string())
             )
 
-        # TODO plot on one y the throughput; on the other the goodput
         self.y_label = "Throughput (bytes/second)"
 
-        # TODO pass con towards a direction ?
-        self.title = "TCP Throughput (Average window of %s) for con:\n%s" % (window, con)
+        # TODO fix connection towards a direction ?
+        self.title = "TCP Throughput (Averaging window of {window}) for:\n{con:c<->s}".format(
+            window=window,
+            con=con
+        )
         # self.title = "TCP Throughput (Average window of %s)" % window
 
         # handles, labels = axes.get_legend_handles_labels()
