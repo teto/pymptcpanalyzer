@@ -9,15 +9,12 @@ from mptcpanalyzer.statistics import mptcp_compute_throughput
 from mptcpanalyzer.data import load_merged_streams_into_pandas
 from mptcpanalyzer.parser import gen_pcap_parser, MpTcpAnalyzerParser
 from mptcpanalyzer.debug import debug_dataframe
+from functools import partial
 import collections
 from typing import List
 import logging
 
 log = logging.getLogger(__name__)
-
-
-def compute_goodput(df, averaging_window):
-    raise NotImplemented("Please implement me")
 
 
 def tput_parser(parser):
@@ -42,7 +39,10 @@ def tput_parser(parser):
 
     parser.add_argument("--window-type", action="store",
         # as listed in pandas
-        choices= [ "boxcar", "triang", "blackman", "hamming", "bartlett", "parzen", "bohman"],
+        choices=[
+            "boxcar", "triang", "blackman", "hamming", "bartlett", "parzen",
+            "bohman", "blackmanharris", "nuttall", "barthann"
+        ],
         default="boxcar",
         help="Windowing algorithm"
     )
@@ -218,6 +218,8 @@ class TcpThroughput(plot.Matplotlib):
         df = con.fill_dest(df)
 
         debug_dataframe(df, "plotting throughput" )
+
+        # TODO at some point here, we lose the dest type :'(
         for dest, subdf in df.groupby("tcpdest"):
             if dest not in destinations:
                 log.debug("Ignoring destination %s" % dest)

@@ -77,7 +77,7 @@ Run the `checkhealth` command in case of problems.
 For example, we can load an mptcp pcap (I made one available on [wireshark wiki](https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository, in the _examples_ folder).
 
 Run  `$ mptcpanalyzer --load examples/iperf-mptcp-0-0.pcap`. The script will try to generate
-a csv file, it can take a few minutes depending on the computer/pcap until the promt shows up.
+a csv file, it can take a few minutes depending on the computer/pcap until the prompt shows up.
 Type `?` to list available commands (and their aliases). You have for instance:
 - `lc` (list connections)
 - `ls` (list subflows)
