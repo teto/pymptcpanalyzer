@@ -20,10 +20,21 @@ let
     #   doCheck = false;
     #   installCheckPhase = false;
     # });
+    cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: {
+        src = fetchgit {
+          url=https://github.com/python-cmd2/cmd2.git;
+          rev = "35d25d5aa33324fa0fa3ce74f5af48d246fc5361";
+          sha256 = "0ig3c3av4vkkzcnv5m9nq0abf11kmc33djihxzfs5wbjisgdl0gi";
+          leaveDotGit = true;
+          deepClone = true;
+        };
+        doCheck = false;
+    });
 
   # TODO override pandas
   prog = (mptcpanalyzer.override({
     # inherit pandas;
+    # inherit cmd2;
   }) ).overridePythonAttrs (oa: {
 
     nativeBuildInputs = oa.propagatedBuildInputs ++ [
