@@ -141,6 +141,14 @@ def experimental(f):
     return wrapped
 
 
+# introduced in cmd2 0.9.13
+def provide_namespace(cmd2_instance):
+
+    myNs = argparse.Namespace()
+    myNs._dataframes = {"pcap": cmd2_instance.data.copy()}
+    return myNs
+
+
 class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     """
     mptcpanalyzer can run into 3 modes:
@@ -544,6 +552,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # TODO fix that
     @is_loaded # type: ignore
     @with_argparser_test(summary_parser, preload_pcap=True)
+    # @with_argparser(summary_parser, ns_provider=provide_namespace)
     def do_tcp_summary(self, args, unknown):
         self.poutput("Summary of TCP connection " )
         df = self.data

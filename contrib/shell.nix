@@ -21,14 +21,20 @@ let
     #   installCheckPhase = false;
     # });
     cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: {
-        src = fetchgit {
-          url=https://github.com/python-cmd2/cmd2.git;
-          rev = "35d25d5aa33324fa0fa3ce74f5af48d246fc5361";
-          sha256 = "0ig3c3av4vkkzcnv5m9nq0abf11kmc33djihxzfs5wbjisgdl0gi";
-          leaveDotGit = true;
-          deepClone = true;
+      # src = fetchgit
+      src = builtins.fetchGit {
+          # url=https://github.com/python-cmd2/cmd2.git;
+          url=https://github.com/teto/cmd2.git;
+          # rev = "c0545b1c939f4aeb281e498a834e59ae5e38ce48";
+          ref = "test_cmd2";
+          # sha256 = "1i08jlc95al6kna81nl3fh3ka143mz2q967hd08dvjm952w6j5mx";
+          # leaveDotGit = true;
+          # deepClone = true;
         };
         doCheck = false;
+        SETUPTOOLS_SCM_PRETEND_VERSION="0.9.13";
+        # for scm-tools
+        # buildInputs = (oa.buildInputs or []) + [ git ];
     });
 
   # TODO override pandas
