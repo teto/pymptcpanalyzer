@@ -1,0 +1,24 @@
+[34mReady>[39m[49mload_pcap examples/server_2_filtered.pcapng
+Loading examples\/server_2_filtered.pcapng
+server_2_filtered.pcapng> tcp_summary 0 Server
+Summary of TCP connection 
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=308, tcp_byte_range=308, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=460, tcp_byte_range=456, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+server_2_filtered.pcapng> tcp_summary 0 Client
+Summary of TCP connection 
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=308, tcp_byte_range=308, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=460, tcp_byte_range=456, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+server_2_filtered.pcapng> list_tcp_connections
+1 tcp connection(s)
+tcp.stream 0: 10.0.0.1:33782  -> 10.0.0.2:05201 
+server_2_filtered.pcapng> map_tcp_connection examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 1
+Trying to map tcp.stream 1: 10.0.0.1:33784  -> 10.0.0.2:05201 
+8 mapping(s) found
+TcpMapping(mapped=tcp.stream 1: 10.0.0.1:33784  -> 10.0.0.2:05201 , score=inf)
+TcpMapping(mapped=tcp.stream 0: 10.0.0.1:33782  -> 10.0.0.2:05201 , score=30)
+TcpMapping(mapped=tcp.stream 2: 10.0.0.1:54595  -> 11.0.0.2:05201 , score=20)
+TcpMapping(mapped=tcp.stream 3: 10.0.0.1:57491  -> 11.0.0.2:05201 , score=20)
+TcpMapping(mapped=tcp.stream 6: 11.0.0.1:35589  -> 10.0.0.2:05201 , score=20)
+TcpMapping(mapped=tcp.stream 7: 11.0.0.1:50007  -> 10.0.0.2:05201 , score=20)
+TcpMapping(mapped=tcp.stream 4: 11.0.0.2:59555  -> 11.0.0.1:05201 , score=10)
+TcpMapping(mapped=tcp.stream 5: 11.0.0.1:50077  -> 11.0.0.2:05201 , score=10)

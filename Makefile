@@ -29,12 +29,9 @@ gen_transcripts:
 tests:
 	# Add -b to print standard output
 	# python -munittest tests/cache_test.py -b
-	# tests/run_transcripts.sh
+	tests/run_transcripts.sh
 	# mptcpanalyzer --test tests/summary_server_2_filtered.txt
-	mptcpanalyzer --test tests/trans_tcp.txt
-	mptcpanalyzer --test tests/trans_mptcp.txt
-	mptcpanalyzer --test tests/trans_tcp_plots.txt
-	mptcpanalyzer --test tests/trans_mptcp_plots.txt
+	# tests/run_tests.sh
 
 develop:
 	python setup.py develop --user
