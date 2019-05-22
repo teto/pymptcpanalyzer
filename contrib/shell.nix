@@ -33,21 +33,20 @@ let
         };
         doCheck = false;
         SETUPTOOLS_SCM_PRETEND_VERSION="0.9.13";
-        # for scm-tools
-        # buildInputs = (oa.buildInputs or []) + [ git ];
     });
 
   # TODO override pandas
   prog = (mptcpanalyzer.override({
     # inherit pandas;
-    # inherit cmd2;
+    inherit cmd2;
   }) ).overridePythonAttrs (oa: {
 
-    nativeBuildInputs = oa.propagatedBuildInputs ++ [
-      # to publish on pypi
-      pkgs.python3Packages.twine
-      # is not added to PATH ?!
-      my_nvim
+    # nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
+    #   # to publish on pypi
+    #   # pkgs.python3Packages.twine
+    # ];
+    propagatedBuildInputs  = (oa.propagatedBuildInputs  or []) ++ [
+      my_nvim.config.python3Env
     ];
 
     src = ../.;
@@ -61,7 +60,9 @@ let
 
   });
 
-  my_nvim = genNeovim  [ mptcpanalyzer ] {};
+  my_nvim = genNeovim  [ mptcpanalyzer ] {
+    extraPython3Packages = ps: with ps;  [ python-language-server ];
+  };
 
 in
 # TODO generate our own nvim
