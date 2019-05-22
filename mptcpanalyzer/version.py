@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # there doesn't seem to be a standard way but this seems to be the best

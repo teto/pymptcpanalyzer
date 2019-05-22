@@ -26,7 +26,7 @@ let
           # url=https://github.com/python-cmd2/cmd2.git;
           url=https://github.com/teto/cmd2.git;
           # rev = "c0545b1c939f4aeb281e498a834e59ae5e38ce48";
-          ref = "test_cmd2";
+          ref = "master";
           # sha256 = "1i08jlc95al6kna81nl3fh3ka143mz2q967hd08dvjm952w6j5mx";
           # leaveDotGit = true;
           # deepClone = true;

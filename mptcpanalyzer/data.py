@@ -2,15 +2,14 @@ import logging
 import os
 import pandas as pd
 import numpy as np
-from mptcpanalyzer.tshark import TsharkConfig, Field, _convert_timestamp
+from mptcpanalyzer.tshark import TsharkConfig, Field
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, \
         MpTcpMapping, TcpMapping, swap_role, TcpStreamId, MpTcpStreamId
 import mptcpanalyzer as mp
 from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender,
 HOST1_SUFFIX, HOST2_SUFFIX,
-_first, _second,
-suffix_fields, get_config, get_cache, ConnectionRoles)
-from typing import List, Any, Tuple, Dict, Callable, Collection, Union
+_first, _second, ConnectionRoles)
+from typing import List, Any, Tuple, Dict, Callable, Union
 import math
 import tempfile
 import pprint
@@ -36,7 +35,7 @@ def _convert_role(x):
     """
     Workaround https://github.com/pandas-dev/pandas/pull/20826
     """
-    log.log(mp.TRACE, "converting [%r] into role" % x)
+    log.log(mp.TRACE, "converting [%r] into role", x)
     return ConnectionRoles(x)
 
 def ignore(f1, f2):
@@ -127,7 +126,7 @@ class PacketMappingMode(Enum):
 def check_df(f, checks):
     '''
     decorator checking that dataframe fulfill some conditions
-    first argument (dataframe) 
+    first argument (dataframe)
     '''
     # TODO
     @functools.wraps(f)
@@ -163,7 +162,7 @@ def load_merged_streams_into_pandas(
     clock_offset2: int = 0,
     mapping_mode: PacketMappingMode = PacketMappingMode.HASH,
     **extra
-    ):
+):
     """
     Arguments:
         protocol: mptcp or tcp
@@ -173,7 +172,6 @@ def load_merged_streams_into_pandas(
     Returns
         a dataframe with columns... owd ?
     """
-    # TODO use fstring
     protocolStr = "mptcp" if mptcp else "tcp"
     log.debug(f"Asked to load {protocolStr} merged streams {streamid1} and "
         "{streamid2} from pcaps {pcap1} and {pcap2}"
@@ -181,7 +179,7 @@ def load_merged_streams_into_pandas(
 
     cache = mp.get_cache()
 
-    cacheid = cache.cacheuid("merged", [ getrealpath(pcap1), getrealpath(pcap2),],
+    cacheid = cache.cacheuid("merged", [getrealpath(pcap1), getrealpath(pcap2)],
         protocolStr + "_" + str(streamid1) + "_" + str(streamid2) + ".csv")
 
     # if we can't load that file from cache
@@ -1071,6 +1069,13 @@ def map_mptcp_connection(
     return results
 
 
+def already_classified(df):
+    """
+
+    """
+    if "redundant" not in df.columns:
+        return False
+
 # TODO pass a verbosity level/some stats
 def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
@@ -1093,7 +1098,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
     for destination in ConnectionRoles:
 
-        log.debug("Looking at mptcp destination %r" % destination)
+        log.debug("Looking at mptcp destination %r", destination)
         sender_df = df[df.mptcpdest == destination]
 
         # print(sender_df[ sender_df.reinjected_in.notna() ][["packetid", "reinjected_in"]])
@@ -1104,7 +1109,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         # debug_dataframe(sender_df, "reinjections", usecols=["reinjection_of"])
         reinjected_packets = sender_df.dropna(axis='index', subset=[_sender("reinjection_of")])
 
-        log.debug("%d reinjected packets" % len(reinjected_packets))
+        log.debug("%d reinjected packets", reinjected_packets)
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
         #     print(reinjected_packets[
         #         _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])
@@ -1122,10 +1127,9 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
             # useless_reinjections = getattr(reinjection, _receiver("reinjected_in"), [])
 
             # if it was correctly mapped
-            # TODO why reinjection._merge doesn't exist ?
             if reinjection.merge_status != "both":
-                # TODO count missed classifications ?
-                log.log(mp.TRACE, "reinjection %d could not be mapped, giving up..." % (reinjection.packetid))
+                log.log(mp.TRACE, "reinjection %d could not be mapped, giving up...",
+                        reinjection.packetid)
                 continue
 
             # print("%r" % reinjection.reinjection_of)
@@ -1136,7 +1140,8 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             if original_packet.merge_status != "both":
                 # TODO count missed classifications ?
-                log.log(mp.TRACE, "Original packet %d could not be mapped, giving up..." % (original_packet.packetid))
+                log.log(mp.TRACE, "Original packet %d could not be mapped, giving up...",
+                        original_packet.packetid)
                 continue
 
             orig_arrival = getattr(original_packet, _receiver("reltime"))

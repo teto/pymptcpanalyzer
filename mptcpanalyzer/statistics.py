@@ -35,17 +35,11 @@ class TcpUnidirectionalStats:
     ''' application data = goodput = useful bytes '''
     mptcp_application_bytes: int = None
 
-    # TODO convert to property ?
     throughput_contribution: float = None
-    # throughput_contribution: int = field(default=None, metadata={'unit': '%'})
     goodput_contribution: float = None  # %
 
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     tcp_goodput: int = None # ex tcp_goodput
-
-    # @property
-    # def throughput_contribution(self):
-    #     return self.througput_bytes
 
     @property
     def mptcp_goodput_bytes(self):
@@ -224,10 +218,6 @@ def mptcp_compute_throughput(
             # print(non_redundant_pkts)
             sf.mptcp_application_bytes = non_redundant_pkts.sum()
             # print("sf.mptcp_application_bytes" , sf.mptcp_application_bytes)
-            # print("mptcp_application_bytes:")
-            # print(dsn_range)
-
-
 
             sf.goodput_contribution = sf.mptcp_application_bytes / dsn_range
 
