@@ -1,3 +1,7 @@
+'''
+To help debug issues
+One off functions that are temporarily used
+'''
 import pandas as pd
 import pprint
 import logging
@@ -6,6 +10,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 log = logging.getLogger(__name__)
 
+
 def debug_dataframe(
         df: pd.DataFrame,
         msg,
@@ -13,7 +18,7 @@ def debug_dataframe(
         nrows=5,
         usecols=None,
         # **kwargs
-    ):
+):
     '''
     Help diagnose issues with dataframes
     '''
@@ -53,7 +58,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
             res = pd.read_csv(
                 fd,
                 *args,
-                usecols=[ field],
+                usecols=[field],
                 **kwargs
             )
             if chunksize is not None:
@@ -63,7 +68,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
         except TypeError as e:
             # TODO retry with chunksize
             if first_try:
-                kwargs.update({"chunksize": chunksize  or 40})
+                kwargs.update({"chunksize": chunksize or 40})
                 fd.seek(0)
                 read_csv_debug([field], fd, *args, first_try=False, **kwargs)
             else:

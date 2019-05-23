@@ -1,3 +1,12 @@
+"""
+Considerations:
+- tcp.analysis.retransmission
+- tcp.analysis.lost_segment
+- tcp.analysis.fast_retransmission
+
+https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
+"""
+
 from typing import List, Any, Tuple, Dict, Callable, Union
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection
 from mptcpanalyzer import ConnectionRoles
@@ -9,15 +18,6 @@ from mptcpanalyzer.debug import debug_dataframe
 import math
 import logging
 from dataclasses import dataclass, field
-
-"""
-Considerations:
-- tcp.analysis.retransmission
-- tcp.analysis.lost_segment
-- tcp.analysis.fast_retransmission
-
-https://osqa-ask.wireshark.org/questions/16771/tcpanalysisretransmission
-"""
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +47,9 @@ class TcpUnidirectionalStats:
 
 @dataclass
 class MpTcpUnidirectionalStats:
+    '''
+    Holds MPTCP statistics for one direction
+    '''
     mptcpstreamid: MpTcpStreamId
 
     ''' application data = goodput = useful bytes '''
@@ -69,7 +72,7 @@ def tcp_get_stats(
     tcpstreamid: TcpStreamId,
     destination: ConnectionRoles,
     mptcp=False
-    ) -> TcpUnidirectionalStats:
+) -> TcpUnidirectionalStats:
     '''
     Expects df to have tcpdest set
     '''
@@ -120,7 +123,7 @@ def transmitted_seq_range(df, seq_name):
     seq_range = seq_max - seq_min - 1
 
     msg = "seq_range ({}) = {} (seq_max) - {} (seq_min) - 1"
-    log.log(mp.TRACE, msg.format( seq_range, seq_max, seq_min))
+    log.log(mp.TRACE, msg.format(seq_range, seq_max, seq_min))
 
     return seq_range, seq_max, seq_min
 

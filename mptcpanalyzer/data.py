@@ -388,9 +388,9 @@ def load_into_pandas(
 
     is_cache_valid, csv_filename = cache.get(uid)
 
-    log.debug("cache validity=%d cachename: %s" % (is_cache_valid, csv_filename))
+    log.debug("cache validity=%d cachename: %s", is_cache_valid, csv_filename)
     if not is_cache_valid:
-        log.info("Cache invalid .. Converting %s " % (filename,))
+        log.info("Cache invalid .. Converting %s ", filename,)
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
             tshark_fields = [field.fullname for _, field in config.fields.items()]
@@ -402,7 +402,7 @@ def load_into_pandas(
             else:
                 raise Exception(stderr)
 
-    log.debug("Loading a csv file %s" % csv_filename)
+    log.debug("Loading a csv file %s", csv_filename)
 
     try:
         with open(csv_filename) as fd:
@@ -1069,12 +1069,15 @@ def map_mptcp_connection(
     return results
 
 
-def already_classified(df):
+def already_classified(df) -> bool:
     """
-
+    Check if dataframe entries have been classified
     """
     if "redundant" not in df.columns:
         return False
+
+    return df.columns["redundant"].
+
 
 # TODO pass a verbosity level/some stats
 def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:

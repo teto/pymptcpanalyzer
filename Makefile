@@ -20,10 +20,9 @@ publish:
 	echo "  git push --tags"
 
 
-gen_transcripts:
+transcripts:
 	# https://cmd2.readthedocs.io/en/latest/freefeatures.html#script-files
-	# startup_script
-	# mptcpanalyzer "load tests/script_mptcp.txt -t tests/trans_mptcp.txt" "quit"
+	# ReGenerate tests
 	tests/gen_transcripts.sh
 
 tests:

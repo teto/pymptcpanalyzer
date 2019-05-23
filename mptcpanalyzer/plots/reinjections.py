@@ -2,12 +2,11 @@ import mptcpanalyzer as mp
 import mptcpanalyzer.plot as plot
 import pandas as pd
 import logging
-import argparse
 import inspect
 import matplotlib.pyplot as plt
 from typing import List, Any, Tuple, Dict, Callable, Set
-from mptcpanalyzer import _receiver, _sender, PreprocessingActions
-from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, MpTcpAnalyzerParser
+from mptcpanalyzer import _receiver, _sender
+from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser
 from mptcpanalyzer.data import classify_reinjections
 from mptcpanalyzer.debug import debug_dataframe
 
@@ -34,7 +33,7 @@ class PlotMpTcpReinjections(plot.Matplotlib):
             # skip_subflows=True,
             **kwargs
         )
-        parser.description="Plot MPTCP subflow attributes over time"
+        parser.description = "Plot MPTCP subflow attributes over time"
         parser.epilog = inspect.cleandoc('''
             Example:
             > plot reinject examples/client_2_filtered.pcapng 0 examples/client_2_filtered.pcapng 0 --display
@@ -44,7 +43,6 @@ class PlotMpTcpReinjections(plot.Matplotlib):
         ''')
 
         return res
-
 
     # TODO filter dest
     # https://stackoverflow.com/questions/25577352/plotting-cdf-of-a-pandas-series-in-python
@@ -67,9 +65,7 @@ class PlotMpTcpReinjections(plot.Matplotlib):
 
         fields = ["tcpstream", "mptcpdest"]
 
-        fig.suptitle("Reinjections CDF " ,
-            verticalalignment="top",
-        )
+        fig.suptitle("Reinjections CDF ", verticalalignment="top",)
 
         # il n'a pas encore eu les destinations !!
         debug_dataframe(df, "DATASET HEAD")

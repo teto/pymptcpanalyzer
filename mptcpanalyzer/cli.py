@@ -255,7 +255,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             assert parser, "Forgot to return parser"
             # we can pass an additionnal help
             log.debug("Registering subparser for plot %s" % ext.name)
-            subparsers.add_parser(ext.name, parents=[parser],
+            subparsers.add_parser(
+                ext.name, parents=[parser],
                 # parents= just copies arguments, not the actual help !
                 description=parser.description,
                 epilog=parser.epilog,
@@ -550,11 +551,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         Similar to wireshark's "Follow -> TCP stream"
     ''')
     # TODO fix that
-    @is_loaded # type: ignore
+    @is_loaded  # type: ignore
     @with_argparser_test(summary_parser, preload_pcap=True)
     # @with_argparser(summary_parser, ns_provider=provide_namespace)
     def do_tcp_summary(self, args, unknown):
-        self.poutput("Summary of TCP connection " )
+        self.poutput("Summary of TCP connection")
         df = self.data
 
         con = df.tcp.connection(args.tcpstream)
@@ -631,10 +632,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.poutput(
                     "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
                     "accounting for {tput_ratio:.2f}%".format(
-                    sf.tcpstreamid, sf_tput=sf.throughput_bytes,
-                    mptcp_tput=stats.mptcp_throughput_bytes,
-                    tput_ratio=sf.throughput_contribution*100
-                ))
+                        sf.tcpstreamid, sf_tput=sf.throughput_bytes,
+                        mptcp_tput=stats.mptcp_throughput_bytes,
+                        tput_ratio=sf.throughput_contribution*100
+                    ))
 
 
 
@@ -694,7 +695,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
-    @with_argparser_test(sumext_parser, preload_pcap=False) # type: ignore
+    @with_argparser_test(sumext_parser, preload_pcap=False)  # type: ignore
     def do_summary_extended(self, args, unknown):
         """
         Summarize contributions of each subflow
@@ -726,7 +727,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 df,
                 args.pcap1stream,
                 destination=destination,
-                merged_df = True,
+                merged_df=True,
             )
 
             if args.json:
@@ -740,13 +741,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                    "{c.mptcp_throughput_bytes} bytes with a goodput of {c.mptcp_goodput_bytes}")
             self.poutput(msg.format(c=stats, destination=destination.name))
 
-            for subflow in stats.subflow_stats:
+            msg = inspect.cleandoc("""
+            tcpstream {sf.tcpstreamid} analysis:
+            - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
+            - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
+            """)
 
-                msg = inspect.cleandoc("""
-                tcpstream {sf.tcpstreamid} analysis:
-                - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
-                - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
-                """)
+            for subflow in stats.subflow_stats:
 
                 self.poutput(
                     msg.format(
@@ -933,12 +934,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             original_start       = original_packet[_sender("abstime")]
             original_arrival     = original_packet[_receiver("abstime")]
 
-            if reinj.redundant == False:
+            if reinj.redundant is False:
                 # print(original_packet["packetid"])
                 msg = ("packet {pktid} is a successful reinjection of {initial_packetid}."
-                        " It arrived at {reinjection_arrival} to compare with {original_arrival}"
-                        " while being transmitted at {reinjection_start} to compare with "
-                        "{original_start}, i.e., {reinj_delta} before")
+                       " It arrived at {reinjection_arrival} to compare with {original_arrival}"
+                       " while being transmitted at {reinjection_start} to compare with "
+                       "{original_start}, i.e., {reinj_delta} before")
                 # TODO use assert instead
                 if getattr(row, _receiver("abstime")) > original_packet[_receiver("abstime")]:
                     print("BUG: this is not a valid reinjection after all ?")
@@ -990,7 +991,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             self.poutput("looking for reinjections towards mptcp %s" % destination)
             sender_df = df[df.mptcpdest == destination]
-            log.debug("%d packets in that direction" % (len(sender_df), ))
+            log.debug("%d packets in that direction", len(sender_df))
 
             # TODO we now need to display successful reinjections
             reinjections = sender_df[pd.notnull(sender_df[_sender("reinjection_of")])]
@@ -1007,7 +1008,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 initial_packetid = row.reinjection_of[0]
                 # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
-                original_packet  = df_all.loc[df_all.packetid == initial_packetid].iloc[0]
+                original_packet = df_all.loc[df_all.packetid == initial_packetid].iloc[0]
                 # print("original packet = %r %s" % (original_packet, type(original_packet)))
 
                 # if row.redundant == True and args.failed:
@@ -1022,11 +1023,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser.epilog = "Hello there"
     # action= filter_stream
     # TODO check it is taken into account
-    parser.filter_stream("mptcpstream", protocol=Protocol.MPTCP) # type=MpTcpStreamId, help="mptcp.stream id")
+    # type=MpTcpStreamId, help="mptcp.stream id")
+    parser.filter_stream("mptcpstream", protocol=Protocol.MPTCP)
     parser.add_argument("--summary", action="store_true", default=False,
             help="Just count reinjections")
 
-    @is_loaded # type: ignore
+    @is_loaded  # type: ignore
     @with_argparser_test(parser, preload_pcap=True)
     @with_category(CAT_MPTCP)
     def do_list_reinjections(self, args, unknown):
@@ -1050,8 +1052,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # TODO move to outer function ?
         # TODO use ppaged
-        reinjections = df.dropna(axis=0, subset=["reinjection_of"] )
-        total_nb_reinjections = 0
+        reinjections = df.dropna(axis=0, subset=["reinjection_of"])
         output = ""
         for row in reinjections.itertuples():
             output += ("packetid=%d (tcp.stream %d) is a reinjection of %d packet(s):\n" %
@@ -1059,7 +1060,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             # assuming packetid is the index
             for pktId in row.reinjection_of:
-                entry = self.data.loc[ pktId ]
+                entry = self.data.loc[pktId]
                 output += ("- packet %d (tcp.stream %d)\n" % (entry.packetid, entry.tcpstream))
             # known.update([row.packetid] + row.reinjection)
 
@@ -1220,7 +1221,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             readline.set_history_length(histfile_size)
             readline.write_history_file(histfile)
 
-def main(arguments: List[str] =None):
+def main(arguments: List[str] = None):
     """
     This is the entry point of the program
 

@@ -24,8 +24,7 @@ class CacheId:
         assert filedeps, "without dependency, why use cache ?"
 
         # TODO apply only to Path type
-        # TODO os.path.isabs()
-        self.dependencies = list(map(os.path.realpath, filedeps))
+        self.filedeps = list(map(os.path.realpath, filedeps))
         log.debug("%r %r", prefix, suffix)
         self.tpl = prefix + "_".join(
             [os.path.basename(dep) for dep in filedeps]
@@ -35,15 +34,18 @@ class CacheId:
     def filename(self,):
         """
         generate a unique uuid
-        hash modification time of dependencies too
-        dependencies should be filename
+        hash modification time of filedeps too
+        filedeps should be filename
         """
-        dependencies = self.dependencies
-        logging.debug("Computing uid from dependencies %r", dependencies)
+        filedeps = self.filedeps
+        log.debug("Computing uid from filedeps %r", filedeps)
         temp = ""
-        for dep in dependencies:
+        for dep in filedeps:
             mtime_dep = os.path.getmtime(dep)
             temp = temp + dep + str(mtime_dep)
+
+        # append global filedeps such as mptcpanalyzer version
+        temp = temp + __version__
 
         return self.tpl.format(hash=str(hash(temp)))
 
@@ -66,18 +68,18 @@ class Cache:
 
         is_cache_valid = False
         cachename = os.path.join(self.folder, uid.filename)
-        dependencies = uid.dependencies
+        filedeps = uid.filedeps
 
         try:
             if self.disabled:
-                logging.debug("Cache disabled")
+                log.debug("Cache disabled")
                 return False, cachename
 
             if os.path.isfile(cachename):
-                logging.debug("A cache %s was found", cachename)
+                log.debug("A cache %s was found", cachename)
                 ctime_cached = os.path.getctime(cachename)
                 is_cache_valid = True
-                for dependency in dependencies:
+                for dependency in filedeps:
 
                     mtime_dep = os.path.getmtime(dependency)  # type: ignore
 
@@ -90,10 +92,10 @@ class Cache:
                         break
             else:
                 log.debug("No cache %s found", cachename)
+
         except Exception as e:
             log.debug("Invalid cache: %s", e)
             is_cache_valid = False
-            # cachename = None
 
         return is_cache_valid, cachename
 
@@ -107,14 +109,12 @@ class Cache:
         shutil.move(result, dest)
 
     @staticmethod
-    def cacheuid(prefix: str, dependencies: List = None, suffix: str = ""):
+    def cacheuid(prefix: str, filedeps: List = None, suffix: str = ""):
         '''Generates a cache id for the item'''
-        if not dependencies:
-            dependencies = []
+        if not filedeps:
+            filedeps = []
 
-        # append global dependencies such as mptcpanalyzer version
-        dependencies.append([__version__])
-        return CacheId(prefix, dependencies, suffix)
+        return CacheId(prefix, filedeps, suffix)
 
     def clean(self):
         '''Removes everything from cache'''
