@@ -1,4 +1,4 @@
-set -o
+set -o errexit
 mptcpanalyzer --test tests/trans_tcp.txt
 mptcpanalyzer --test tests/trans_mptcp.txt
 mptcpanalyzer --test tests/trans_tcp_plots.txt

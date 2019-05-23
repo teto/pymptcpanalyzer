@@ -354,22 +354,24 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         overrides baseclass just to be able to catch exceptions
         """
         try:
-            super().cmdloop()
+            sys_exit_code = super().cmdloop()
         except KeyboardInterrupt as e:
             pass
 
         # Exception raised by sys.exit(), which is called by argparse
         # we don't want the program to finish just when there is an input error
         except SystemExit as e:
-            self.cmdloop()
+            sys_exit_code = self.cmdloop()
         except mp.MpTcpException as e:
             print(e)
-            self.cmdloop()
+            sys_exit_code = self.cmdloop()
         except Exception as e:
             log.critical("Unknown error, aborting...")
             log.critical("%s" % e)
             print("Displaying backtrace:\n")
             traceback.print_exc()
+
+        return sys_exit_code
 
     def postcmd(self, stop, line):
         """
@@ -1308,15 +1310,16 @@ def main(arguments: List[str] = None):
             analyzer.onecmd("load_pcap %s" % args.input_file)
 
         log.info("Starting interactive mode")
-        analyzer.cmdloop()
+        exit_code = analyzer.cmdloop()
+        print("Exit code:", exit_code)
 
     except Exception as e:
         print("An error happened:\n%s" % e)
         print("Displaying backtrace:\n")
         traceback.print_exc()
         return 1
-    finally:
-        return 0
+
+    return exit_code
 
 
 if __name__ == '__main__':

@@ -1,31 +1,5 @@
 [34mReady>[39m[49msummary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
 Summary extended of mptcp connection 
-mptcpstream 0 towards Client forwarded 7 bytes with a goodput of 5.0
-tcpstream 0 analysis:
-- throughput: transferred 3 out of 7 mptcp bytes, accounting for 42.86% of MPTCP throughput
-- goodput: transferred 3 out of 5.0, accounting for 60.00% of MPTCP goodput
-tcpstream 1 analysis:
-- throughput: transferred 1 out of 7 mptcp bytes, accounting for 14.29% of MPTCP throughput
-- goodput: transferred 0 out of 5.0, accounting for 0.00% of MPTCP goodput
-tcpstream 2 analysis:
-- throughput: transferred 2 out of 7 mptcp bytes, accounting for 28.57% of MPTCP throughput
-- goodput: transferred 2 out of 5.0, accounting for 40.00% of MPTCP goodput
-tcpstream 3 analysis:
-- throughput: transferred 1 out of 7 mptcp bytes, accounting for 14.29% of MPTCP throughput
-- goodput: transferred 1 out of 5.0, accounting for 20.00% of MPTCP goodput
-mptcpstream 0 towards Server forwarded 168 bytes with a goodput of 156.0
-tcpstream 0 analysis:
-- throughput: transferred 46 out of 168 mptcp bytes, accounting for 27.38% of MPTCP throughput
-- goodput: transferred 41 out of 156.0, accounting for 26.28% of MPTCP goodput
-tcpstream 1 analysis:
-- throughput: transferred 111 out of 168 mptcp bytes, accounting for 66.07% of MPTCP throughput
-- goodput: transferred 111 out of 156.0, accounting for 71.15% of MPTCP goodput
-tcpstream 2 analysis:
-- throughput: transferred 5 out of 168 mptcp bytes, accounting for 2.98% of MPTCP throughput
-- goodput: transferred 4 out of 156.0, accounting for 2.56% of MPTCP goodput
-tcpstream 3 analysis:
-- throughput: transferred 6 out of 168 mptcp bytes, accounting for 3.57% of MPTCP throughput
-- goodput: transferred 0 out of 156.0, accounting for 0.00% of MPTCP goodput
 [34mReady>[39m[49mplot tcp_tput examples/client_2.pcap 0 3
 [34mReady>[39m[49mplot mptcp_tput examples/client_2.pcap 0 3
 [34mReady>[39m[49mplot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0

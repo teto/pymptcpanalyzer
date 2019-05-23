@@ -14,9 +14,10 @@ class CacheId:
     '''
     Identifer for any element in the cache
     '''
-    def __init__(self, prefix: str,
-                 filedeps: List[str],
-                 suffix: str = ""
+    def __init__(
+        self, prefix: str,
+        filedeps: List[str],
+        suffix: str = ""
     ) -> None:
         """
         Builds a cache 'prefix_dep1_dep2_suffix'

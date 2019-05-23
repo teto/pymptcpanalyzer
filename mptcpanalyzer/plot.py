@@ -44,8 +44,8 @@ class Plot:
         self,
         exporter: TsharkConfig,
         title: str = None,
-        x_label: str=None,
-        y_label: str=None,
+        x_label: str = None,
+        y_label: str = None,
         *args, **kwargs
     ) -> None:
         """
@@ -65,7 +65,7 @@ class Plot:
         parents=None,
         # input_pcaps: List[Tuple[str, PreprocessingActions]],
         **kwargs
-        ) -> MpTcpAnalyzerParser:
+    ) -> MpTcpAnalyzerParser:
         """
         Generates a parser with common options.
         This parser can be completed or overridden by its children.
@@ -179,7 +179,8 @@ class Matplotlib(Plot):
         Adds an option to specify the matplotlib styles to use
         """
         parser = super().default_parser(*args, **kwargs)
-        parser.add_argument('--style', dest="styles", action="append", default=[],
+        parser.add_argument(
+            '--style', dest="styles", action="append", default=[],
             help=inspect.cleandoc("""
                 List matplotlib styles, you can specify several styles
                 via several --style items.
@@ -187,8 +188,7 @@ class Matplotlib(Plot):
                 name of a style present in the folder
                 $XDG_CONFIG_HOME/matplotlib/stylelib.
                 (matplotlib will merge it with $XDG_CONFIG_HOME/matplotlib/matplotlibrc).
-            """)
-        )
+                """))
         return parser
 
     @abc.abstractmethod
@@ -196,9 +196,8 @@ class Matplotlib(Plot):
         pass
 
 
-    def postprocess(self, v, display: bool=False, out=None, **kwargs):
+    def postprocess(self, v, display: bool = False, out=None, **kwargs):
         """
-
         Args:
             v: Value returned by `run` member, its type may depend on the plot
             display (bool): Wether we should display the resulting plot
@@ -252,7 +251,7 @@ class Matplotlib(Plot):
         """
         log.debug("Using matplotlib styles: %s" % styles)
 
-        if styles == None:
+        if styles is None:
             styles = []
 
         with plt.style.context(styles):
@@ -271,7 +270,7 @@ class Matplotlib(Plot):
             kwargs: Forwarded to :member:`matplotlib.Figure.savefig`.
             You can set *dpi* for instance  (80 by default ?)
         """
-        logging.info("Saving into %s" % (filename))
+        log.info("Saving into %s", filename)
         # most settings (dpi for instance) can be set from resource config
         fig.savefig(filename, format="png", **kwargs)
         return filename

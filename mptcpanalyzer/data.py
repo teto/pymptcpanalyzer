@@ -175,7 +175,7 @@ def load_merged_streams_into_pandas(
     protocolStr = "mptcp" if mptcp else "tcp"
     log.debug(f"Asked to load {protocolStr} merged streams {streamid1} and "
         "{streamid2} from pcaps {pcap1} and {pcap2}"
-    )
+              )
 
     cache = mp.get_cache()
 
@@ -303,7 +303,7 @@ def load_merged_streams_into_pandas(
                 # workaround bug https://github.com/pandas-dev/pandas/issues/25448
                 def _convert_to_enums():
                     # per_pcap_artificial_fields
-                    for col in [ _first("tcpdest"), _first("mptcpdest"), _second("tcpdest"), _second("mptcpdest")]:
+                    for col in [_first("tcpdest"), _first("mptcpdest"), _second("tcpdest"), _second("mptcpdest")]:
                         merged_df[col] = merged_df[col].apply(_convert_role, convert_dtype=False)
 
 
@@ -336,7 +336,7 @@ def load_merged_streams_into_pandas(
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
 
-        debug_dataframe(res, "owd", usecols=["owd", _sender('abstime'), _receiver('abstime')] )
+        debug_dataframe(res, "owd", usecols=["owd", _sender('abstime'), _receiver('abstime')])
         # with pd.option_context('float_format', '{:f}'.format):
         #     print(
         #         res[_sender(["ipsrc", "ipdst", "abstime"]) + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
@@ -480,9 +480,7 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
 
 
 
-def convert_to_sender_receiver(
-    df
-    ):
+def convert_to_sender_receiver(df):
     """
     Convert dataframe from  X_HOST1 | X_HOST2 to X_SENDER | X_RECEIVER
 
@@ -547,11 +545,11 @@ def convert_to_sender_receiver(
             log.debug("total df size = %d" % len(total))
             with pd.option_context('precision', 20):
                 debug_cols = _first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"])
-                log.log(mp.TRACE, "before rename \n%s" % tdf[ debug_cols] )
+                log.log(mp.TRACE, "before rename \n%s" % tdf[debug_cols])
                 tdf = tdf.rename(columns=rename_func, copy=True, inplace=False)
 
                 debug_cols = _sender(["abstime", "tcpdest"]) + _receiver(["abstime", "tcpdest"])
-                log.log(mp.TRACE, "After rename \n%s" % tdf[debug_cols] )
+                log.log(mp.TRACE, "After rename \n%s" % tdf[debug_cols])
                 # print(tdf[debug_cols])
                 # debug_dataframe(tdf, "temporary dataframe")
                 total = pd.concat([total, tdf], ignore_index=True, sort=False, )
@@ -655,7 +653,7 @@ def merge_tcp_dataframes_known_streams(
 def merge_mptcp_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame,
     df1_mptcpstream: MpTcpStreamId
-    ) -> Tuple[pd.DataFrame, str]:
+) -> Tuple[pd.DataFrame, str]:
     """
     First looks in df2 for a stream matching df1_mptcpstream
 
@@ -862,7 +860,7 @@ def map_tcp_packets_via_hash(
     # TODO rename, these are not host1/host2 anymore
     host1_df, host2_df,
     *kargs, **kwargs
-    ):
+):
     """
     Merge on hash of different fields
     Resulting dataframe has H1_SUFFIX / H2_SUFFIX
@@ -887,7 +885,7 @@ def map_tcp_packets_via_hash(
             host1_df, host2_df,
             on="hash",
             suffixes=(HOST1_SUFFIX, HOST2_SUFFIX),  # columns suffixes
-            how="outer", # we want to keep packets from both
+            how="outer",  # we want to keep packets from both
             # we want to know how many packets were not mapped correctly, adds the merge column
             # can take values "left_only"/ "right_only" or both
             indicator="merge_status",
@@ -914,7 +912,7 @@ def map_tcp_packets_score_based(
     explain=[],
     mode="hash"
     # con1: TcpConnection, con2: TcpConnection
-    ) -> pd.DataFrame:
+) -> pd.DataFrame:
     """
     Stream ids must already mapped
     Args:
@@ -1015,7 +1013,7 @@ def map_tcp_stream(rawdf: pd.DataFrame, main: TcpConnection) -> List[TcpMapping]
 def map_mptcp_connection_from_known_streams(
     main: MpTcpConnection,
     other: MpTcpConnection
-    ) -> MpTcpMapping:
+) -> MpTcpMapping:
     """
     Attempts to map subflows only if score is high enough
     """
@@ -1045,7 +1043,7 @@ def map_mptcp_connection_from_known_streams(
 
 def map_mptcp_connection(
     rawdf2: pd.DataFrame, main: MpTcpConnection
-    ) -> List[MpTcpMapping]:
+) -> List[MpTcpMapping]:
     """
     warn: Do not trust the results yet WIP !
 
@@ -1076,7 +1074,16 @@ def already_classified(df) -> bool:
     if "redundant" not in df.columns:
         return False
 
-    return df.columns["redundant"].
+    return not df.columns["redundant"].hasnans
+
+def already_merged(df) -> bool:
+    """
+    Check if it's a merged dataframes
+    """
+    # if "redundant" not in df.columns:
+    #     return False
+
+    return not df.columns["redundant"].hasnans
 
 
 # TODO pass a verbosity level/some stats
@@ -1089,6 +1096,9 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         a new dataframe with an added column "redundant" and "time_delta"
     """
     log.info("Classifying reinjections")
+
+    if already_classified(df):
+        log.info("Already classified, aborting")
 
     df_all = df_all.assign(redundant=False, reinj_delta=np.nan)
 

@@ -1,11 +1,11 @@
 [34mReady>[39m[49mload_pcap examples/server_2_filtered.pcapng
 Loading examples\/server_2_filtered.pcapng
 server_2_filtered.pcapng> tcp_summary 0 Server
-Summary of TCP connection 
+Summary of TCP connection
 TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=308, tcp_byte_range=308, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
 TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=460, tcp_byte_range=456, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
 server_2_filtered.pcapng> tcp_summary 0 Client
-Summary of TCP connection 
+Summary of TCP connection
 TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=308, tcp_byte_range=308, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
 TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=460, tcp_byte_range=456, mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
 server_2_filtered.pcapng> list_tcp_connections
