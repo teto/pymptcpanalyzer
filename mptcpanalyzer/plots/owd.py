@@ -43,7 +43,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             *args,
             **kwargs
         )
-        self.x_label =  "Time (s)"
+        self.x_label = "Time (s)"
         self.y_label = "One Way Delay (s)"
 
         # self.tshark_config.filter = "tcp";
@@ -107,23 +107,23 @@ class TcpOneWayDelay(plot.Matplotlib):
 
 
         # TODO here we should rewrite
-        debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + [ "owd" ]
+        debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + ["owd"]
 
         # print("columns", pcap)
         debug_dataframe(res, "owd dataframe")
-        print(res.loc[res.merge_status == "both", debug_fields ])
+        # print(res.loc[res.merge_status == "both", debug_fields])
 
         df = res
 
-        print("DESTINATION=%r" % destinations)
+        # print("DESTINATION=%r" % destinations)
         # df= df[df.owd > 0.010]
 
         fields = ["tcpdest", "tcpstream", ]
         # if True:
         if protocol == "mptcp":
-            self.plot_mptcp(df, fig, fields, **kwargs )
+            self.plot_mptcp(df, fig, fields, **kwargs)
         else:
-            self.plot_tcp(df, fig, fields, **kwargs )
+            self.plot_tcp(df, fig, fields, **kwargs)
 
 
         # TODO add units
@@ -136,7 +136,7 @@ class TcpOneWayDelay(plot.Matplotlib):
             protocol,
             kwargs.get("pcap1stream"),
             kwargs.get("pcap2stream"),
-            dest= ""
+            dest=""
         )
 
         return fig
@@ -193,5 +193,3 @@ class TcpOneWayDelay(plot.Matplotlib):
                 y="owd",
                 label="Subflow %d towards tcp %s" % (tcpstream, tcpdest), # seems to be a bug
             )
-
-
