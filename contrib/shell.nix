@@ -23,10 +23,11 @@ let
     cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: {
       # src = fetchgit
       src = builtins.fetchGit {
-          # url=https://github.com/python-cmd2/cmd2.git;
-          url=https://github.com/teto/cmd2.git;
+          url=https://github.com/python-cmd2/cmd2.git;
+          # url=https://github.com/teto/cmd2.git;
           # rev = "c0545b1c939f4aeb281e498a834e59ae5e38ce48";
-          ref = "master";
+          ref = "script_refactor";
+          # ref = "master";
           # sha256 = "1i08jlc95al6kna81nl3fh3ka143mz2q967hd08dvjm952w6j5mx";
           # leaveDotGit = true;
           # deepClone = true;

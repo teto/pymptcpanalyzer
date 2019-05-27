@@ -285,7 +285,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             out = subprocess.check_output(["tshark", "--version"])
             first_line = out.decode().splitlines()[0]
             import re
-            m = re.search("([\d.])", first_line)
+            m = re.search(r'([\d.])', first_line)
             major_version = int(m.group(0))
             self.poutput("found tshark major version %d" % major_version)
             if major_version < 3:
@@ -931,10 +931,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             row = reinj
 
             reinjection_packetid = getattr(row, _sender("packetid"))
-            reinjection_start    = getattr(row, _sender("abstime"))
-            reinjection_arrival  = getattr(row, _receiver("abstime"))
-            original_start       = original_packet[_sender("abstime")]
-            original_arrival     = original_packet[_receiver("abstime")]
+            reinjection_start = getattr(row, _sender("abstime"))
+            reinjection_arrival = getattr(row, _receiver("abstime"))
+            original_start = original_packet[_sender("abstime")]
+            original_arrival = original_packet[_receiver("abstime")]
 
             if reinj.redundant is False:
                 # print(original_packet["packetid"])
