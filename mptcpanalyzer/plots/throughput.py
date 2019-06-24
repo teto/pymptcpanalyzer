@@ -20,8 +20,7 @@ log = logging.getLogger(__name__)
 def tput_parser(parser):
     parser.add_argument("--window", "-w", metavar="AVG_WINDOW", action="store",
         type=int, default=1,
-        help="Averaging window (in seconds), for instance '1'"
-    )
+        help="Averaging window (in seconds), for instance '1'")
 
     parser.add_argument("--window-type", action="store",
         # as listed in pandas
@@ -34,8 +33,7 @@ def tput_parser(parser):
     )
     parser.add_argument("--goodput", action="store_true",
         default=False,
-        help="Drops retransmission from computation"
-    )
+        help="Drops retransmission from computation")
     return parser
 
 
@@ -58,7 +56,7 @@ def _compute_tput(x, averaging_window_int):
     # so now it gets a series
 
     # print("max %f min %f average %d" % (x.max(), x.min(), averaging_window_int))
-    return x.sum() /averaging_window_int
+    return x.sum() / averaging_window_int
     # return (x.max() - x.min())/averaging_window_int
 
 def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
@@ -114,27 +112,33 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     print("seq_col")
     print(seq_col)
     # newdf = pd.DataFrame(data={"seq": seq_col},) # index=pdtime)
-    newdf = pd.DataFrame(seq_col) # index=pdtime)
+    newdf = pd.DataFrame(seq_col)  # index=pdtime)
     # newdf["seq"] = seq_col
     # newdf.set_index(pdtime, drop=False, inplace=True)
 
     print("newdf")
     print(newdf.head())
 
-    log.debug("Rolling over an interval of %s" % averaging_window_str)
+    log.debug("Rolling over an interval of %s", averaging_window_str)
     # .astype("float64")
-    temp = newdf.rolling(
-        # 3,
-        # can be a number of an offset if index is datetime
-        window=averaging_window_str,
-        # parameters of interest too
-        # min_periods=
-        # on="tcpack",
-        # closed="right",
-        # center=True
-    )
+    try:
+        temp = newdf.rolling(
+            # 3,
+            # can be a number of an offset if index is datetime
+            window=averaging_window_str,
+            # parameters of interest too
+            # min_periods=
+            # on="tcpack",
+            # closed="right",
+            # center=True
+        )
+        newdf["tput"] = temp.mean()
 
-    newdf["tput"] = temp.mean()
+        return newdf
+    except ValueError as e:
+        print(e)
+        print(newdf.index)
+
     # newdf["tput"] = temp.apply(
     #     partial(_compute_tput , averaging_window_int=averaging_window_int),
     #     # pass the data as a Serie rather than a numpy array
@@ -143,7 +147,7 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     #     # convert_dtype=False,
     # )
 
-    return newdf
+    # return newdf
 
 
 def plot_tput(fig, *args, label=None):
@@ -226,7 +230,7 @@ class TcpThroughput(plot.Matplotlib):
         con = df.tcp.connection(pcapstream)
         df = con.fill_dest(df)
 
-        debug_dataframe(df, "plotting throughput" )
+        debug_dataframe(df, "plotting throughput")
 
         # TODO at some point here, we lose the dest type :'(
         for dest, subdf in df.groupby("tcpdest"):
@@ -287,7 +291,7 @@ class SubflowThroughput(TcpThroughput):
 
     # TODO add window / destinations ?
     # dat, destinations,
-    def plot_dest(self, pcap, pcapstream, dest : mp.ConnectionRoles, **kwargs):
+    def plot_dest(self, pcap, pcapstream, dest: mp.ConnectionRoles, **kwargs):
         pass
 
 
@@ -351,11 +355,11 @@ class MptcpThroughput(plot.Matplotlib):
         df.set_index(pd_abstime, inplace=True)
         df.sort_index(inplace=True)
 
-        ### plot subflows first...
+        # plot subflows first...
         ##################################################
         fields = ["tcpstream", "tcpdest", "mptcpdest"]
 
-        label_fmt="Subflow {tcpstream}"
+        label_fmt = "Subflow {tcpstream}"
         if len(destinations) >= 2:
             label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
 
@@ -372,12 +376,12 @@ class MptcpThroughput(plot.Matplotlib):
             plot_tput(
                 fig,
                 subdf["tcplen"],
-                subdf.index, # subdf["abstime"],
+                subdf.index,  # subdf["abstime"],
                 window,
                 label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
             )
 
-        ### then plots MPTCP level throughput
+        # then plots MPTCP level throughput
         ##################################################
         label_fmt = "MPTCP"
         if len(destinations) >= 2:
@@ -400,4 +404,3 @@ class MptcpThroughput(plot.Matplotlib):
             )
 
         return fig
-

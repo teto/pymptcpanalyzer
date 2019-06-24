@@ -94,7 +94,6 @@ def _convert_timestamp(x):
 
 class TsharkConfig:
     """
-    TODO
     in fact we could convert towards all formats supported by pandas:
     http://pandas.pydata.org/pandas-docs/stable/api.html#id12
 

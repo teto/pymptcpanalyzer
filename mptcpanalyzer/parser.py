@@ -125,9 +125,9 @@ class LoadSinglePcap(DataframeAction):
 # see https://github.com/python-cmd2/cmd2/issues/596
 def with_argparser_test(
     argparser: argparse.ArgumentParser,
-    preserve_quotes: bool=False,
-    preload_pcap: bool=False,
-    ) -> Callable[[argparse.Namespace, List], Optional[bool]]:
+    preserve_quotes: bool = False,
+    preload_pcap: bool = False,
+) -> Callable[[argparse.Namespace, List], Optional[bool]]:
     """
     Arguments:
         preload_pcap: Use the preloaded pcap as a dataframe
@@ -153,7 +153,7 @@ def with_argparser_test(
                 return
             else:
                 # original cmd2 has the same warning
-                return func(cmd2_instance, args, unknown) # type:ignore
+                return func(cmd2_instance, args, unknown)  # type:ignore
 
         # cmd2.COMMAND_FUNC_PREFIX
         command_name = func.__name__[len("do_"):]
@@ -171,7 +171,7 @@ def with_argparser_test(
 
         return cmd_wrapper
 
-    return arg_decorator # type: ignore
+    return arg_decorator  # type: ignore
 
 
 class AppendDestination(argparse.Action):
@@ -206,7 +206,7 @@ class AppendDestination(argparse.Action):
             # print("setting value %r" % self.destinations)
             # to make it unique
             self.destinations.append(values)
-            self.destinations= list(set(self.destinations))
+            self.destinations = list(set(self.destinations))
             # print("new result %r" % self.destinations)
         else:
             # print("Received first value %r" % values)
@@ -248,9 +248,9 @@ class MergePcaps(DataframeAction):
         self,
         name: str,
         protocol: Protocol,
-        loader = TsharkConfig(),
+        loader=TsharkConfig(),
         **kwargs
-        ) -> None:
+    ) -> None:
         """
         """
         self.loader = loader
@@ -317,7 +317,7 @@ def retain_stream(df_name):
     return partial(FilterStream, query, df_name)
 
 
-def filter_dest(df_name, mptcp: bool=False):
+def filter_dest(df_name, mptcp: bool = False):
     # query = "tcpdest"
     # if mptcp:
     #     query = "mp" + query
@@ -525,7 +525,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
         )
 
     def skip_subflow(self, df_name, **kwargs):
-        return self.add_argument('--skip',  type=TcpStreamId,
+        return self.add_argument('--skip', type=TcpStreamId,
             action=exclude_stream(df_name,),
             # TODO careful this won't work as a default, need a special action
             default=[],
@@ -540,100 +540,98 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
 
         proto_str = protocol.to_string()
         params = {
-                # retain stream 
             'action': "store",
             'help': proto_str + '.stream wireshark id'
         }
         params.update(**kwargs)
 
         return self.add_argument(
-                name,
+            name,
             # name + 'stream',
-            metavar= (name + "_{}stream").format(proto_str),
+            metavar=(name + "_{}stream").format(proto_str),
             type=MpTcpStreamId if protocol == mp.Protocol.MPTCP else TcpStreamId,
             **params
         )
 
 
 def gen_pcap_parser(
-        # rename input_pcaps to load_dataframes
-        input_pcaps: Dict[str, PreprocessingActions],
-        # protocol,
-        direction: bool = False,
-        parents=[],
-        # TODO get rid of this/skip-stream
-        skip_subflows: bool = True,
-        ) -> MpTcpAnalyzerParser:
-        """
-        Generates a parser with common options.
-        This parser can be completed or overridden by its children.
+    # rename input_pcaps to load_dataframes
+    input_pcaps: Dict[str, PreprocessingActions],
+    # protocol,
+    direction: bool = False,
+    parents=[],
+    # TODO get rid of this/skip-stream
+    skip_subflows: bool = True,
+) -> MpTcpAnalyzerParser:
+    """
+    Generates a parser with common options.
+    This parser can be completed or overridden by its children.
 
-        Args:
-            available_dataframe: True if a pcap was preloaded at start
-            direction: Enable filtering the stream depending if the packets
-            were sent towards the MPTCP client or the MPTCP server
-            skip_subflows: Allow to hide some subflows from the plot
+    Args:
+        available_dataframe: True if a pcap was preloaded at start
+        direction: Enable filtering the stream depending if the packets
+        were sent towards the MPTCP client or the MPTCP server
+        skip_subflows: Allow to hide some subflows from the plot
 
-        Return:
-            An argparse.ArgumentParser derivative
+    Return:
+        An argparse.ArgumentParser derivative
 
-        """
-        parser = MpTcpAnalyzerParser(
-            parents=parents,
-            add_help=not parents,
-        )
+    """
+    parser = MpTcpAnalyzerParser(
+        parents=parents,
+        add_help=not parents,
+    )
 
-        # TODO we should make this cleaner
-        for df_name, bitfield in input_pcaps.items():
-
-
-                # if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
-                #     # difficult to change the varname here => change it everywhere
-                #     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
-                #     protocol = "mptcp" if mptcp else "tcp"
-                #     parser.filter_stream(name + 'stream',)
-                    # parser.add_argument(
-                    #     name + 'stream',
-                    #     metavar= name + "_" + protocol + "stream",
-                    #     action=filterAction,
-                    #     type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
-                    #     help=protocol + '.stream wireshark id')
+    # TODO we should make this cleaner
+    for df_name, bitfield in input_pcaps.items():
 
 
-            if bitfield & PreprocessingActions.Merge:
-                # mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
-                # protocol = "mptcp" if mptcp else "tcp"
-                protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.MergeMpTcp else mp.Protocol.TCP
-                parser.add_pcap(df_name+"1")
-                parser.filter_stream(df_name+"1stream", protocol=protocol,)
-
-                parser.add_pcap(df_name+"2")
-                parser.filter_stream(df_name+"2stream", protocol=protocol,
-                    action=partial(MergePcaps, name=df_name, protocol=protocol),
-                )
-
-                # hidden
-                # action is triggered only when meet the parameter
-                # merge_pcap = parser.add_argument("--" + name + "_protocol",
-                #     action=partial(MergePcaps, prefix=name, protocol=protocol),
-                #     help=argparse.SUPPRESS)
-                # merge_pcap.default = "TEST"
-            else:
-                # TODO check for Preload
-                # TODO set action to str if there is no Preload flag ?!
-                parser.add_pcap(df_name, )
-
-                # TODO enforce a protocol !!
-                protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.FilterMpTcpStream else mp.Protocol.TCP
-                parser.filter_stream(df_name + 'stream', protocol=protocol, action=retain_stream(df_name,))
-
-            if bitfield & PreprocessingActions.FilterDestination or direction :
-                parser.filter_destination(dest=df_name + "_destinations")
+            # if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
+            #     # difficult to change the varname here => change it everywhere
+            #     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
+            #     protocol = "mptcp" if mptcp else "tcp"
+            #     parser.filter_stream(name + 'stream',)
+                # parser.add_argument(
+                #     name + 'stream',
+                #     metavar= name + "_" + protocol + "stream",
+                #     action=filterAction,
+                #     type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
+                #     help=protocol + '.stream wireshark id')
 
 
-            # TODO add as an action
-            if skip_subflows:
-                parser.skip_subflow(dest=df_name + "skipped_subflows", df_name=df_name)
+        if bitfield & PreprocessingActions.Merge:
+            # mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
+            # protocol = "mptcp" if mptcp else "tcp"
+            protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.MergeMpTcp else mp.Protocol.TCP
+            parser.add_pcap(df_name+"1")
+            parser.filter_stream(df_name+"1stream", protocol=protocol,)
 
-        return parser
+            parser.add_pcap(df_name+"2")
+            parser.filter_stream(df_name+"2stream", protocol=protocol,
+                action=partial(MergePcaps, name=df_name, protocol=protocol),
+            )
 
+            # hidden
+            # action is triggered only when meet the parameter
+            # merge_pcap = parser.add_argument("--" + name + "_protocol",
+            #     action=partial(MergePcaps, prefix=name, protocol=protocol),
+            #     help=argparse.SUPPRESS)
+            # merge_pcap.default = "TEST"
+        else:
+            # TODO check for Preload
+            # TODO set action to str if there is no Preload flag ?!
+            parser.add_pcap(df_name, )
+
+            # TODO enforce a protocol !!
+            protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.FilterMpTcpStream else mp.Protocol.TCP
+            parser.filter_stream(df_name + 'stream', protocol=protocol, action=retain_stream(df_name,))
+
+        if bitfield & PreprocessingActions.FilterDestination or direction:
+            parser.filter_destination(dest=df_name + "_destinations")
+
+
+        # TODO add as an action
+        if skip_subflows:
+            parser.skip_subflow(dest=df_name + "skipped_subflows", df_name=df_name)
+
+    return parser

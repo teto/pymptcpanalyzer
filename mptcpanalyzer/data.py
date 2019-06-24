@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from mptcpanalyzer.tshark import TsharkConfig, Field
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, \
-        MpTcpMapping, TcpMapping, swap_role, TcpStreamId, MpTcpStreamId
+    MpTcpMapping, TcpMapping, swap_role, TcpStreamId, MpTcpStreamId
 import mptcpanalyzer as mp
 from mptcpanalyzer import (RECEIVER_SUFFIX, SENDER_SUFFIX, _receiver, _sender,
 HOST1_SUFFIX, HOST2_SUFFIX,
@@ -592,8 +592,9 @@ def merge_tcp_dataframes_known_streams(
 
     log.info(
         "Trying to merge connection {} to {} of respective sizes {} and {}".format(
-        mapped_connection, main_connection, len(h1_df), len(h2_df)
-    ))
+            mapped_connection, main_connection, len(h1_df), len(h2_df)
+        )
+    )
 
     # cleanup the dataframes to contain only the current stream packets
     h1_df = h1_df[h1_df.tcpstream == main_connection.tcpstreamid]
@@ -639,10 +640,11 @@ def merge_tcp_dataframes_known_streams(
 
     log.info("Resulting merged tcp dataframe of size {} ({} mapped packets vs {} unmapped)"
             "with input dataframes of size {} and {}.".format(
-        len(total),
-        len(total[total.merge_status == "both"]), len(total[total.merge_status != "both"]),
-        len(h1_df), len(h2_df)
-    ))
+                len(total),
+                len(total[total.merge_status == "both"]), len(total[total.merge_status != "both"]),
+                len(h1_df), len(h2_df)
+            )
+    )
 
     # print("unmapped packets:")
     # print(total.loc[total._merge != "both", _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) ])
@@ -1097,8 +1099,9 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
     log.info("Classifying reinjections")
 
-    if already_classified(df):
+    if already_classified(df_all):
         log.info("Already classified, aborting")
+        return df_all
 
     df_all = df_all.assign(redundant=False, reinj_delta=np.nan)
 
@@ -1122,7 +1125,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         # debug_dataframe(sender_df, "reinjections", usecols=["reinjection_of"])
         reinjected_packets = sender_df.dropna(axis='index', subset=[_sender("reinjection_of")])
 
-        log.debug("%d reinjected packets", reinjected_packets)
+        log.debug("%d reinjected packets", len(reinjected_packets))
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
         #     print(reinjected_packets[
         #         _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])

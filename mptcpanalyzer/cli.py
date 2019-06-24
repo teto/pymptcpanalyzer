@@ -745,8 +745,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             msg = inspect.cleandoc("""
             tcpstream {sf.tcpstreamid} analysis:
-            - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
-            - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
+            - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} \
+                    mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
+            - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, \
+                    accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
             """)
 
             for subflow in stats.subflow_stats:
@@ -846,7 +848,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         # todo sort by chronological order ?
         # for row in df.itertuples();
-            # self.ppaged()
+        # self.ppaged()
 
         if args.csv:
             self.poutput("Exporting to csv")
@@ -953,20 +955,20 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 return
 
             msg = msg.format(
-                pktid               = reinjection_packetid,
-                initial_packetid    = initial_packetid,
-
-                reinjection_start   = reinjection_start,
-                reinjection_arrival = reinjection_arrival,
-                original_start      = original_start,
-                original_arrival    = original_arrival,
-                reinj_delta         = reinj.reinj_delta,
+                pktid=reinjection_packetid,
+                initial_packetid=initial_packetid,
+                reinjection_start=reinjection_start,
+                reinjection_arrival=reinjection_arrival,
+                original_start=original_start,
+                original_arrival=original_arrival,
+                reinj_delta=reinj.reinj_delta,
             )
             self.poutput(msg)
 
 
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
-        #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in", "reinjection_of"])]].head())
+        #     print(reinjected_packets[["packetid", "packetid_receiver", *_receiver(["reinjected_in",
+        #      "reinjection_of"])]].head())
         # TODO filter depending on --failed and --destinations
 
         if args.csv:
@@ -974,7 +976,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # keep redundant
             # only export a subset ?
             # smalldf = df.drop()
-            columns = _sender(["abstime", "reinjection_of", "reinjected_in", "packetid", "tcpstream", "mptcpstream", "tcpdest", "mptcpdest"])
+            columns = _sender([
+                "abstime", "reinjection_of", "reinjected_in", "packetid",
+                "tcpstream", "mptcpstream", "tcpdest", "mptcpdest"
+            ])
             columns += _receiver(["abstime", "packetid"])
             columns += ["redundant", "owd", "reinj_delta"]
 
@@ -999,7 +1004,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             reinjections = sender_df[pd.notnull(sender_df[_sender("reinjection_of")])]
             # self.poutput("looking for reinjections towards mptcp %s" % destination)
 
-            successful_reinjections = reinjections[reinjections.redundant == False]
+            successful_reinjections = reinjections[reinjections.redundant is False]
 
             self.poutput("%d successful reinjections" % len(successful_reinjections))
             # print(successful_reinjections[ _sender(["packetid", "reinjection_of"]) + _receiver(["packetid"]) ])
@@ -1014,7 +1019,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 # print("original packet = %r %s" % (original_packet, type(original_packet)))
 
                 # if row.redundant == True and args.failed:
-                    # _print_failed_reinjection(original_packet, row, debug=args.debug)
+                #   _print_failed_reinjection(original_packet, row, debug=args.debug)
 
                 _print_reinjection_comparison(original_packet, row, )
 
@@ -1046,7 +1051,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         """
 
-        df = self.pcap
+        df = self.data
         # df = self.data[df.mptcpstream == args.mptcpstream]
         if df.empty:
             self.poutput("No packet with mptcp.stream == %d" % args.mptcpstream)

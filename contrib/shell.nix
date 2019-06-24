@@ -39,7 +39,7 @@ let
   # TODO override pandas
   prog = (mptcpanalyzer.override({
     # inherit pandas;
-    inherit cmd2;
+    # inherit cmd2;
   }) ).overridePythonAttrs (oa: {
 
     # nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
