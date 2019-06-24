@@ -1,0 +1,2 @@
+[34mReady>[39m[49mplot tcp_attr examples/client_2_filtered.pcapng 0 tcpseq
+[34mReady>[39m[49mplot tcp_attr examples/client_2_filtered.pcapng 0 tcpack
