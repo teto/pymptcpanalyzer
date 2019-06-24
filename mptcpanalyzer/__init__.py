@@ -23,16 +23,17 @@ Used when dealing with the merge of dataframes
 """
 # TODO this should work in a more convenient way !
 # _sender
-SENDER_SUFFIX  = ""
-RECEIVER_SUFFIX= "_receiver"
+SENDER_SUFFIX = ""
+RECEIVER_SUFFIX = "_receiver"
 
 # we can't let it empty else we can't rename fields
-HOST1_SUFFIX  = "_h1"
-HOST2_SUFFIX  = "_h2"
+HOST1_SUFFIX = "_h1"
+HOST2_SUFFIX = "_h2"
 
 def suffix_fields(suffix, fields):
 
-    f = lambda x: x + suffix
+    def f(x):
+        return x + suffix
     # if isinstance(fields, collections.Iterable):
     if isinstance(fields, str):
         return f(fields)
@@ -101,9 +102,9 @@ class MpTcpOptions(IntEnum):
     Useful to filter the dataframe
     """
     MP_CAPABLE = 0
-    MP_JOIN    = 1
-    MP_DSS =  2
-    MP_ADD_ADDR =  3
+    MP_JOIN = 1
+    MP_DSS = 2
+    MP_ADD_ADDR = 3
     MP_REMOVE_ADDR = 4
     MP_PRIO = 5
     MP_FAIL = 6
@@ -164,6 +165,7 @@ class CustomConnectionRolesChoices(list):
         # print("%r", other)
         return super().__contains__(other.name)
 
+
 # workaround argparse choices limitations
 DestinationChoice = CustomConnectionRolesChoices([e.name for e in ConnectionRoles])
 
@@ -195,23 +197,23 @@ class MpTcpMissingPcap(MpTcpException):
     pass
 
 class DataframeCharacteristic(enum.Flag):
-    Mptcp      = enum.auto()
+    Mptcp = enum.auto()
 
 class PreprocessingActions(enum.Flag):
     """
     What to do with pcaps on the command line
     """
-    DoNothing                = enum.auto()
+    DoNothing = enum.auto()
     # always preloaded ?
-    Preload                  = enum.auto()
-    SkipSubflows             = enum.auto()
-    FilterTcpStream          = enum.auto()
-    FilterMpTcpStream        = enum.auto()
-    FilterStream        = FilterMpTcpStream | FilterTcpStream
-    MergeMpTcp               = enum.auto()
-    MergeTcp                 = enum.auto()
-    Merge                    = MergeMpTcp | MergeTcp
-    FilterDestination        = enum.auto()
+    Preload = enum.auto()
+    SkipSubflows = enum.auto()
+    FilterTcpStream = enum.auto()
+    FilterMpTcpStream = enum.auto()
+    FilterStream = FilterMpTcpStream | FilterTcpStream
+    MergeMpTcp = enum.auto()
+    MergeTcp = enum.auto()
+    Merge = MergeMpTcp | MergeTcp
+    FilterDestination = enum.auto()
     # FilterStream             = FilterMpTcpStream | FilterTcpStream
 
 
@@ -225,4 +227,3 @@ __all__ = [
     'List',
     'RECEIVER_SUFFIX'
 ]
-

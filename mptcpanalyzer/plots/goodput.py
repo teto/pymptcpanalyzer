@@ -14,7 +14,7 @@ import collections
 from mptcpanalyzer.cache import CacheId
 from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, MpTcpAnalyzerParser
 from cmd2 import argparse_completer
-from typing import Iterable, List #, Any, Tuple, Dict, Callable
+from typing import Iterable, List  # Any, Tuple, Dict, Callable
 from itertools import cycle
 from mptcpanalyzer.debug import debug_dataframe
 from mptcpanalyzer.data import classify_reinjections
@@ -88,11 +88,17 @@ class MptcpGoodput(plot.Matplotlib):
         # then it's the same as for throughput
         log.debug("Dropping redundant packets")
         df_useful = df_classified[df_classified.redundant == False]
+        df_useful = df_useful.copy()
+        df_useful.dropna(axis="index",
+            subset=[_sender("abstime")], inplace=True,
+        )
+        # print("after dropna")
+        # print(df_useful)
 
-        # to prevent "ValueError: index must be monotonic" when rolling
+        pd_abstime = pd.to_datetime(df_useful[_sender("abstime")], unit="s", errors="raise")
+        # print("DEBUG ATTEMPT")
+        # print(pd_abstime)
 
-        # DataFrame.
-        pd_abstime = pd.to_datetime(df_useful[_sender("abstime")], unit="s")
         df_useful.set_index(pd_abstime, inplace=True)
         df_useful.sort_index(inplace=True)
 
@@ -119,7 +125,7 @@ class MptcpGoodput(plot.Matplotlib):
                 continue
 
             # log.debug("plotting MPTCP dest %s" % tcpdest)
-            label_fmt="Subflow {tcpstream}" + label_suffix
+            label_fmt = "Subflow {tcpstream}" + label_suffix
             # if len(destinations) >= 2:
             #     label_fmt = label_fmt + suffix
 
@@ -127,12 +133,12 @@ class MptcpGoodput(plot.Matplotlib):
                 fig,
                 # subdf["dack"],
                 subdf["tcplen"],
-                subdf.index, # no need
+                subdf.index,  # no need
                 window,
                 label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
             )
 
-        ### then plots MPTCP level throughput
+        # then plots MPTCP level throughput
         ##################################################
         for mptcpdest, subdf in df_useful.groupby("mptcpdest"):
             # tcpdest, tcpstream, mptcpdest = idx
@@ -155,4 +161,3 @@ class MptcpGoodput(plot.Matplotlib):
         print("dest: " % destinations)
 
         return fig
-

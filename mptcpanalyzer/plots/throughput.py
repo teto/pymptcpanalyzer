@@ -351,9 +351,11 @@ class MptcpThroughput(plot.Matplotlib):
             suffix = " towards MPTCP %s" % (destinations[0].to_string())
             self.title = self.title + suffix
 
-        pd_abstime = pd.to_datetime(df[_sender("abstime")], unit="s")
+        # origin
+        pd_abstime = pd.to_datetime(df[_sender("abstime")], unit="s", errors='raise', )
         df.set_index(pd_abstime, inplace=True)
         df.sort_index(inplace=True)
+
 
         # plot subflows first...
         ##################################################

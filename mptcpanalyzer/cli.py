@@ -180,12 +180,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             data:  dataframe currently in use
         """
 
-        shortcuts = ({
+        shortcuts = {
             'lm': 'list_mptcp_connections',
             'lt': 'list_tcp_connections',
             'ls': 'list_subflows',
             'lr': 'list_reinjections'
-        })
+        }
         super().__init__(completekey='tab', stdin=stdin, shortcuts=shortcuts)
         self.prompt = FG_COLORS['blue'] + "Ready>" + color_off
         self.data = None  # type: pd.DataFrame
@@ -208,9 +208,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # does not seem to work :s
         pd.set_option('compute.use_numexpr', False)
         pd.set_option('display.max_info_columns', 5)  # verbose dataframe.info
+        pd.set_option('mode.chained_assignment', 'raise')  # strict but prevents errors
         log.debug("use numexpr? %d" % pd.get_option('compute.use_numexpr', False))
 
-        #  Load Plots
+        # Load Plots
         ######################
         # you can  list available plots under the namespace
         # https://pypi.python.org/pypi/entry_point_inspector
@@ -1308,7 +1309,7 @@ def main(arguments: List[str] = None):
         analyzer = MpTcpAnalyzerCmdApp(config, **vars(args))
 
         # enable cmd2 debug only when required
-        analyzer.debug = logLevels[args.debug] <= logging.DEBUG
+        # analyzer.debug = logLevels[args.debug] <= logging.DEBUG
 
         # could be moved to the class ?
         if args.input_file:

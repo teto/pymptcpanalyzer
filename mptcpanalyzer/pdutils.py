@@ -32,14 +32,12 @@ class MergedAccessor:
         """
         return classify_reinjections(self._obj)
 
-    # def receiver(self):
 
 # StreamAccessor ?
 @pd.api.extensions.register_dataframe_accessor("tcp")
 class TcpAccessor:
     def __init__(self, pandas_obj):
         self._obj = pandas_obj
-        # print(kwargs)
 
     def connection(self, streamid) -> TcpConnection:
         # if tcpdest is None:
@@ -60,7 +58,7 @@ class TcpAccessor:
 
     # need to filter the stream
     def syn_idx(self):
-        # TODO 
+        # TODO
         syns = np.bitwise_and(self._obj['tcpflags'], TcpFlags.SYN)
 
         if len(syns.index) < 1:
@@ -95,6 +93,16 @@ class MpTcpAccessor:
         return con.fill_dest(self._obj)
 
 
+def to_datetime(s, **opts):
+    """
+    pandas'to_datetime with some default arguments
+    """
+    # set origin to first entry of
+    # defaults = {
+    #     "origin": 
+    # }
+    # defaults.update(opts)
+    return pd.to_datetime()
 
 
 # def filter_dataframe(
@@ -182,4 +190,3 @@ class MpTcpAccessor:
 #         dataframe.query(query, inplace=True, engine="python")
 
 #     return dataframe
-
