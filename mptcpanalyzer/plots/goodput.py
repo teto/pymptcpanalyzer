@@ -102,13 +102,17 @@ class MptcpGoodput(plot.Matplotlib):
         df_useful.set_index(pd_abstime, inplace=True)
         df_useful.sort_index(inplace=True)
 
-        suffix = " towards MPTCP %s" % (destinations[0].to_string())
-        label_suffix = ""
+        suffix = " towards MPTCP {mptcpdest}" % (destinations[0].to_string())
+        # label_suffix = ""
+
+        label_fmt = "Subflow {tcpstream}" + label_suffix
         if len(destinations) == 1:
             # TODO as we look at acks, it should be swapped !
             self.title = self.title + suffix
         else:
-            label_suffix = suffix
+            # label_suffix = suffix
+            label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
+
 
         for idx, subdf in df_useful.groupby(_sender(fields), as_index=False, sort=False):
 
@@ -125,7 +129,6 @@ class MptcpGoodput(plot.Matplotlib):
                 continue
 
             # log.debug("plotting MPTCP dest %s" % tcpdest)
-            label_fmt = "Subflow {tcpstream}" + label_suffix
             # if len(destinations) >= 2:
             #     label_fmt = label_fmt + suffix
 
@@ -135,7 +138,8 @@ class MptcpGoodput(plot.Matplotlib):
                 subdf["tcplen"],
                 subdf.index,  # no need
                 window,
-                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
+                label=label_fmt.format(tcpstream=tcpstream,
+                    mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
             )
 
         # then plots MPTCP level throughput

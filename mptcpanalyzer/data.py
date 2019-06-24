@@ -339,7 +339,8 @@ def load_merged_streams_into_pandas(
         debug_dataframe(res, "owd", usecols=["owd", _sender('abstime'), _receiver('abstime')])
         # with pd.option_context('float_format', '{:f}'.format):
         #     print(
-        #         res[_sender(["ipsrc", "ipdst", "abstime"]) + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
+        #         res[_sender(["ipsrc", "ipdst", "abstime"])
+        #          + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
         #     )
 
     except Exception:
@@ -480,7 +481,7 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
 
 
 
-def convert_to_sender_receiver(df):
+def convert_to_sender_receiver(df) -> pd.DataFrame:
     """
     Convert dataframe from  X_HOST1 | X_HOST2 to X_SENDER | X_RECEIVER
 
@@ -545,7 +546,7 @@ def convert_to_sender_receiver(df):
             log.debug("total df size = %d" % len(total))
             with pd.option_context('precision', 20):
                 debug_cols = _first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"])
-                log.log(mp.TRACE, "before rename \n%s" % tdf[debug_cols])
+                log.log(mp.TRACE, "before rename \n%s", tdf[debug_cols])
                 tdf = tdf.rename(columns=rename_func, copy=True, inplace=False)
 
                 debug_cols = _sender(["abstime", "tcpdest"]) + _receiver(["abstime", "tcpdest"])
@@ -561,13 +562,13 @@ def convert_to_sender_receiver(df):
     # debug_dataframe(total, "total")
 
     logging.debug("Converted to sender/receiver format")
+    assert total[_sender("abstime")].count() == len(total[_sender("abstime")])
     return total
 
 
 def merge_tcp_dataframes_known_streams(
     con1: Tuple[pd.DataFrame, TcpConnection],
     con2: Tuple[pd.DataFrame, TcpConnection]
-    # , dest: ConnectionRoles
 ) -> pd.DataFrame:
     """
     Generates an intermediate file with the owds.
@@ -623,7 +624,7 @@ def merge_tcp_dataframes_known_streams(
 
         # generate_mptcp_direction_query
         # TODO this is not always reached ?
-        log.info("con of TYPE %r" % main_connection)
+        log.info("con of TYPE %r", main_connection)
         if isinstance(main_connection, MpTcpSubflow):
 
             log.debug("This is a subflow, setting mptcp destinations...")
@@ -706,7 +707,7 @@ def merge_mptcp_dataframes_known_streams(
     log.info("Merging mptcp %s with %s" % (main_connection, mapped_connection,))
 
     df1 = main_connection.fill_dest(df1)
-    print(df1["mptcpdest"].head())
+    log.log(mp.TRACE, df1["mptcpdest"].head())
     mapping = map_mptcp_connection_from_known_streams(main_connection, mapped_connection)
 
     # todo should be inplace
@@ -869,7 +870,8 @@ def map_tcp_packets_via_hash(
     """
     log.info("Merging dataframes via hash")
     debug_cols = ["packetid", "hash", "abstime"]
-    # debug_dataframe(total, "concatenated df", usecols=_first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"]))
+    # debug_dataframe(total, "concatenated df",
+    #     usecols=_first(["abstime", "tcpdest"]) + _second(["abstime", "tcpdest"]))
 
     debug_dataframe(host1_df, "host1_df", )
     debug_dataframe(host2_df, "host2 df")
@@ -1039,7 +1041,7 @@ def map_mptcp_connection_from_known_streams(
         mapped_subflows = _map_subflows(main, other)
 
     mapping = MpTcpMapping(mapped=other, score=mptcpscore, subflow_mappings=mapped_subflows)
-    log.log(mp.TRACE, "mptcp mapping %s" % (mapping,))
+    log.log(mp.TRACE, "mptcp mapping %s", mapping)
     return mapping
 
 
@@ -1128,7 +1130,8 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         log.debug("%d reinjected packets", len(reinjected_packets))
         # with pd.option_context('display.max_rows', None, 'display.max_columns', 300):
         #     print(reinjected_packets[
-        #         _sender(["packetid", "reinjected_in", "reinjection_of"]) + _receiver(["reinjected_in", "reinjection_of"])
+        #         _sender(["packetid", "reinjected_in", "reinjection_of"])
+        #          + _receiver(["reinjected_in", "reinjection_of"])
         #         ].head())
 
 
