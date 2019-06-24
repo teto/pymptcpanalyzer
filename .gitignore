@@ -5,3 +5,4 @@
 *.mptcpanalyzer*
 *.pyc
 *.egg-info/*
+shell.nix

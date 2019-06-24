@@ -1,0 +1,3 @@
+plot mptcp_tput examples/client_2.pcap 0 3
+plot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0
+
