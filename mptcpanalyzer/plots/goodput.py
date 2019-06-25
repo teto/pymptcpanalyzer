@@ -89,9 +89,7 @@ class MptcpGoodput(plot.Matplotlib):
         log.debug("Dropping redundant packets")
         df_useful = df_classified[df_classified.redundant == False]
         df_useful = df_useful.copy()
-        df_useful.dropna(axis="index",
-            subset=[_sender("abstime")], inplace=True,
-        )
+        df_useful.dropna(axis="index", subset=[_sender("abstime")], inplace=True,)
         # print("after dropna")
         # print(df_useful)
 
@@ -102,8 +100,7 @@ class MptcpGoodput(plot.Matplotlib):
         df_useful.set_index(pd_abstime, inplace=True)
         df_useful.sort_index(inplace=True)
 
-        suffix = " towards MPTCP {mptcpdest}" % (destinations[0].to_string())
-        # label_suffix = ""
+        suffix = " towards MPTCP {mptcpdest}"
 
         label_fmt = "Subflow {tcpstream}" + label_suffix
         if len(destinations) == 1:
@@ -147,10 +144,10 @@ class MptcpGoodput(plot.Matplotlib):
         for mptcpdest, subdf in df_useful.groupby("mptcpdest"):
             # tcpdest, tcpstream, mptcpdest = idx
             if mptcpdest not in destinations:
-                log.debug("Ignoring destination %s" % mptcpdest)
+                log.debug("Ignoring destination %s", mptcpdest)
                 continue
 
-            log.debug("Plotting mptcp destination %s" % mptcpdest)
+            log.debug("Plotting mptcp destination %s", mptcpdest)
 
             # add id
             label_fmt = "MPTCP stream" + label_suffix

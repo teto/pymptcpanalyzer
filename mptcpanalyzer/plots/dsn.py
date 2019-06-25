@@ -11,7 +11,7 @@ from mptcpanalyzer.parser import gen_pcap_parser
 log = logging.getLogger(__name__)
 
 def attributes(fields):
-    return { name: field.label for name, field in fields.items() if field.label }
+    return {name: field.label for name, field in fields.items() if field.label}
 
 
 class PlotSubflowAttribute(plot.Matplotlib):
@@ -34,7 +34,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
         }
 
         parser = gen_pcap_parser(pcaps, )
-        parser.description="Plot MPTCP subflow attributes over time"
+        parser.description = "Plot MPTCP subflow attributes over time"
 
         parser.add_argument('field', choices=self._attributes.keys(),
             help="Choose an mptcp attribute to plot")
@@ -61,7 +61,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
         fig.suptitle("Subflow %s" % field,
             verticalalignment="top",
             # x=0.1, y=.95,
-        )
+                     )
 
         # no destinations yet !!
         # debug_dataframe(df, "DATASET HEAD")
@@ -108,11 +108,13 @@ class PlotTcpAttribute(plot.Matplotlib):
         # can we filter dest ?
         parser = gen_pcap_parser(pcaps, True)
 
-        parser.description="Plot tcp attributes over time"
-        parser.add_argument('--syndrop', action="store_true",
+        parser.description = "Plot tcp attributes over time"
+        parser.add_argument(
+            '--syndrop', action="store_true",
             help="Drops first 3 packets of the dataframe assuming they are syn"
         )
-        parser.add_argument('fields', nargs='+',
+        parser.add_argument(
+            'fields', nargs='+',
             # action="append",
             choices=self._attributes.keys(),
             help="Choose a tcp attribute to plot"
@@ -141,13 +143,13 @@ class PlotTcpAttribute(plot.Matplotlib):
         # should be done when filtering the stream
         tcpdf.tcp.fill_dest(pcapstream)
 
-        labels = [] # type: List[str]
+        labels = []  # type: List[str]
 
         for dest, ddf in tcpdf.groupby(_sender("tcpdest")):
             if dest not in pcap_destinations:
-                log.debug("Ignoring destination %s" % dest)
+                log.debug("Ignoring destination %s", dest)
 
-            log.debug("Plotting destination %s" % dest)
+            log.debug("Plotting destination %s", dest)
 
             for field in fields:
                 # print("dest", dest, " in " , destinations)
@@ -163,15 +165,16 @@ class PlotTcpAttribute(plot.Matplotlib):
                     continue
 
                 # drop duplicate ?
-
-                final.astype("int32").plot(
+                # the astype is a workaround pandas failure
+                final.astype("int64").plot(
                     x=_sender("abstime"),
                     ax=axes,
                     use_index=False,
                     legend=False,
                     grid=True,
                 )
-                labels.append("%s towards %s" % (self._attributes[field], str(dest)))
+                label_fmt = "{field} towards {dest}"
+                labels.append(label_fmt.format(field=self._attributes[field], dest=str(dest)))
 
         axes.set_xlabel("Time (s)")
         if len(fields) == 1:
@@ -190,10 +193,10 @@ class PlotTcpAttribute(plot.Matplotlib):
         axes.legend(
             handles,
             labels
-        #     ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
-        #     loc=4
+            #     ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
+            #     loc=4
         )
 
-        fig.suptitle(" %s " % y_label)
+        self.title = " %s " % y_label
 
         return fig

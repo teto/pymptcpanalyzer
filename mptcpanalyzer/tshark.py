@@ -9,7 +9,6 @@ import ast
 from collections import namedtuple
 from typing import List, Dict, Union, Optional, Callable, Any
 from enum import Enum
-# from mptcpanalyzer import Logger
 import mptcpanalyzer as mp
 import functools
 
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 #     return res
 
 
-# doesn't seem to work
 # sometimes it will create a tuple only if there are several elements
 def _load_list(x, field="set field to debug"):
     """
@@ -147,12 +145,12 @@ class TsharkConfig:
         It is helpful when working with a custom wireshark.
         """
         searches = fields
-        cmd = [self.tshark_bin, "-G", "fields" ]
+        cmd = [self.tshark_bin, "-G", "fields"]
 
         logger.info("Checking for fields %s" % (cmd))
         with subprocess.Popen(cmd, stdout=subprocess.PIPE,
-            universal_newlines=True, # opens in text mode
-        ) as proc:
+                              universal_newlines=True,  # opens in text mode
+                              ) as proc:
             matches: List[str] = []
             for line in proc.stdout:
                 matches = [x for x in searches if x in line]
@@ -197,7 +195,7 @@ class TsharkConfig:
         # remove this one ?
         self.add_field("mptcp.expected_token", "expected_token", str, False, False)
         self.add_field("mptcp.stream", "mptcpstream", 'UInt64', False, False)
-        
+
         # TODO convert to 'UInt64'
         self.add_field("tcp.options.mptcp.sendkey", "sendkey", str, False, True)
         self.add_field("tcp.options.mptcp.recvkey", "recvkey", str, False, True)
@@ -230,11 +228,12 @@ class TsharkConfig:
                 functools.partial(_load_list, field="reinjectedInSender"), )
 
 
-    def add_field(self, fullname: str, name: str, _type,
-            label: Optional[str] = None,
-            _hash: bool = False,
-            converter: Optional[Callable] = None
-        ):
+    def add_field(
+        self, fullname: str, name: str, _type,
+        label: Optional[str] = None,
+        _hash: bool = False,
+        converter: Optional[Callable] = None
+    ):
         """
         It's kinda scary to use float everywhere but when using integers, pandas
         asserts at the first NaN
@@ -268,12 +267,12 @@ class TsharkConfig:
         #     _type = None
 
         self._tshark_fields.setdefault(name,
-            Field(fullname,  _type, label, _hash, converter))
+            Field(fullname, _type, label, _hash, converter))
 
 
     def export_to_csv(
         self, input_filename: str,
-        output_csv, # a file descriptor
+        output_csv,  # a file descriptor
         fields_to_export: List[str],
     ):
         """
@@ -334,23 +333,20 @@ class TsharkConfig:
     def fields(self):
         return self._tshark_fields
 
-    # def pseudocommand(self,):
     def __hash__(self,):
         """
         Used to generate hash
         """
         cmd = self.generate_csv_command(
-            # self.tshark_bin,
             self._tshark_fields.keys(),
             "PLACEHOLDER",
             # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
-            )
+        )
         # because lists are unhashable
         return hash(' '.join(cmd))
 
-    # @staticmethod
     def generate_csv_command(
         self,
         fields_to_export: List[str],

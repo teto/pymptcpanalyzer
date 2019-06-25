@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer as mp
+from mptcpanalyzer import TRACE
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
@@ -104,8 +105,9 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     # averaging_window_int = int(re.search(r'\d+', string1).group())
 
     averaging_window_int = averaging_window
-    averaging_window_str = "%ss" % averaging_window
+    averaging_window_str = f"{averaging_window}s"
     # TODO use it as index to use the rolling ?
+    logger.log(mp.TRACE, "MATT: computing tput over #seq=%d #time=%d", len(seq_col), len(time_col))
 
     # TODO test
     newdf = seq_col
@@ -120,7 +122,6 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     print(newdf.head())
 
     log.debug("Rolling over an interval of %s", averaging_window_str)
-    # .astype("float64")
     try:
         temp = newdf.rolling(
             # 3,
@@ -169,11 +170,8 @@ def plot_tput(fig, *args, label=None):
         ax=axes,
         legend=True,
         # TODO should depend from
-        # x="dt_abstime",
         y="tput",
-        # y="gput",
         label=label
-        # "Xput towards %s" % "FIX", # seems to be a bug
     )
 
 
@@ -392,10 +390,10 @@ class MptcpThroughput(plot.Matplotlib):
         for mptcpdest, subdf in df.groupby(_sender("mptcpdest")):
             # tcpdest, tcpstream, mptcpdest = idx
             if mptcpdest not in destinations:
-                log.debug("Ignoring destination %s" % mptcpdest)
+                log.debug("Ignoring destination %s", mptcpdest)
                 continue
 
-            log.debug("Plotting mptcp destination %s" % mptcpdest)
+            log.debug("Plotting mptcp destination %s", mptcpdest)
 
             plot_tput(
                 fig,
