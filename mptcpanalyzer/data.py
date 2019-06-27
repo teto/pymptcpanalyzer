@@ -107,8 +107,6 @@ per_pcap_artificial_fields = {
     # "merge": Field("_merge", None, "How many packets were merged", False, None)
 }
 
-# merged_per_pcap_artificial_fields = {
-#     "_merge": Field("merge", str, None, False, None)
 
 class PacketMappingMode(Enum):
     """
@@ -561,8 +559,10 @@ def convert_to_sender_receiver(df) -> pd.DataFrame:
         # print(total.columns)
     # debug_dataframe(total, "total")
 
-    logging.debug("Converted to sender/receiver format")
-    assert total[_sender("abstime")].count() == len(total[_sender("abstime")])
+    log.debug("Converted to sender/receiver format")
+    log.log(mp.TRACE, "Comparing #unique entries %d vs #all %d",
+            total[_sender("abstime")].count(), len(total[_sender("abstime")]))
+    # assert total[_sender("abstime")].count() == len(total[_sender("abstime")])
     return total
 
 
@@ -1059,7 +1059,7 @@ def map_mptcp_connection(
     mapping score
     """
     log.warning("mapping between datasets is not considered trustable yet")
-    results = []  # type: List[MpTcpMapping]
+    results: List[MpTcpMapping] = []
 
     for mptcpstream2 in rawdf2[_sender("mptcpstream")].dropna().unique():
         other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
@@ -1088,6 +1088,9 @@ def already_merged(df) -> bool:
     #     return False
 
     return not df.columns["redundant"].hasnans
+
+def is_merged(df) -> bool:
+    return "merge_status" in df.columns
 
 
 # TODO pass a verbosity level/some stats

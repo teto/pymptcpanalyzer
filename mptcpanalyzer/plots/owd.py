@@ -130,9 +130,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         # axes.set_xlabel("Time (s)")
         # axes.set_ylabel("One Way Delay (s)")
 
-        self.title = ("One Way Delays for {}"
-            # "streams {} <-> {} {dest}"
-            ).format(
+        # "streams {} <-> {} {dest}"
+        self.title_fmt = ("One Way Delays for {}").format(
             protocol,
             kwargs.get("pcap1stream"),
             kwargs.get("pcap2stream"),
@@ -191,5 +190,5 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # TODO should depend from
                 x=_sender("abstime"),
                 y="owd",
-                label="Subflow %d towards tcp %s" % (tcpstream, tcpdest), # seems to be a bug
+                label="Subflow %d towards tcp %s" % (tcpstream, tcpdest),  # seems to be a bug
             )

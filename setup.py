@@ -33,7 +33,7 @@ import sys
 # if something fail during install, try running the script with sthg like
 # DISTUTILS_DEBUG=1 python3 setup.py install --user -vvv
 
-main_ns = {} # type: ignore
+main_ns = {}  # type: ignore
 ver_path = convert_path('mptcpanalyzer/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
@@ -44,7 +44,7 @@ class RunTests(Command):
     """ Run my command.
     """
     description = "Run tests from the shell"
-    user_options = [] # type: ignore
+    user_options = []  # type: ignore
 
     def initialize_options(self):
         """init options"""
@@ -114,16 +114,16 @@ setup(name="mptcpanalyzer",
     install_requires=[
         'stevedore',  # to implement a plugin mechanism
         'matplotlib>=3.0.3',  # for plotting
-        'pandas',  # >= 0.24.2 because of Int64
+        'pandas>= 0.24.2',  # because of Int64
         'cmd2>=0.9.12',  # to improve cmd capabilities
         # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
     ],
     # TODO to work around pandas bugs: adjust
     # https://stackoverflow.com/questions/3472430/how-can-i-make-setuptools-install-a-package-thats-not-on-pypi
-    dependency_links = ['http://github.com/teto/pandas/tarball/master#egg=gearman-2.0.0beta'],
+    dependency_links=['http://github.com/teto/pandas/tarball/master#egg=gearman-2.0.0beta'],
     # test_suite="tests",
     cmdclass={
         "test": RunTests,
     },
     zip_safe=False,
-    )
+)

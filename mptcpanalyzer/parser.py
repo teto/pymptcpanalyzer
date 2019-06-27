@@ -37,7 +37,7 @@ def _add_dataframe(namespace, dest, df):
     if not hasattr(namespace, "_dataframes"):
         setattr(namespace, "_dataframes", {})
 
-    namespace._dataframes.update({ dest:df})
+    namespace._dataframes.update({dest: df})
 
 
 class DataframeAction(argparse.Action):
@@ -60,8 +60,8 @@ class LoadSinglePcap(DataframeAction):
     '''
     Test action !!
     '''
-    def __init__(self, loader = TsharkConfig(), **kwargs) -> None:
-        super().__init__(df_name=kwargs.get("dest"),  **kwargs)
+    def __init__(self, loader=TsharkConfig(), **kwargs) -> None:
+        super().__init__(df_name=kwargs.get("dest"), **kwargs)
         self.loader = loader
         setattr(self, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
 
@@ -73,7 +73,7 @@ class LoadSinglePcap(DataframeAction):
 
             setattr(namespace, self.dest, values)
 
-        self.add_dataframe (namespace, df)
+        self.add_dataframe(namespace, df)
 
 #     return arg_decorator
 # def with_argparser(argparser: argparse.ArgumentParser,
@@ -419,7 +419,7 @@ class FilterStream(DataframeAction):
             parser.error("Unsupported 'type' %s. Set it to TcpStreamId or MpTcpStreamId" % type(values))
 
         # super(argparse.Action).__call__(parser, namespace, values, option_string)
-        log.debug("Assign filter to %s" % (self.dest))
+        log.debug("Assign filter to %s", (self.dest))
         setattr(namespace, self.dest, values)
         query = self.query_tpl.format(field=field, streamid=values)
 
@@ -427,7 +427,7 @@ class FilterStream(DataframeAction):
         debug_dataframe(df, "after query")  # usecolds ['tcpstream']
 
         import pandas as pd
-        log.log(mp.TRACE, "use numexpr?", pd.get_option('compute.use_numexpr', False))
+        log.log(mp.TRACE, "use numexpr? %d", pd.get_option('compute.use_numexpr', False))
         df.query(query, inplace=True, engine="python")
         # TODO build dest automatically
 
@@ -436,7 +436,7 @@ def gen_bicap_parser(protocol: mp.Protocol, dest=False):
     """
     protocol in ["mptcp", "tcp"]
     """
-    if protocol == "mptcp":
+    if protocol == mp.Protocol.MPTCP:
         actions = PreprocessingActions.FilterMpTcpStream | PreprocessingActions.MergeMpTcp
     else:
         actions = PreprocessingActions.FilterTcpStream | PreprocessingActions.MergeTcp
@@ -586,17 +586,17 @@ def gen_pcap_parser(
     for df_name, bitfield in input_pcaps.items():
 
 
-            # if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
-            #     # difficult to change the varname here => change it everywhere
-            #     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
-            #     protocol = "mptcp" if mptcp else "tcp"
-            #     parser.filter_stream(name + 'stream',)
-                # parser.add_argument(
-                #     name + 'stream',
-                #     metavar= name + "_" + protocol + "stream",
-                #     action=filterAction,
-                #     type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
-                #     help=protocol + '.stream wireshark id')
+        # if bitfield & (PreprocessingActions.FilterStream | PreprocessingActions.Merge):
+        #     # difficult to change the varname here => change it everywhere
+        #     mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
+        #     protocol = "mptcp" if mptcp else "tcp"
+        #     parser.filter_stream(name + 'stream',)
+        #     parser.add_argument(
+        #       name + 'stream',
+        #       metavar=name + "_" + protocol + "stream",
+        #       action=filterAction,
+        #       type=MpTcpStreamId if protocol == "mptcp" else TcpStreamId,
+        #       help=protocol + '.stream wireshark id')
 
 
         if bitfield & PreprocessingActions.Merge:

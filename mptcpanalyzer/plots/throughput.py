@@ -89,11 +89,7 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     # we can use tcp.ack that are relative
     # rolling window can use offset
 
-    # assert (field == "tcpack" or field "dack")
-
-    # pdtime = "dt_abstime"
     # TODO newdf Dataframe
-    # pdtime = pd.to_datetime(time_col, unit="s")
     pdtime = time_col
 
     # print("Abstime")
@@ -107,7 +103,7 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     averaging_window_int = averaging_window
     averaging_window_str = f"{averaging_window}s"
     # TODO use it as index to use the rolling ?
-    logger.log(mp.TRACE, "MATT: computing tput over #seq=%d #time=%d", len(seq_col), len(time_col))
+    log.log(mp.TRACE, "MATT: computing tput over #seq=%d #time=%d", len(seq_col), len(time_col))
 
     # TODO test
     newdf = seq_col
@@ -133,20 +129,23 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
             # closed="right",
             # center=True
         )
-        newdf["tput"] = temp.mean()
+
+        # I think that's the culprit !!
+        # newdf["tput"] = temp.mean()
+
+        newdf["tput"] = temp.apply(
+            partial(_compute_tput, averaging_window_int=averaging_window_int),
+            raw=False,  # pass the data as a Serie rather than a numpy array
+            # generates an unexpected keyword error ??!!!
+            # convert_dtype=False,
+        )
 
         return newdf
     except ValueError as e:
-        print(e)
-        print(newdf.index)
+        # print(e)
+        # print(newdf.index)
+        raise e
 
-    # newdf["tput"] = temp.apply(
-    #     partial(_compute_tput , averaging_window_int=averaging_window_int),
-    #     # pass the data as a Serie rather than a numpy array
-    #     raw=False,
-    #     # generates an unexpected keyword error ??!!!
-    #     # convert_dtype=False,
-    # )
 
     # return newdf
 
@@ -254,7 +253,7 @@ class TcpThroughput(plot.Matplotlib):
         self.y_label = "Throughput (bytes/second)"
 
         # TODO fix connection towards a direction ?
-        self.title = "TCP Throughput (Averaging window of {window}) for:\n{con:c<->s}".format(
+        self.title_fmt = "TCP Throughput (Averaging window of {window}) for:\n{con:c<->s}".format(
             window=window,
             con=con
         )
@@ -347,7 +346,7 @@ class MptcpThroughput(plot.Matplotlib):
 
         if len(destinations) == 1:
             suffix = " towards MPTCP %s" % (destinations[0].to_string())
-            self.title = self.title + suffix
+            self.title_fmt = self.title_fmt + suffix
 
         # origin
         pd_abstime = pd.to_datetime(df[_sender("abstime")], unit="s", errors='raise', )
@@ -365,11 +364,12 @@ class MptcpThroughput(plot.Matplotlib):
 
         for idx, subdf in df.groupby(fields, sort=False):
             tcpstream, tcpdest, mptcpdest = idx
+            mptcpdest = mp.ConnectionRoles(mptcpdest)
             if mptcpdest not in destinations:
-                log.debug("Ignoring MPTCP destination %s" % tcpdest)
+                log.debug("Ignoring MPTCP destination %s", tcpdest)
                 continue
 
-            log.debug("Plotting tcp destination %s" % tcpdest)
+            log.debug("Plotting tcp destination %s", tcpdest)
 
 
             # basically the same as for tcp
@@ -378,7 +378,7 @@ class MptcpThroughput(plot.Matplotlib):
                 subdf["tcplen"],
                 subdf.index,  # subdf["abstime"],
                 window,
-                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string())
             )
 
         # then plots MPTCP level throughput
@@ -389,6 +389,7 @@ class MptcpThroughput(plot.Matplotlib):
 
         for mptcpdest, subdf in df.groupby(_sender("mptcpdest")):
             # tcpdest, tcpstream, mptcpdest = idx
+            mptcpdest = mp.ConnectionRoles(mptcpdest)
             if mptcpdest not in destinations:
                 log.debug("Ignoring destination %s", mptcpdest)
                 continue
@@ -400,7 +401,7 @@ class MptcpThroughput(plot.Matplotlib):
                 subdf["tcplen"],
                 subdf["abstime"],
                 window,
-                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
+                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string())
             )
 
         return fig

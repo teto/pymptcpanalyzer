@@ -11,6 +11,5 @@ function gen_transcript()
 gen_transcript "plots_tcp"
 # gen_transcript "mptcp"
 gen_transcript "plots_mptcp"
-# gen_transcript "reinjections" || true
 # gen_transcript "unstable" || true
 

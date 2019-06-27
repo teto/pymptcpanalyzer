@@ -553,10 +553,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     summary_parser.epilog = inspect.cleandoc('''
         Similar to wireshark's "Follow -> TCP stream"
     ''')
-    # TODO fix that
-    @is_loaded  # type: ignore
-    @with_argparser_test(summary_parser, preload_pcap=True)
-    # @with_argparser(summary_parser, ns_provider=provide_namespace)
+    @is_loaded
+    @with_argparser(summary_parser, ns_provider=provide_namespace)
     def do_tcp_summary(self, args, unknown):
         self.poutput("Summary of TCP connection")
         df = self.data
@@ -602,8 +600,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     summary_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
 
-    @is_loaded  # type: ignore
-    @with_argparser_test(summary_parser, preload_pcap=True)
+    @is_loaded
+    @with_argparser(summary_parser, ns_provider=provide_namespace)
     def do_mptcp_summary(self, args, unknown):
         """
         Naive summary contributions of the mptcp connection
@@ -1025,19 +1023,19 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 _print_reinjection_comparison(original_packet, row, )
 
 
-    parser = MpTcpAnalyzerParser(
+    reinj_parser = MpTcpAnalyzerParser(
         description="Listing reinjections of the connection"
     )
-    parser.epilog = "Hello there"
+    reinj_parser.epilog = "Hello there"
     # action= filter_stream
     # TODO check it is taken into account
     # type=MpTcpStreamId, help="mptcp.stream id")
-    parser.filter_stream("mptcpstream", protocol=Protocol.MPTCP)
-    parser.add_argument("--summary", action="store_true", default=False,
+    reinj_parser.filter_stream("mptcpstream", protocol=Protocol.MPTCP)
+    reinj_parser.add_argument("--summary", action="store_true", default=False,
             help="Just count reinjections")
 
-    @is_loaded  # type: ignore
-    @with_argparser_test(parser, preload_pcap=True)
+    @is_loaded
+    @with_argparser_and_unknown_args(reinj_parser, ns_provider=provide_namespace)
     @with_category(CAT_MPTCP)
     def do_list_reinjections(self, args, unknown):
         """

@@ -99,7 +99,7 @@ def to_datetime(s, **opts):
     """
     # set origin to first entry of
     # defaults = {
-    #     "origin": 
+    #     "origin":
     # }
     # defaults.update(opts)
     return pd.to_datetime()

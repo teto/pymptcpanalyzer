@@ -54,15 +54,12 @@ class MptcpGoodput(plot.Matplotlib):
         temp = gen_pcap_parser(
             input_pcaps=expected_pcaps, parents=[super().default_parser()]
         )
-
         parser.description = inspect.cleandoc('''
             MPTCP goodput
         ''')
-
         parser.epilog = inspect.cleandoc('''
             > plot mptcp_gput examples/client_2_filtered.pcapng 1 examples/server_2_filtered.pcapng 1 --display
         ''')
-
         temp = tput_parser(temp)
         return temp
 
@@ -94,21 +91,19 @@ class MptcpGoodput(plot.Matplotlib):
         # print(df_useful)
 
         pd_abstime = pd.to_datetime(df_useful[_sender("abstime")], unit="s", errors="raise")
-        # print("DEBUG ATTEMPT")
-        # print(pd_abstime)
 
         df_useful.set_index(pd_abstime, inplace=True)
         df_useful.sort_index(inplace=True)
 
         suffix = " towards MPTCP {mptcpdest}"
 
-        label_fmt = "Subflow {tcpstream}" + label_suffix
+        label_fmt = "Subflow {tcpstream}"
         if len(destinations) == 1:
             # TODO as we look at acks, it should be swapped !
-            self.title = self.title + suffix
+            self.title_fmt = self.title_fmt + suffix
         else:
             # label_suffix = suffix
-            label_fmt = label_fmt + " towards MPTCP {mptcpdest}"
+            label_fmt = label_fmt + suffix
 
 
         for idx, subdf in df_useful.groupby(_sender(fields), as_index=False, sort=False):
@@ -141,6 +136,8 @@ class MptcpGoodput(plot.Matplotlib):
 
         # then plots MPTCP level throughput
         ##################################################
+        label_fmt = "Aggregated" + (suffix if len(destinations) > 1 else "")
+
         for mptcpdest, subdf in df_useful.groupby("mptcpdest"):
             # tcpdest, tcpstream, mptcpdest = idx
             if mptcpdest not in destinations:
@@ -150,15 +147,16 @@ class MptcpGoodput(plot.Matplotlib):
             log.debug("Plotting mptcp destination %s", mptcpdest)
 
             # add id
-            label_fmt = "MPTCP stream" + label_suffix
             plot_tput(
                 fig,
                 subdf["tcplen"],
                 subdf["abstime"],
                 window,
-                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
+                label=label_fmt.format(tcpstream=tcpstream,
+                    mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
             )
 
+        self.title_fmt = self.title_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
         print("dest: " % destinations)
 
         return fig

@@ -12,7 +12,7 @@ from mptcpanalyzer.tshark import TsharkConfig
 import enum
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 from mptcpanalyzer.parser import MpTcpAnalyzerParser
-from typing import List, Tuple, Collection, Dict
+from typing import List, Tuple, Collection, Dict, Any
 from cmd2 import argparse_completer
 import copy
 import abc
@@ -52,7 +52,8 @@ class Plot:
         Args:
             title (str): Plot title
         """
-        self.title = title
+        self.title_fmt = title
+        """ f-string that can be formatted later on """
         # python shallow copies objects by default
         self.tshark_config = copy.deepcopy(exporter)
         # self.tshark_config.read_filter = protocol + " and not icmp"
@@ -97,7 +98,7 @@ class Plot:
         return parser
 
     @abc.abstractmethod
-    def plot(self, **kwargs):
+    def plot(self, **kwargs) -> Tuple[Dict[str, Any], Any]:
         """
         This is the command
 
@@ -196,10 +197,10 @@ class Matplotlib(Plot):
         pass
 
 
-    def postprocess(self, v, display: bool = False, out=None, **kwargs):
+    def postprocess(self, plot_data, display: bool = False, out=None, **kwargs):  # type: ignore
         """
         Args:
-            v: Value returned by `run` member, its type may depend on the plot
+            plot_data: Value returned by `run` member, its type may depend on the plot
             display (bool): Wether we should display the resulting plot
             out: if the file was saved to a file
 
@@ -207,35 +208,36 @@ class Matplotlib(Plot):
         user_title = kwargs.get('title')
 
         if user_title:
-            log.info("User passed title [%s]" % user_title)
+            log.info("User passed title [%s]", user_title)
 
-        title = user_title or self.title
-        if title and title != "none":
-            log.info("Setting plot title to %s" % title)
-            v.suptitle(title)
+        title_fmt = user_title or self.title_fmt
+        if title_fmt and title_fmt != "none":
+            log.info("Setting plot title to %s", title_fmt)
+            title = title_fmt.format()
+            plot_data.suptitle(title)
 
         # TODO check it works without title
-        axes = v.gca()
+        axes = plot_data.gca()
         axes.set_xlabel(self.x_label)
         axes.set_ylabel(self.y_label)
 
         if out:
-            self.savefig(v, out)
+            self.savefig(plot_data, out)
 
 
-        log.debug("v %r" % v)
+        log.debug("plot_data %r" % plot_data)
 
         if display:
             if out is None:
                 with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-                    log.info("No output file set, using tempfile=%s" % tmpfile)
-                    r = self.savefig(v, tmpfile.name)
-                    log.debug("returned %r" % r)
+                    log.info("No output file set, using tempfile=%s", tmpfile)
+                    r = self.savefig(plot_data, tmpfile.name)
+                    log.debug("returned %r", r)
                     self.display(tmpfile.name)
             else:
                 self.display(out)
 
-        super().postprocess(v, **kwargs)
+        super().postprocess(plot_data, **kwargs)
 
 
     def run(self, styles=None, *pargs, **kwargs):

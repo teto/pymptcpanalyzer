@@ -197,6 +197,6 @@ class PlotTcpAttribute(plot.Matplotlib):
             #     loc=4
         )
 
-        self.title = " %s " % y_label
+        self.title_fmt = " %s " % y_label
 
         return fig
