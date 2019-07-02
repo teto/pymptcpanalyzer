@@ -1143,7 +1143,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         for pcap, df in dataframes.items():
             res = dargs.pop(pcap, None)
             if res:
-                log.debug("Popping %s to prevent a duplicate with the one from _dataframes" % pcap)
+                log.debug("Popping %s to prevent a duplicate with the one from _dataframes", pcap)
 
         # dataframes = args._dataframes.values()
         assert dataframes is not None, "Preprocess must return a list"
@@ -1151,10 +1151,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         try:
             # TODO pretty print
             # pp = pprint.PrettyPrinter(indent=4)
-            log.debug("Calling plot with dataframes:\n%s and dargs %s" % (
-                dataframes.keys(), dargs
-            ))
-            result = plotter.run(**dataframes, **dargs)
+            log.debug("Calling plot with dataframes:\n%s and dargs %s", dataframes.keys(), dargs)
+
+            # TODO get formatter keys
+            result, title_formatters = plotter.run(**dataframes, **dargs)
         except TypeError as e:
             self.perror("Problem when calling plotter.run")
             self.perror("We passed the following arguments:")
@@ -1173,7 +1173,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         $XDG_CACHE_HOME/mptcpanalyzer). This commands clears the cache.
         """
         cache = mp.get_cache()
-        self.poutput("Cleaning cache [%s]" % cache.folder)
+        self.poutput(f"Cleaning cache [{cache.folder}]")
         cache.clean()
 
     def do_dump(self, args):
@@ -1182,11 +1182,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         Mostly used for debug
         """
         parser = argparse.ArgumentParser(description="dumps csv content")
-        parser.add_argument('columns', default=[
-            "ipsrc", "ipdst"], choices=self.data.columns, nargs="*")
+        parser.add_argument('columns', default=["ipsrc", "ipdst"],
+            choices=self.data.columns, nargs="*")
 
         parser.add_argument('-n', default=10, action="store",
-                help="Number of results to display")
+            help="Number of results to display")
         args = parser.parse_args(shlex.split(args))
         print(self.data[args.columns])
 
@@ -1202,7 +1202,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         Quit/exit program
         """
-        print("Thanks for flying with mptcpanalyzer.")
+        self.poutput("Thanks for flying with mptcpanalyzer.")
         return True
 
     def do_EOF(self, line):
@@ -1253,7 +1253,7 @@ def main(arguments: List[str] = None):
         "If it can't find one (or with the flag --regen), it will generate a "
         "csv from the pcap with the external tshark program."
     )
-    parser.add_argument('--version', action='version', version="%s" % (__version__))
+    parser.add_argument('--version', action='version', version=str(__version__))
     parser.add_argument(
         "--config", "-c", action="store",
         help="Path towards the config file. If not set, mptcpanalyzer will try"
@@ -1297,10 +1297,10 @@ def main(arguments: List[str] = None):
     log.setLevel(logLevels[args.debug])
     # logging.basicConfig(format='%(levelname)s:%(message)s', level=logLevels[args.debug])
 
-    log.debug("Starting in folder %s" % os.getcwd())
+    log.debug("Starting in folder %s", os.getcwd())
     # logging.debug("Pandas version: %s" % pd.show_versions())
-    log.debug("Pandas version: %s" % pd.__version__)
-    log.debug("cmd2 version: %s" % cmd2.__version__)
+    log.debug("Pandas version: %s", pd.__version__)
+    log.debug("cmd2 version: %s", cmd2.__version__)
 
     try:
 
@@ -1311,7 +1311,7 @@ def main(arguments: List[str] = None):
 
         # could be moved to the class ?
         if args.input_file:
-            analyzer.onecmd("load_pcap %s" % args.input_file)
+            analyzer.onecmd(f"load_pcap {args.input_file}")
 
         log.info("Starting interactive mode")
         exit_code = analyzer.cmdloop()

@@ -119,26 +119,36 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
 
     log.debug("Rolling over an interval of %s", averaging_window_str)
     try:
-        temp = newdf.rolling(
-            # 3,
-            # can be a number of an offset if index is datetime
-            window=averaging_window_str,
-            # parameters of interest too
-            # min_periods=
-            # on="tcpack",
-            # closed="right",
-            # center=True
-        )
+        # temp = newdf.rolling(
+        #     # 3,
+        #     # can be a number of an offset if index is datetime
+        #     window=averaging_window_str,
+        #     # parameters of interest too
+        #     # min_periods=
+        #     # on="tcpack",
+        #     # closed="right",
+        #     # center=True
+        # )
 
-        # I think that's the culprit !!
-        # newdf["tput"] = temp.mean()
+        # # I think that's the culprit !!
+        # # newdf["tput"] = temp.mean()
 
-        newdf["tput"] = temp.apply(
-            partial(_compute_tput, averaging_window_int=averaging_window_int),
-            raw=False,  # pass the data as a Serie rather than a numpy array
-            # generates an unexpected keyword error ??!!!
-            # convert_dtype=False,
-        )
+        # newdf["tput"] = temp.apply(
+        #     partial(_compute_tput, averaging_window_int=averaging_window_int),
+        #     raw=False,  # pass the data as a Serie rather than a numpy array
+        #     # generates an unexpected keyword error ??!!!
+        #     # convert_dtype=False,
+        # )
+
+        # seq_col
+        # averaging_window_str
+        # DatetimeIndexResampler [freq=<Second>, axis=0, closed=left, label=left, convention=start, base=0]
+        # test 
+        newdf["tput"] = newdf.resample('ms').sum()
+        # .mean()
+        # print(test)
+        # print(type(test))
+
 
         return newdf
     except ValueError as e:
@@ -227,7 +237,11 @@ class TcpThroughput(plot.Matplotlib):
         con = df.tcp.connection(pcapstream)
         df = con.fill_dest(df)
 
-        debug_dataframe(df, "plotting throughput")
+        debug_dataframe(df, "plotting TCP throughput")
+
+        pd_abstime = pd.to_datetime(df[_sender("abstime")], unit="s", errors='raise', )
+        df.set_index(pd_abstime, inplace=True)
+        df.sort_index(inplace=True)
 
         # TODO at some point here, we lose the dest type :'(
         for dest, subdf in df.groupby("tcpdest"):
@@ -243,9 +257,10 @@ class TcpThroughput(plot.Matplotlib):
 
             plot_tput(
                 fig,
-                subdf["tcpseq"],
+                subdf["tcplen"],
                 # subdf["tcpack"],
-                subdf["abstime"],
+                # subdf["abstime"],
+                subdf.index,
                 window,
                 label=label_fmt.format(stream=pcapstream, dest=mp.ConnectionRoles(dest).to_string())
             )

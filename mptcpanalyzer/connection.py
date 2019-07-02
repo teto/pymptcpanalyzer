@@ -12,7 +12,7 @@ from dataclasses import dataclass
 log = logging.getLogger(__name__)
 
 
-def swap_role(role : ConnectionRoles):
+def swap_role(role: ConnectionRoles):
     """while waiting to get next to work with enum"""
     if role == ConnectionRoles.Server:
         return ConnectionRoles.Client
@@ -62,7 +62,7 @@ class TcpConnection:
             server_port = self.client_port
 
         # server_port used to be
-        q += " and ipsrc=='%s' and sport==%d " % (ipsrc, server_port)
+        q += f" and ipsrc=='{ipsrc}' and sport=={server_port} "
         return q
 
     def sort_candidates(self, ):
@@ -81,22 +81,25 @@ class TcpConnection:
         TODO also match on isn in case ports got reused
         """
         score = 0
-        if (self.tcpserver_ip == other.tcpserver_ip and
-                self.tcpclient_ip == other.tcpclient_ip and
-                self.client_port == other.client_port and
-                self.server_port == other.server_port):
-                return float('inf')
+        if (self.tcpserver_ip == other.tcpserver_ip
+            and self.tcpclient_ip == other.tcpclient_ip
+            and self.client_port == other.client_port
+            and self.server_port == other.server_port):
+            return float('inf')
 
-        score += 10  if self.tcpserver_ip == other.tcpserver_ip else 0
-        score += 10  if self.tcpclient_ip == other.tcpclient_ip else 0
-        score += 10  if self.client_port == other.client_port else 0
-        score += 10  if self.server_port == other.server_port else 0
+        score += 10 if self.tcpserver_ip == other.tcpserver_ip else 0
+        score += 10 if self.tcpclient_ip == other.tcpclient_ip else 0
+        score += 10 if self.client_port == other.client_port else 0
+        score += 10 if self.server_port == other.server_port else 0
 
         # TODO more granular score
         return score
 
 
     def fill_dest(self, df) -> pd.DataFrame:
+        """
+        TODO check it was not done before ?
+        """
 
         for dest in ConnectionRoles:
 
@@ -145,10 +148,10 @@ class TcpConnection:
         # synack_df = ds.where(ds.tcpflags == synack_val)
 
         if len(syns.index) < 1:
-            raise MpTcpException("No packet with any SYN flag for tcpstream %d" % tcpstreamid)
+            raise MpTcpException(f"No packet with any SYN flag for tcpstream {tcpstreamid}")
 
         idx = syns.index[0]
-        row = df.loc[idx,]
+        row = df.loc[idx, ]
 
         result = TcpConnection(
             TcpStreamId(tcpstreamid),
@@ -211,7 +214,7 @@ class TcpConnection:
 @dataclass
 class MpTcpSubflow(TcpConnection):
     """
-
+    Adds MPTCP characteristics such as address id
     """
 
     """ to which mptcp side belongs the tcp server"""
@@ -321,14 +324,15 @@ class MpTcpConnection:
 
             q = " (" + sf.generate_mptcp_direction_query(mptcpdest) + ") "
             queries.append(q)
-        result =  "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
+        result = "(mptcpstream==%d and (%s))" % (self.mptcpstreamid, " or ".join(queries))
 
         return result
 
 
     def fill_dest(self, df) -> pd.DataFrame:
         '''
-        set 
+        set destinations
+        TODO check it wasn't done beforehand
         '''
         log.debug("Filling mptcp destinations")
 
@@ -377,12 +381,12 @@ class MpTcpConnection:
 
 
         # not really rows but index
-        client_id       = syn_mpcapable_df.index[0]
-        server_id       = synack_mpcapable_df.index[0]
-        client_key       = ds.loc[client_id, "sendkey"]
-        client_token     = ds.loc[client_id, "expected_token"]
-        server_key       = ds.loc[server_id, "sendkey"]
-        server_token     = ds.loc[server_id, "expected_token"]
+        client_id = syn_mpcapable_df.index[0]
+        server_id = synack_mpcapable_df.index[0]
+        client_key = ds.loc[client_id, "sendkey"]
+        client_token = ds.loc[client_id, "expected_token"]
+        server_key = ds.loc[server_id, "sendkey"]
+        server_token = ds.loc[server_id, "expected_token"]
         master_tcpstream = ds.loc[client_id, "tcpstream"]
 
         # TODO now add a check on abstime
@@ -395,17 +399,17 @@ class MpTcpConnection:
         assert math.isfinite(int(server_token))
         # assert math.isnan(server_token) == False
 
-        subflows : List[MpTcpSubflow] = []
+        subflows: List[MpTcpSubflow] = []
 
         # we assume this is the first seen sendkey, thus it was sent to the mptcp server
         master_sf = MpTcpSubflow.create_subflow(
-            mptcpdest        = ConnectionRoles.Server,
-            tcpstreamid      = master_tcpstream,
-            tcpclient_ip     = ds.loc[client_id, 'ipsrc'],
-            tcpserver_ip     = ds.loc[client_id, 'ipdst'],
-            client_port      = ds.loc[client_id, 'sport'],
-            server_port      = ds.loc[client_id, 'dport'],
-            addrid           = 0   # master subflow has implicit addrid 0
+            mptcpdest=ConnectionRoles.Server,
+            tcpstreamid=master_tcpstream,
+            tcpclient_ip=ds.loc[client_id, 'ipsrc'],
+            tcpserver_ip=ds.loc[client_id, 'ipdst'],
+            client_port=ds.loc[client_id, 'sport'],
+            server_port=ds.loc[client_id, 'dport'],
+            addrid=0   # master subflow has implicit addrid 0
         )
 
         subflows.append(master_sf)
@@ -430,16 +434,16 @@ class MpTcpConnection:
             log.debug("receiver_token %r to compare with server_token %r" % (receiver_token, server_token))
             log.debug("Test %s" % (receiver_token == server_token))
             mptcpdest = ConnectionRoles.Server if receiver_token == server_token \
-                    else ConnectionRoles.Client
+                else ConnectionRoles.Client
 
             subflow = MpTcpSubflow.create_subflow(
-                mptcpdest   = mptcpdest,
-                tcpstreamid =tcpstreamid,
-                tcpclient_ip=subflow_ds.loc[syn_join_id,'ipsrc'],
-                tcpserver_ip=subflow_ds.loc[syn_join_id,'ipdst'],
-                client_port =subflow_ds.loc[syn_join_id,'sport'],
-                server_port =subflow_ds.loc[syn_join_id,'dport'],
-                addrid      =None,
+                mptcpdest=mptcpdest,
+                tcpstreamid=tcpstreamid,
+                tcpclient_ip=subflow_ds.loc[syn_join_id, 'ipsrc'],
+                tcpserver_ip=subflow_ds.loc[syn_join_id, 'ipdst'],
+                client_port=subflow_ds.loc[syn_join_id, 'sport'],
+                server_port=subflow_ds.loc[syn_join_id, 'dport'],
+                addrid=None,
                 # rcv_token   =receiver_token,
             )
 
@@ -500,7 +504,8 @@ class MpTcpConnection:
 
         common_sf = []
 
-        if self.keys[ConnectionRoles.Server] == other.keys[ConnectionRoles.Server] and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]:
+        if (self.keys[ConnectionRoles.Server] == other.keys[ConnectionRoles.Server]
+            and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]):
             log.debug("matching keys => same")
             return float('inf')
 

@@ -1071,14 +1071,6 @@ def map_mptcp_connection(
     return results
 
 
-def already_classified(df) -> bool:
-    """
-    Check if dataframe entries have been classified
-    """
-    if "redundant" not in df.columns:
-        return False
-
-    return not df.columns["redundant"].hasnans
 
 def already_merged(df) -> bool:
     """
@@ -1104,8 +1096,8 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
     """
     log.info("Classifying reinjections")
 
-    if already_classified(df_all):
-        log.info("Already classified, aborting")
+    if df_all.merged.already_classified():
+        log.debug("Already classified, aborting")
         return df_all
 
     df_all = df_all.assign(redundant=False, reinj_delta=np.nan)

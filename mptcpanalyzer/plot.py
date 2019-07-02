@@ -22,6 +22,7 @@ from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
+
 class Plot:
     """
     This is a helper class designed to provide basic functionalities so that
@@ -43,7 +44,7 @@ class Plot:
     def __init__(
         self,
         exporter: TsharkConfig,
-        title: str = None,
+        title_fmt: str = None,
         x_label: str = None,
         y_label: str = None,
         *args, **kwargs
@@ -52,7 +53,7 @@ class Plot:
         Args:
             title (str): Plot title
         """
-        self.title_fmt = title
+        self.title_fmt = title_fmt
         """ f-string that can be formatted later on """
         # python shallow copies objects by default
         self.tshark_config = copy.deepcopy(exporter)

@@ -1,2 +1,5 @@
 [34mReady>[39m[49mplot tcp_attr examples/client_2_filtered.pcapng 0 tcpseq
 [34mReady>[39m[49mplot tcp_attr examples/client_2_filtered.pcapng 0 tcpack
+[34mReady>[39m[49mplot tcp_tput examples/client_2.pcap 0 3
+[34mReady>[39m[49mplot tcp_gput examples/client_2.pcap 0 3
+[34mReady>[39m[49mplot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --dest Client

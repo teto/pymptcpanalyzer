@@ -26,6 +26,15 @@ class MergedAccessor:
         # _sender()
         pass
 
+    def already_classified(self) -> bool:
+        """
+        Check if dataframe entries have been classified
+        """
+        if "redundant" not in self._obj.columns:
+            return False
+
+        return not self._obj.columns["redundant"].hasnans
+
     def classify_reinjections(self):
         """
         not a copy
