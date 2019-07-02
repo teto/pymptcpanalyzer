@@ -3,6 +3,8 @@ mptcpanalyzer 0.3.2 (dev):
 - TcpConnection now accepts a format to customize its display
 - new plots mptcp_tput/mptcp_gput
 - renamed tcp_throughput to tcp_tput
+- tshark is now launched with an empty wireshark config to prevent interference from
+	user modules or lua scripts with the results
 
 mptcpanalyzer 0.3.1 (26/03/2019):
 - compatibility with cmd 0.9.12 (colorization/autocompletion)

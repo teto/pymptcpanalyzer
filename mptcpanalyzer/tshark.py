@@ -7,7 +7,7 @@ import numpy as np
 import shlex
 import ast
 from collections import namedtuple
-from typing import List, Dict, Union, Optional, Callable, Any
+from typing import List, Dict, Union, Optional, Callable, Any, Tuple
 from enum import Enum
 import mptcpanalyzer as mp
 import functools
@@ -312,12 +312,20 @@ class TsharkConfig:
         return self.run_tshark(cmd, None)
 
     @staticmethod
-    def run_tshark(cmd, stdout):
+    def run_tshark(cmd, stdout) -> Tuple[int, str]:
+        """
+        Print the command on stdout
+        """
         cmd_str = ' '.join(shlex.quote(x) for x in cmd)
         logging.info(cmd_str)
 
         try:
-            with subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.PIPE) as proc:
+            custom_env = os.environ.copy()
+            custom_env['XDG_CONFIG_HOME'] = tempfile.gettempdir()
+            with subprocess.Popen(
+                cmd, stdout=stdout, stderr=subprocess.PIPE,
+                env=custom_env
+            ) as proc:
                 out, stderr = proc.communicate()
                 stderr = stderr.decode("UTF-8")
                 print("ran cmd", proc.args)
