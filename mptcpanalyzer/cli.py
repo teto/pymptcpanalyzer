@@ -1154,7 +1154,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             log.debug("Calling plot with dataframes:\n%s and dargs %s", dataframes.keys(), dargs)
 
             # TODO get formatter keys
-            result, title_formatters = plotter.run(**dataframes, **dargs)
+            result = plotter.run(**dataframes, **dargs)
         except TypeError as e:
             self.perror("Problem when calling plotter.run")
             self.perror("We passed the following arguments:")

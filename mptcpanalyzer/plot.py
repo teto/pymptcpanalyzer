@@ -37,9 +37,6 @@ class Plot:
         title (str): title to give to the plot
         enabel_preprocessing (bool): Automatically filters dataframes beforehand
     """
-    # title: str
-    # x_label: str
-    # y_label: str
 
     def __init__(
         self,
@@ -111,6 +108,7 @@ class Plot:
         """
         pass
 
+    @abc.abstractmethod
     def postprocess(self, v, **opt):
         """
         Args:
@@ -194,12 +192,22 @@ class Matplotlib(Plot):
         return parser
 
     @abc.abstractmethod
-    def plot(self, **kwargs) -> mpl.figure.Figure:
+    def plot(self, **kwargs):
+        """
+        See
+        """
         pass
 
 
-    def postprocess(self, plot_data, display: bool = False, out=None, **kwargs):  # type: ignore
+    def postprocess(
+        self,
+        plot_data,
+        display: bool = False,
+        out=None,
+        **kwargs
+    ):
         """
+        Expects fig of type mpl.figure.Figure:
         Args:
             plot_data: Value returned by `run` member, its type may depend on the plot
             display (bool): Wether we should display the resulting plot
@@ -252,7 +260,7 @@ class Matplotlib(Plot):
         Returns:
             A matplotlib figure
         """
-        log.debug("Using matplotlib styles: %s" % styles)
+        log.debug("Using matplotlib styles: %s", styles)
 
         if styles is None:
             styles = []

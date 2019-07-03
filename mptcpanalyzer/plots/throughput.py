@@ -60,6 +60,9 @@ def _compute_tput(x, averaging_window_int):
     return x.sum() / averaging_window_int
     # return (x.max() - x.min())/averaging_window_int
 
+
+
+
 def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     """
     Args:
@@ -118,7 +121,9 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     print(newdf.head())
 
     log.debug("Rolling over an interval of %s", averaging_window_str)
+
     try:
+
         # temp = newdf.rolling(
         #     # 3,
         #     # can be a number of an offset if index is datetime
@@ -143,14 +148,17 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
         # seq_col
         # averaging_window_str
         # DatetimeIndexResampler [freq=<Second>, axis=0, closed=left, label=left, convention=start, base=0]
-        # test 
-        newdf["tput"] = newdf.resample('ms').sum()
+        # test
+        df_summary = pd.DataFrame()
+        # 's'
+        # use mean instead
+        df_summary["tput"] = newdf.tcplen.resample().sum()
+
         # .mean()
-        # print(test)
-        # print(type(test))
+        print(df_summary)
+        print(type(df_summary))
 
-
-        return newdf
+        return df_summary
     except ValueError as e:
         # print(e)
         # print(newdf.index)
@@ -173,9 +181,10 @@ def plot_tput(fig, *args, label=None):
     log.debug("Plotting tput")
 
     tput_df = compute_throughput(*args)
-    # print("tput_df")
-    # print(tput_df)
-    tput_df.plot.line(
+    print("tput_df")
+    print(tput_df.dtypes)
+    print(tput_df)
+    tput_df.astype("int64").plot.line(
         ax=axes,
         legend=True,
         # TODO should depend from
@@ -239,6 +248,7 @@ class TcpThroughput(plot.Matplotlib):
 
         debug_dataframe(df, "plotting TCP throughput")
 
+        # la il faudrait resampler
         pd_abstime = pd.to_datetime(df[_sender("abstime")], unit="s", errors='raise', )
         df.set_index(pd_abstime, inplace=True)
         df.sort_index(inplace=True)
@@ -246,10 +256,10 @@ class TcpThroughput(plot.Matplotlib):
         # TODO at some point here, we lose the dest type :'(
         for dest, subdf in df.groupby("tcpdest"):
             if dest not in destinations:
-                log.debug("Ignoring destination %s" % dest)
+                log.debug("Ignoring destination %s", dest)
                 continue
 
-            log.debug("Plotting destination %s" % dest)
+            log.debug("Plotting destination %s", dest)
 
             label_fmt = "TCP stream {stream}"
             if len(destinations) >= 2:
@@ -285,6 +295,11 @@ class TcpThroughput(plot.Matplotlib):
         # )
 
         return fig
+        # return {
+        #     'title_fmt': self.title_fmt,
+        #     'title_args': {},
+        #     'fig': fig
+        # }
 
 
 class SubflowThroughput(TcpThroughput):
@@ -419,4 +434,7 @@ class MptcpThroughput(plot.Matplotlib):
                 label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string())
             )
 
+        # return {
+        #     'fig': fig
+        # }
         return fig
