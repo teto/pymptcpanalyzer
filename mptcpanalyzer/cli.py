@@ -554,7 +554,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         Similar to wireshark's "Follow -> TCP stream"
     ''')
     @is_loaded
-    @with_argparser(summary_parser, ns_provider=provide_namespace)
+    @with_argparser_and_unknown_args(summary_parser, ns_provider=provide_namespace)
     def do_tcp_summary(self, args, unknown):
         self.poutput("Summary of TCP connection")
         df = self.data
@@ -601,7 +601,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         help="Machine readable summary.")
 
     @is_loaded
-    @with_argparser(summary_parser, ns_provider=provide_namespace)
+    @with_argparser_and_unknown_args(summary_parser, ns_provider=provide_namespace)
     def do_mptcp_summary(self, args, unknown):
         """
         Naive summary contributions of the mptcp connection
@@ -696,7 +696,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
-    @with_argparser_test(sumext_parser, preload_pcap=False)  # type: ignore
+    @with_argparser_and_unknown_args(sumext_parser)
     def do_summary_extended(self, args, unknown):
         """
         Summarize contributions of each subflow

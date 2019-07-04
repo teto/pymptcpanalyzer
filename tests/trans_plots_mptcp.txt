@@ -1,2 +1,2 @@
 [34mReady>[39m[49mplot mptcp_tput examples/client_2.pcap 0 3 --out=./mptcp_tput.png
-[34mReady>[39m[49mplot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --window=1 --display --dest=Server --out=./mptcp_gput.png
+[34mReady>[39m[49mplot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --window=1 --dest=Server --out=./mptcp_gput.png

@@ -63,6 +63,7 @@ def _compute_tput(x, averaging_window_int):
 
 
 
+# the problem is that I still need to
 def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
     """
     Args:
@@ -152,7 +153,7 @@ def compute_throughput(seq_col, time_col, averaging_window) -> pd.DataFrame:
         df_summary = pd.DataFrame()
         # 's'
         # use mean instead
-        df_summary["tput"] = newdf.tcplen.resample().sum()
+        df_summary["tput"] = newdf.tcplen.resample(averaging_window_str).sum()
 
         # .mean()
         print(df_summary)
@@ -178,13 +179,14 @@ def plot_tput(fig, *args, label=None):
     """
     axes = fig.gca()
 
-    log.debug("Plotting tput")
+    log.debug("Plotting tput for %s", label)
 
     tput_df = compute_throughput(*args)
     print("tput_df")
     print(tput_df.dtypes)
     print(tput_df)
-    tput_df.astype("int64").plot.line(
+    # astype("int64")
+    tput_df.plot.line(
         ax=axes,
         legend=True,
         # TODO should depend from

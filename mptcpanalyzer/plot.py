@@ -41,7 +41,7 @@ class Plot:
     def __init__(
         self,
         exporter: TsharkConfig,
-        title_fmt: str = None,
+        title: str = None,
         x_label: str = None,
         y_label: str = None,
         *args, **kwargs
@@ -50,7 +50,7 @@ class Plot:
         Args:
             title (str): Plot title
         """
-        self.title_fmt = title_fmt
+        self.title_fmt = title
         """ f-string that can be formatted later on """
         # python shallow copies objects by default
         self.tshark_config = copy.deepcopy(exporter)

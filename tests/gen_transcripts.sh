@@ -7,9 +7,9 @@ function gen_transcript()
 	mptcpanalyzer -dDEBUG "load tests/script_${suffix}.txt -t tests/trans_${suffix}.txt" "quit"
 }
 
-# gen_transcript "tcp"
+gen_transcript "tcp"
 gen_transcript "plots_tcp"
-# gen_transcript "mptcp"
+gen_transcript "mptcp"
 gen_transcript "plots_mptcp"
 # gen_transcript "unstable" || true
 

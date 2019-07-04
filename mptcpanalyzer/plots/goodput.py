@@ -113,11 +113,11 @@ class MptcpGoodput(plot.Matplotlib):
             print("tcpdest= %r, tcpstream %r mptcpdest %r" % (tcpdest, tcpstream, mptcpdest))
 
             if mptcpdest not in destinations:
-                log.debug("skipping MPTCP dest %s" % tcpdest)
+                log.debug("skipping MPTCP dest %s", tcpdest)
                 continue
 
             if tcpstream in skipped:
-                log.debug("skipping subflow %d" % tcpstream)
+                log.debug("skipping subflow %d", tcpstream)
                 continue
 
             # log.debug("plotting MPTCP dest %s" % tcpdest)

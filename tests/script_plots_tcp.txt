@@ -1,5 +1,4 @@
 plot tcp_attr examples/client_2_filtered.pcapng 0 tcpseq
 plot tcp_attr examples/client_2_filtered.pcapng 0 tcpack
-plot tcp_tput examples/client_2.pcap 0 3
-plot tcp_gput examples/client_2.pcap 0 3
+plot tcp_tput examples/client_2.pcap 0
 plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --dest Client
