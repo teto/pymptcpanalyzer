@@ -1,0 +1,43 @@
+# vim: set filetype=xdefaults :
+# lines.linewidth   : 0.0     # line width in points
+# lines.linestyle   : None  # cycler('linestyle', ['--','-'])       # solid line
+# lines.color       : red    # has no affect on plot(); see axes.prop_cycle
+# lines.marker      : x    # the default marker
+# lines.markersize  : 10            # markersize, in points
+# lines.markerfacecolor  : red */
+
+# When True, automatically adjust subplot
+figure.autolayout : True
+
+# legend
+legend.fancybox    : True
+
+axes.titlesize : 10
+axes.labelsize : 15
+
+# you can set several cyclers !!!
+# cycler('color', 'rgb') + cycler('lw', [1, 2, 3])
+#  cycler('linestyle', ['-', '--', ':', '-.'])
+# WARN: cyclers have to be of the same length !
+# https://matplotlib.org/gallery/lines_bars_and_markers/line_styles_reference.html
+# colors https://matplotlib.org/api/_as_gen/matplotlib.pyplot.colors.html
+axes.prop_cycle    :  cycler('color', 'bgrcymkc') + cycler('linestyle', ["-", '--', '-', ':', '-.', "-.", "-", "-"]) + cycler('marker', ['.', 'o', '>', 'x', '*', '+', ",", "<"])
+# + cycler('linewidth', ['1', '1', '1', '2', '1', '2', '1', '2'])
+
+# axes.prop_cycle    :  cycler('color', 'bgrc') + cycler('linestyle', ['None', ' ', ':', '-.']) + cycler('marker', ['.', '.', 'x', 'x'])
+
+# '-' or 'solid' 	solid line
+# https://matplotlib.org/api/markers_api.html
+# axes.prop_cycle    :  cycler('color', 'bgrc') + cycler('linestyle', [':', ':', '-.', '-.']) + cycler('marker', ['.', 'o', 'x', 'x'])
+# cycler = mpl.cycler(marker=['s', 'o', 'x', '+', '.'], color=['r', 'g', 'b', 'y', 'c' ], 
+#         linestyle=['-', '--', '-.', ':', '-'])
+# axes.prop_cycle    :  (cycler('color', 'bgrcbgrc') + cycler('linestyle', ['-', ':', ':', '-.', '-', '-', ':', '-.']) + cycler('marker', ['o', 'x', '|', '>', '.', 'o', '<', 'x'])) + cycler('lw', [1, 2, 3, 4, 1, 2, 3, 4]) 
+
+grid.color       :   black   # grid color
+grid.linestyle   :   :       # dotted
+grid.linewidth   :   0.5     # in points
+#grid.alpha       :   1.0     # transparency, between 0.0 and 1.0
+
+xtick.labelsize : 16
+ytick.labelsize : 16
+
