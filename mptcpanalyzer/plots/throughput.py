@@ -385,6 +385,29 @@ class MptcpThroughput(plot.Matplotlib):
         df.set_index(pd_abstime, inplace=True)
         df.sort_index(inplace=True)
 
+        # then plots MPTCP level throughput
+        ##################################################
+        label_fmt = "MPTCP"
+        if len(destinations) >= 2:
+            label_fmt = label_fmt + " towards {mptcpdest}"
+
+        for mptcpdest, subdf in df.groupby(_sender("mptcpdest")):
+            # tcpdest, tcpstream, mptcpdest = idx
+            mptcpdest = mp.ConnectionRoles(mptcpdest)
+            if mptcpdest not in destinations:
+                log.debug("Ignoring destination %s", mptcpdest)
+                continue
+
+            log.debug("Plotting mptcp destination %s", mptcpdest)
+
+            plot_tput(
+                fig,
+                subdf["tcplen"],
+                subdf["abstime"],
+                window,
+                label=label_fmt.format(mptcpdest=mptcpdest.to_string())
+            )
+
 
         # plot subflows first...
         ##################################################
@@ -409,29 +432,6 @@ class MptcpThroughput(plot.Matplotlib):
                 fig,
                 subdf["tcplen"],
                 subdf.index,  # subdf["abstime"],
-                window,
-                label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string())
-            )
-
-        # then plots MPTCP level throughput
-        ##################################################
-        label_fmt = "MPTCP"
-        if len(destinations) >= 2:
-            label_fmt = label_fmt + " towards {mptcpdest}"
-
-        for mptcpdest, subdf in df.groupby(_sender("mptcpdest")):
-            # tcpdest, tcpstream, mptcpdest = idx
-            mptcpdest = mp.ConnectionRoles(mptcpdest)
-            if mptcpdest not in destinations:
-                log.debug("Ignoring destination %s", mptcpdest)
-                continue
-
-            log.debug("Plotting mptcp destination %s", mptcpdest)
-
-            plot_tput(
-                fig,
-                subdf["tcplen"],
-                subdf["abstime"],
                 window,
                 label=label_fmt.format(tcpstream=tcpstream, mptcpdest=mptcpdest.to_string())
             )

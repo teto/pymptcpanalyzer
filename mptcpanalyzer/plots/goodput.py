@@ -97,6 +97,27 @@ class MptcpGoodput(plot.Matplotlib):
 
         suffix = " towards MPTCP {mptcpdest}"
 
+        # plots MPTCP level goodput
+        ##################################################
+        label_fmt = "Aggregated" + (suffix if len(destinations) > 1 else "")
+
+        for mptcpdest, subdf in df_useful.groupby("mptcpdest"):
+            # tcpdest, tcpstream, mptcpdest = idx
+            if mptcpdest not in destinations:
+                log.debug("Ignoring destination %s", mptcpdest)
+                continue
+
+            log.debug("Plotting mptcp destination %s", mptcpdest)
+
+            # add id
+            plot_tput(
+                fig,
+                subdf["tcplen"],
+                subdf["abstime"],
+                window,
+                label=label_fmt.format(mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
+            )
+
         label_fmt = "Subflow {tcpstream}"
         if len(destinations) == 1:
             # TODO as we look at acks, it should be swapped !
@@ -134,29 +155,6 @@ class MptcpGoodput(plot.Matplotlib):
                     mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
             )
 
-        # then plots MPTCP level throughput
-        ##################################################
-        label_fmt = "Aggregated" + (suffix if len(destinations) > 1 else "")
-
-        for mptcpdest, subdf in df_useful.groupby("mptcpdest"):
-            # tcpdest, tcpstream, mptcpdest = idx
-            if mptcpdest not in destinations:
-                log.debug("Ignoring destination %s", mptcpdest)
-                continue
-
-            log.debug("Plotting mptcp destination %s", mptcpdest)
-
-            # add id
-            plot_tput(
-                fig,
-                subdf["tcplen"],
-                subdf["abstime"],
-                window,
-                label=label_fmt.format(tcpstream=tcpstream,
-                    mptcpdest=mp.ConnectionRoles(mptcpdest).to_string()),
-            )
-
         self.title_fmt = self.title_fmt.format(tcpstream=tcpstream, mptcpdest=mp.ConnectionRoles(mptcpdest).to_string())
-        print("dest: " % destinations)
 
         return fig

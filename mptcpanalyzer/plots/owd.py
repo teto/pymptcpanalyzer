@@ -1,5 +1,5 @@
 import mptcpanalyzer as mp
-from mptcpanalyzer import _receiver, _sender, PreprocessingActions
+from mptcpanalyzer import _receiver, _sender, PreprocessingActions, Protocol
 import mptcpanalyzer.plot as plot
 import mptcpanalyzer.data as woo
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
@@ -13,7 +13,7 @@ import collections
 from mptcpanalyzer.cache import CacheId
 from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, MpTcpAnalyzerParser
 from cmd2 import argparse_completer
-from typing import Iterable, List #, Any, Tuple, Dict, Callable
+from typing import Iterable, List  # Any, Tuple, Dict, Callable
 from itertools import cycle
 from mptcpanalyzer.debug import debug_dataframe
 
@@ -120,10 +120,13 @@ class TcpOneWayDelay(plot.Matplotlib):
 
         fields = ["tcpdest", "tcpstream", ]
         # if True:
+        # TODO: use Protocol.MPTCP:
         if protocol == "mptcp":
             self.plot_mptcp(df, fig, fields, **kwargs)
-        else:
+        elif protocol == "tcp":
             self.plot_tcp(df, fig, fields, **kwargs)
+        else:
+            raise Exception("Unsupported protocol %r" % protocol)
 
 
         # TODO add units
@@ -145,7 +148,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         axes = fig.gca()
         # fields = ["tcpdest", "tcpstream"]
 
-        # ConnctionRole doesn't support <
+
+        label_fmt = "Stream {tcpstream} towards {tcpdest}"
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
             # print("t= %r" % (idx,))
@@ -159,7 +163,6 @@ class TcpOneWayDelay(plot.Matplotlib):
             # if tcpdest
             debug_dataframe(subdf, "subdf stream %d destination %r" % (tcpstream, tcpdest))
 
-            label_fmt = "Stream {tcpstream} towards {tcpdest}"
             pplot = subdf.plot.line(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
@@ -175,14 +178,22 @@ class TcpOneWayDelay(plot.Matplotlib):
         fields = ["tcpdest", "tcpstream", "mptcpdest"]
         destinations = pcap_destinations
 
+
+        label_fmt = "Stream {tcpstream}"
+
+        if len(destinations) > 1:
+            label_fmt = label_fmt + " towards {dest}"
+
+        print("pcap", pcap_destinations)
+
         for idx, subdf in df.groupby(_sender(fields), sort=False):
 
             tcpdest, tcpstream, mptcpdest = idx
             if mptcpdest not in destinations:
-                log.debug("Ignoring destination %s" % mptcpdest)
+                log.debug("Ignoring destination %s", mptcpdest)
                 continue
 
-            label_fmt = ""
+# "Subflow %d towards tcp %s" % (tcpstream, tcpdest),  # seems to be a bug
             pplot = subdf.plot(
                 # gca = get current axes (Axes), create one if necessary
                 ax=axes,
@@ -190,5 +201,5 @@ class TcpOneWayDelay(plot.Matplotlib):
                 # TODO should depend from
                 x=_sender("abstime"),
                 y="owd",
-                label="Subflow %d towards tcp %s" % (tcpstream, tcpdest),  # seems to be a bug
+                label=label_fmt.format(tcpstream=tcpstream, dest=mp.ConnectionRoles(mptcpdest).to_string())
             )

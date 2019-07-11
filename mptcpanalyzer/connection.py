@@ -26,6 +26,7 @@ class Filetype(Enum):
     sql = 2
     csv = 3
 
+
 @dataclass
 class TcpConnection:
     """
@@ -92,7 +93,6 @@ class TcpConnection:
         score += 10 if self.client_port == other.client_port else 0
         score += 10 if self.server_port == other.server_port else 0
 
-        # TODO more granular score
         return score
 
 
@@ -100,10 +100,9 @@ class TcpConnection:
         """
         TODO check it was not done before ?
         """
-
         for dest in ConnectionRoles:
 
-            log.debug("Looking at destination %s" % dest)
+            log.debug("Looking at destination %s", dest)
             q = self.generate_direction_query(dest)
             df_dest = df.query(q, engine="python")
             df.loc[df_dest.index, 'tcpdest'] = dest
@@ -162,7 +161,6 @@ class TcpConnection:
         )
 
         if df.loc[idx, "tcpflags"] & TcpFlags.ACK:
-            # then revert the flow
             log.debug("We have seen the syn/ack instead of syn, invert destination")
             result = result.reversed()
 
@@ -170,7 +168,6 @@ class TcpConnection:
         return result
 
     def reversed(self):
-        # doesn't make sense really ?
         return TcpConnection(
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
@@ -189,7 +186,6 @@ class TcpConnection:
         b => bidirectional
         """
         fmt = ""
-        # print ( "format_spec = ", format_spec)
         if "p" in format_spec:
             fmt = "tcp.stream {s.tcpstreamid:.0f}: "
 
@@ -238,10 +234,7 @@ class MpTcpSubflow(TcpConnection):
             client_port=self.server_port,
             server_port=self.client_port,
         )
-        log.warn("Losing addrid")
-        # we lose the addrid in opposite direction
-        # res.addrid = self.addrid
-        # raise Exception("check for rcv_token")
+        log.warn("Losing addrid when reversing subflow")
         return res
 
     def mptcp_dest_from_tcpdest(self, tcpdest: ConnectionRoles):
@@ -393,11 +386,8 @@ class MpTcpConnection:
         if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
             log.error("Clocks are not synchronized correctly")
 
-        # print("client key = %r" % client_key)
-        # print("server key = %r" % server_key)
-        log.debug("Server token = %r" % server_token)
+        log.debug("Server token = %r", server_token)
         assert math.isfinite(int(server_token))
-        # assert math.isnan(server_token) == False
 
         subflows: List[MpTcpSubflow] = []
 
@@ -480,11 +470,9 @@ class MpTcpConnection:
 
     def __eq__(self, other):
         """
-        Ignores
         A NAT/PAT could have rewritten IPs in which case you probably
         should add another function like score
         """
-        # print("self=%r", self)
         return self.score(other) == float('inf')
 
     def score(self, other: 'MpTcpConnection') -> float:
@@ -514,11 +502,11 @@ class MpTcpConnection:
         # with nat, ips don't mean a thing ?
         for sf in self.subflows():
             if sf in other.subflows() or sf.reversed() in other.subflows():
-                log.debug("Subflow %s in common" % sf)
+                log.debug("Subflow %s in common", sf)
                 score += 10
                 common_sf.append(sf)
             else:
-                log.debug("subflows %s doesn't seem to exist in other " % (sf))
+                log.debug("subflows %s doesn't seem to exist in other ", sf)
 
         # TODO compare start times supposing cloak are insync ?
         return score
