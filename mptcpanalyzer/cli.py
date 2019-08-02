@@ -275,6 +275,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.intro = ""
 
         self.poutput("Run `checkhealth` in case of issues")
+        self.register_postparsing_hook(self.myhookmethod)
+
+    def myhookmethod(self, params: cmd2.plugin.PostparsingData) -> cmd2.plugin.PostparsingData:
+        # the statement object created from the user input
+        # is available as params.statement
+        return params
 
     def do_checkhealth(self, args):
         if sys.hexversion <= 0x03070000:
@@ -418,7 +424,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.perror(e)
 
 
-    parser = argparse_completer.ACArgumentParser(
+    parser = MpTcpAnalyzerParser(
         description='''
         This function tries to map a tcp.stream id from one pcap
         to one in another pcap in another dataframe.
@@ -431,8 +437,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # cmd2.Cmd.path_complete ?
     # setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
     # use path_filter
-    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
-    setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+
+    setattr(load_pcap1, cmd2.argparse_completer.ATTR_CHOICES_CALLABLE, completer_method=cmd2.Cmd.path_complete)
+    setattr(load_pcap2, cmd2.argparse_completer.ATTR_CHOICES_CALLABLE, completer_method=cmd2.Cmd.path_complete)
+    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+    # setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
 
     parser.add_argument("tcpstreamid", action="store", type=int,
                         help="tcp.stream id visible in wireshark for pcap1")
@@ -1092,7 +1101,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         # print(args)
 
-        self.poutput("Loading %s" % args.input_file)
+        self.poutput("Loading %s", args.input_file)
         self.data = args._dataframes["input_file"]
         self.prompt = "%s> " % os.path.basename(args.input_file)
 

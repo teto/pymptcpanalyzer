@@ -450,7 +450,7 @@ def gen_bicap_parser(protocol: mp.Protocol, dest=False):
 # map pcaps to a group
 # TODO pass a dict of @dataclass instead
 # add subnamespace ?
-class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
+class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
     '''
     Wrapper around cmd2 argparse completer
     Should allow to switch backends easily.
@@ -500,7 +500,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_completer.ACArgumentParser):
         }
         params.update(**kwargs)
         load_pcap = self.add_argument(name, type=str, **params)
-        setattr(load_pcap, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
+        setattr(load_pcap, cmd2.argparse_completer.ATTR_CHOICES_CALLABLE, completer_method=cmd2.Cmd.path_complete)
         return load_pcap
 
     # with add_argument_group for instance ?

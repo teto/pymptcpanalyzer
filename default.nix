@@ -65,11 +65,13 @@ python3Packages.buildPythonApplication rec {
     doCheck = false;
 
     # to build the doc sphinx
+    # pyperclip 
     propagatedBuildInputs = with python3Packages; [
-      stevedore cmd2 pyperclip pandas
+      stevedore cmd2 pandas
       # we want gtk because qt is so annying on nixos
-      (matplotlib.override { enableGtk3=true;})
-      pyqt5
+      # enableQt = true;
+      (matplotlib.override { enableGtk3=true; })
+      # pyqt5
       tshark
     ];
 

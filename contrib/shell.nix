@@ -1,9 +1,10 @@
 # { pkgs ? import <nixpkgs> {} }:
 with import <nixpkgs> {};
 
+let
   # TODO override pandas
   prog = (mptcpanalyzer.override({
-    inherit pandas;
+    # inherit pandas;
     # inherit cmd2;
   }) ).overridePythonAttrs (oa: {
 
