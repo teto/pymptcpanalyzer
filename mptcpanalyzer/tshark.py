@@ -321,7 +321,7 @@ class TsharkConfig:
 
         try:
             custom_env = os.environ.copy()
-            custom_env['XDG_CONFIG_HOME'] = tempfile.gettempdir()
+            custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
             with subprocess.Popen(
                 cmd, stdout=stdout, stderr=subprocess.PIPE,
                 env=custom_env
