@@ -431,17 +431,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     ''')
 
     # TODO could use LoadSinglePcap
-    load_pcap1 = parser.add_argument("pcap1", action="store", help="first to load")
-    load_pcap2 = parser.add_argument("pcap2", action="store", help="second pcap")
-
-    # cmd2.Cmd.path_complete ?
-    # setattr(action_stream, argparse_completer.ACTION_ARG_CHOICES, range(0, 10))
-    # use path_filter
-
-    setattr(load_pcap1, cmd2.argparse_completer.ATTR_CHOICES_CALLABLE, completer_method=cmd2.Cmd.path_complete)
-    setattr(load_pcap2, cmd2.argparse_completer.ATTR_CHOICES_CALLABLE, completer_method=cmd2.Cmd.path_complete)
-    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
-    # setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
+    load_pcap1 = parser.add_argument("pcap1", action="store",
+            completer_method=cmd2.Cmd.path_complete, help="first to load")
+    load_pcap2 = parser.add_argument("pcap2", action="store",
+           completer_method=cmd2.Cmd.path_complete, help="2nd pcap.")
 
     parser.add_argument("tcpstreamid", action="store", type=int,
                         help="tcp.stream id visible in wireshark for pcap1")
@@ -481,17 +474,19 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             # print(formatted_output)
             self.poutput("%s" % str(match))
 
+
+    # TODO use biparser instead
     parser = MpTcpAnalyzerParser(
         description="This function tries to map a mptcp.stream from a dataframe"
                     "(aka pcap) to mptcp.stream"
                     "in another dataframe. "
     )
 
-    load_pcap1 = parser.add_pcap("pcap1", action="store", help="first to load")
-    load_pcap2 = parser.add_pcap("pcap2", action="store", help="second pcap")
+    load_pcap1 = parser.add_pcap("pcap1", action="store", completer_method=cmd2.Cmd.path_complete,
+        help="first to load")
+    load_pcap2 = parser.add_pcap("pcap2", action="store", completer_method=cmd2.Cmd.path_complete,
+        help="second pcap")
 
-    # setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
-    # setattr(load_pcap2, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
     parser.add_argument("mptcpstreamid", action="store", type=mp.MpTcpStreamId, help="to filter")
     parser.add_argument("--trim", action="store", type=float, default=0,
                         help="Remove mappings with a score below this threshold")
@@ -801,8 +796,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         description="Export a pcap that can be used with wireshark to debug ids"
     )
     load_pcap1 = parser.add_argument("imported_pcap", type=str,
+        completer_method=cmd2.Cmd.path_complete,
         help="Capture file to cleanup.")
-    setattr(load_pcap1, argparse_completer.ACTION_ARG_CHOICES, ('path_complete', ))
     parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
 
     @with_argparser(parser)
@@ -1101,7 +1096,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         # print(args)
 
-        self.poutput("Loading %s", args.input_file)
+        self.poutput("Loading %s" % args.input_file)
         self.data = args._dataframes["input_file"]
         self.prompt = "%s> " % os.path.basename(args.input_file)
 

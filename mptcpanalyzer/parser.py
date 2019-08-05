@@ -2,7 +2,8 @@ import logging
 import argparse
 import cmd2
 import os.path
-# from cmd2 import argparse_completer
+import functools
+from cmd2.argparse_custom import ChoicesCallable, ATTR_CHOICES_CALLABLE
 from typing import Iterable, List, Dict, Callable, Optional, Any, Union
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
@@ -63,8 +64,12 @@ class LoadSinglePcap(DataframeAction):
     def __init__(self, loader=TsharkConfig(), **kwargs) -> None:
         super().__init__(df_name=kwargs.get("dest"), **kwargs)
         self.loader = loader
-        setattr(self, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
 
+        # 'completer_method': cmd2.Cmd.path_complete
+        # setattr(self, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
+        completer_method = functools.partial(cmd2.Cmd.path_complete, path_filter=lambda path: os.path.isfile(path))
+        setattr(self, ATTR_CHOICES_CALLABLE,
+                ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method))
     def __call__(self, parser, namespace, values, option_string=None):
         if type(values) == list:
             parser.error("lists unsupported")
@@ -496,11 +501,11 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         # pass
         params = {
             'action': LoadSinglePcap,
-            'help': 'Pcap file'
+            'help': 'Pcap file',
+            'completer_method': cmd2.Cmd.path_complete
         }
         params.update(**kwargs)
         load_pcap = self.add_argument(name, type=str, **params)
-        setattr(load_pcap, cmd2.argparse_completer.ATTR_CHOICES_CALLABLE, completer_method=cmd2.Cmd.path_complete)
         return load_pcap
 
     # with add_argument_group for instance ?

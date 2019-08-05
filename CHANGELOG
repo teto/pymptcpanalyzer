@@ -6,6 +6,8 @@ mptcpanalyzer 0.3.2 (dev):
 - tshark is now launched with an empty wireshark config to prevent interference from
 	user modules or lua scripts with the results
 - changed CI to work with hercules instead of travis
+- bumped cmd2 to 0.9.15
+- bumped pandas to 0.25
 
 mptcpanalyzer 0.3.1 (26/03/2019):
 - compatibility with cmd 0.9.12 (colorization/autocompletion)
