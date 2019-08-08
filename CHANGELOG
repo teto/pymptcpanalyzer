@@ -1,5 +1,6 @@
+mptcpanalyzer 0.3.3 (dev):
 
-mptcpanalyzer 0.3.2 (dev):
+mptcpanalyzer 0.3.2:
 - TcpConnection now accepts a format to customize its display
 - new plots mptcp_tput/mptcp_gput
 - renamed tcp_throughput to tcp_tput
