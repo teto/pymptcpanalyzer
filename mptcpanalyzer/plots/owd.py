@@ -129,16 +129,15 @@ class TcpOneWayDelay(plot.Matplotlib):
             raise Exception("Unsupported protocol %r" % protocol)
 
 
-        # TODO add units
-        # axes.set_xlabel("Time (s)")
-        # axes.set_ylabel("One Way Delay (s)")
+        self.title_fmt = "One Way Delays for {protocol}"
+        if len(destinations) == 1:
+            self.title_fmt = self.title_fmt + " towards {dest}"
 
-        # "streams {} <-> {} {dest}"
-        self.title_fmt = ("One Way Delays for {}").format(
-            protocol,
-            kwargs.get("pcap1stream"),
-            kwargs.get("pcap2stream"),
-            dest=""
+        self.title_fmt = self.title_fmt.format(
+            protocol=protocol,
+            # kwargs.get("pcap1stream"),
+            # kwargs.get("pcap2stream"),
+            dest=destinations[0].to_string()
         )
 
         return fig
@@ -192,6 +191,12 @@ class TcpOneWayDelay(plot.Matplotlib):
             if mptcpdest not in destinations:
                 log.debug("Ignoring destination %s", mptcpdest)
                 continue
+
+            # print("OWD")
+            # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+            #     # more options can be specified also
+            #     # print(df)
+            #     print(df.owd)
 
 # "Subflow %d towards tcp %s" % (tcpstream, tcpdest),  # seems to be a bug
             pplot = subdf.plot(

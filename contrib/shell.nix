@@ -8,10 +8,10 @@ let
     # inherit cmd2;
   }) ).overridePythonAttrs (oa: {
 
-    # nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
-    #   # to publish on pypi
-    #   # pkgs.python3Packages.twine
-    # ];
+    nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
+      # to publish on pypi
+      pkgs.python3Packages.twine
+    ];
     propagatedBuildInputs  = (oa.propagatedBuildInputs  or []) ++ [
       my_nvim.config.python3Env
     ];
