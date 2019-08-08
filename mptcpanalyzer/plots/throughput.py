@@ -236,7 +236,6 @@ class TcpThroughput(plot.Matplotlib):
         """
 
         fig = plt.figure()
-        axes = fig.gca()
 
         df = pcap
         window = kwargs.get("window")
@@ -368,7 +367,6 @@ class MptcpThroughput(plot.Matplotlib):
         plots the mptcp aggregate or mptcpack instead ?
         """
         fig = plt.figure()
-        axes = fig.gca()
 
         df = pcap
         destinations = kwargs.get("pcap_destinations")

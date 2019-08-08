@@ -225,8 +225,7 @@ class AppendDestination(argparse.Action):
         setattr(namespace, self.dest, self.destinations)
         # pcap1 = getattr(namespace, self.df_name + "1")
         # pcap2 = getattr(namespace, self.df_name + "2")
-
-        dest = values
+        # dest = values
         # if type(values) == list:
         #     print("destination", option_string)
         #     print("first time called ?", self.already_called)
@@ -356,18 +355,17 @@ class FilterDest(DataframeAction):
         #     # TODO set dest
 
         # make sure result
-        df = namespace._dataframes[self.df_name]
+        # df = namespace._dataframes[self.df_name]
 
-
-        log.debug("Filtering dest %s" % (values))
+        log.debug("TODO Filtering dest %s", (values))
+        # con = df.mptcp.connection(pcapstream)
 
         # TODO build a query
-        query = ""
-
+        # query = ""
         # make sure that it's called only after stream got selected ?
         # assert df[self.field].unique().size == 1
         # "tcpstream"
-        dest = values
+        # dest = values
         # assert dest in ConnectionRoles
 
         # TODO remove first the ones who already have the tcpdest set
@@ -474,10 +472,10 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
 
         # TODO call filter_dataframe ?
         if getattr(known, "_dataframes", None):
-            for name, df in known._dataframes.items():
+            for name, _ in known._dataframes.items():
                 # print
                 # so now we can filter the destination ?
-                log.debug("dataframe [%s] in namespace" % name)
+                log.debug("dataframe [%s] in namespace", name)
 
                 # TODO here we should filter the destinations
         else:

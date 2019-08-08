@@ -89,8 +89,8 @@ setup(name="mptcpanalyzer",
         # and importable is the name of something that can be imported from
         # inside the module.
         'mptcpanalyzer.plots': [
-            'mptcp_attr = mptcpanalyzer.plots.dsn:PlotSubflowAttribute',
-            'tcp_attr = mptcpanalyzer.plots.dsn:PlotTcpAttribute',
+            'mptcp_attr = mptcpanalyzer.plots.stream:PlotSubflowAttribute',
+            'tcp_attr = mptcpanalyzer.plots.stream:PlotTcpAttribute',
             'reinject = mptcpanalyzer.plots.reinjections:PlotMpTcpReinjections',
             # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
             # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',

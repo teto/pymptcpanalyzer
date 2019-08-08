@@ -10,6 +10,11 @@ from mptcpanalyzer.parser import gen_pcap_parser
 
 log = logging.getLogger(__name__)
 
+# temporary solution to disable matplotlib logging
+mpl_logger = logging.getLogger('matplotlib')
+mpl_logger.setLevel(logging.WARNING)
+
+
 def attributes(fields):
     return {name: field.label for name, field in fields.items() if field.label}
 
@@ -21,7 +26,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, x_label="Time (s)", **kwargs)
 
         # TODO filter the ones who have plot name
         self._attributes = attributes(self.tshark_config.fields)
@@ -33,7 +38,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
             "pcap": PreprocessingActions.Preload | PreprocessingActions.FilterMpTcpStream
         }
 
-        parser = gen_pcap_parser(pcaps, )
+        parser = gen_pcap_parser(pcaps, direction=True)
         parser.description = "Plot MPTCP subflow attributes over time"
 
         parser.add_argument('field', choices=self._attributes.keys(),
@@ -41,56 +46,79 @@ class PlotSubflowAttribute(plot.Matplotlib):
         res = super().default_parser(
             *args, parents=[parser],
             **kwargs)
-        # print("end of mptcp_attr parser")
         return res
-        # return parser
 
-    def plot(self, df, pcapstream, field, **kwargs):
+    def plot(self, pcap, pcapstream, field, **kwargs):
         """
         getcallargs
         """
         fig = plt.figure()
 
-        log.info("Plotting field %s" % field)
-        log.info("len(df)= %d" % len(df))
+        log.info("Plotting field %s", field)
+        log.info("len(df)= %d", len(pcap))
 
         axes = fig.gca()
+        destinations = kwargs.get("pcap_destinations")
 
+        con = pcap.mptcp.connection(pcapstream)
+        df = con.fill_dest(pcap)
+
+        field_desc = self._attributes[field]
+        title_fmt = "{field}"
+        if len(destinations) == 1:
+            title_fmt = title_fmt + " towards " + (destinations[0].to_string())
+        title_fmt = title_fmt + " for MPTCP stream {mptcpstream}"
+
+        # self.title_fmt = f"Subflow {field}"
+        # fig.suptitle("Subflow %s" % field,
+        #     verticalalignment="top",
+        #     # x=0.1, y=.95,
+        #              )
         fields = ["tcpstream", "mptcpdest"]
 
-        fig.suptitle("Subflow %s" % field,
-            verticalalignment="top",
-            # x=0.1, y=.95,
-                     )
 
-        # no destinations yet !!
-        # debug_dataframe(df, "DATASET HEAD")
-        for idx, subdf in df.groupby(_sender(fields), sort=False):
+        for idx, subdf in df.groupby(fields, sort=False):
+            tcpstream, mptcpdest = idx
+            mptcpdest = mp.ConnectionRoles(mptcpdest)
+            if mptcpdest not in destinations:
+                log.debug("Ignoring MPTCP destination %s", mptcpdest)
+                continue
+
+            log.debug("Plotting mptcp destination %s", mptcpdest)
             log.info("len(df)= %d" % len(df))
+
+            print("DSS_DSN")
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                # more options can be specified also
+                # print(df)
+                print(df.dss_dsn)
 
             # TODO check destination
 
+            label_fmt = f"Subflow {tcpstream}"
             # for idx, (streamid, ds) in enumerate(tcpstreams):
             subdf[field].plot.line(
                 x="abstime",
                 ax=axes,
                 # use_index=False,
-                legend=False,
+                label=label_fmt,
+                # legend=False,
                 grid=True,
             )
 
-        axes.set_xlabel("Time (s)")
-        axes.set_ylabel(self._attributes[field])
+        self.y_label = field_desc
 
-        handles, labels = axes.get_legend_handles_labels()
+        # handles, labels = axes.get_legend_handles_labels()
 
         # Generate "subflow X" labels
         # location: 3 => bottom left, 4 => bottom right
-        axes.legend(
-            handles,
-            ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
-            loc=4
-        )
+        # axes.legend(
+        #     handles,
+        #     ["%s for Subflow %d" % (field, x) for x, _ in enumerate(labels)],
+        #     loc=4
+        # )
+
+        self.title_fmt = title_fmt.format(field=field_desc, mptcpstream=pcapstream)
         return fig
 
 
@@ -98,7 +126,7 @@ class PlotTcpAttribute(plot.Matplotlib):
 
     def __init__(self, *args, **kwargs):
 
-        super(plot.Matplotlib, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._attributes = attributes(self.tshark_config.fields)
 
     def default_parser(self, *args, **kwargs):

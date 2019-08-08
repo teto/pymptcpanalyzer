@@ -198,7 +198,6 @@ class Matplotlib(Plot):
         """
         pass
 
-
     def postprocess(
         self,
         plot_data,
@@ -234,7 +233,7 @@ class Matplotlib(Plot):
             self.savefig(plot_data, out)
 
 
-        log.debug("plot_data %r" % plot_data)
+        log.debug("plot_data %r", plot_data)
 
         if display:
             if out is None:
