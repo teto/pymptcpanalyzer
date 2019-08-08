@@ -164,7 +164,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     intro = textwrap.dedent("""
         Press ? to list the available commands and `help <command>` or `<command> -h`
         for a detailed help of the command
-        """.format(__version__))
+        """)
 
     def stevedore_error_handler(manager, entrypoint, exception):
         print("Error while loading entrypoint [%s]" % entrypoint)
@@ -708,7 +708,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
 
         self.poutput("Summary extended of mptcp connection ")
-        df_pcap1 = load_into_pandas(args.pcap1, self.tshark_config)
 
         # to abstract things a bit
         destinations = args.pcap_destinations
@@ -741,18 +740,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.poutput(val)
                 return
 
-            total_transferred = stats.mptcp_throughput_bytes
             msg = ("mptcpstream {c.mptcpstreamid} towards {destination} forwarded "
                    "{c.mptcp_throughput_bytes} bytes with a goodput of {c.mptcp_goodput_bytes}")
             self.poutput(msg.format(c=stats, destination=destination.name))
 
-            msg = inspect.cleandoc("""
-            tcpstream {sf.tcpstreamid} analysis:
-            - throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes} \
-                    mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput
-            - goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, \
-                    accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput
-            """)
+            msg = ("tcpstream {sf.tcpstreamid} analysis:\n"
+            "- throughput: transferred {sf.throughput_bytes} out of {mptcp.mptcp_throughput_bytes}"
+            " mptcp bytes, accounting for {mptcp_tput_ratio:.2f}% of MPTCP throughput\n"
+            "- goodput: transferred {sf.mptcp_goodput_bytes} out of {mptcp.mptcp_goodput_bytes}, "
+            "accounting for {mptcp_gput_ratio:.2f}% of MPTCP goodput")
 
             for subflow in stats.subflow_stats:
 
