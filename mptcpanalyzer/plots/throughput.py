@@ -182,9 +182,9 @@ def plot_tput(fig, *args, label=None):
     log.debug("Plotting tput for %s", label)
 
     tput_df = compute_throughput(*args)
-    print("tput_df")
-    print(tput_df.dtypes)
-    print(tput_df)
+    # print("tput_df")
+    # print(tput_df.dtypes)
+    # print(tput_df)
     # astype("int64")
     tput_df.plot.line(
         ax=axes,
