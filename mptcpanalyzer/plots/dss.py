@@ -41,7 +41,6 @@ class DssLengthHistogram(plot.Matplotlib):
 
 class DSSOverTime(plot.Matplotlib):
     """
-    WIP
     Draw small arrows with dsn as origin, and a *dss_length* length etc...
     Also allow to optionally display dataack
 
@@ -68,7 +67,7 @@ class DSSOverTime(plot.Matplotlib):
         parser = super().default_parser(*args,
                 direction=True, **kwargs)
         parser.add_argument('--dack', action="store_true", default=False,
-                help="Adds data acks to the graph")
+            help="Adds data acks to the graph")
 
         # can only be raw as there are no relative dss_dsn exported yet ?
         # parser.add_argument('--relative', action="store_true", default=False,
@@ -77,7 +76,7 @@ class DSSOverTime(plot.Matplotlib):
         parser.epilog = "test epilog"
         return parser
 
-    def plot(self, rawdf, destination=None, dack=False, relative=None, **args):
+    def plot(self, pcap, destination=None, dack=False, relative=None, **args):
         """
         Might be
 
@@ -102,8 +101,8 @@ class DSSOverTime(plot.Matplotlib):
             dss_dsn
             """
             # returns a FancyArrow
-            res = axes.arrow(idx, int(row[dsn_str]) , 0, row["dss_length"],
-                    head_width=0.05, head_length=0.1, **style)
+            res = axes.arrow(idx, int(row[dsn_str]), 0, row["dss_length"],
+                head_width=0.05, head_length=0.1, **style)
             res.set_label("hello")
             return res
 
@@ -120,7 +119,7 @@ class DSSOverTime(plot.Matplotlib):
         ######################################################
         for tcpstream, df in df_forward.groupby('tcpstream'):
             style = next(styles)
-            print("arrows for tcpstream %d" % tcpstream)
+            print("arrows for tcpstream %d", tcpstream)
 
             style = next(styles)
 
@@ -163,9 +162,8 @@ class DSSOverTime(plot.Matplotlib):
 
         # location: 3 => bottom left, 4 => bottom right
         axes.legend(legend_artists, legends, loc=4)
+        axes.set_ylim([ymin, ymax])
 
-        axes.set_ylabel("Data Sequence Number (DSN)")
-        axes.set_xlabel("Relative time (s)")
-        axes.set_ylim([ymin,ymax])
+        self.x_label = "Relative time (s)"
+        self.y_label = "Data Sequence Number (DSN)"
         return fig
-

@@ -87,14 +87,6 @@ class PlotSubflowAttribute(plot.Matplotlib):
             log.debug("Plotting mptcp destination %s", mptcpdest)
             log.info("len(df)= %d" % len(df))
 
-            # print("DSS_DSN")
-            # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-            #     # more options can be specified also
-            #     # print(df)
-            #     print(df.dss_dsn)
-
-            # TODO check destination
-
             label_fmt = f"Subflow {tcpstream}"
             # for idx, (streamid, ds) in enumerate(tcpstreams):
             subdf[field].plot.line(
@@ -102,22 +94,11 @@ class PlotSubflowAttribute(plot.Matplotlib):
                 ax=axes,
                 # use_index=False,
                 label=label_fmt,
-                legend=False,
+                legend=True,
                 grid=True,
             )
 
         self.y_label = field_desc
-
-        handles, labels = axes.get_legend_handles_labels()
-
-        # Generate "subflow X" labels
-        # location: 3 => bottom left, 4 => bottom right
-        # TODO should print the real IDs
-        axes.legend(
-            handles,
-            ["Subflow %d" % (x) for x, _ in enumerate(labels)],
-            loc=4
-        )
 
         self.title_fmt = title_fmt.format(field=field_desc, mptcpstream=pcapstream)
         return fig
