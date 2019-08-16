@@ -389,9 +389,18 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         return True if stop is True else False
 
+
+    # TODO pass a namespace instead
+    def mptcp_stream_range(self):
+        return self.data.mptcpstream.dropna().unique()
+
+    def tcp_stream_range(self):
+        return self.data.tcpstream.dropna().unique()
+
     parser = MpTcpAnalyzerParser(description="List subflows of an MPTCP connection")
     filter_stream = parser.add_argument(
-        "mptcpstream", action="store", type=int,
+        "mptcpstream", action="store", type=MpTcpStreamId,
+        choices_method=mptcp_stream_range,
         help="Equivalent to wireshark mptcp.stream id")
     # TODO for tests only, fix
     # setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
