@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from itertools import cycle
 import logging
+from mptcpanalyzer.parser import gen_pcap_parser
 
 log = logging.getLogger(__name__)
 
@@ -15,15 +16,29 @@ class DssLengthHistogram(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        input_pcaps = {
-            "pcap": plot.PreprocessingActions.Preload,
-        }
         super().__init__(
-                args,
-                input_pcaps=input_pcaps,
-                title="DSS Length",
-                **kwargs
-            )
+            args,
+            title="DSS Length",
+            **kwargs
+        )
+
+    def default_parser(self, *args, **kwargs):
+
+        pcaps = {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream,
+        }
+
+        parser = gen_pcap_parser(pcaps, direction=True)
+        # force to choose a destination
+        parser.add_argument('--dack', action="store_true", default=False,
+            help="Adds data acks to the graph")
+
+        # can only be raw as there are no relative dss_dsn exported yet ?
+        # parser.add_argument('--relative', action="store_true", default=False,
+        #         help="Adds data acks to the graph")
+        parser.description = "TEST description"
+        parser.epilog = "test epilog"
+        return parser
 
     def plot(self, df, mptcpstream, **kwargs):
 
@@ -53,19 +68,23 @@ class DSSOverTime(plot.Matplotlib):
     """
 
     def __init__(self, *args, **kwargs):
-        expected_pcaps = {
-            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream,
-        }
         super().__init__(
             *args,
-            input_pcaps=expected_pcaps,
             title="dsn",
+            x_label="Time (s)",
+            y_label="Data Sequence Number",
             **kwargs
         )
 
     def default_parser(self, *args, **kwargs):
-        parser = super().default_parser(*args,
-                direction=True, **kwargs)
+
+        pcaps = {
+            "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterStream,
+        }
+
+        parser = gen_pcap_parser(pcaps, direction=True)
+
+        # force to choose a destination
         parser.add_argument('--dack', action="store_true", default=False,
             help="Adds data acks to the graph")
 
@@ -86,9 +105,17 @@ class DSSOverTime(plot.Matplotlib):
 
         ymin, ymax = float('inf'), 0
 
-        rawdf.set_index("reltime", inplace=True)
+        debug_dataframe(pcap)
 
-        df_forward = self.preprocess(rawdf, destination=destination, extra_query="dss_dsn > 0", **args)
+        rawdf = pcap.set_index("reltime")
+
+        # only select entries with a dss_dsn
+        # df_forward = self.preprocess(rawdf, destination=destination, extra_query="dss_dsn > 0", **args)
+        print(destination)
+        # print(destinations)
+        # tcpdest or mptcpdest
+        df_forward = pcap[pcap.mptcpdest == destination]
+        df_forward = df_forward[df_forward.dss_dsn > 0]
 
         # compute limits of the plot
         ymin, ymax = min(ymin, df_forward[dsn_str].min()), max(ymax, df_forward[dsn_str].max())
@@ -142,20 +169,12 @@ class DSSOverTime(plot.Matplotlib):
             df_backward = self.preprocess(rawdf, **args, destination=mp.reverse_destination(destination),
                     extra_query=dack_str + " >=0 ")
 
-
-            #TODO remove the cycler in favor of something 
-            # cycler = mpl.cycler(marker=['s', 'o', 'x'], color=['r', 'g', 'b'])
-            # markers = cycle(cycler)
-
             for tcpstream, df in df_backward.groupby('tcpstream'):
                 # marker = next(markers)
                 if df.empty:
                     log.debug("No dack for tcpstream %d" % tcpstream)
                 else:
-                    ax1 = df[dack_str].plot.line(ax=axes,
-                            # style=marker,
-                            legend=False
-                    )
+                    ax1 = df[dack_str].plot.line(ax=axes, legend=False)
                     lines, labels = ax1.get_legend_handles_labels()
                     legend_artists.append(lines[-1])
                     legends.append("dack for sf %d" % tcpstream)
@@ -164,6 +183,4 @@ class DSSOverTime(plot.Matplotlib):
         axes.legend(legend_artists, legends, loc=4)
         axes.set_ylim([ymin, ymax])
 
-        self.x_label = "Relative time (s)"
-        self.y_label = "Data Sequence Number (DSN)"
         return fig
