@@ -29,7 +29,9 @@ let
 
   });
 
+  # https://www.reddit.com/r/neovim/comments/b1zm7h/how_to_setup_microsofts_python_lsp_in_linuxubuntu/
   my_nvim = genNeovim  [ mptcpanalyzer ] {
+    # ms-python.python
     extraPython3Packages = ps: with ps;  [ python-language-server ];
   };
 

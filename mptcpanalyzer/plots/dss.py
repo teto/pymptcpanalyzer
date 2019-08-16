@@ -5,6 +5,7 @@ import matplotlib as mpl
 from itertools import cycle
 import logging
 from mptcpanalyzer.parser import gen_pcap_parser
+from mptcpanalyzer.debug import debug_dataframe
 
 log = logging.getLogger(__name__)
 
@@ -105,9 +106,11 @@ class DSSOverTime(plot.Matplotlib):
 
         ymin, ymax = float('inf'), 0
 
-        debug_dataframe(pcap)
+        debug_dataframe(pcap, "dss")
 
         rawdf = pcap.set_index("reltime")
+        con = df.mptcp.connection(streamid)
+        df = con.fill_dest(df)
 
         # only select entries with a dss_dsn
         # df_forward = self.preprocess(rawdf, destination=destination, extra_query="dss_dsn > 0", **args)
@@ -116,9 +119,11 @@ class DSSOverTime(plot.Matplotlib):
         # tcpdest or mptcpdest
         df_forward = pcap[pcap.mptcpdest == destination]
         df_forward = df_forward[df_forward.dss_dsn > 0]
+        print(df_forward)
 
         # compute limits of the plot
         ymin, ymax = min(ymin, df_forward[dsn_str].min()), max(ymax, df_forward[dsn_str].max())
+        print("setting ymin/ymax", ymin, ymax)
 
         fig = plt.figure()
         axes = fig.gca()
