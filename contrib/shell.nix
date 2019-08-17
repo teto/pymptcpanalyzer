@@ -2,6 +2,8 @@
 with import <nixpkgs> {};
 
 let
+  mptcpanalyzer = callPackage ../default.nix {};
+
   # TODO override pandas
   prog = (mptcpanalyzer.override({
     # inherit pandas;
@@ -24,6 +26,8 @@ let
       export SOURCE_DATE_EPOCH=315532800
       export PATH="${my_nvim}/bin:$PATH"
       echo "importing a custom nvim ${my_nvim}"
+
+      alias m=mptcpanalyzer
 
     '';
 

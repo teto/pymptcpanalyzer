@@ -69,7 +69,7 @@ class LoadSinglePcap(DataframeAction):
         # setattr(self, cmd2.argparse_completer.ACTION_ARG_CHOICES, ('path_complete', os.path.isfile))
         completer_method = functools.partial(cmd2.Cmd.path_complete, path_filter=lambda path: os.path.isfile(path))
         setattr(self, ATTR_CHOICES_CALLABLE,
-                ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method))
+                ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method, pass_parsed_args=False))
     def __call__(self, parser, namespace, values, option_string=None):
         if type(values) == list:
             parser.error("lists unsupported")
@@ -450,6 +450,13 @@ def gen_bicap_parser(protocol: mp.Protocol, dest=False):
 
     return gen_pcap_parser(input_pcaps=input_pcaps, direction=dest)
 
+
+
+def show_range(*args):
+    print("show range called")
+    print(args)
+    return [0, 1]
+
 # map pcaps to a group
 # TODO pass a dict of @dataclass instead
 # add subnamespace ?
@@ -544,10 +551,13 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         proto_str = protocol.to_string()
         params = {
             'action': "store",
-            'help': proto_str + '.stream wireshark id'
+            'help': proto_str + '.stream wireshark id',
+            # 'choices_function': show_range,
+            'choices_function': ChoicesCallable(is_method=False, is_completer=True, to_call=show_range, pass_parsed_args=True)
         }
         params.update(**kwargs)
 
+            # setattr(action, ATTR_CHOICES_CALLABLE, choices_callable)
         return self.add_argument(
             name,
             # name + 'stream',
