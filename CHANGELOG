@@ -1,4 +1,5 @@
 mptcpanalyzer 0.3.3 (dev):
+- display resulting plot by default
 
 mptcpanalyzer 0.3.2:
 - TcpConnection now accepts a format to customize its display

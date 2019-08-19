@@ -24,7 +24,7 @@ from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
 from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, FilterStream, \
-    MpTcpAnalyzerParser, with_argparser_test, MpTcpStreamId, TcpStreamId
+    MpTcpAnalyzerParser, MpTcpStreamId, TcpStreamId
 import mptcpanalyzer.parser as mpparser
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, \

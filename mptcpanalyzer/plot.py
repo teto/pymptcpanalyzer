@@ -201,7 +201,7 @@ class Matplotlib(Plot):
     def postprocess(
         self,
         plot_data,
-        display: bool = False,
+        display: bool = True,
         out=None,
         **kwargs
     ):

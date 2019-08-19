@@ -112,6 +112,7 @@ class PlotTcpAttribute(plot.Matplotlib):
         self._attributes = attributes(self.tshark_config.fields)
 
     def default_parser(self, *args, **kwargs):
+        # TODO add filter_dest ?
         pcaps = {
             "pcap": plot.PreprocessingActions.Preload | plot.PreprocessingActions.FilterTcpStream
         }
@@ -131,8 +132,6 @@ class PlotTcpAttribute(plot.Matplotlib):
         )
         res = super().default_parser(
             *args, parents=[parser],
-            # direction=True,
-            # skip_subflows=True,
             **kwargs)
         return res
 
@@ -140,15 +139,12 @@ class PlotTcpAttribute(plot.Matplotlib):
         """
         getcallargs
         """
-        log.debug("Plotting field(s) %s" % fields)
+        log.debug("Plotting field(s) %s", fields)
 
         fig = plt.figure()
         axes = fig.gca()
 
         tcpdf = pcap
-
-        # if dropsyn
-        # tcpdf[field].iloc[3:]
 
         # should be done when filtering the stream
         tcpdf.tcp.fill_dest(pcapstream)
