@@ -109,7 +109,7 @@ class DSSOverTime(plot.Matplotlib):
         debug_dataframe(pcap, "dss")
 
         rawdf = pcap.set_index("reltime")
-        con = df.mptcp.connection(streamid)
+        con = rawdf.mptcp.connection(streamid)
         df = con.fill_dest(df)
 
         # only select entries with a dss_dsn
@@ -165,7 +165,6 @@ class DSSOverTime(plot.Matplotlib):
 
             if artist_recorded:
                 legends.append("dss for Subflow %d" % tcpstream)
-
 
 
         ### if enabled, plot dack (backward)

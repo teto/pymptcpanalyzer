@@ -88,7 +88,11 @@ class Field:
     label: Optional[str]
     hash: bool
     converter: Optional[Callable]
-    date_format:
+    # date_format: Any
+
+class FieldDate(Field):
+    # date_parser: Any
+    pass
 
 def _convert_flags(x):
     """ double int in case we deal with a float"""
@@ -179,10 +183,15 @@ class TsharkConfig:
         # TODO look at the doc ! with pd.Timestamp
         # dtype=pd.Int64Dtype()
         # TypeError: the dtype datetime64[s] is not supported for parsing, pass this column using parse_dates instead
-        self.add_field("frame.time_relative", "reltime", np.float64,
-            "Relative tine", False, None)
-        self.add_field("frame.time_epoch", "abstime", "datetime64[s]",
-            "seconds+Nanoseconds time since epoch", False, None)
+        # self.add_field("frame.time_relative", "reltime", np.float64,
+        #     "Relative tine", False, None)
+        self._tshark_fields.setdefault("reltime", FieldDate("frame.time_relative", None,
+            "Relative time", False, None))
+        self._tshark_fields.setdefault("abstime", FieldDate("frame.time_epoch", None,
+            "seconds+Nanoseconds time since epoch", False, None))
+        # np.float64
+        # self.add_field("frame.time_epoch", "abstime", None,
+        #     "seconds+Nanoseconds time since epoch", False, None)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)

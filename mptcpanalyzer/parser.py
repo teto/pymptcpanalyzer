@@ -282,11 +282,7 @@ class FilterDest(DataframeAction):
     For now accept a single value
     '''
     def __init__(self, df_name: str, **kwargs) -> None:
-        # self.df_name = df_name
 
-        # assert self.field == "tcpdest" or self.field == "mptcpdest"
-        # self.mptcp = mptcp
-        # self.seen
         # init with all destinations
         self.destinations = list(ConnectionRoles)
         self.already_called = False
@@ -297,10 +293,9 @@ class FilterDest(DataframeAction):
 
     def __call__(self, parser, namespace, values, option_string=None):
 
-        # TODO move to function
-        # if self.df_name not in namespace._dataframes:
-        #     parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
-        #     # TODO set dest
+        if not self.get_dataframe(namespace):
+            parser.error("Trying to filter stream in non-registered df %s" % self.df_name)
+            # TODO set dest
 
         # make sure result
         # df = namespace._dataframes[self.df_name]
@@ -354,23 +349,25 @@ class FilterStream(DataframeAction):
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
+        # super(argparse.Action).__call__(parser, namespace, values, option_string)
 
         # make sure result
-        df = namespace._dataframes[self.df_name]
+        df = self.get_dataframe(namespace)
 
-        log.debug("Filtering stream %s" % (values))
+        log.debug("Filtering stream %s", (values))
 
         field = "tcpstream"
+        protocol = mp.Protocol.TCP
         if isinstance(values, MpTcpStreamId):
             field = "mptcpstream"
+            protocol = mp.Protocol.MPTCP
             log.debug("Mptcp instance")
         elif isinstance(values, TcpStreamId):
             pass
         else:
             parser.error("Unsupported 'type' %s. Set it to TcpStreamId or MpTcpStreamId" % type(values))
 
-        # super(argparse.Action).__call__(parser, namespace, values, option_string)
-        log.debug("Assign filter to %s", (self.dest))
+        log.debug("Assign filter to %s", self.dest)
         setattr(namespace, self.dest, values)
         query = self.query_tpl.format(field=field, streamid=values)
 

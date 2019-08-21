@@ -86,7 +86,7 @@ class PlotSubflowAttribute(plot.Matplotlib):
                 continue
 
             log.debug("Plotting mptcp destination %s", mptcpdest)
-            log.info("len(df)= %d" % len(df))
+            log.info("len(df)= %d", len(df))
 
             label_fmt = f"Subflow {tcpstream}"
             # for idx, (streamid, ds) in enumerate(tcpstreams):

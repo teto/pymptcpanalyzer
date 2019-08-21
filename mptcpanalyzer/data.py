@@ -2,7 +2,7 @@ import logging
 import os
 import pandas as pd
 import numpy as np
-from mptcpanalyzer.tshark import TsharkConfig, Field
+from mptcpanalyzer.tshark import TsharkConfig, Field, FieldDate
 from mptcpanalyzer.connection import MpTcpSubflow, MpTcpConnection, TcpConnection, \
     MpTcpMapping, TcpMapping, swap_role, TcpStreamId, MpTcpStreamId
 import mptcpanalyzer as mp
@@ -411,12 +411,13 @@ def load_into_pandas(
             converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
 
-            # TODO HACK automate, subclass field ?
-            date_cols = "abstime"
+            # TODO HACK automate, subclass field ?  f.parse_date is not None
+            date_cols = [f.fullname for name, f in config.fields.items() if isinstance(f, FieldDate)]
 
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
             log.log(mp.TRACE, "Dtypes before load:\n%s", pp.pformat(dtypes))
             log.log(mp.TRACE, "Converters before load:\n%s", pp.pformat(converters))
+            log.log(mp.TRACE, "Fields to load as times:\n%s", pp.pformat(date_cols))
 
             # keep this commented code to help diagnosing pandas problems
             # from mptcpanalyzer.debug import read_csv_debug
@@ -432,8 +433,8 @@ def load_into_pandas(
                 # seems like for now we can't change the default representation apart from converting the column to
                 # a string !!!
                 # https://stackoverflow.com/questions/46930201/pandas-to-datetime-is-not-formatting-the-datetime-value-in-the-desired-format
-                # date_parser=_convert_timestamp,
-                parse_dates=["frame.time_epoch"],
+                date_parser=lambda x: pd.to_datetime(x, unit="s", utc=True),
+                parse_dates=date_cols,
                 # ideally DON't user converters but pandas bugs...
                 converters=converters,
                 # float_precision="high",  # might be necessary

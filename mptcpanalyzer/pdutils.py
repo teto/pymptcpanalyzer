@@ -82,7 +82,6 @@ class TcpAccessor:
         con = self.connection(streamid)
         return con.fill_dest(self._obj)
 
-    # TODO fill destination
 
 @pd.api.extensions.register_dataframe_accessor("mptcp")
 class MpTcpAccessor:
