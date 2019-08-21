@@ -778,10 +778,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         streams = self.data.groupby("tcpstream")
         self.poutput('%d tcp connection(s)' % len(streams))
         for tcpstream, group in streams:
-            # self.list_subflows(mptcpstream)
-            # self.data.tcp.connection(tcpstream)
             con = TcpConnection.build_from_dataframe(self.data, tcpstream)
-            self.poutput(con)
+            self.poutput(str(con))
 
     @is_loaded
     @with_category(CAT_MPTCP)
@@ -789,7 +787,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         List mptcp connections via their ids (mptcp.stream)
         """
-        # print(self.data.head())
         streams = self.data.groupby("mptcpstream")
         self.poutput('%d mptcp connection(s)' % len(streams))
         for mptcpstream, group in streams:
@@ -850,9 +847,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         df = args._dataframes["pcap"]
         result = df
         debug_dataframe(result, "merged stream")
-
-        # print(result[mpdata.TCP_DEBUG_FIELDS].head(20))
-        # for key, subdf in df.groupby(_sender("tcpdest"))
 
         # todo sort by chronological order ?
         # for row in df.itertuples();
@@ -1065,8 +1059,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             self.poutput("No packet with mptcp.stream == %d" % args.mptcpstream)
             return
 
-        # TODO move to outer function ?
-        # TODO use ppaged
         reinjections = df.dropna(axis=0, subset=["reinjection_of"])
         output = ""
         for row in reinjections.itertuples():
@@ -1120,8 +1112,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
 
     plot_parser = MpTcpAnalyzerParser(prog='plot', description='Generate plots')
-    # TODO complete the help
-    # plot throughput tcp examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0 3" "quit"
     plot_parser.epilog = inspect.cleandoc('''
         Here are a few plots you can create:
 

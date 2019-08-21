@@ -3,7 +3,7 @@ import argparse
 import cmd2
 import os.path
 import functools
-from cmd2.argparse_custom import ChoicesCallable, ATTR_CHOICES_CALLABLE
+from cmd2.argparse_custom import ChoicesCallable, ATTR_CHOICES_CALLABLE, CompletionItem
 from typing import Iterable, List, Dict, Callable, Optional, Any, Union
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
@@ -400,10 +400,11 @@ def gen_bicap_parser(protocol: mp.Protocol, dest=False):
 
 
 
-def show_range(*args):
+def show_range(*args) -> List[CompletionItem]:
     print("show range called")
     print(args)
-    return [0, 1]
+    # TODO build connections and display them ? or a score just ?
+    return [CompletionItem(0, "test 0"), CompletionItem(1, "test 1")]
 
 # map pcaps to a group
 # TODO pass a dict of @dataclass instead
@@ -501,7 +502,8 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
             'help': proto_str + '.stream wireshark id',
             # 'choices_function': show_range,
             'choices_function': show_range,
-            'pass_parsed_args': True
+            'pass_parsed_args': True,
+            'descriptive_header': "Test for a header"
         }
         params.update(**kwargs)
 

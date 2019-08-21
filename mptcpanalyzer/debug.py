@@ -14,7 +14,6 @@ log = logging.getLogger(__name__)
 def debug_dataframe(
         df: pd.DataFrame,
         msg,
-        # intro="Debugging dataframe",
         nrows=5,
         usecols=None,
         # **kwargs

@@ -307,8 +307,8 @@ def load_merged_streams_into_pandas(
 
         # we fix the clocks a posteriori so that the cache is still usable
         log.debug("Postprocessing clock if needed")
-        merged_df[_first('abstime')] += clock_offset1
-        merged_df[_second('abstime')] += clock_offset2
+        # merged_df[_first('abstime')] += clock_offset1
+        # merged_df[_second('abstime')] += clock_offset2
 
         log.debug("Converting dataframes to be sender/receiver based...")
 
@@ -359,7 +359,7 @@ def load_into_pandas(
     **extra
 ) -> pd.DataFrame:
     """
-    load mptcp  data into pandas
+    load mptcp data into pandas
 
     Args:
         input_file: pcap filename
@@ -405,13 +405,18 @@ def load_into_pandas(
 
     try:
         with open(csv_filename) as fd:
+            for name, f in config.fields.items():
+                print("converter for %s: %s" % (name, f.converter))
 
             converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
 
+            # TODO HACK automate, subclass field ?
+            date_cols = "abstime"
+
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
-            log.log(mp.TRACE, "Dtypes before load: %s" % (pp.pformat(dtypes)))
-            log.log(mp.TRACE, "Converters before load: %s" % (pp.pformat(converters)))
+            log.log(mp.TRACE, "Dtypes before load:\n%s", pp.pformat(dtypes))
+            log.log(mp.TRACE, "Converters before load:\n%s", pp.pformat(converters))
 
             # keep this commented code to help diagnosing pandas problems
             # from mptcpanalyzer.debug import read_csv_debug
@@ -428,7 +433,7 @@ def load_into_pandas(
                 # a string !!!
                 # https://stackoverflow.com/questions/46930201/pandas-to-datetime-is-not-formatting-the-datetime-value-in-the-desired-format
                 # date_parser=_convert_timestamp,
-                # parse_dates=["frame.time_epoch"],
+                parse_dates=["frame.time_epoch"],
                 # ideally DON't user converters but pandas bugs...
                 converters=converters,
                 # float_precision="high",  # might be necessary
@@ -463,7 +468,7 @@ def load_into_pandas(
         log.error("You may need to filter more your pcap to keep only mptcp packets")
         raise e
 
-    log.info("Finished loading dataframe for %s. Size=%d" % (input_file, len(data)))
+    log.info("Finished loading dataframe for %s. Size=%d", input_file, len(data))
 
     return data
 

@@ -11,6 +11,7 @@ from typing import List, Dict, Union, Optional, Callable, Any, Tuple
 from enum import Enum
 import mptcpanalyzer as mp
 import functools
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +77,18 @@ label: used when plotting
 when a converter is specified, dtype will be set to object or str
 
 hash: take this hash into account ?
+classattribute ?
 """
-Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter'])
+# Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter'])
+
+@dataclass
+class Field:
+    fullname: str
+    type: Any
+    label: Optional[str]
+    hash: bool
+    converter: Optional[Callable]
+    date_format:
 
 def _convert_flags(x):
     """ double int in case we deal with a float"""
@@ -85,9 +96,10 @@ def _convert_flags(x):
 
 def _convert_timestamp(x):
     # pd.Timestamp(ts_input=1529916720, unit="s", )
-    return pd.to_datetime(x, unit="s", utc=True)
+    # return pd.to_datetime(x, unit="s", utc=True)
     # seconds=int(x)
-    # return pd.Timestamp(ts_input=seconds, unit="s", nanosecond=x-seconds)
+    print("Trying to build timestamp ", x)
+    return pd.Timestamp(ts_input=x, unit="s")
 
 
 class TsharkConfig:
@@ -147,7 +159,7 @@ class TsharkConfig:
         searches = fields
         cmd = [self.tshark_bin, "-G", "fields"]
 
-        logger.info("Checking for fields %s" % (cmd))
+        logger.info("Checking for fields %s", cmd)
         with subprocess.Popen(cmd, stdout=subprocess.PIPE,
                               universal_newlines=True,  # opens in text mode
                               ) as proc:
@@ -166,9 +178,11 @@ class TsharkConfig:
 
         # TODO look at the doc ! with pd.Timestamp
         # dtype=pd.Int64Dtype()
-        self.add_field("frame.time_relative", "reltime", np.float64, False, False)
-        self.add_field("frame.time_epoch", "abstime", np.float64,
-            "seconds+Nanoseconds time since epoch", None)
+        # TypeError: the dtype datetime64[s] is not supported for parsing, pass this column using parse_dates instead
+        self.add_field("frame.time_relative", "reltime", np.float64,
+            "Relative tine", False, None)
+        self.add_field("frame.time_epoch", "abstime", "datetime64[s]",
+            "seconds+Nanoseconds time since epoch", False, None)
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)
@@ -179,7 +193,7 @@ class TsharkConfig:
         # rawvalue is tcp.window_size_value
         # tcp.window_size takes into account scaling factor !
         self.add_field("tcp.window_size", "rwnd", 'Int64', True, True)
-        self.add_field("tcp.flags", "tcpflags", None, False, True, _convert_flags)
+        self.add_field("tcp.flags", "tcpflags", 'UInt8', False, True, _convert_flags)
         # TODO set hash to true, isn't needed after tcpflags ?
         self.add_field("tcp.option_kind", "tcpoptions", None, False, False,
             functools.partial(_load_list, field="option_kind"), )
@@ -212,7 +226,7 @@ class TsharkConfig:
             "DSS Subflow Sequence Number", True)
         self.add_field("tcp.options.mptcp.datalvllen", "dss_length", 'UInt64',
             "DSS length", True)
-        self.add_field("tcp.options.mptcp.addrid", "addrid", None, False, True)
+        self.add_field("tcp.options.mptcp.addrid", "addrid", 'UInt8', False, True)
         self.add_field("mptcp.rawdsn64", "dsnraw64", np.float64, "Raw Data Sequence Number", False)
         self.add_field("mptcp.ack", "dack", 'UInt64', "MPTCP relative Ack", False)
         self.add_field("mptcp.dsn", "dsn", 'UInt64', "Data Sequence Number", False)
@@ -230,44 +244,22 @@ class TsharkConfig:
 
     def add_field(
         self, fullname: str, name: str, _type,
-        label: Optional[str] = None,
-        _hash: bool = False,
+        label: Optional[str],
+        _hash: bool,
         converter: Optional[Callable] = None
     ):
         """
-        It's kinda scary to use float everywhere but when using integers, pandas
-        asserts at the first NaN
-        It is also not possible to assign "int" for instance to subtype as there may be
-        several subtypes in a packet (=> "2,4" which is not recognized as an int)
-
         Mapping between short names easy to use as a column title (in a CSV file)
         and the wireshark field name
-        There are some specific fields that require to use -o instead,
-        see tshark -G column-formats
-
-        CAREFUL: when setting the type to int, pandas will throw an error if there
-        are still NAs in the column. Relying on float64 permits to overcome this.
-
-        .. note:
-
-            tshark.exe -r file.pcap -T fields -E header=y -e frame.number -e col.AbsTime
-                -e col.DeltaTime -e col.Source -e col.Destination -e col.Protocol
-                -e col.Length -e col.Info
-
         """
-        # TODO check for duplicates
-        # TODO record as a dict instead
         if self._tshark_fields.get(name):
-            raise Exception("Field %s already registered" % name)
+            raise Exception(f"Field {name} already registered")
 
-        # converter = None
-        # _type = type_or_converter
-        # if inspect.isfunction(type_or_converter):
-        #     converter = type_or_converter
-        #     _type = None
+        print("adding field %s with converter %r" % (name, converter))
 
-        self._tshark_fields.setdefault(name,
-            Field(fullname, _type, label, _hash, converter))
+        field = Field(fullname, _type, label, _hash, converter)
+        self._tshark_fields.setdefault(name, field)
+        return field
 
 
     def export_to_csv(
@@ -280,7 +272,7 @@ class TsharkConfig:
 
         Returns exit code, stderr
         """
-        logger.info("Converting pcap [{pcap}] ".format(pcap=input_filename,))
+        logger.info(f"Converting pcap [{input_filename}] ")
 
         if find_type(input_filename) != Filetype.pcap:
             raise Exception("Input filename not a capture file")
@@ -289,7 +281,6 @@ class TsharkConfig:
             # self.tshark_bin,
             fields_to_export,
             input_filename,
-            # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
         )
@@ -301,7 +292,6 @@ class TsharkConfig:
 
 
     def filter_pcap(self, pcap_in, pcap_out):
-        # cmd = [self.tshark_bin]
         cmd = [
             self.tshark_bin,
             "-r", pcap_in
@@ -315,6 +305,7 @@ class TsharkConfig:
     def run_tshark(cmd, stdout) -> Tuple[int, str]:
         """
         Print the command on stdout
+        We override WIRESHARK_CONFIG_DIR to prevent interference of user scripts/profile
         """
         cmd_str = ' '.join(shlex.quote(x) for x in cmd)
         logging.info(cmd_str)
@@ -348,7 +339,6 @@ class TsharkConfig:
         cmd = self.generate_csv_command(
             self._tshark_fields.keys(),
             "PLACEHOLDER",
-            # profile=self.profile,
             csv_delimiter=self.delimiter,
             options=self.options,
         )
@@ -359,7 +349,6 @@ class TsharkConfig:
         self,
         fields_to_export: List[str],
         inputFilename,
-        # profile=None,
         csv_delimiter='|',
         options={},
     ):
@@ -367,7 +356,7 @@ class TsharkConfig:
         Generate tshark csv export command
         """
 
-        # for some unknown reasons, -Y does not work so I use -2 -R instead
+        # for some reasons, -Y does not work so I use -2 -R instead
         # quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
         # single-quotes, n no quotes (the default).
         # the -2 is important, else some mptcp parameters are not exported

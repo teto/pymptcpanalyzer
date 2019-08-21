@@ -21,7 +21,8 @@ from mptcpanalyzer.debug import debug_dataframe
 log = logging.getLogger(__name__)
 
 
-TCP_DEBUG_FIELDS = ['hash', 'ipsrc', 'ipdst', 'tcpstream', 'packetid', "reltime", "abstime", "tcpdest", "mptcpdest"]
+TCP_DEBUG_FIELDS = ['hash', 'ipsrc', 'ipdst', 'tcpstream', 'packetid',
+        "reltime", "abstime", "tcpdest", "mptcpdest"]
 
 
 class TcpOneWayDelay(plot.Matplotlib):

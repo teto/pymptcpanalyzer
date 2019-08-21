@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from typing import List, Any, Tuple, Dict, Callable, Set
 from mptcpanalyzer import _receiver, _sender, PreprocessingActions
 from mptcpanalyzer.parser import gen_pcap_parser
+from mptcpanalyzer.debug import debug_dataframe
 
 log = logging.getLogger(__name__)
 
@@ -151,6 +152,9 @@ class PlotTcpAttribute(plot.Matplotlib):
 
         labels = []  # type: List[str]
 
+        print(pcap)
+        print(tcpdf)
+
         for dest, ddf in tcpdf.groupby(_sender("tcpdest")):
             if dest not in pcap_destinations:
                 log.debug("Ignoring destination %s", dest)
@@ -160,20 +164,23 @@ class PlotTcpAttribute(plot.Matplotlib):
             for field in fields:
                 # print("dest", dest, " in " , destinations)
 
-                final = ddf[field].drop_duplicates()
+                final = ddf.drop_duplicates(subset=field)
                 print("dataframe to plot")
                 print(final)
 
                 # log.debug("Plotting field %s" % field)
                 # print("len len(ddf[field])=%d" % len(ddf[field]))
-                if len(ddf[field]) <= 0:
+                if len(final) <= 0:
                     log.info("No datapoint to plot")
                     continue
 
                 # drop duplicate ?
                 # the astype is a workaround pandas failure
-                final.astype("int64").plot(
-                    x=_sender("abstime"),
+
+                debug_dataframe(final, "tcp_attr")
+                final.plot(
+                    x="abstime",
+                    y=field,
                     ax=axes,
                     use_index=False,
                     legend=False,
@@ -182,12 +189,12 @@ class PlotTcpAttribute(plot.Matplotlib):
                 label_fmt = "{field} towards {dest}"
                 labels.append(label_fmt.format(field=self._attributes[field], dest=str(dest)))
 
-        axes.set_xlabel("Time (s)")
+        self.x_label = "Time (s)"
         if len(fields) == 1:
             y_label = self._attributes[fields[0]]
         else:
             y_label = "/".join(fields)
-        axes.set_ylabel(y_label)
+        self.y_label = y_label
 
         handles, _labels = axes.get_legend_handles_labels()
 
@@ -203,6 +210,7 @@ class PlotTcpAttribute(plot.Matplotlib):
             #     loc=4
         )
 
+        # TODO fix dest
         self.title_fmt = " %s " % y_label
 
         return fig
