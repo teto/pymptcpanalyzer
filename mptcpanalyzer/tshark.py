@@ -264,8 +264,6 @@ class TsharkConfig:
         if self._tshark_fields.get(name):
             raise Exception(f"Field {name} already registered")
 
-        print("adding field %s with converter %r" % (name, converter))
-
         field = Field(fullname, _type, label, _hash, converter)
         self._tshark_fields.setdefault(name, field)
         return field

@@ -56,6 +56,7 @@ import dataclasses
 from colorama import Fore, Back
 from mptcpanalyzer.debug import debug_dataframe
 from stevedore import extension
+from pandas.plotting import register_matplotlib_converters
 
 plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
@@ -209,7 +210,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         pd.set_option('compute.use_numexpr', False)
         pd.set_option('display.max_info_columns', 5)  # verbose dataframe.info
         pd.set_option('mode.chained_assignment', 'raise')  # strict but prevents errors
+        # to help with development, will give a stacktrace upon warnings
+        # import warnings
+        # warnings.simplefilter('error', FutureWarning)
         log.debug("use numexpr? %d" % pd.get_option('compute.use_numexpr', False))
+        register_matplotlib_converters()
 
         # Load Plots
         ######################

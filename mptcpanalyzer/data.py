@@ -405,13 +405,12 @@ def load_into_pandas(
 
     try:
         with open(csv_filename) as fd:
-            for name, f in config.fields.items():
-                print("converter for %s: %s" % (name, f.converter))
 
+            # gets a list of fields to convert
             converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
             converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
 
-            # TODO HACK automate, subclass field ?  f.parse_date is not None
+            # builds a list of fields to be parsed as dates (since converter/types don't seem to be great)
             date_cols = [f.fullname for name, f in config.fields.items() if isinstance(f, FieldDate)]
 
             dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
@@ -430,9 +429,6 @@ def load_into_pandas(
                 comment='#',
                 sep=config.delimiter,
                 dtype=dtypes,
-                # seems like for now we can't change the default representation apart from converting the column to
-                # a string !!!
-                # https://stackoverflow.com/questions/46930201/pandas-to-datetime-is-not-formatting-the-datetime-value-in-the-desired-format
                 date_parser=lambda x: pd.to_datetime(x, unit="s", utc=True),
                 parse_dates=date_cols,
                 # ideally DON't user converters but pandas bugs...
@@ -454,7 +450,7 @@ def load_into_pandas(
             data.set_index("packetid", drop=False, inplace=True)
 
             hashing_fields = [name for name, field in config.fields.items() if field.hash]
-            log.debug("Hashing over fields %s" % hashing_fields)
+            log.debug("Hashing over fields %s", hashing_fields)
 
             # won't work because it passes a Serie (mutable)_
             # TODO generate hashing fields from Fields
