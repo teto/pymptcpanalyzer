@@ -37,6 +37,16 @@ let
   my_nvim = genNeovim  [ mptcpanalyzer ] {
     # ms-python.python
     # coc-python
+
+    # plugins = [ vimPlugins.coc-python ];
+    # configure = {
+    #     packages.myVimPackage = {
+    #       # see examples below how to use custom packages
+    #       # loaded on launch
+    #       start = startPlugins;
+    # };
+
+    configure.packages.myVimPackage.start = [ vimPlugins.coc-python ];
     extraPython3Packages = ps: with ps;  [ python-language-server ];
   };
 

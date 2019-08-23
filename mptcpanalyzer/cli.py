@@ -565,9 +565,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     summary_parser = MpTcpAnalyzerParser(
         description="Prints a summary of the mptcp connection"
     )
-    action_stream = summary_parser.add_argument(
-        "tcpstream", type=TcpStreamId, action=mp.parser.retain_stream("pcap"),
-        help="tcp.stream id")
+    action_stream = summary_parser.filter_stream(
+        choices_method=
+        )
+    # action_stream = summary_parser.add_argument(
+    #     "tcpstream", type=TcpStreamId,
+    #     # choices_method=tcp_stream_range,
+    #     action=mp.parser.retain_stream("pcap"),
+    #     help="tcp.stream id")
     summary_parser.epilog = inspect.cleandoc('''
         Similar to wireshark's "Follow -> TCP stream"
     ''')

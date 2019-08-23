@@ -66,7 +66,7 @@ class LoadSinglePcap(DataframeAction):
         self.loader = loader
         completer_method = functools.partial(cmd2.Cmd.path_complete, path_filter=lambda path: os.path.isfile(path))
         setattr(self, ATTR_CHOICES_CALLABLE,
-                ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method, pass_parsed_args=False))
+                ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method,))
 
     def __call__(self, parser, namespace, values, option_string=None):
         """
@@ -312,8 +312,12 @@ class FilterStream(DataframeAction):
     '''
     To keep a specific stream id
     '''
-    def __init__(self, query: str, df_name: str, **kwargs) -> None:
+    def __init__(self, query: str, df_name: str, preload_action=None, **kwargs) -> None:
+        '''
+        preload: namespace name of the dataframe used to autocomplete stream id
+        '''
         self.query_tpl = query
+        self._preload_action = preload_action
         super().__init__(df_name, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -459,15 +463,18 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
 
 
     def filter_stream(self, name, *args, protocol=None, **kwargs):
+        '''
+        TODO
+        if preloaded pcap
+        '''
         assert protocol is not None, protocol
 
         proto_str = protocol.to_string()
         params = {
             'action': "store",
             'help': proto_str + '.stream wireshark id',
-            # 'choices_function': show_range,
             'choices_function': show_range,
-            'pass_parsed_args': True,
+            # 'pass_parsed_args': True,
             'descriptive_header': "Test for a header"
         }
         params.update(**kwargs)
@@ -530,8 +537,8 @@ def gen_pcap_parser(
             # mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
             # protocol = "mptcp" if mptcp else "tcp"
             protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.MergeMpTcp else mp.Protocol.TCP
-            parser.add_pcap(df_name+"1")
-            parser.filter_stream(df_name+"1stream", protocol=protocol,)
+            action_1 = parser.add_pcap(df_name+"1")
+            parser.filter_stream(df_name+"1stream", protocol=protocol, preload=action_1)
 
             parser.add_pcap(df_name+"2")
             parser.filter_stream(df_name+"2stream", protocol=protocol,
