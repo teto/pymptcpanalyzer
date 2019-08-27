@@ -403,6 +403,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         return self.data.tcpstream.dropna().unique()
 
     parser = MpTcpAnalyzerParser(description="List subflows of an MPTCP connection")
+    # filter stream should be ok ?
     filter_stream = parser.add_argument(
         "mptcpstream", action="store", type=MpTcpStreamId,
         choices_method=mptcp_stream_range,
@@ -566,8 +567,11 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         description="Prints a summary of the mptcp connection"
     )
     action_stream = summary_parser.filter_stream(
-        choices_method=
-        )
+        "tcpstream",
+        protocol=mp.Protocol.TCP,
+        choices_method=tcp_stream_range,
+        action=mp.parser.retain_stream("pcap"),
+    )
     # action_stream = summary_parser.add_argument(
     #     "tcpstream", type=TcpStreamId,
     #     # choices_method=tcp_stream_range,
@@ -603,7 +607,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # type=MpTcpStreamId,
         protocol=mp.Protocol.MPTCP,
         action=mp.parser.retain_stream("pcap"),
-        help="mptcp.stream id"
+        # help="mptcp.stream id"
     )
     # action_stream = summary_parser.add_argument(
     #     "mptcpstream", type=MpTcpStreamId, action=mp.parser.retain_stream("pcap"),

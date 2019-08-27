@@ -3,6 +3,7 @@ import argparse
 import cmd2
 import os.path
 import functools
+from functools import partial
 from cmd2.argparse_custom import ChoicesCallable, ATTR_CHOICES_CALLABLE, CompletionItem
 from typing import Iterable, List, Dict, Callable, Optional, Any, Union
 from mptcpanalyzer.tshark import TsharkConfig
@@ -10,7 +11,6 @@ from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_panda
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
             CustomConnectionRolesChoices, TcpStreamId, MpTcpStreamId, Protocol)
 import mptcpanalyzer as mp
-from functools import partial
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 from mptcpanalyzer.debug import debug_dataframe
 
@@ -74,7 +74,7 @@ class LoadSinglePcap(DataframeAction):
         NOTE: should be idempotent as it can be called several times
         """
         if type(values) == list:
-            parser.error("lists unsupported")
+            parser.error("lists unsupported %s " % values)
 
         print("ACTION CALLED")
 
@@ -466,6 +466,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         '''
         TODO
         if preloaded pcap
+        Need to pass a choices_function to provide the completion
         '''
         assert protocol is not None, protocol
 
@@ -473,8 +474,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         params = {
             'action': "store",
             'help': proto_str + '.stream wireshark id',
-            'choices_function': show_range,
-            # 'pass_parsed_args': True,
+            # 'choices_function': show_range,
             'descriptive_header': "Test for a header"
         }
         params.update(**kwargs)
@@ -487,6 +487,48 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
             **params
         )
 
+# Action preloaded or not ?
+# Preload
+# LoadSinglePcap
+# functools.partialmethod
+def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSinglePcap, **kwargs):
+    '''ns,
+    inspect.ismethod
+    '''
+    # first we should see if it's available
+    # preloaded
+    print("\nparsed_args", parsed_args)
+    print("kwargs", kwargs)
+    ns = parsed_args
+    df = action.get_dataframe(ns)
+    if not df:
+        df_path = getattr(ns, df_name)
+        if not df_path:
+            print("no value for %s" % df_name)
+
+        # def __call__(self, parser, namespace, values, option_string=None):
+        # load the dataframe
+        # print("Callin action  %s", )
+        action(ns.__parser__, ns, df_path)
+
+    df = action.get_dataframe(ns)
+    if not df:
+        print("Could not load %s" % df_name)
+
+
+    # action.
+    if protocol == Protocol.MPTCP:
+        return df.mptcpstream.dropna().unique()
+    else:
+        return df.tcpstream.dropna().unique()
+
+    # if preloaded:
+
+    # def mptcp_stream_range(self):
+    #     return self.data.mptcpstream.dropna().unique()
+
+    # def tcp_stream_range(self):
+    #     return self.data.tcpstream.dropna().unique()
 
 def gen_pcap_parser(
     # rename input_pcaps to load_dataframes
@@ -535,10 +577,10 @@ def gen_pcap_parser(
 
         if bitfield & PreprocessingActions.Merge:
             # mptcp: bool = (bitfield & PreprocessingActions.FilterMpTcpStream) != 0
-            # protocol = "mptcp" if mptcp else "tcp"
             protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.MergeMpTcp else mp.Protocol.TCP
             action_1 = parser.add_pcap(df_name+"1")
-            parser.filter_stream(df_name+"1stream", protocol=protocol, preload=action_1)
+            # preload=action_1,
+            parser.filter_stream(df_name+"1stream", protocol=protocol, )
 
             parser.add_pcap(df_name+"2")
             parser.filter_stream(df_name+"2stream", protocol=protocol,
@@ -554,11 +596,15 @@ def gen_pcap_parser(
         else:
             # TODO check for Preload
             # TODO set action to str if there is no Preload flag ?!
-            parser.add_pcap(df_name, )
+            load_action = parser.add_pcap(df_name, )
 
             # TODO enforce a protocol !!
             protocol = mp.Protocol.MPTCP if bitfield & PreprocessingActions.FilterMpTcpStream else mp.Protocol.TCP
-            parser.filter_stream(df_name + 'stream', protocol=protocol, action=retain_stream(df_name,))
+            # preload=action_1,
+            parser.filter_stream(
+                df_name + 'stream', protocol=protocol, action=retain_stream(df_name,),
+                choices_function=partial(stream_choices, protocol=protocol, df_name=df_name, action=load_action)
+            )
 
         if bitfield & PreprocessingActions.FilterDestination or direction:
             parser.filter_destination(dest=df_name + "_destinations")
