@@ -175,9 +175,6 @@ class TcpConnection:
             self.server_port, self.client_port,
         )
 
-    # def __repr__(self):
-    #     return self.__str__()
-
     # TODO provide a default format
     def __format__(self, format_spec="ps"):
         """
@@ -187,19 +184,31 @@ class TcpConnection:
         c => towards client
         b => bidirectional
         """
+        self.to_string(
+            streamid="p" in format_spec,
+            # destination=
+        )
+
+    def to_string(self, streamid=True, destination=ConnectionRoles.Server,):
+        '''
+        Parametrable format function
+        '''
+
         fmt = ""
-        if "p" in format_spec:
+        if streamid:
             fmt = "tcp.stream {s.tcpstreamid:.0f}: "
 
         client_fmt = "{s.tcpclient_ip}:{s.client_port:0>5.0f}"
         server_fmt = "{s.tcpserver_ip}:{s.server_port:0>5.0f}"
-        if "c" in format_spec:
+        # if "c" in format_spec:
+        if destination == ConnectionRoles.Client:
             fmt = fmt + server_fmt + " -> " + client_fmt
         else:
             arrow = " -> "
-            if "b" in format_spec:
-                arrow = " <-> "
             fmt = fmt + client_fmt + arrow + server_fmt
+
+        if True:
+            fmt += " (interface {s.interface})"
 
         return fmt.format(s=self)
 
@@ -224,6 +233,7 @@ class MpTcpSubflow(TcpConnection):
         """
         Args:
         """
+        print(kwargs)
         sf = MpTcpSubflow(**kwargs)
         return sf
 
@@ -235,8 +245,9 @@ class MpTcpSubflow(TcpConnection):
             tcpserver_ip=self.tcpclient_ip,
             client_port=self.server_port,
             server_port=self.client_port,
+            interface="unknown",
         )
-        log.warn("Losing addrid when reversing subflow")
+        log.warn("Losing addrid/interface when reversing subflow")
         return res
 
     def mptcp_dest_from_tcpdest(self, tcpdest: ConnectionRoles):
@@ -256,9 +267,9 @@ class MpTcpSubflow(TcpConnection):
         return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
 
 
-    def to_string(self):
-        res = super().__str__()
-        res += " (mptcpdest: %s)" % self.mptcpdest
+    def to_string(self, **kwargs):
+        res = super().to_string(**kwargs)
+        res += f" (mptcpdest: {self.mptcpdest.to_string()})"
         return res
 
     def __repr__(self):
@@ -364,15 +375,11 @@ class MpTcpConnection:
         syn_mpcapable_df = ds.where(ds.tcpflags == TcpFlags.SYN).dropna(subset=['sendkey'])
         synack_mpcapable_df = ds.where(ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)).dropna(subset=['sendkey'])
 
-        # print(syn_mpcapable_df[ ["sendkey", "tcpflags", "expected_token", "ipsrc"]])
-        # print(synack_mpcapable_df[ ["sendkey", "tcpflags", "expected_token", "ipsrc"]])
-
-
         if len(syn_mpcapable_df) < 1:
-            raise MpTcpMissingKey("Could not find the client MPTCP key")
+            raise MpTcpMissingKey("Could not find the client MPTCP key.")
 
         if len(synack_mpcapable_df) < 1:
-            raise MpTcpMissingKey("Could not find the server MPTCP key")
+            raise MpTcpMissingKey("Could not find the server MPTCP key.")
 
 
         # not really rows but index
@@ -401,7 +408,8 @@ class MpTcpConnection:
             tcpserver_ip=ds.loc[client_id, 'ipdst'],
             client_port=ds.loc[client_id, 'sport'],
             server_port=ds.loc[client_id, 'dport'],
-            addrid=0   # master subflow has implicit addrid 0
+            addrid=0,   # master subflow has implicit addrid 0
+            interface=ds.loc[client_id, 'interface'],
         )
 
         subflows.append(master_sf)
@@ -423,8 +431,8 @@ class MpTcpConnection:
             assert math.isfinite(int(receiver_token))
 
             # if we see the token
-            log.debug("receiver_token %r to compare with server_token %r" % (receiver_token, server_token))
-            log.debug("Test %s" % (receiver_token == server_token))
+            log.debug("receiver_token %r to compare with server_token %r", receiver_token, server_token)
+            log.debug("Test %s", (receiver_token == server_token))
             mptcpdest = ConnectionRoles.Server if receiver_token == server_token \
                 else ConnectionRoles.Client
 
@@ -436,6 +444,7 @@ class MpTcpConnection:
                 client_port=subflow_ds.loc[syn_join_id, 'sport'],
                 server_port=subflow_ds.loc[syn_join_id, 'dport'],
                 addrid=None,
+                interface=subflow_ds.loc[syn_join_id, 'interface'],
                 # rcv_token   =receiver_token,
             )
 

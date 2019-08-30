@@ -429,8 +429,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         try:
             con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-            msg = "mptcp.stream %d has %d subflow(s) (client/server): "
-            self.poutput(msg % (mptcpstreamid, len(con.subflows())))
+            msg = f"mptcp.stream {mptcpstreamid} has %d subflow(s) (client/server): "
+            self.poutput(msg % len(con.subflows()))
             for sf in con.subflows():
                 self.poutput("\t%s" % sf)
         except mp.MpTcpMissingKey as e:
@@ -445,7 +445,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         to one in another pcap in another dataframe.
     ''')
 
-    # TODO could use LoadSinglePcap
+    # TODO use gen_bicap_parser instead
     load_pcap1 = parser.add_argument("pcap1", action="store",
             completer_method=cmd2.Cmd.path_complete, help="first to load")
     load_pcap2 = parser.add_argument("pcap2", action="store",
