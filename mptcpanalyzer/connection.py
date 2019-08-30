@@ -44,6 +44,7 @@ class TcpConnection:
     tcpserver_ip: str
     server_port: int
     client_port: int
+    interface: str
     isn: int = None
 
 
@@ -85,7 +86,7 @@ class TcpConnection:
         if (self.tcpserver_ip == other.tcpserver_ip
             and self.tcpclient_ip == other.tcpclient_ip
             and self.client_port == other.client_port
-            and self.server_port == other.server_port):
+                and self.server_port == other.server_port):
             return float('inf')
 
         score += 10 if self.tcpserver_ip == other.tcpserver_ip else 0
@@ -157,7 +158,8 @@ class TcpConnection:
             row['ipsrc'],
             row['ipdst'],
             client_port=row['sport'],
-            server_port=row['dport']
+            server_port=row['dport'],
+            interface=row['interface'],
         )
 
         if df.loc[idx, "tcpflags"] & TcpFlags.ACK:
@@ -493,7 +495,7 @@ class MpTcpConnection:
         common_sf = []
 
         if (self.keys[ConnectionRoles.Server] == other.keys[ConnectionRoles.Server]
-            and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]):
+                and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]):
             log.debug("matching keys => same")
             return float('inf')
 

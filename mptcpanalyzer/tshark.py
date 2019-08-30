@@ -179,6 +179,7 @@ class TsharkConfig:
         # when merging packets some packets are lost and thus have no packetid
         # so sadly we need a float64 in that case :'(
         self.add_field("frame.number", "packetid", 'UInt64', False, False)
+        self.add_field("frame.interface_name", "interface", pd.CategoricalDtype, False, False)
 
         # TODO look at the doc ! with pd.Timestamp
         # dtype=pd.Int64Dtype()
