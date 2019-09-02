@@ -73,7 +73,7 @@ def main():
 
     exporter = TsharkConfig(tshark_exe, profile=args.profile)
     # exporter.tcp_relative_seq = args.relative if args.relative else True
-    exporter.tcp_relative_seq = args.relative 
+    exporter.tcp_relative_seq = args.relative
     # exporter.fields_to_export = fields_to_export
 
     log.debug("Relative #seq = %s" % exporter.tcp_relative_seq)
@@ -94,6 +94,7 @@ def main():
         exporter.export_pcap_to_sql(inputFilename, outputFilename)
     else:
         parser.print_help()
+
 
 if __name__ == '__main__':
     main()

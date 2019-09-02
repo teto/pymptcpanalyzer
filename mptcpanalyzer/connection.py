@@ -28,6 +28,11 @@ class Filetype(Enum):
 
 
 @dataclass
+class Connection:
+    pass
+
+
+@dataclass
 class TcpConnection:
     """
     Everything capable of identifying a connection

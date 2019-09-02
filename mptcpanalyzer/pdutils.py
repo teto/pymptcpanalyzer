@@ -15,6 +15,21 @@ pp = pprint.PrettyPrinter(indent=4)
 # register_series_accessor
 # pandas.api.extensions.register_index_accessor
 
+class MergedDataframe(pd.DataFrame):
+    '''
+    Subclass dataframe as described in:
+    https://pandas.pydata.org/pandas-docs/stable/development/extending.html
+
+    Useful just to check whenever a dataframe is merged or not, i.e., the result of a join
+    between different dataframes
+
+    TODO see if we can't set defaults for dtypes and all
+    '''
+    # http://devanla.com/case-for-inheriting-from-pandas-dataframe.html
+    @property
+    def _constructor(self):
+        return MergedDataframe
+
 @pd.api.extensions.register_dataframe_accessor("merged")
 class MergedAccessor:
     def __init__(self, pandas_obj):
