@@ -1,3 +1,8 @@
+"""
+Implements specific actions to ease the writing of mptcp parser
+
+Many of these action need to be initialized with some sort of information
+"""
 import logging
 import argparse
 import cmd2
@@ -17,13 +22,9 @@ from mptcpanalyzer.debug import debug_dataframe
 log = logging.getLogger(__name__)
 
 
-"""
+# for testing remove
+_UNRECOGNIZED_ARGS_ATTR = '_unrecognized_args'
 
-TODO
-- action to generate connection
-
-
-"""
 
 # TODO add it to a custom MptcpAnalyzerAction
 # TODO insert it instead into dict
@@ -492,15 +493,55 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
 # LoadSinglePcap
 # functools.partialmethod
 def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSinglePcap, **kwargs):
-    '''ns,
+    """
     inspect.ismethod
-    '''
+
+def _parse_known_args(self, arg_strings, namespace):
+
+    raises ArgumentError
+
+        # parse the arguments and exit if there are any errors
+        try:
+            namespace, args = self._parse_known_args(args, namespace)
+            if hasattr(namespace, _UNRECOGNIZED_ARGS_ATTR):
+                args.extend(getattr(namespace, _UNRECOGNIZED_ARGS_ATTR))
+                delattr(namespace, _UNRECOGNIZED_ARGS_ATTR)
+            return namespace, args
+        except ArgumentError:
+            err = _sys.exc_info()[1]
+            self.error(str(err))
+    """
     # first we should see if it's available
     # preloaded
     print("\nparsed_args", parsed_args)
     print("kwargs", kwargs)
     ns = parsed_args
     df = action.get_dataframe(ns)
+
+    # 'converts' the namespace to for the syntax define a dict
+    dargs = vars(ns)
+
+    parser = parsed_args.__parser__
+    # parse the arguments and exit if there are any errors
+    temp = ["plot", "tcp_attr", "examples/client_2.pcap"]
+    print("calling parse_args with %s" % temp)
+    namespace = argparse.Namespace()
+    try:
+        # temp must be a list
+        namespace, args = parser._parse_known_args(temp, namespace)
+        if hasattr(namespace, _UNRECOGNIZED_ARGS_ATTR):
+            args.extend(getattr(namespace, _UNRECOGNIZED_ARGS_ATTR))
+            delattr(namespace, _UNRECOGNIZED_ARGS_ATTR)
+        return namespace, args
+    # originally ArgumentError
+    except Exception as e:
+        import sys
+        err = sys.exc_info()[1]
+        print(str(err))
+        print("PARSING FAILED\nNamespace", namespace)
+        print("Exception %s" % e)
+    # parsed_args(ns):
+
     if not df:
         df_path = getattr(ns, df_name)
         if not df_path:
@@ -509,7 +550,7 @@ def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSi
         # def __call__(self, parser, namespace, values, option_string=None):
         # load the dataframe
         # print("Callin action  %s", )
-        action(ns.__parser__, ns, df_path)
+        action(parser, ns, df_path)
 
     df = action.get_dataframe(ns)
     if not df:
