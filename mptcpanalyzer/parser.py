@@ -77,7 +77,7 @@ class LoadSinglePcap(DataframeAction):
         if type(values) == list:
             parser.error("lists unsupported %s " % values)
 
-        print("ACTION CALLED")
+        print("ACTION CALLED with namespace %s and values: %s" % (namespace, values))
 
         df = self.get_dataframe(namespace)
         if df is None:
@@ -495,9 +495,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
 def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSinglePcap, **kwargs):
     """
     inspect.ismethod
-
-def _parse_known_args(self, arg_strings, namespace):
-
+    def _parse_known_args(self, arg_strings, namespace):
     raises ArgumentError
 
         # parse the arguments and exit if there are any errors
@@ -523,25 +521,43 @@ def _parse_known_args(self, arg_strings, namespace):
 
     parser = parsed_args.__parser__
     # parse the arguments and exit if there are any errors
-    temp = ["plot", "tcp_attr", "examples/client_2.pcap"]
+    temp = [
+        # "plot", "tcp_attr",
+        "examples/client_2.pcap"
+    ]
     print("calling parse_args with %s" % temp)
     namespace = argparse.Namespace()
     try:
         # temp must be a list
+        # monkeypatching 
+        # https://github.com/python/cpython/blob/1f21eaa15e8a0d2b0f78d0e3f2b9e5b458eb0a70/Lib/argparse.py#L2506
+        # see https://stackoverflow.com/questions/394770/override-a-method-at-instance-level
+        import types
+
+        def new_error(self, msg):
+            raise Exception("Matt: %s" % msg)
+        parser.error = types.MethodType(new_error, parser)
         namespace, args = parser._parse_known_args(temp, namespace)
         if hasattr(namespace, _UNRECOGNIZED_ARGS_ATTR):
             args.extend(getattr(namespace, _UNRECOGNIZED_ARGS_ATTR))
             delattr(namespace, _UNRECOGNIZED_ARGS_ATTR)
-        return namespace, args
+        # return namespace, args
     # originally ArgumentError
-    except Exception as e:
+    # finally:
+    #     pass
+    except argparse.ArgumentError as e:
         import sys
         err = sys.exc_info()[1]
         print(str(err))
         print("PARSING FAILED\nNamespace", namespace)
         print("Exception %s" % e)
+    except Exception as e:
+        print("caught %r" % e)
     # parsed_args(ns):
 
+    print("Finished calling parser. REsulting namespace %s" % namespace)
+
+    return [0, 1]
     if not df:
         df_path = getattr(ns, df_name)
         if not df_path:
@@ -549,8 +565,8 @@ def _parse_known_args(self, arg_strings, namespace):
 
         # def __call__(self, parser, namespace, values, option_string=None):
         # load the dataframe
-        # print("Callin action  %s", )
-        action(parser, ns, df_path)
+        # print("Callin action  ")
+        # action(parser, ns, df_path)
 
     df = action.get_dataframe(ns)
     if not df:

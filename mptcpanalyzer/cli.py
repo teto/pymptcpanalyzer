@@ -248,8 +248,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         subparsers = MpTcpAnalyzerCmdApp.plot_parser.add_subparsers(
             dest="plot_type", required=True,
             title="Available plots",
-            # prog= "",
-            # description="",
             parser_class=MpTcpAnalyzerParser,
             help='Consult each plot\'s help via its plot <PLOT_TYPE> -h flag.',
         )
