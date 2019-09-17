@@ -492,7 +492,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
 # Preload
 # LoadSinglePcap
 # functools.partialmethod
-def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSinglePcap, **kwargs):
+def stream_choices(arg_tokens, protocol: Protocol, df_name: str, action: LoadSinglePcap, **kwargs):
     """
     inspect.ismethod
     def _parse_known_args(self, arg_strings, namespace):
@@ -511,15 +511,15 @@ def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSi
     """
     # first we should see if it's available
     # preloaded
-    print("\nparsed_args", parsed_args)
+    print("\nparsed_args", arg_tokens)
     print("kwargs", kwargs)
-    ns = parsed_args
+    ns = arg_tokens
     df = action.get_dataframe(ns)
 
     # 'converts' the namespace to for the syntax define a dict
-    dargs = vars(ns)
+    dargs = ns
 
-    parser = parsed_args.__parser__
+    parser = arg_tokens.__parser__
     # parse the arguments and exit if there are any errors
     temp = [
         # "plot", "tcp_attr",
@@ -529,7 +529,7 @@ def stream_choices(parsed_args, protocol: Protocol, df_name: str, action: LoadSi
     namespace = argparse.Namespace()
     try:
         # temp must be a list
-        # monkeypatching 
+        # monkeypatching
         # https://github.com/python/cpython/blob/1f21eaa15e8a0d2b0f78d0e3f2b9e5b458eb0a70/Lib/argparse.py#L2506
         # see https://stackoverflow.com/questions/394770/override-a-method-at-instance-level
         import types

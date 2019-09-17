@@ -38,10 +38,10 @@ let
     cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: rec {
       version = "0.9.17";
       src = builtins.fetchGit {
-          # url=https://github.com/python-cmd2/cmd2.git;
+          url=https://github.com/python-cmd2/cmd2.git;
           # ref = "completion_state";
-          url=https://github.com/teto/cmd2.git;
-          ref = "completion_state_matt";
+          # url=https://github.com/teto/cmd2.git;
+          # ref = "completion_state_matt";
         };
         doCheck = false;
         SETUPTOOLS_SCM_PRETEND_VERSION = version;

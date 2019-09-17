@@ -422,6 +422,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         self.list_subflows(args.mptcpstream)
 
+    # TODO see https://github.com/python-cmd2/cmd2/issues/762#issuecomment-531385178
+
     @is_loaded
     def list_subflows(self, mptcpstreamid: MpTcpStreamId):
 
