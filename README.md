@@ -25,27 +25,20 @@ Presentation
 
 Mptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance).
 
-It accepts as input a capture file (.pcap or .pcapng) and from there generates a CSV file
-(thanks to tshark, the terminal version of wireshark) with the MPTCP fields
-required for analysis.
-From there you can:
+It accepts packet capture files (\*.pcap) as inputs and from there you can:
 
+- plot one way delays
 - list MPTCP connections
 - compute statistics on a specific MPTCP connection (list of subflows, reinjections, subflow actual contributions...)
-It accepts as input a capture file (\*.pcap) and depending on from there can :
 - export a CSV file with MPTCP fields
-- plot one way delays
 - ...
 
-Most commands are self documented and/or with autocompletion.
+Commands are self documented and/or with autocompletion.
 
-Then you have an interpreter with autocompletion that can generate & display plots such as the following:
+There is an interpreter with autocompletion that can generate & display plots such as the following:
 
 ![Data Sequence Number (DSN) per subflow plot](examples/dsn.png)
 
-
-You can reference mptcpanalyzer via the following Digital Object Identifier:
-[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
 
 # Table of Contents
 
@@ -139,6 +132,35 @@ Moved to the [Wiki](https://github.com/teto/mptcpanalyzer/wiki/FAQ)
 
 PRs welcome !
 See the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).
+
+
+# Reference
+
+If you plan to use this tool in a publication,
+You can reference mptcpanalyzer via the following Digital Object Identifier:
+[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)
+
+or cite:
+```
+@inproceedings{Coudron:2019:PAM:3340422.3343638,
+ author = {Coudron, Matthieu},
+ title = {Passive Analysis for Multipath TCP},
+ booktitle = {Proceedings of the Asian Internet Engineering Conference},
+ series = {AINTEC '19},
+ year = {2019},
+ isbn = {978-1-4503-6849-0},
+ location = {Phuket, Thailand},
+ pages = {25--32},
+ numpages = {8},
+ url = {http://doi.acm.org/10.1145/3340422.3343638},
+ doi = {10.1145/3340422.3343638},
+ acmid = {3343638},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {Multipath TCP, passive analysis, reinjection},
+}
+```
+
 
 # Related tools
 
