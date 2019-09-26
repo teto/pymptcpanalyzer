@@ -152,9 +152,12 @@ class Plot:
         Opens filename in your usual picture viewer
         Relies on xdg-open by default so set your mimetypes correctly !
         """
+        # TODO check if we are running kitty and if pixcat is available:
         cmd = "xdg-open %s" % (filename)
-        print(cmd)
-        os.system(cmd)
+        from pixcat import Image
+        Image(filename).show()
+        # print(cmd)
+        # os.system(cmd)
 
 
 

@@ -11,6 +11,7 @@ stdenv
 , tshark
 }:
 let
+    pixcat = python3Packages.callPackage ./contrib/pixcat.nix {};
     # pandas = python3Packages.pandas.overridePythonAttrs (oa: {
 
     #   src = fetchFromGitHub {
@@ -35,34 +36,35 @@ let
     # });
 
 
-    cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: rec {
-      version = "0.9.17";
-      src = builtins.fetchGit {
-          url=https://github.com/python-cmd2/cmd2.git;
-          # ref = "completion_state";
-          # url=https://github.com/teto/cmd2.git;
-          # ref = "completion_state_matt";
-        };
-        doCheck = false;
-        SETUPTOOLS_SCM_PRETEND_VERSION = version;
-    });
+    # cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: rec {
+    #   version = "0.9.18";
+    #   src = builtins.fetchGit {
+    #       url=https://github.com/python-cmd2/cmd2.git;
+    #       # ref = "completion_state";
+    #       # url=https://github.com/teto/cmd2.git;
+    #       # ref = "completion_state_matt";
+    #     };
+    #     doCheck = false;
+    #     SETUPTOOLS_SCM_PRETEND_VERSION = version;
+    # });
 
 in
 python3Packages.buildPythonApplication rec {
 	pname = "mptcpanalyzer";
-	version = "0.3.3-dev";
+	version = "0.3.2";
 
     src = fetchFromGitHub {
       owner = "teto";
       repo = "mptcpanalyzer";
       rev = "${version}";
-      sha256 = "1s74gigsfm0wa065vqczlf7x14shw1q9x311fcsidsglfk25ndbg";
+      sha256 = "050s3kpxrz5xw70q2irl49v8zw8adf24m62gym6asvr3r1k87jbh";
     };
 
     doCheck = false;
 
     propagatedBuildInputs = with python3Packages; [
       stevedore cmd2 pandas
+      pixcat
       # we want gtk because qt is so annying on nixos
       # enableQt = true;
       (matplotlib.override { enableGtk3=true; })

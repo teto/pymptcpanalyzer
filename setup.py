@@ -116,9 +116,18 @@ setup(name="mptcpanalyzer",
         'stevedore',  # to implement a plugin mechanism
         'matplotlib>=3.0.3',  # for plotting
         'pandas>=0.25',  # because of Int64
-        'cmd2>=0.9.15',  # to improve cmd capabilities
+        'cmd2>=0.9.17',  # to improve cmd capabilities
         # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
     ],
+    extras_require=dict(
+        # List additional groups of dependencies here (e.g. development
+        # dependencies). You can install these using the following syntax,
+        # for example:
+        # $ pip install -e .[develop]
+        optional=[
+            "pixcat>=0.1.0"
+        ],
+    ),
     # TODO to work around pandas bugs: adjust
     # https://stackoverflow.com/questions/3472430/how-can-i-make-setuptools-install-a-package-thats-not-on-pypi
     dependency_links=['http://github.com/teto/pandas/tarball/master#egg=gearman-2.0.0beta'],

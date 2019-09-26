@@ -488,6 +488,24 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
             **params
         )
 
+# def my_completer(self, text: str, line: str, begidx: int, endidx: int, parser: Cmd2ArgumentParser):
+#     # Get command line tokens through the one being completed
+#     tokens, _ = self.tokens_for_completion(line, begidx, endidx)
+
+#     # Parse the command line tokens
+#     args = parser.parse_args(tokens)
+
+#     # Do logic to determine what data set we are tab completing against
+#     match_against = ...
+
+#     # Do the tab completion
+#     return utils.basic_complete(text, line, begidx, endidx, match_against)
+def iterative_completer():
+    """
+    just testing
+    """
+    pass
+
 # Action preloaded or not ?
 # Preload
 # LoadSinglePcap
@@ -591,10 +609,10 @@ def gen_pcap_parser(
     # rename input_pcaps to load_dataframes
     input_pcaps: Dict[str, PreprocessingActions],
     # protocol,
-    direction: bool = False,
+    direction: bool=False,
     parents=[],
     # TODO get rid of this/skip-stream
-    skip_subflows: bool = True,
+    skip_subflows: bool=True,
 ) -> MpTcpAnalyzerParser:
     """
     Generates a parser with common options.
@@ -612,9 +630,7 @@ def gen_pcap_parser(
     """
     parser = MpTcpAnalyzerParser(
         parents=parents,
-        add_help=not parents,
-    )
-
+        add_help=not parents)
     # TODO we should make this cleaner
     for df_name, bitfield in input_pcaps.items():
 
@@ -641,8 +657,7 @@ def gen_pcap_parser(
 
             parser.add_pcap(df_name+"2")
             parser.filter_stream(df_name+"2stream", protocol=protocol,
-                action=partial(MergePcaps, name=df_name, protocol=protocol),
-            )
+                action=partial(MergePcaps, name=df_name, protocol=protocol))
 
             # hidden
             # action is triggered only when meet the parameter
@@ -660,8 +675,7 @@ def gen_pcap_parser(
             # preload=action_1,
             parser.filter_stream(
                 df_name + 'stream', protocol=protocol, action=retain_stream(df_name,),
-                choices_function=partial(stream_choices, protocol=protocol, df_name=df_name, action=load_action)
-            )
+                choices_function=partial(stream_choices, protocol=protocol, df_name=df_name, action=load_action))
 
         if bitfield & PreprocessingActions.FilterDestination or direction:
             parser.filter_destination(dest=df_name + "_destinations")

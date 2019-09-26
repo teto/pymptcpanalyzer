@@ -10,6 +10,8 @@ let
     # inherit cmd2;
   }) ).overridePythonAttrs (oa: {
 
+
+    version = "0.3.3-dev";
     nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
       # to publish on pypi
       pkgs.python3Packages.twine
@@ -21,15 +23,15 @@ let
     src = ../.;
 
     # postShellHook = ''
-    preShellHook = ''
-      echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
-      export SOURCE_DATE_EPOCH=315532800
-      export PATH="${my_nvim}/bin:$PATH"
-      echo "importing a custom nvim ${my_nvim}"
+    # preShellHook = ''
+    #   echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
+    #   export SOURCE_DATE_EPOCH=315532800
+    #   export PATH="${my_nvim}/bin:$PATH"
+    #   echo "importing a custom nvim ${my_nvim}"
 
-      alias m=mptcpanalyzer
+    #   alias m=mptcpanalyzer
 
-    '';
+    # '';
 
   });
 

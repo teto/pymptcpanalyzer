@@ -171,7 +171,7 @@ class TcpConnection:
             log.debug("We have seen the syn/ack instead of syn, invert destination")
             result = result.reversed()
 
-        log.debug("Created connection %s" % result)
+        log.debug("Created connection %s", result)
         return result
 
     def reversed(self):
