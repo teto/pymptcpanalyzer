@@ -793,6 +793,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.poutput('%d tcp connection(s)' % len(streams))
         for tcpstream, group in streams:
             con = TcpConnection.build_from_dataframe(self.data, tcpstream)
+            print(con)
             self.poutput(str(con))
 
     @is_loaded

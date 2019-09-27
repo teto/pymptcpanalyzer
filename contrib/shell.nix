@@ -23,15 +23,15 @@ let
     src = ../.;
 
     # postShellHook = ''
-    # preShellHook = ''
-    #   echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
-    #   export SOURCE_DATE_EPOCH=315532800
-    #   export PATH="${my_nvim}/bin:$PATH"
+    # export PATH="${my_nvim}/bin:$PATH"
     #   echo "importing a custom nvim ${my_nvim}"
+    postShellHook = ''
+      echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
+      export SOURCE_DATE_EPOCH=315532800
+      python -m pip install -e . --prefix $tmp_path >&2
 
-    #   alias m=mptcpanalyzer
-
-    # '';
+      alias m=mptcpanalyzer
+    '';
 
   });
 
