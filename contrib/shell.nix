@@ -26,8 +26,9 @@ let
     # export PATH="${my_nvim}/bin:$PATH"
     #   echo "importing a custom nvim ${my_nvim}"
     postShellHook = ''
-      echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
       export SOURCE_DATE_EPOCH=315532800
+      echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
+      export PYTHONPATH="$tmp_path/lib/python3.7/site-packages:$PYTHONPATH"
       python -m pip install -e . --prefix $tmp_path >&2
 
       alias m=mptcpanalyzer

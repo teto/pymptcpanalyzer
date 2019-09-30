@@ -238,7 +238,6 @@ class MpTcpSubflow(TcpConnection):
         """
         Args:
         """
-        print(kwargs)
         sf = MpTcpSubflow(**kwargs)
         return sf
 
