@@ -638,10 +638,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # TODO use default=self.human_readable,
     summary_parser.add_argument(
         "-H", action="store_true", dest="human_readable",
-        type=bool, default=False,
+        default=False,
         help="Human-readable dimensions"
     )
-
     @is_loaded
     @with_argparser_and_unknown_args(summary_parser, ns_provider=provide_namespace)
     def do_mptcp_summary(self, args, unknown):
@@ -1302,9 +1301,15 @@ def main(arguments: List[str] = None):
         "Force the regeneration of the cached CSV file from the pcap input"
     )
     parser.add_argument(
-        "-H", action="store_true", dest="human_readable",
-        type=bool, default=False,
+        "-H", "--human-readable", action="store_true",
+        default=False,
         help="Human-readable dimensions"
+    )
+    parser.add_argument(
+        "--unit", action="store",
+        type=bitmath.BitmathType,
+        default=None,
+        help="Unit to display size with"
     )
     parser.add_argument(
         "--cachedir", action="store", type=str,
