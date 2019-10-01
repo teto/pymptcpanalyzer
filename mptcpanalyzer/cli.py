@@ -57,6 +57,7 @@ from colorama import Fore, Back
 from mptcpanalyzer.debug import debug_dataframe
 from stevedore import extension
 from pandas.plotting import register_matplotlib_converters
+import bitmath
 
 plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
@@ -170,7 +171,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def stevedore_error_handler(manager, entrypoint, exception):
         print("Error while loading entrypoint [%s]" % entrypoint)
 
-    def __init__(self, cfg: MpTcpAnalyzerConfig, stdin=sys.stdin, **kwargs) -> None:
+    def __init__(
+        self, cfg: MpTcpAnalyzerConfig,
+        human_readable,
+        stdin=sys.stdin,
+        **kwargs
+    ) -> None:
         """
         Args:
             cfg (MpTcpAnalyzerConfig): A valid configuration
@@ -195,6 +201,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             delimiter=cfg["mptcpanalyzer"]["delimiter"],
             profile=cfg["mptcpanalyzer"]["wireshark_profile"],
         )
+
+        # serves as a default, can be overriden in subcommands
+        self.human_readable = human_readable
 
         # cmd2 specific initialization
         self.abbrev = True  # when no ambiguities, run the command
@@ -626,6 +635,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # )
     summary_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
+    # TODO use default=self.human_readable,
+    summary_parser.add_argument(
+        "-H", action="store_true", dest="human_readable",
+        type=bool, default=False,
+        help="Human-readable dimensions"
+    )
 
     @is_loaded
     @with_argparser_and_unknown_args(summary_parser, ns_provider=provide_namespace)
@@ -656,11 +671,12 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             msg = "mptcpstream %d transferred %d bytes towards %s."
             self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes, destination))
             for sf in stats.subflow_stats:
+                sf_tput_bytes = bitmath.Byte(sf.throughput_bytes)
                 log.log(mp.TRACE, "sf after computation: %r" % sf)
                 self.poutput(
                     "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
                     "accounting for {tput_ratio:.2f}%".format(
-                        sf.tcpstreamid, sf_tput=sf.throughput_bytes,
+                        sf.tcpstreamid, sf_tput=sf_tput_bytes.best_prefix(),
                         mptcp_tput=stats.mptcp_throughput_bytes,
                         tput_ratio=sf.throughput_contribution*100
                     ))
@@ -1284,6 +1300,11 @@ def main(arguments: List[str] = None):
         help="mptcpanalyzer creates a cache of files in the folder "
         "$XDG_CACHE_HOME/mptcpanalyzer or ~/.config/mptcpanalyzer."
         "Force the regeneration of the cached CSV file from the pcap input"
+    )
+    parser.add_argument(
+        "-H", action="store_true", dest="human_readable",
+        type=bool, default=False,
+        help="Human-readable dimensions"
     )
     parser.add_argument(
         "--cachedir", action="store", type=str,

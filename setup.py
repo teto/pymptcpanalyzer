@@ -113,6 +113,7 @@ setup(name="mptcpanalyzer",
         ]
     },
     install_requires=[
+        'bitmath',  # to use human-readable dimensions
         'stevedore',  # to implement a plugin mechanism
         'matplotlib>=3.0.3',  # for plotting
         'pandas>=0.25',  # because of Int64

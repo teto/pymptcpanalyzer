@@ -63,7 +63,9 @@ python3Packages.buildPythonApplication rec {
     doCheck = false;
 
     propagatedBuildInputs = with python3Packages; [
-      stevedore cmd2 pandas
+      bitmath
+      cmd2
+      stevedore pandas
       pixcat
       # we want gtk because qt is so annying on nixos
       # enableQt = true;
