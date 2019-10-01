@@ -18,6 +18,7 @@ from mptcpanalyzer.debug import debug_dataframe
 import math
 import logging
 from dataclasses import dataclass, field
+from bitmath import Byte
 
 log = logging.getLogger(__name__)
 
@@ -27,22 +28,22 @@ class TcpUnidirectionalStats:
     tcpstreamid: TcpStreamId
     ''' sum of tcplen / should be the same for tcp/mptcp
     Include redundant packets contrary to '''
-    throughput_bytes: int
+    throughput_bytes: Byte
 
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     tcp_byte_range: int = None
 
     ''' application data = goodput = useful bytes '''
-    mptcp_application_bytes: int = None
+    mptcp_application_bytes: Byte = None
 
     throughput_contribution: float = None
     goodput_contribution: float = None  # %
 
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
-    tcp_goodput: int = None # ex tcp_goodput
+    tcp_goodput: Byte = None  # ex tcp_goodput
 
     @property
-    def mptcp_goodput_bytes(self):
+    def mptcp_goodput_bytes(self) -> Byte:
         return self.mptcp_application_bytes
 
 @dataclass
@@ -54,15 +55,15 @@ class MpTcpUnidirectionalStats:
 
     ''' application data = goodput = useful bytes '''
     ''' max(dsn)- min(dsn) - 1'''
-    mptcp_application_bytes: int
+    mptcp_application_bytes: Byte
     subflow_stats: List[TcpUnidirectionalStats]
 
     @property
-    def mptcp_goodput_bytes(self):
+    def mptcp_goodput_bytes(self) -> Byte:
         return self.mptcp_application_bytes
 
     @property
-    def mptcp_throughput_bytes(self):
+    def mptcp_throughput_bytes(self) -> Byte:
         ''' sum of total bytes transferred '''
         return sum(map(lambda x: x.throughput_bytes, self.subflow_stats))
 
@@ -76,7 +77,7 @@ def tcp_get_stats(
     '''
     Expects df to have tcpdest set
     '''
-    log.debug("Getting TCP stats for stream %d" % tcpstreamid)
+    log.debug("Getting TCP stats for stream %d", tcpstreamid)
     assert destination in ConnectionRoles, "destination is %r" % type(destination)
 
     df = rawdf[rawdf.tcpstream == tcpstreamid]
@@ -89,7 +90,7 @@ def tcp_get_stats(
     log.debug("Looking at role %s" % destination)
     # assume it's already filtered ?
     sdf = df2[df2.tcpdest == destination]
-    bytes_transferred = sdf["tcplen"].sum()
+    bytes_transferred = Byte(sdf["tcplen"].sum())
     assert bytes_transferred >= 0
 
     # -1 to account for SYN
@@ -100,7 +101,7 @@ def tcp_get_stats(
     return TcpUnidirectionalStats(
         tcpstreamid,
         throughput_bytes=bytes_transferred,
-        tcp_byte_range=tcp_byte_range,
+        tcp_byte_range=Byte(tcp_byte_range),
     )
 
 
@@ -108,10 +109,10 @@ def transmitted_seq_range(df, seq_name):
     '''
     test
     '''
-    log.debug("Computing byte range for sequence field %s" % seq_name)
+    log.debug("Computing byte range for sequence field %s", seq_name)
 
     sorted_seq = df.dropna(subset=[seq_name]).sort_values(by=seq_name)
-    log.log(mp.TRACE, "sorted_seq %s" % sorted_seq)
+    log.log(mp.TRACE, "sorted_seq %s", sorted_seq)
 
     seq_min = sorted_seq.loc[sorted_seq.first_valid_index(), seq_name]
     last_valid_index = sorted_seq.last_valid_index()
@@ -195,7 +196,7 @@ def mptcp_compute_throughput(
     for sf in subflow_stats:
         # can be > 1 in case of redundant packets
         if total_tput > 0:
-            sf.throughput_contribution = sf.throughput_bytes / total_tput
+            sf.throughput_contribution = sf.throughput_bytes.bytes / total_tput
         else:
             sf.throughput_contribution = 0
             log.warn("Total Throughput <= 0. Something fishy possibly ?")
@@ -227,7 +228,6 @@ def mptcp_compute_throughput(
 
     return MpTcpUnidirectionalStats(
         mptcpstreamid=mptcpstreamid,
-        mptcp_application_bytes=dsn_range,
+        mptcp_application_bytes=Byte(dsn_range),
         subflow_stats=subflow_stats,
     )
-

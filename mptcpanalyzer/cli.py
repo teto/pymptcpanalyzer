@@ -58,6 +58,7 @@ from mptcpanalyzer.debug import debug_dataframe
 from stevedore import extension
 from pandas.plotting import register_matplotlib_converters
 import bitmath
+# from bitmath.integrations.bmargparse import BitmathType
 
 plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
@@ -84,6 +85,9 @@ logLevels = {
     ]
 }
 
+
+# used by bitmath
+DEFAULT_UNIT_FMT = "{value:.2f} {unit}"
 
 CAT_TCP = "TCP related"
 CAT_MPTCP = "MPTCP related"
@@ -653,32 +657,38 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         mptcpstream = args.mptcpstream
 
         df = df.mptcp.fill_dest(mptcpstream)
+        best_prefix = self.human_readable if args.human_readable is None else args.human_readable
+        print("Using bestprefix ? ", best_prefix)
 
-        for destination in args.dest:
-            stats = mptcp_compute_throughput(
-                self.data, args.mptcpstream,
-                destination,
-                False
-            )
+        with bitmath.format(
+            fmt_str=DEFAULT_UNIT_FMT,
+            bestprefix=best_prefix
+        ):
+            for destination in args.dest:
+                stats = mptcp_compute_throughput(
+                    self.data, args.mptcpstream,
+                    destination,
+                    False
+                )
 
-            if args.json:
-                import json
-                val = json.dumps(dataclasses.asdict(stats), ensure_ascii=False)
-                self.poutput(val)
-                return
+                if args.json:
+                    import json
+                    val = json.dumps(dataclasses.asdict(stats), ensure_ascii=False)
+                    self.poutput(val)
+                    return
 
-            msg = "mptcpstream %d transferred %d bytes towards %s."
-            self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes, destination))
-            for sf in stats.subflow_stats:
-                sf_tput_bytes = bitmath.Byte(sf.throughput_bytes)
-                log.log(mp.TRACE, "sf after computation: %r" % sf)
-                self.poutput(
-                    "tcpstream {} transferred {sf_tput} bytes out of {mptcp_tput}, "
-                    "accounting for {tput_ratio:.2f}%".format(
-                        sf.tcpstreamid, sf_tput=sf_tput_bytes.best_prefix(),
-                        mptcp_tput=stats.mptcp_throughput_bytes,
-                        tput_ratio=sf.throughput_contribution*100
-                    ))
+                msg = "mptcp stream %d transferred %d towards %s."
+                self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes, destination))
+                for sf in stats.subflow_stats:
+                    sf_tput = sf.throughput_bytes
+                    log.log(mp.TRACE, "sf after computation: %r" % sf)
+                    self.poutput(
+                        "tcpstream {} transferred {sf_tput} out of {mptcp_tput}, "
+                        "accounting for {tput_ratio:.2f}%".format(
+                            sf.tcpstreamid, sf_tput=sf_tput,
+                            mptcp_tput=stats.mptcp_throughput_bytes,
+                            tput_ratio=sf.throughput_contribution*100
+                        ))
 
 
 
@@ -1305,12 +1315,13 @@ def main(arguments: List[str] = None):
         default=False,
         help="Human-readable dimensions"
     )
-    parser.add_argument(
-        "--unit", action="store",
-        type=bitmath.BitmathType,
-        default=None,
-        help="Unit to display size with"
-    )
+    # This requires pulling progressbar: TODO wait
+    # parser.add_argument(
+    #     "--unit", action="store",
+    #     type=BitmathType,
+    #     default=None,
+    #     help="Unit to display size with"
+    # )
     parser.add_argument(
         "--cachedir", action="store", type=str,
         help="mptcpanalyzer creates a cache of files in the folder "

@@ -18,6 +18,9 @@ let
     ];
     propagatedBuildInputs  = (oa.propagatedBuildInputs  or []) ++ [
       my_nvim.config.python3Env
+
+      # temporary addition to work with mpls
+      openssl
     ];
 
     src = ../.;
@@ -30,6 +33,8 @@ let
       echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
       export PYTHONPATH="$tmp_path/lib/python3.7/site-packages:$PYTHONPATH"
       python -m pip install -e . --prefix $tmp_path >&2
+      export PATH="${my_nvim}/bin:$PATH"
+      echo "importing a custom nvim ${my_nvim}"
 
       alias m=mptcpanalyzer
     '';
