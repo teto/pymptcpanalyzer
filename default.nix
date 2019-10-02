@@ -12,29 +12,39 @@ stdenv
 }:
 let
     pixcat = python3Packages.callPackage ./contrib/pixcat.nix {};
-    # pandas = python3Packages.pandas.overridePythonAttrs (oa: {
 
+    bitmath = python3Packages.bitmath.overridePythonAttrs(oa: {
+      # src = fetchFromGitHub {
+      #   owner = "tbielawa";
+      #   repo = "bitmath";
+      #   rev = "19a06eceb464c83899352bc9ebfe2d5e0b9ffa22";
+      #   sha256 = "076vnaf6ss7fjqknd1s0kn10q6sh1j075bk6xxr3jycb3593i5f2";
+      # };
+      name = "bitmath-custom";
+      src = builtins.fetchGit {
+        url = https://github.com/teto/bitmath.git;
+        ref = "fix_check";
+      };
+    });
+    # pandas = python3Packages.pandas.overridePythonAttrs (oa: {
     #   src = fetchFromGitHub {
     #     owner = "teto";
     #     repo = "pandas";
     #     rev = "7ab9ff579daebd6b16c357221850f85c7e218d97";
     #     sha256 = "0ixrvskbalhbbdp06x02dv24iqyrh2x3cqnlaxprc9y38bqr4b8b";
     #   };
-
     #   # src = super.fetchFromGitHub {
     #   #   owner = "pandas-dev";
     #   #   repo = "pandas";
     #   #   rev = "9c0f6a8d703b6bee48918f2c5d16418a7ff736e3";
     #   #   sha256 = "0czdfn82sp2mnw46n90xkfvfk7r0zgfyhfk0npnglp1jpfndpj3i";
     #   # };
-
     #   # to prevent "ZIP does not support timestamps before 1980"
     #   SOURCE_DATE_EPOCH=315532800;
     #   SETUPTOOLS_SCM_PRETEND_VERSION="0.25.0";
     #   doCheck = false;
     #   installCheckPhase = false;
     # });
-
 
     # cmd2 = python3Packages.cmd2.overridePythonAttrs(oa: rec {
     #   version = "0.9.18";

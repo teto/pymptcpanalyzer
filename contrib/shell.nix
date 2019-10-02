@@ -1,4 +1,3 @@
-# { pkgs ? import <nixpkgs> {} }:
 with import <nixpkgs> {};
 
 let

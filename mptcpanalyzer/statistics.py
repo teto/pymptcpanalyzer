@@ -46,6 +46,10 @@ class TcpUnidirectionalStats:
     def mptcp_goodput_bytes(self) -> Byte:
         return self.mptcp_application_bytes
 
+    @property
+    def rate(self) -> Byte:
+        return self.mptcp_application_bytes
+
 @dataclass
 class MpTcpUnidirectionalStats:
     '''
@@ -65,7 +69,7 @@ class MpTcpUnidirectionalStats:
     @property
     def mptcp_throughput_bytes(self) -> Byte:
         ''' sum of total bytes transferred '''
-        return sum(map(lambda x: x.throughput_bytes, self.subflow_stats))
+        return Byte(sum(map(lambda x: x.throughput_bytes, self.subflow_stats)))
 
 
 def tcp_get_stats(
@@ -101,7 +105,8 @@ def tcp_get_stats(
     return TcpUnidirectionalStats(
         tcpstreamid,
         throughput_bytes=bytes_transferred,
-        tcp_byte_range=Byte(tcp_byte_range),
+        # FIX convert to int because Byte does not support np.int64
+        tcp_byte_range=Byte(tcp_byte_range)
     )
 
 

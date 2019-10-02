@@ -662,7 +662,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         with bitmath.format(
             fmt_str=DEFAULT_UNIT_FMT,
-            bestprefix=best_prefix
+            bestprefix=best_prefix,
+            plural=True
         ):
             for destination in args.dest:
                 stats = mptcp_compute_throughput(
@@ -677,8 +678,13 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     self.poutput(val)
                     return
 
-                msg = "mptcp stream %d transferred %d towards %s."
-                self.poutput(msg % (stats.mptcpstreamid, stats.mptcp_throughput_bytes, destination))
+                msg = "mptcp stream {} transferred %d ({rate}) towards %s.".format(
+                    stats.mptcpstreamid,
+                    stats.mptcp_throughput_bytes,
+                    destination.to_string(),
+                    rate=stats.mptcp_throughput_bytes / stats.duration
+                )
+                self.poutput(msg)
                 for sf in stats.subflow_stats:
                     sf_tput = sf.throughput_bytes
                     log.log(mp.TRACE, "sf after computation: %r" % sf)
