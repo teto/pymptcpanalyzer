@@ -16,6 +16,7 @@ from mptcpanalyzer import (_sender, _receiver, TcpStreamId, MpTcpStreamId, MpTcp
     _first, _second)
 from mptcpanalyzer.debug import debug_dataframe
 import math
+import datetime
 import logging
 from dataclasses import dataclass, field
 from bitmath import Byte
@@ -30,7 +31,7 @@ class TcpUnidirectionalStats:
     Include redundant packets contrary to '''
     throughput_bytes: Byte
 
-    tcp_duration: float
+    tcp_duration: datetime.timedelta
 
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     tcp_byte_range: int = None
@@ -64,7 +65,7 @@ class MpTcpUnidirectionalStats:
     mptcp_application_bytes: Byte
 
     '''Total duration of the mptcp connection'''
-    mptcp_duration: float
+    mptcp_duration: datetime.timedelta
     subflow_stats: List[TcpUnidirectionalStats]
 
     @property
@@ -76,6 +77,9 @@ class MpTcpUnidirectionalStats:
         ''' sum of total bytes transferred '''
         return Byte(sum(map(lambda x: x.throughput_bytes, self.subflow_stats)))
 
+    @property
+    def rate(self) -> Byte:
+        return self.mptcp_application_bytes
 
 def tcp_get_stats(
     rawdf,
@@ -210,7 +214,8 @@ def mptcp_compute_throughput(
         )
 
     # min/max of times
-    duration = 
+    times = df["abstime"]
+    duration = times.iloc[-1] - times.iloc[0]
 
     total_tput = sum(map(lambda x: x.throughput_bytes, subflow_stats))
 

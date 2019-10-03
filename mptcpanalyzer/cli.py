@@ -87,7 +87,8 @@ logLevels = {
 
 
 # used by bitmath
-DEFAULT_UNIT_FMT = "{value:.2f} {unit}"
+# :.2f
+DEFAULT_UNIT_FMT = "{value} {unit}"
 
 CAT_TCP = "TCP related"
 CAT_MPTCP = "MPTCP related"
@@ -661,7 +662,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print("Using bestprefix ? ", best_prefix)
 
         with bitmath.format(
-            fmt_str=DEFAULT_UNIT_FMT,
+            # fmt_str=DEFAULT_UNIT_FMT,
             bestprefix=best_prefix,
             plural=True
         ):
@@ -678,11 +679,15 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     self.poutput(val)
                     return
 
-                msg = "mptcp stream {} transferred %d ({rate}) towards %s.".format(
+                # TODO use datetime.precision instead of hardcoding second ?
+                # even better if bitmath
+                msg = ("mptcp stream {} transferred {} over {duration} sec"
+                      "({rate} per second) towards {}.").format(
                     stats.mptcpstreamid,
                     stats.mptcp_throughput_bytes,
                     destination.to_string(),
-                    rate=stats.mptcp_throughput_bytes / stats.duration
+                    duration=stats.mptcp_duration.total_seconds(),
+                    rate=stats.rate
                 )
                 self.poutput(msg)
                 for sf in stats.subflow_stats:
