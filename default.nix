@@ -25,6 +25,8 @@ let
         url = https://github.com/teto/bitmath.git;
         ref = "fix_check";
       };
+
+      doCheck = false;
     });
     # pandas = python3Packages.pandas.overridePythonAttrs (oa: {
     #   src = fetchFromGitHub {

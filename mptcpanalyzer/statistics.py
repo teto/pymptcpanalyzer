@@ -30,6 +30,8 @@ class TcpUnidirectionalStats:
     Include redundant packets contrary to '''
     throughput_bytes: Byte
 
+    tcp_duration: float
+
     ''' For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     tcp_byte_range: int = None
 
@@ -60,6 +62,9 @@ class MpTcpUnidirectionalStats:
     ''' application data = goodput = useful bytes '''
     ''' max(dsn)- min(dsn) - 1'''
     mptcp_application_bytes: Byte
+
+    '''Total duration of the mptcp connection'''
+    mptcp_duration: float
     subflow_stats: List[TcpUnidirectionalStats]
 
     @property
@@ -100,10 +105,18 @@ def tcp_get_stats(
     # -1 to account for SYN
     tcp_byte_range, seq_max, seq_min = transmitted_seq_range(sdf, "tcpseq")
 
+    # print(sdf["abstime"].head())
+    # print(dir(sdf["abstime"].dt))
+    # print(sdf["abstime"].dt.end_time)
+    times = sdf["abstime"]
+    tcp_duration = times.iloc[-1] - times.iloc[0]
+    # duration = sdf["abstime"].dt.end_time - sdf["abstime"].dt.start_time
+
     assert tcp_byte_range is not None
 
     return TcpUnidirectionalStats(
         tcpstreamid,
+        tcp_duration=tcp_duration,
         throughput_bytes=bytes_transferred,
         # FIX convert to int because Byte does not support np.int64
         tcp_byte_range=Byte(tcp_byte_range)
@@ -187,14 +200,17 @@ def mptcp_compute_throughput(
         transmitted_dsn_df = subdf.drop_duplicates(subset="dsn")
 
         sf_stats.mptcp_application_bytes = transmitted_dsn_df["tcplen"].sum()
-        # print(sf_stats.mptcp_application_bytes)
 
         # + 1 to deal with syn oddity
         assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range + 1, sf_stats
 
+        log.log(mp.TRACE, "Adding subflow stats %r", sf_stats)
         subflow_stats.append(
             sf_stats
         )
+
+    # min/max of times
+    duration = 
 
     total_tput = sum(map(lambda x: x.throughput_bytes, subflow_stats))
 
@@ -234,5 +250,6 @@ def mptcp_compute_throughput(
     return MpTcpUnidirectionalStats(
         mptcpstreamid=mptcpstreamid,
         mptcp_application_bytes=Byte(dsn_range),
+        mptcp_duration=duration,
         subflow_stats=subflow_stats,
     )

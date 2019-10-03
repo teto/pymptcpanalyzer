@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 from enum import Enum, IntEnum, Flag, IntFlag, auto
-from .config import MpTcpAnalyzerConfig
-from .cache import Cache
-from .tshark import TsharkConfig
+from mptcpanalyzer.config import MpTcpAnalyzerConfig
+from mptcpanalyzer.cache import Cache
+from mptcpanalyzer.tshark import TsharkConfig
 import collections
 import numpy as np
 import functools
@@ -21,8 +21,7 @@ __CACHE__ = None  # type: 'Cache'
 """
 Used when dealing with the merge of dataframes
 """
-# TODO this should work in a more convenient way !
-# _sender
+# TODO should work when changing SENDER_SUFFIX (won't yet)
 SENDER_SUFFIX = ""
 RECEIVER_SUFFIX = "_receiver"
 
@@ -34,7 +33,6 @@ def suffix_fields(suffix, fields):
 
     def f(x):
         return x + suffix
-    # if isinstance(fields, collections.Iterable):
     if isinstance(fields, str):
         return f(fields)
 
@@ -56,7 +54,6 @@ def _receiver(fields):
 
 def get_cache() -> Cache:
     global __CACHE__  # add this line!
-    # print("config STATE=", __CONFIG__)
     if __CACHE__ is None:  # see notes below; explicit test for None
         raise RuntimeError("Cache has not been set yet.")
     return __CACHE__
@@ -68,12 +65,6 @@ def get_config() -> MpTcpAnalyzerConfig:
     if __CONFIG__ is None:  # see notes below; explicit test for None
         raise RuntimeError("Config has not been set yet.")
     return __CONFIG__
-
-# """
-# The number of rows in the CSV file assigned to metadata (mptcpanalyzer version,
-# tshark options etc...)
-# """
-# METADATA_ROWS = 2
 
 
 class TcpFlags(IntFlag):
@@ -111,9 +102,11 @@ class MpTcpOptions(IntEnum):
     MP_FASTCLOSE = 7
 
 class TcpStreamId(int):
+    """Used as type distinguer in argparse"""
     pass
 
 class MpTcpStreamId(int):
+    """Used as type distinguer in argparse"""
     pass
 
 # Keep it as Enum so that it gets serialized as a string in the CSV
@@ -136,9 +129,8 @@ class ConnectionRoles(IntEnum):
     #     return self.name
 
     def to_string(self):
-        # using __str__ braks pandas to_csv/from_csv cycle
+        # using __str__ breaks pandas to_csv/from_csv cycle
         return self.name
-
 
     # @staticmethod
     def from_string(s):
