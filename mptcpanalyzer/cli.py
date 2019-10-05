@@ -311,7 +311,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             import re
             m = re.search(r'([\d.])', first_line)
             major_version = int(m.group(0))
-            self.poutput("found tshark major version %d" % major_version)
+            self.poutput(f"found tshark major version {major_version}")
             if major_version < 3:
                 self.perror("Your tshark version seems too old ?!")
             else:

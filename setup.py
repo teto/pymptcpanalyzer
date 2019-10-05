@@ -106,6 +106,7 @@ setup(name="mptcpanalyzer",
             'tcp_tput = mptcpanalyzer.plots.throughput:TcpThroughput',
             'mptcp_tput = mptcpanalyzer.plots.throughput:MptcpThroughput',
             'mptcp_gput = mptcpanalyzer.plots.goodput:MptcpGoodput',
+            'cwnds = mptcpanalyzer.plots.cwnd:PlotCwnds',
         ],
         # namespace for plugins that monkey patch the main Cmd class
         'mptcpanalyzer.cmds': [
