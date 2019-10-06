@@ -150,7 +150,7 @@ def transmitted_seq_range(df, seq_name):
 
     return seq_range, seq_max, seq_min
 
-# TODO same return both directions
+
 def mptcp_compute_throughput(
     rawdf,
     mptcpstreamid: MpTcpStreamId,
@@ -174,7 +174,6 @@ def mptcp_compute_throughput(
     # -1 because of syn
     dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dsn")
 
-    # TODO use fstring
     msg = "dsn_range ({}) = {} (dsn_max) - {} (dsn_min) - 1"
     log.debug(msg.format(dsn_range, dsn_max, dsn_min))
 
@@ -209,11 +208,8 @@ def mptcp_compute_throughput(
         assert sf_stats.mptcp_application_bytes <= sf_stats.tcp_byte_range + 1, sf_stats
 
         log.log(mp.TRACE, "Adding subflow stats %r", sf_stats)
-        subflow_stats.append(
-            sf_stats
-        )
+        subflow_stats.append(sf_stats)
 
-    # min/max of times
     times = df["abstime"]
     duration = times.iloc[-1] - times.iloc[0]
 
