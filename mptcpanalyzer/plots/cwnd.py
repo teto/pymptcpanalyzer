@@ -19,7 +19,16 @@ mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
 
 
-fields = "delivery_rate"
+# maybe should use a blacklist instead
+fields = [
+    "delivery_rate",
+    "rtt_ms",
+    "rmem",
+    "snd_cwnd",
+
+    "fowd",
+    "bowd",
+]
 
 class PlotCwnds(plot.Matplotlib):
     '''
@@ -58,6 +67,13 @@ class PlotCwnds(plot.Matplotlib):
         #     choices=self._attributes.keys(),
         #     help="Choose a tcp attribute to plot"
         # )
+
+        parser.add_argument(
+            'fields', nargs='?',
+            choices=self._attributes.keys(),
+            default=["cwnd"],
+            help="Append attribute(s) to plot"
+        )
         return parser
 
     def plot(self, globbing_pattern, **kwargs):
