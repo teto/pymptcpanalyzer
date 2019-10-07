@@ -1,0 +1,53 @@
+{
+    "sender": {
+        "snd_buffer": 40,
+        "capabilities": {}
+    },
+    "name": "2305393538",
+    "delay": 1200,
+    "subflows": [
+        {
+            "min_rtt": 40462,
+            "state": "TcpEstablished",
+            "pacing": 247803,
+            "dstIp": "3.3.3.2",
+            "srcPort": 31765,
+            "rtt_ms": 345757,
+            "rttvar_ms": 15794,
+            "snd_ssthresh": 2147483647,
+            "delivery_rate": 120312,
+            "reordering": 3,
+            "rmem": 61752,
+            "fowd": 0,
+            "wmem": 0,
+            "dstPort": 20756,
+            "rto_ms": 668000,
+            "cc": "reno",
+            "snd_cwnd": 15,
+            "srcIp": "10.0.0.1",
+            "bowd": 0
+        },
+        {
+            "min_rtt": 40525,
+            "state": "TcpEstablished",
+            "pacing": 792038,
+            "dstIp": "3.3.3.2",
+            "srcPort": 55184,
+            "rtt_ms": 72117,
+            "rttvar_ms": 42254,
+            "snd_ssthresh": 2147483647,
+            "delivery_rate": 104779,
+            "reordering": 3,
+            "rmem": 38512,
+            "fowd": 0,
+            "wmem": 0,
+            "dstPort": 20756,
+            "rto_ms": 273000,
+            "cc": "reno",
+            "snd_cwnd": 20,
+            "srcIp": "10.1.0.1",
+            "bowd": 0
+        }
+    ],
+    "capabilities": {}
+}

@@ -10,12 +10,16 @@ from mptcpanalyzer.parser import gen_pcap_parser
 from mptcpanalyzer.debug import debug_dataframe
 import glob
 import json
+import os
 
 log = logging.getLogger(__name__)
 
 # temporary solution to disable matplotlib logging
 mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
+
+
+fields = "delivery_rate"
 
 class PlotCwnds(plot.Matplotlib):
     '''
@@ -56,18 +60,12 @@ class PlotCwnds(plot.Matplotlib):
         # )
         return parser
 
-    # def build_dataframe(self, folder, token):
-    #     '''
-    #     '''
-    #     glob.glob(os.path.join(folder,
-
     def plot(self, globbing_pattern, **kwargs):
         """
         getcallargs
         """
         log.debug("Plotting cwnd(s) following globbing pattern", globbing_pattern)
 
-        # self.build_datafram
         df = pd.DataFrame()
         pattern = globbing_pattern
         files = glob.glob(globbing_pattern)
@@ -78,9 +76,14 @@ class PlotCwnds(plot.Matplotlib):
                 # print(r)
                 print(r["subflows"])
                 for sf in r["subflows"]:
+                    sf.update(delay=r["delay"])
                     df = df.append(sf, ignore_index=True)
+        # sort_values(by)
+        df.sort_values("delay", inplace=True)
 
-        print(df.head())
+        # TODO I could plot delivery rate too !
+
+        print(df)
         fig = plt.figure()
         axes = fig.gca()
         # TODO we should save ports as well
@@ -90,12 +93,11 @@ class PlotCwnds(plot.Matplotlib):
             log.debug("Plotting grp %s", grp)
             sdf.plot(
                 # TODO should be the globbed pattern
-                # x="",
+                x="delay",
                 y="snd_cwnd",
+                label=str(grp),
                 ax=axes,
             )
-
-
 
         # TODO fix dest
         self.title_fmt = " Congestion windows"

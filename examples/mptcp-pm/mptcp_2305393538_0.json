@@ -1,0 +1,32 @@
+{
+    "sender": {
+        "snd_buffer": 40,
+        "capabilities": {}
+    },
+    "name": "2305393538",
+    "delay": 0,
+    "subflows": [
+        {
+            "min_rtt": 52460,
+            "state": "TcpEstablished",
+            "pacing": 552039,
+            "dstIp": "3.3.3.2",
+            "srcPort": 31765,
+            "rtt_ms": 52460,
+            "rttvar_ms": 26230,
+            "snd_ssthresh": 2147483647,
+            "delivery_rate": 0,
+            "reordering": 3,
+            "rmem": 1280,
+            "fowd": 0,
+            "wmem": 0,
+            "dstPort": 20756,
+            "rto_ms": 253000,
+            "cc": "reno",
+            "snd_cwnd": 10,
+            "srcIp": "10.0.0.1",
+            "bowd": 0
+        }
+    ],
+    "capabilities": {}
+}

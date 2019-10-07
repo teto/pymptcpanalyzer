@@ -88,7 +88,7 @@ class Plot:
         parser.add_argument('-o', '--out', action="store", default=None,
             help='Name of the output plot')
         parser.add_argument('--display', action="store",
-            default=True, choices=["term"],
+            default="term", choices=["term", "gui", "no"],
             help='will display the generated plot (use xdg-open by default)')
         parser.add_argument('--title', action="store", type=str,
             help='Overrides the default plot title')
@@ -148,26 +148,26 @@ class Plot:
         # dataframes = dataframes[0] if len(dataframes) == 1 else dataframes,
         # self.plot(dataframes, **kwargs)
 
-    def display(self, filename, mode="gui", **kwargs):
+    def display(self, filename, mode, **kwargs):
         """
         Opens filename in your usual picture viewer
         Relies on xdg-open by default so set your mimetypes correctly !
         """
         assert mode is not None
         log.info("modeing image %s (mode %s)", filename, mode)
-        # TODO check if we are running kitty and if pixcat is available:
         if mode == "term":
             if os.environ.get("TERM", "none") == "xterm-kitty":
                 from pixcat import Image
                 Image(filename).show()
                 return
             else:
-                log.warn("Only kitty Terminal is supported")
+                log.warn("Only kitty Terminal is supported. Falling back to gui mode.")
                 mode = "gui"
 
         if mode == "gui":
             cmd = ["xdg-open", filename]
             print(cmd)
+            import subprocess
             subprocess.check_call(cmd)
 
 
@@ -255,9 +255,9 @@ class Matplotlib(Plot):
                     log.info("No output file set, using tempfile=%s", tmpfile)
                     r = self.savefig(plot_data, tmpfile.name)
                     log.debug("returned %r", r)
-                    self.display(tmpfile.name, display=display)
+                    self.display(tmpfile.name, mode=display)
             else:
-                self.display(out, display=display)
+                self.display(out, mode=display)
 
         super().postprocess(plot_data, **kwargs)
 
