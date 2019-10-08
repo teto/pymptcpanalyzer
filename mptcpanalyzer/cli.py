@@ -148,7 +148,6 @@ def experimental(f):
     return wrapped
 
 
-# introduced in cmd2 0.9.13
 def provide_namespace(cmd2_instance):
 
     myNs = argparse.Namespace()
@@ -198,10 +197,16 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             'ls': 'list_subflows',
             'lr': 'list_reinjections'
         }
-        super().__init__(completekey='tab', stdin=stdin, shortcuts=shortcuts)
+        self.config = cfg
+
+        super().__init__(
+            completekey='tab', stdin=stdin, shortcuts=shortcuts,
+            persistent_history_file=self.config["mptcpanalyzer"]['history'],
+            allow_cli_args=True,  # disable autoload of transcripts
+            allow_redirection=True,  # allow pipes in commands
+        )
         self.prompt = FG_COLORS['blue'] + "Ready>" + color_off
         self.data = None  # type: pd.DataFrame
-        self.config = cfg
         self.tshark_config = TsharkConfig(
             delimiter=cfg["mptcpanalyzer"]["delimiter"],
             profile=cfg["mptcpanalyzer"]["wireshark_profile"],
@@ -211,9 +216,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         self.human_readable = human_readable
 
         # cmd2 specific initialization
-        self.abbrev = True  # when no ambiguities, run the command
-        self.allow_cli_args = True  # disable autoload of transcripts
-        self.allow_redirection = True  # allow pipes in commands
         self.default_to_shell = False
         self.debug = True  # for now
         self.set_posix_shlex = True
@@ -1260,21 +1262,21 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         """
         return True
 
-    def preloop(self):
-        """
-        Executed once when cmdloop is called
-        """
-        histfile = self.config["mptcpanalyzer"]['history']
-        if readline and os.path.exists(histfile):
-            log.debug("Loading history from %s" % histfile)
-            readline.read_history_file(histfile)
+    # def preloop(self):
+    #     """
+    #     Executed once when cmdloop is called
+    #     """
+    #     histfile = self.config["mptcpanalyzer"]['history']
+    #     if readline and os.path.exists(histfile):
+    #         log.debug("Loading history from %s" % histfile)
+    #         readline.read_history_file(histfile)
 
-    def postloop(self):
-        histfile = self.config["mptcpanalyzer"]['history']
-        if readline:
-            log.debug("Saving history to %s" % histfile)
-            readline.set_history_length(histfile_size)
-            readline.write_history_file(histfile)
+    # def postloop(self):
+    #     histfile = self.config["mptcpanalyzer"]['history']
+    #     if readline:
+    #         log.debug("Saving history to %s", histfile)
+    #         readline.set_history_length(histfile_size)
+    #         readline.write_history_file(histfile)
 
 def main(arguments: List[str] = None):
     """

@@ -65,7 +65,7 @@ class MpTcpAnalyzerConfig(configparser.ConfigParser):
             xdg_config = os.path.join(xdg_config, "mptcpanalyzer", "config")
             filenames.append(xdg_config)
         elif filename:
-            logging.info("Config file set to %s" % filename)
+            logging.info("Config file set to %s", filename)
             filenames = [filename]
 
         loaded_from = self.read(filenames)

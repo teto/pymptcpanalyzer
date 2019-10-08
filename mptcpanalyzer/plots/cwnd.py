@@ -70,7 +70,7 @@ class PlotCwnds(plot.Matplotlib):
 
         parser.add_argument(
             'fields', nargs='?',
-            choices=self._attributes.keys(),
+            choices=fields,
             default=["cwnd"],
             help="Append attribute(s) to plot"
         )
