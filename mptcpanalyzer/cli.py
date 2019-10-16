@@ -471,14 +471,14 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                         help="tcp.stream id visible in wireshark for pcap1")
     parser.add_argument("--json", action="store_true", default=False,
                         help="Machine readable summary.")
-    parser.add_argument('-v', '--verbose', dest="verbose", default=False, action="store_true",
-                        help="how to display each connection")
+    parser.add_argument('-v', '--verbose',
+        dest="verbose", default=False, action="store_true",
+        help="how to display each connection")
 
-    parser.epilog = '''
+    parser.epilog = inspect.cleandoc('''
     Examples:
         map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0
-    '''
-
+    ''')
     @with_argparser(parser)
     @with_category(CAT_TCP)
     def do_map_tcp_connection(self, args):
@@ -490,7 +490,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         mappings = map_tcp_stream(df2, main_connection)
 
-        self.poutput("Trying to map %s" % (main_connection,))
+        self.poutput("Trying to map %s", (main_connection,))
         self.poutput("%d mapping(s) found" % len(mappings))
 
         for match in mappings:
@@ -694,7 +694,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                 self.poutput(msg)
                 for sf in stats.subflow_stats:
                     sf_tput = sf.throughput_bytes
-                    log.log(mp.TRACE, "sf after computation: %r" % sf)
+                    log.log(mp.TRACE, "sf after computation: %r", sf)
                     self.poutput(
                         "tcpstream {} transferred {sf_tput} out of {mptcp_tput}, "
                         "accounting for {tput_ratio:.2f}%".format(

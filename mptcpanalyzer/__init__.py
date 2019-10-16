@@ -80,7 +80,6 @@ class TcpFlags(IntFlag):
 
 
 class Protocol(IntEnum):
-    # TODO setup __str__ to return lowercase .name
     TCP = 0
     MPTCP = 1
 
@@ -123,11 +122,6 @@ class ConnectionRoles(IntEnum):
     Client = auto()
     Server = auto()
 
-    # def __str__(self):
-    #     # Note that defining __str__ is required to get ArgumentParser's help output to include
-    #     # the human readable (values) of Color
-    #     return self.name
-
     def to_string(self):
         # using __str__ breaks pandas to_csv/from_csv cycle
         return self.name
@@ -145,13 +139,8 @@ class ConnectionRoles(IntEnum):
         else:
             return ConnectionRoles.Client
 
-# TODO Use it later on
-# TypeError("Cannot extend enumerations")
-# class MptcpConnectionRoles(ConnectionRoles):
-#     pass
-
 # TODO create an action instead
-# TODO should be able to do without
+# should be able to do without
 class CustomConnectionRolesChoices(list):
     def __contains__(self, other):
         # print("%r", other)
