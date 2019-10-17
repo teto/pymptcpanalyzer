@@ -1,0 +1,38 @@
+{
+    "sender": {
+        "snd_buffer": 40,
+        "capabilities": {}
+    },
+    "name": "3974028188",
+    "delay": 0,
+    "subflows": [
+        {
+            "lost": 0,
+            "mtu": 1500,
+            "min_rtt": 48777,
+            "pacing": 593722,
+            "app_limited": 0,
+            "ca_state": 0,
+            "dstIp": "3.3.3.2",
+            "rto_us": 249000,
+            "srcPort": 31765,
+            "snd_ssthresh": 2147483647,
+            "delivery_rate": 0,
+            "reordering": 3,
+            "delivered": 1,
+            "tcp_state": "TcpEstablished",
+            "rttvar": 24388,
+            "rmem": 0,
+            "fowd": 0,
+            "wmem": 0,
+            "dstPort": 20756,
+            "retrans": 0,
+            "cc": "reno",
+            "snd_cwnd": 10,
+            "srcIp": "10.0.0.1",
+            "rtt_us": 48777,
+            "bowd": 0
+        }
+    ],
+    "capabilities": {}
+}

@@ -54,7 +54,7 @@ let
     # };
 
     configure.packages.myVimPackage.start = [ vimPlugins.coc-python ];
-    extraPython3Packages = ps: with ps;  [ python-language-server ];
+    # extraPython3Packages = ps: with ps;  [ python-language-server ];
   };
 
 in

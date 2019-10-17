@@ -11,7 +11,7 @@ from typing import List, Dict, Union, Optional, Callable, Any, Tuple
 from enum import Enum
 import mptcpanalyzer as mp
 import functools
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +77,7 @@ label: used when plotting
 when a converter is specified, dtype will be set to object or str
 
 hash: take this hash into account ?
-classattribute ?
 """
-# Field = namedtuple('Field', ['fullname', 'type', 'label', 'hash', 'converter'])
 
 @dataclass
 class Field:
@@ -87,15 +85,27 @@ class Field:
     type: Any
     label: Optional[str]
     hash: bool
+    # converter: InitVar[Optional[Callable]] = None
     converter: Optional[Callable]
+
     # date_format: Any
 
 class FieldDate(Field):
     # date_parser: Any
-    pass
+    # pass
+    def __post_init__(self, converter):
+        self.converter = converter
+
+class FieldList(Field):
+    # date_parser: Any
+    def __post_init__(self, ):
+        print("Current value for self.convert=", self.converter)
+        self.converter = _load_list(self.converter)
+        print("self.convert after=", self.converter)
 
 def _convert_flags(x):
     """ double int in case we deal with a float"""
+    # print("convert_flags", x, type(x))
     return int(x, 16)
 
 def _convert_timestamp(x):
@@ -173,7 +183,6 @@ class TsharkConfig:
                 searches = [item for item in searches if item not in matches]
             return matches
 
-
     def add_basic_fields(self):
 
         # when merging packets some packets are lost and thus have no packetid
@@ -183,12 +192,12 @@ class TsharkConfig:
 
         # TODO look at the doc ! with pd.Timestamp
         # dtype=pd.Int64Dtype()
-        # TypeError: the dtype datetime64[s] is not supported for parsing, pass this column using parse_dates instead
+        # TypeError: the dtype datetime64[s] is not supported for parsing
+        # pass this column using parse_dates instead
         # self.add_field("frame.time_relative", "reltime", np.float64,
-        #     "Relative tine", False, None)
-        self._tshark_fields.setdefault("reltime", FieldDate("frame.time_relative", None,
-            "Relative time", False, None))
-        self._tshark_fields.setdefault("abstime", FieldDate("frame.time_epoch", None,
+        #     "Relative tine", False, _convert_timestamp)
+        # self._tshark_fields.setdefault("reltime", FieldDate("frame.time_relative", str, "Relative time", False, None))
+        self._tshark_fields.setdefault("abstime", FieldDate("frame.time_epoch", str,
             "seconds+Nanoseconds time since epoch", False, None))
         # np.float64
         # self.add_field("frame.time_epoch", "abstime", None,
@@ -251,7 +260,6 @@ class TsharkConfig:
             self.add_field("mptcp.reinjected_in", "reinjected_in", object, "Reinjection list", False,
                 functools.partial(_load_list, field="reinjectedInSender"), )
 
-
     def add_field(
         self, fullname: str, name: str, _type,
         label: Optional[str],
@@ -268,7 +276,6 @@ class TsharkConfig:
         field = Field(fullname, _type, label, _hash, converter)
         self._tshark_fields.setdefault(name, field)
         return field
-
 
     def export_to_csv(
         self, input_filename: str,
@@ -298,7 +305,6 @@ class TsharkConfig:
 
         return self.run_tshark(cmd, fd)
 
-
     def filter_pcap(self, pcap_in, pcap_out):
         cmd = [
             self.tshark_bin,
@@ -310,7 +316,22 @@ class TsharkConfig:
         return self.run_tshark(cmd, None)
 
     @staticmethod
-    def run_tshark(cmd, stdout) -> Tuple[int, str]:
+    def start_capture(cmd, stdout):
+        """
+        Inspired by
+        https://github.com/gcla/termshark/blob/master/docs/FAQ.md#how-does-termshark-use-tshark
+        """
+        custom_env = os.environ.copy()
+        custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
+        # dumpcap -P -i eth0 -f <capture filter> -w <tmpfile>
+        proc = subprocess.Popen(
+            cmd, stdout=stdout, stderr=subprocess.PIPE,
+            env=custom_env
+        )
+        return
+
+    @staticmethod
+    def run_tshark(cmd, stdout) -> Tuple[int, bytes]:
         """
         Print the command on stdout
         We override WIRESHARK_CONFIG_DIR to prevent interference of user scripts/profile

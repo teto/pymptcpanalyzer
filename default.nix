@@ -63,7 +63,7 @@ let
 in
 python3Packages.buildPythonApplication rec {
 	pname = "mptcpanalyzer";
-	version = "0.3.2";
+	version = "0.3.3";
 
     src = fetchFromGitHub {
       owner = "teto";
@@ -77,6 +77,7 @@ python3Packages.buildPythonApplication rec {
     propagatedBuildInputs = with python3Packages; [
       bitmath
       cmd2
+      jsonschema
       stevedore pandas
       pixcat
       # we want gtk because qt is so annying on nixos

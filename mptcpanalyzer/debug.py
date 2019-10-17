@@ -43,12 +43,19 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
     """
     Help debugging dataframe loading errors (with dtypes/converters)
     chunksize: bool,
+
+    WARNING: be careful when using
     """
 
     chunksize = kwargs.get("chunksize")
 
     if first_try:
         kwargs.pop("chunksize", None)
+
+    parse_dates = kwargs.get('parse_dates', [])
+
+    if parse_dates != []:
+        print("WARNING: adding parsed dates to used columns")
 
     for field in fields:
         print("TESTING field %s (first_try ? %s ) " % (field, first_try))
@@ -57,7 +64,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
             res = pd.read_csv(
                 fd,
                 *args,
-                usecols=[field],
+                usecols=[field] + parse_dates,
                 **kwargs
             )
             if chunksize is not None:

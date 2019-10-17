@@ -609,10 +609,10 @@ def gen_pcap_parser(
     # rename input_pcaps to load_dataframes
     input_pcaps: Dict[str, PreprocessingActions],
     # protocol,
-    direction: bool=False,
+    direction: bool = False,
     parents=[],
     # TODO get rid of this/skip-stream
-    skip_subflows: bool=True,
+    skip_subflows: bool = True,
 ) -> MpTcpAnalyzerParser:
     """
     Generates a parser with common options.
@@ -686,3 +686,6 @@ def gen_pcap_parser(
             parser.skip_subflow(dest=df_name + "skipped_subflows", df_name=df_name)
 
     return parser
+
+
+cmd2.set_default_argument_parser(MpTcpAnalyzerParser)

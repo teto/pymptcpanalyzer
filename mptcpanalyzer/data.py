@@ -15,7 +15,7 @@ import tempfile
 import pprint
 from enum import Enum, auto
 import functools
-from mptcpanalyzer.debug import debug_dataframe
+import mptcpanalyzer.debug
 
 log = logging.getLogger(__name__)
 
@@ -196,8 +196,10 @@ def load_merged_streams_into_pandas(
             main_connection = None  # type: Union[MpTcpConnection, TcpConnection]
             other_connection = None  # type: Union[MpTcpConnection, TcpConnection]
             if mptcp:
-                main_connection = MpTcpConnection.build_from_dataframe(df1, MpTcpStreamId(streamid1))
-                other_connection = MpTcpConnection.build_from_dataframe(df2, MpTcpStreamId(streamid2))
+                main_connection = MpTcpConnection.build_from_dataframe(
+                    df1, MpTcpStreamId(streamid1))
+                other_connection = MpTcpConnection.build_from_dataframe(
+                    df2, MpTcpStreamId(streamid2))
 
                 # for now we use known streams exclusively
                 # might be interested to use merge_tcp_dataframes later
@@ -251,7 +253,8 @@ def load_merged_streams_into_pandas(
                             dtypes.setdefault(_name(k), v)
 
                     # add generated field dtypes
-                    dtypes.update({_name(f.fullname): f.type for f in per_pcap_artificial_fields.values()})
+                    dtypes.update(
+                        {_name(f.fullname): f.type for f in per_pcap_artificial_fields.values()})
 
                 # these are overrides from the generated dtypes
                 # dtypes.update({
@@ -276,7 +279,8 @@ def load_merged_streams_into_pandas(
 
             with open(cachename) as fd:
                 merge_dtypes = _gen_dtypes(
-                    {name: field.type for name, field in tshark_config.fields.items() if field.converter is None}
+                    {name: field.type for name, field in tshark_config.fields.items()
+                     if field.converter is None}
                 )
                 converters = _gen_converters()
 
@@ -295,7 +299,7 @@ def load_merged_streams_into_pandas(
                 # at this stage, destinatiosn are nan
 
                 debug_fields = ["abstime", "tcpstream", "tcpdest", "mptcpdest"]
-                debug_dataframe(merged_df, "Merged dataframe",
+                mptcpanalyzer.debug.debug_dataframe(merged_df, "Merged dataframe",
                     usecols=(_first(debug_fields) + _second(debug_fields)))
 
                 # workaround bug https://github.com/pandas-dev/pandas/issues/25448
@@ -303,7 +307,6 @@ def load_merged_streams_into_pandas(
                     # per_pcap_artificial_fields
                     for col in [_first("tcpdest"), _first("mptcpdest"), _second("tcpdest"), _second("mptcpdest")]:
                         merged_df[col] = merged_df[col].apply(_convert_role, convert_dtype=False)
-
 
         # we fix the clocks a posteriori so that the cache is still usable
         log.debug("Postprocessing clock if needed")
@@ -334,7 +337,9 @@ def load_merged_streams_into_pandas(
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
 
-        debug_dataframe(res, "owd", usecols=["owd", _sender('abstime'), _receiver('abstime')])
+        mptcpanalyzer.debug.debug_dataframe(
+            res, "owd", usecols=["owd", _sender('abstime'), _receiver('abstime')]
+        )
         # with pd.option_context('float_format', '{:f}'.format):
         #     print(
         #         res[_sender(["ipsrc", "ipdst", "abstime"])
@@ -347,8 +352,8 @@ def load_merged_streams_into_pandas(
     # pd.set_option('display.max_rows', 200)
     # pd.set_option('display.max_colwidth', -1)
     # print("dtypes=", dict(dtypes))
-    log.log(mp.TRACE, "Dtypes after load:%s\n" % pp.pformat(res.dtypes))
-    log.info("Finished loading. merged dataframe size: %d" % len(res))
+    log.log(mp.TRACE, "Dtypes after load:%s\n", pp.pformat(res.dtypes))
+    log.info("Finished loading. merged dataframe size: %d", len(res))
 
     return res
 
@@ -367,7 +372,7 @@ def load_into_pandas(
         load_cb: callback to use if cache not available
         extra: extra arguments to forward to load_cb
     """
-    log.debug("Asked to load simple pcap %s" % input_file)
+    log.debug("Asked to load simple pcap %s", input_file)
 
     filename = getrealpath(input_file)
     cache = mp.get_cache()
@@ -389,7 +394,7 @@ def load_into_pandas(
 
     log.debug("cache validity=%d cachename: %s", is_cache_valid, csv_filename)
     if not is_cache_valid:
-        log.info("Cache invalid .. Converting %s ", filename,)
+        log.info("Cache invalid .. Converting %s", filename,)
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
             tshark_fields = [field.fullname for _, field in config.fields.items()]
@@ -408,23 +413,26 @@ def load_into_pandas(
 
             # gets a list of fields to convert
             converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
-            converters.update({name: f.converter for name, f in per_pcap_artificial_fields.items() if f.converter})
+            converters.update({name: f.converter for name,
+                              f in per_pcap_artificial_fields.items() if f.converter})
 
-            # builds a list of fields to be parsed as dates (since converter/types don't seem to be great)
-            date_cols = [f.fullname for name, f in config.fields.items() if isinstance(f, FieldDate)]
+            # builds a list of fields to be parsed as dates
+            # (since converter/types don't seem to be great)
+            date_cols = [f.fullname for name,
+                f in config.fields.items() if isinstance(f, FieldDate)]
 
-            dtypes = {field.fullname: field.type for _, field in config.fields.items() if field.converter is None}
+            dtypes = {field.fullname: field.type for _,
+                field in config.fields.items() if field.converter is None}
             log.log(mp.TRACE, "Dtypes before load:\n%s", pp.pformat(dtypes))
             log.log(mp.TRACE, "Converters before load:\n%s", pp.pformat(converters))
             log.log(mp.TRACE, "Fields to load as times:\n%s", pp.pformat(date_cols))
 
             # keep this commented code to help diagnosing pandas problems
             # from mptcpanalyzer.debug import read_csv_debug
-            # fields = [f.fullname for _, f in config.fields.items()]
+            fields = [f.fullname for _, f in config.fields.items()]
             # fields =[ "tcp.options.mptcp.sendkey" ]
-            # data = read_csv_debug(fields,
-
-            data = pd.read_csv(
+            data = mptcpanalyzer.debug.read_csv_debug(fields,
+            # data = pd.read_csv(
                 fd,
                 comment='#',
                 sep=config.delimiter,
@@ -438,14 +446,16 @@ def load_into_pandas(
 
             log.debug("Finished loading CSV file")
             # 1 to 1 -> can't add new columns
-            data.rename(inplace=True, columns={f.fullname: name for name, f in config.fields.items()})
+            data.rename(inplace=True, columns={
+                        f.fullname: name for name, f in config.fields.items()})
 
             # add new columns
             data = data.assign(**{name: np.nan for name in per_pcap_artificial_fields.keys()})
             column_names = set(data.columns)
             data = data.astype(dtype=artifical_dtypes, copy=False)
 
-            # we want packetid column to survive merges/dataframe transformation so keepit as a column
+            # we want packetid column to survive merges/dataframe transformation
+            # so keepit as a column
             # TODO remove ? let other functions do it ?
             data.set_index("packetid", drop=False, inplace=True)
 
@@ -480,7 +490,6 @@ def pandas_to_csv(df: pd.DataFrame, filename, **kwargs):
     )
 
 
-
 def convert_to_sender_receiver(df) -> pd.DataFrame:
     """
     Convert dataframe from  X_HOST1 | X_HOST2 to X_SENDER | X_RECEIVER
@@ -511,7 +520,6 @@ def convert_to_sender_receiver(df) -> pd.DataFrame:
                 if col_name.endswith(suffix_to_replace):
                     return col_name.replace(suffix_to_replace, new_suffix)
             return col_name
-
 
             # total = pd.concat([total, subdf], ignore_index=True)
         log.debug(f"Comparing {min_h1} (h1) with {min_h2} (h2)")
@@ -638,7 +646,8 @@ def merge_tcp_dataframes_known_streams(
             log.debug("Setting mptcpdest to %s" % mptcpdest)
 
         total = pd.concat([res, total])
-        debugcols = _first(["abstime", "tcpdest", "mptcpdest"]) + _second(["abstime", "tcpdest", "mptcpdest"])
+        debugcols = _first(["abstime", "tcpdest", "mptcpdest"]) + \
+        _second(["abstime", "tcpdest", "mptcpdest"])
         debug_dataframe(total, "concatenated df", usecols=debugcols)
 
     log.info("Resulting merged tcp dataframe of size {} ({} mapped packets vs {} unmapped)"
@@ -759,7 +768,8 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
         for field in df.columns:
             try:
                 if explain:
-                    log.debug("comparing pktids %d with %d for field %s" % (_get_pktid(packet), _get_pktid(row), field))
+                    log.debug("comparing pktids %d with %d for field %s" %
+                              (_get_pktid(packet), _get_pktid(row), field))
                 f1 = getattr(p1, field)
                 f2 = getattr(p2, field)
                 score += scoring_rules[field](f1, f2)
@@ -785,7 +795,8 @@ def map_tcp_packet(df, packet, explain=False) -> List[Tuple[Any, float]]:
 
         # we don't append inf results for performance reasons
         if not math.isinf(score):
-            log.debug("packet %d mapped to %d with a score of %d" % (_get_pktid(packet), _get_pktid(row), score))
+            log.debug("packet %d mapped to %d with a score of %d" %
+                      (_get_pktid(packet), _get_pktid(row), score))
             scores.append((_get_pktid(row), score))
         # else:
         #     log.debug("Found no match for pktid %d, skipping.." % _get_pktid(packet))
@@ -898,7 +909,6 @@ def map_tcp_packets_via_hash(
             # run additionnal checks against duplicate hashes
             validate="one_to_one",  # can slow process
         )
-
 
     except pd.errors.MergeError as e:
 
@@ -1073,7 +1083,6 @@ def map_mptcp_connection(
     return results
 
 
-
 def already_merged(df) -> bool:
     """
     Check if it's a merged dataframes
@@ -1130,7 +1139,6 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         #         _sender(["packetid", "reinjected_in", "reinjection_of"])
         #          + _receiver(["reinjected_in", "reinjection_of"])
         #         ].head())
-
 
         for reinjection in reinjected_packets.itertuples():
             # here we look at all the reinjected packets

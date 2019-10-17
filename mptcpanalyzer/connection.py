@@ -52,7 +52,6 @@ class TcpConnection:
     interface: str
     isn: int = None
 
-
     def generate_direction_query(self, tcpdest: ConnectionRoles) -> str:
         """
         Filter packets according to the tcp notion of client/server destination
@@ -91,7 +90,7 @@ class TcpConnection:
         if (self.tcpserver_ip == other.tcpserver_ip
             and self.tcpclient_ip == other.tcpclient_ip
             and self.client_port == other.client_port
-                and self.server_port == other.server_port):
+            and self.server_port == other.server_port):
             return float('inf')
 
         score += 10 if self.tcpserver_ip == other.tcpserver_ip else 0
@@ -100,7 +99,6 @@ class TcpConnection:
         score += 10 if self.server_port == other.server_port else 0
 
         return score
-
 
     def fill_dest(self, df) -> pd.DataFrame:
         """
@@ -115,7 +113,6 @@ class TcpConnection:
 
         # assert df['tcpdest'].notnull() == , "every packet should have tcpdest set"
         return df
-
 
     def __eq__(self, other):
         """
@@ -270,7 +267,6 @@ class MpTcpSubflow(TcpConnection):
 
         return super(MpTcpSubflow, self).generate_direction_query(tcpdest)
 
-
     def to_string(self, **kwargs):
         res = super().to_string(**kwargs)
         res += f" (mptcpdest: {self.mptcpdest.to_string()})"
@@ -338,7 +334,6 @@ class MpTcpConnection:
 
         return result
 
-
     def fill_dest(self, df) -> pd.DataFrame:
         '''
         set destinations
@@ -384,7 +379,6 @@ class MpTcpConnection:
 
         if len(synack_mpcapable_df) < 1:
             raise MpTcpMissingKey("Could not find the server MPTCP key.")
-
 
         # not really rows but index
         client_id = syn_mpcapable_df.index[0]
@@ -435,7 +429,8 @@ class MpTcpConnection:
             assert math.isfinite(int(receiver_token))
 
             # if we see the token
-            log.debug("receiver_token %r to compare with server_token %r", receiver_token, server_token)
+            log.debug("receiver_token %r to compare with server_token %r",
+                      receiver_token, server_token)
             log.debug("Test %s", (receiver_token == server_token))
             mptcpdest = ConnectionRoles.Server if receiver_token == server_token \
                 else ConnectionRoles.Client
@@ -463,7 +458,6 @@ class MpTcpConnection:
             subflows
         )
         return result
-
 
     @staticmethod
     def filter_ds(data, **kwargs):
@@ -526,7 +520,6 @@ class MpTcpConnection:
         # TODO compare start times supposing cloak are insync ?
         return score
 
-
     def __str__(self):
         return str(self.mptcpstreamid)
 
@@ -556,5 +549,3 @@ class MpTcpMapping:
     mapped: MpTcpConnection
     score: float
     subflow_mappings: List[Tuple[MpTcpSubflow, TcpMapping]]
-
-# MpTcpSubflowMapping = NamedTuple('TcpMapping', [('mapped', TcpConnection), ("score", float)])

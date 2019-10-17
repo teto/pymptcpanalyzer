@@ -22,7 +22,7 @@ mpl_logger.setLevel(logging.WARNING)
 # maybe should use a blacklist instead
 fields = [
     "delivery_rate",
-    "rtt_ms",
+    "rtt_us",
     "rmem",
     "snd_cwnd",
 
