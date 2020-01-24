@@ -584,7 +584,10 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             self.poutput(formatted_output)
 
-
+    def do_list_interfaces(self, args, unknown):
+        """
+        List this monitor available interfaces
+        """
 
     summary_parser = MpTcpAnalyzerParser(
         description="Prints a summary of the mptcp connection"
@@ -620,7 +623,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
 
             self.poutput(res)
-
 
     summary_parser = MpTcpAnalyzerParser(
         description="Prints a summary of the mptcp connection"
@@ -757,7 +759,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         pandas_to_csv(df, args.output)
 
 
-
     sumext_parser = gen_bicap_parser(mp.Protocol.MPTCP, True)
     sumext_parser.add_argument("--json", action="store_true", default=False,
         help="Machine readable summary.")
@@ -791,7 +792,6 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             True,
             self.tshark_config
         )
-
 
         for destination in destinations:
 
@@ -1134,10 +1134,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # reinjections = df["reinjection_of"].dropna(axis=0, )
         # print("number of reinjections of ")
 
-
-    parser = MpTcpAnalyzerParser(
-        description="Loads a pcap to analyze"
-    )
+    parser = MpTcpAnalyzerParser(description="Loads a pcap to analyze")
     parser.add_pcap("input_file")
     # parser.add_argument("input_file", action=LoadSinglePcap,
     #     help="Either a pcap or a csv file."

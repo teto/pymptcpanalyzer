@@ -235,11 +235,13 @@ class TsharkConfig:
         self.add_field("tcp.options.mptcp.recvtok", "recvtok", str, False, True)
 
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", 'Int64', False, True)
+        self.add_field("tcp.options.mptcp.version", "mptcpversion", 'Uint8', False, False)
         # this is a list really; can contain "2,4"
         self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)
-        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", 'UInt64',
+        # TODO convert back to 'UInt64' once problems with pandas are fixed
+        self.add_field("tcp.options.mptcp.rawdataseqno", "dss_dsn", np.float64,
             "DSS Sequence Number", True)
-        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", 'UInt64',
+        self.add_field("tcp.options.mptcp.rawdataack", "dss_rawack", np.float64,
             "DSS raw ack", True)
         self.add_field("tcp.options.mptcp.subflowseqno", "dss_ssn", 'UInt64',
             "DSS Subflow Sequence Number", True)
@@ -321,14 +323,34 @@ class TsharkConfig:
         Inspired by
         https://github.com/gcla/termshark/blob/master/docs/FAQ.md#how-does-termshark-use-tshark
         """
-        custom_env = os.environ.copy()
-        custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
+        # custom_env = os.environ.copy()
+        # custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
+
+        # TODO ...
+        # with tempfile.temp as temp_file
+        cmd = [
+            "dumpcap",
+            "-P",
+            # TODO support multiple interfaces
+            "-i", interface,
+            "-f",
+            "-w", temp_file
+        ]
         # dumpcap -P -i eth0 -f <capture filter> -w <tmpfile>
         proc = subprocess.Popen(
             cmd, stdout=stdout, stderr=subprocess.PIPE,
             env=custom_env
         )
         return
+
+    @staticmethod
+    def list_interfaces():
+        cmd = [
+            self.tshark_bin,
+            "--list-interfaces",
+        ]
+        with io.StringIO() as out:
+            res, stderr = self.run_tshark(cmd, out)
 
     @staticmethod
     def run_tshark(cmd, stdout) -> Tuple[int, bytes]:

@@ -240,7 +240,7 @@ def load_merged_streams_into_pandas(
             log.log(mp.TRACE, "saving with dtypes=", dict(merged_df.dtypes))
 
         else:
-            log.info("Loading from cache %s" % cachename)
+            log.info("Loading from cache %s", cachename)
             # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
 
             def _gen_dtypes(fields) -> Dict[str, Any]:
@@ -431,8 +431,8 @@ def load_into_pandas(
             # from mptcpanalyzer.debug import read_csv_debug
             fields = [f.fullname for _, f in config.fields.items()]
             # fields =[ "tcp.options.mptcp.sendkey" ]
-            data = mptcpanalyzer.debug.read_csv_debug(fields,
-            # data = pd.read_csv(
+            # data = mptcpanalyzer.debug.read_csv_debug(fields,
+            data = pd.read_csv(
                 fd,
                 comment='#',
                 sep=config.delimiter,

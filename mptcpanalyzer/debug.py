@@ -42,7 +42,9 @@ def debug_dataframe(
 def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
     """
     Help debugging dataframe loading errors (with dtypes/converters)
-    chunksize: bool,
+    chunksize: number of lines to read
+    first_try:
+    # with chunksize Return TextFileReader object for iteration
 
     WARNING: be careful when using
     """
@@ -57,9 +59,12 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
     if parse_dates != []:
         print("WARNING: adding parsed dates to used columns")
 
+    # print(kwargs.get("dtype"))
+
     for field in fields:
         print("TESTING field %s (first_try ? %s ) " % (field, first_try))
-        print(kwargs.get("dtype")[field])
+        # dtype might be absent because field has a converter
+        print("dtype: ", kwargs.get("dtype").get(field, "not present"))
         try:
             res = pd.read_csv(
                 fd,
@@ -68,6 +73,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
                 **kwargs
             )
             if chunksize is not None:
+                print("chunk of size", chunksize)
                 for i, chunk in enumerate(res):
                     # print("chunk %d" % i)
                     print(chunk)
@@ -83,6 +89,7 @@ def read_csv_debug(fields, fd, *args, first_try=True, **kwargs):
 
         finally:
             fd.seek(0)
+
 
 
 # def save_dataframe_to_xls():

@@ -28,22 +28,24 @@ let
 
       doCheck = false;
     });
+
     # pandas = python3Packages.pandas.overridePythonAttrs (oa: {
+    #   # src = fetchFromGitHub {
+    #   #   owner = "teto";
+    #   #   repo = "pandas";
+    #   #   rev = "54018123cfdfec3d3111fc6d7fad9ac8eec5bdcb";
+    #   #   sha256 = "0ixrvskbalhbbdp06x02dv24iqyrh2x3cqnlaxprc9y38bqr4b8b";
+    #   # };
     #   src = fetchFromGitHub {
-    #     owner = "teto";
+    #     owner = "pandas-dev";
     #     repo = "pandas";
     #     rev = "7ab9ff579daebd6b16c357221850f85c7e218d97";
-    #     sha256 = "0ixrvskbalhbbdp06x02dv24iqyrh2x3cqnlaxprc9y38bqr4b8b";
+    #     sha256 = "2hhlWXljxTY5EdGOGJDUYXSw9FHJsXj/qZIApygXDcE=";
     #   };
-    #   # src = super.fetchFromGitHub {
-    #   #   owner = "pandas-dev";
-    #   #   repo = "pandas";
-    #   #   rev = "9c0f6a8d703b6bee48918f2c5d16418a7ff736e3";
-    #   #   sha256 = "0czdfn82sp2mnw46n90xkfvfk7r0zgfyhfk0npnglp1jpfndpj3i";
-    #   # };
     #   # to prevent "ZIP does not support timestamps before 1980"
     #   SOURCE_DATE_EPOCH=315532800;
-    #   SETUPTOOLS_SCM_PRETEND_VERSION="0.25.0";
+    #   SETUPTOOLS_SCM_PRETEND_VERSION="0.26.0";
+    #   SETUPTOOLS_SCM_DEBUG=1;
     #   doCheck = false;
     #   installCheckPhase = false;
     # });
@@ -60,6 +62,19 @@ let
     #     SETUPTOOLS_SCM_PRETEND_VERSION = version;
     # });
 
+    # needed to support mptcp-v1
+    my_tshark = tshark.overrideAttrs ( oa: {
+      # src = builtins.fetchGit {
+      #   url = http://github.com/wireshark/wireshark.git;
+      # };
+
+    src = fetchFromGitHub {
+        repo   ="wireshark";
+        owner  ="teto";
+        rev    = "fd1dd72d8e8d2025b25c1485efc2cdee5eee589a";
+        sha256 = "4GWiHGi4tnixeuQwPQ7IdLh5eIjtyQGYuzSky60Onmo=";
+      };
+    });
 in
 python3Packages.buildPythonApplication rec {
 	pname = "mptcpanalyzer";
@@ -84,7 +99,7 @@ python3Packages.buildPythonApplication rec {
       # enableQt = true;
       (matplotlib.override { enableGtk3=true; })
       # pyqt5
-      tshark
+      my_tshark
     ];
 
     meta = with stdenv.lib; {

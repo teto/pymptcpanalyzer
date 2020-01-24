@@ -7,7 +7,7 @@ let
   prog = (mptcpanalyzer.override({
     # inherit pandas;
     # inherit cmd2;
-  }) ).overridePythonAttrs (oa: {
+  })).overridePythonAttrs (oa: {
 
 
     version = "0.3.3-dev";
@@ -39,6 +39,7 @@ let
     '';
 
   });
+
 
   # https://www.reddit.com/r/neovim/comments/b1zm7h/how_to_setup_microsofts_python_lsp_in_linuxubuntu/
   my_nvim = genNeovim  [ mptcpanalyzer ] {
