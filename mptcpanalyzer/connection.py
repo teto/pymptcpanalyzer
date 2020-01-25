@@ -281,7 +281,7 @@ class MpTcpSubflow(TcpConnection):
 
 
 # TODO provide as a dataclass
-# @dataclass
+@dataclass
 class MpTcpConnection:
     """
     Holds key characteristics of an MPTCP connection: keys, tokens, subflows
@@ -291,11 +291,19 @@ class MpTcpConnection:
     subflows can be any order
     """
     # mptcpstreamid: MpTcpStreamId
+    # client_key: int
+    # client_token: int
+    # server_key: int
+    # server_version
+    # client_version
 
-    def __init__(self,
-            mptcpstreamid: int,
-            client_key: int, client_token: int, server_key: int,
-            server_token, subflows, **kwargs) -> None:
+    def __init__(
+        self,
+        mptcpstreamid: int,
+        client_key: int, client_token: int,
+        server_key: int, server_token,
+        subflows, **kwargs
+    ) -> None:
         """
         """
         self.mptcpstreamid = mptcpstreamid
@@ -371,14 +379,18 @@ class MpTcpConnection:
         if len(ds.index) == 0:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
+        # TODO check for the version
         syn_mpcapable_df = ds.where(ds.tcpflags == TcpFlags.SYN).dropna(subset=['sendkey'])
-        synack_mpcapable_df = ds.where(ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)).dropna(subset=['sendkey'])
-
-        if len(syn_mpcapable_df) < 1:
-            raise MpTcpMissingKey("Could not find the client MPTCP key.")
+        query = ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)
+        synack_mpcapable_df = ds.where(query).dropna(subset=['sendkey'])
 
         if len(synack_mpcapable_df) < 1:
             raise MpTcpMissingKey("Could not find the server MPTCP key.")
+
+        # if len(syn_mpcapable_df) < 1:
+        #     raise MpTcpMissingKey("Could not find the client MPTCP key.")
+
+        # check the version in the syn/ack
 
         # not really rows but index
         client_id = syn_mpcapable_df.index[0]

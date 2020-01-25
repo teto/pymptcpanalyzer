@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 #     res = list(map(int, x.split(','))) if (x is not None and x != '') else np.nan
 #     return res
 
+TSHARK_BIN = "tshark"
+TSV_DELIMITER = "|"
+
 
 # sometimes it will create a tuple only if there are several elements
 def _load_list(x, field="set field to debug"):
@@ -125,7 +128,7 @@ class TsharkConfig:
     these options are meant to override a base profile
     """
 
-    def __init__(self, delimiter="|", profile=None):
+    def __init__(self, delimiter=TSV_DELIMITER, profile=None):
         """
         Args:
             profile: wireshark profiles will setup everything as it should
@@ -137,7 +140,6 @@ class TsharkConfig:
              %Cus => Custom
              see epan/column.c / col_set_rel_time
         """
-        self.tshark_bin = "tshark"
         self.delimiter = delimiter
         self.profile = profile
         # ICMP packets can be pretty confusing as they will
@@ -162,6 +164,13 @@ class TsharkConfig:
         self.add_mptcp_fields()
 
     @property
+    def capture_filter(self, ):
+        '''
+        See https://wiki.wireshark.org/CaptureFilters
+        '''
+        return "tcp"
+
+    @property
     def read_filter(self, ):
         return self._read_filter
 
@@ -171,7 +180,7 @@ class TsharkConfig:
         It is helpful when working with a custom wireshark.
         """
         searches = fields
-        cmd = [self.tshark_bin, "-G", "fields"]
+        cmd = [TSHARK_BIN, "-G", "fields"]
 
         logger.info("Checking for fields %s", cmd)
         with subprocess.Popen(cmd, stdout=subprocess.PIPE,
@@ -235,7 +244,7 @@ class TsharkConfig:
         self.add_field("tcp.options.mptcp.recvtok", "recvtok", str, False, True)
 
         self.add_field("tcp.options.mptcp.datafin.flag", "datafin", 'Int64', False, True)
-        self.add_field("tcp.options.mptcp.version", "mptcpversion", 'Uint8', False, False)
+        self.add_field("tcp.options.mptcp.version", "mptcpversion", 'UInt8', False, False)
         # this is a list really; can contain "2,4"
         self.add_field("tcp.options.mptcp.subtype", "subtype", str, False, True)
         # TODO convert back to 'UInt64' once problems with pandas are fixed
@@ -295,21 +304,20 @@ class TsharkConfig:
             raise Exception("Input filename not a capture file")
 
         cmd = self.generate_csv_command(
-            # self.tshark_bin,
             fields_to_export,
             input_filename,
             csv_delimiter=self.delimiter,
             options=self.options,
         )
         fd = output_csv
-        # fd.write("# metadata: %s\n" % (cmd_str))
+        # fd.writ_ metadata: %s\n" % (cmd_str))
         fd.flush()  # need to flush else order gets messed up
 
         return self.run_tshark(cmd, fd)
 
     def filter_pcap(self, pcap_in, pcap_out):
         cmd = [
-            self.tshark_bin,
+            TSHARK_BIN,
             "-r", pcap_in
         ]
         cmd.extend(["-2", '-R', self.read_filter])
@@ -318,42 +326,59 @@ class TsharkConfig:
         return self.run_tshark(cmd, None)
 
     @staticmethod
-    def start_capture(cmd, stdout):
+    def monitor(interface, temp_file, capture_filter="tcp"):
         """
         Inspired by
         https://github.com/gcla/termshark/blob/master/docs/FAQ.md#how-does-termshark-use-tshark
         """
         # custom_env = os.environ.copy()
         # custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
-
         # TODO ...
-        # with tempfile.temp as temp_file
         cmd = [
             "dumpcap",
             "-P",
             # TODO support multiple interfaces
             "-i", interface,
-            "-f",
-            "-w", temp_file
+            "-f", capture_filter,
+            "-w", temp_file.name
         ]
+        cmd_str = ' '.join(shlex.quote(x) for x in cmd)
+        logging.info(cmd_str)
+
         # dumpcap -P -i eth0 -f <capture filter> -w <tmpfile>
         proc = subprocess.Popen(
-            cmd, stdout=stdout, stderr=subprocess.PIPE,
-            env=custom_env
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            # env=custom_env
         )
-        return
+        # out, stderr = proc.communicate()
+        # print(out)
+        # err = stderr.decode("UTF-8")
+        return proc
 
-    @staticmethod
-    def list_interfaces():
+    # @staticmethod
+    def list_interfaces(self):
         cmd = [
-            self.tshark_bin,
+            TSHARK_BIN,
             "--list-interfaces",
         ]
-        with io.StringIO() as out:
-            res, stderr = self.run_tshark(cmd, out)
+        import io
+        # with io.FileIO() as out:
+        code, out, stderr = self.run_tshark(cmd, subprocess.PIPE)
+        # print("res", code)
+        # print("stderr", stderr)
+        # print(out)
+
+        import re
+        p = re.compile(r'\d. (\w+)')
+        res = p.findall(out.decode())
+        # print(dir(p))
+        # print(res)
+        return res
 
     @staticmethod
-    def run_tshark(cmd, stdout) -> Tuple[int, bytes]:
+    def run_tshark(cmd, stdout) -> Tuple[int, Any, Any]:
         """
         Print the command on stdout
         We override WIRESHARK_CONFIG_DIR to prevent interference of user scripts/profile
@@ -369,15 +394,15 @@ class TsharkConfig:
                 env=custom_env
             ) as proc:
                 out, stderr = proc.communicate()
-                stderr = stderr.decode("UTF-8")
+                err = stderr.decode("UTF-8")
                 print("ran cmd", proc.args)
-                print("stderr=", stderr)
-                return proc.returncode, stderr
+                print("stderr=", err)
+                return proc.returncode, out, err
 
         except subprocess.CalledProcessError as e:
             logging.exception("An error happened while running tshark")
             print(e.cmd)
-            return e.returncode, e.stderr
+            return e.returncode, out, e.stderr
 
     @property
     def fields(self):
@@ -412,7 +437,7 @@ class TsharkConfig:
         # single-quotes, n no quotes (the default).
         # the -2 is important, else some mptcp parameters are not exported
         cmd = [
-            self.tshark_bin,
+            TSHARK_BIN,
             "-E", "header=y",
             "-r", inputFilename,
             "-E", "separator=" + csv_delimiter,

@@ -398,7 +398,7 @@ def load_into_pandas(
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
             tshark_fields = [field.fullname for _, field in config.fields.items()]
-            retcode, stderr = config.export_to_csv(filename, out, tshark_fields)
+            retcode, _, stderr = config.export_to_csv(filename, out, tshark_fields)
             log.info("exporter exited with code=%d", retcode)
             if retcode is 0:
                 out.close()

@@ -14,8 +14,8 @@ for argparse scripts as explained in
 todo test https://github.com/jonathanslenders/python-prompt-toolkit/tree/master/examples/tutorial
 """
 import argparse
-argparse.cmd2_parser_module = 'mptcpanalyzer.parser'
-
+# argparse.cmd2_parser_module = 'mptcpanalyzer.parser'
+import tempfile
 import sys
 import logging
 import os
@@ -63,7 +63,7 @@ from pandas.plotting import register_matplotlib_converters
 import bitmath
 # from bitmath.integrations.bmargparse import BitmathType
 import json
-
+import select
 
 plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
@@ -584,10 +584,52 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
             self.poutput(formatted_output)
 
-    def do_list_interfaces(self, args, unknown):
+    # summary_parser = MpTcpAnalyzerParser(
+    #     description="Prints a summary of the mptcp connection"
+    # )
+    def do_list_interfaces(self, args):
         """
         List this monitor available interfaces
         """
+        self.poutput("Listing interfaces...")
+        names = self.tshark_config.list_interfaces()
+        print(names)
+
+    live_parser = MpTcpAnalyzerParser(
+        description="Live analysis"
+    )
+    # todo should look into choices=interfaces
+    live_parser.add_argument("interface", action="store")
+    @with_argparser_and_unknown_args(live_parser)
+    def do_live_analysis(self, args, unknown):
+        """
+        List this monitor available interfaces
+        """
+        self.poutput("Starting live analysis on...")
+        # names = self.tshark_config.list_interfaces()
+
+        # TODO pass the capture filter?
+        # here we should
+        with tempfile.NamedTemporaryFile() as tmpfile:
+
+            proc = self.tshark_config.monitor(args.interface, tmpfile)
+
+            cmd = [
+                # output the last NUM bytes
+                "tail", "-f", "-c", "+0", tmpfile.name
+            ]
+            print("Starting")
+            print(cmd)
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                # env=custom_env
+            )
+            out, stderr = proc.communicate()
+            print("out", out)
+            print("err", err)
+
 
     summary_parser = MpTcpAnalyzerParser(
         description="Prints a summary of the mptcp connection"
@@ -962,8 +1004,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         df_all = args._dataframes["pcap"]
 
-        print("TOTO")
-        print(df_all.head())
+        # print("TOTO")
+        # print(df_all.head())
 
         # TODO this should be done automatically right ?
         # remove later
