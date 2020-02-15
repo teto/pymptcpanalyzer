@@ -2,6 +2,7 @@ mptcpanalyzer 0.3.3 (dev):
 - display resulting plot by default (--display=term|gui|no)
 - now loads and expose the interface names
 - new plot: congestion windows (in use with mptcp-pm)
+- now supports mptcp v1 (can retrieve the key)
 
 mptcpanalyzer 0.3.2:
 - TcpConnection now accepts a format to customize its display

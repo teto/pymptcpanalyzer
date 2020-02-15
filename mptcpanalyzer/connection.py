@@ -7,7 +7,7 @@ from mptcpanalyzer import ConnectionRoles, MpTcpException, MpTcpMissingKey, \
 import mptcpanalyzer as mp
 from typing import List, NamedTuple, Tuple, Dict, Union
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
 
 log = logging.getLogger(__name__)
 
@@ -209,9 +209,6 @@ class TcpConnection:
             arrow = " -> "
             fmt = fmt + client_fmt + arrow + server_fmt
 
-        if True:
-            fmt += " (interface {s.interface})"
-
         return fmt.format(s=self)
 
     def __str__(self):
@@ -290,24 +287,27 @@ class MpTcpConnection:
 
     subflows can be any order
     """
-    # mptcpstreamid: MpTcpStreamId
-    # client_key: int
-    # client_token: int
-    # server_key: int
-    # server_version
-    # client_version
+    mptcpstreamid: MpTcpStreamId
+    client_key: InitVar[int]
+    client_token: InitVar[int]
+    server_key: InitVar[int]
+    server_token: InitVar[int]
+    subflows_: InitVar[List[MpTcpSubflow]]
+    server_version: int
+    client_version: int
 
-    def __init__(
+    def __post_init__(
         self,
-        mptcpstreamid: int,
-        client_key: int, client_token: int,
-        server_key: int, server_token,
-        subflows, **kwargs
+        # mptcpstreamid: int,
+        client_key, client_token,
+        server_key, server_token,
+        subflows_,
+        **kwargs
     ) -> None:
         """
         """
-        self.mptcpstreamid = mptcpstreamid
-        self._subflows = subflows
+        # self.mptcpstreamid = mptcpstreamid
+        self._subflows = subflows_
         self.keys = {
             ConnectionRoles.Client: client_key,
             ConnectionRoles.Server: server_key,
@@ -380,23 +380,43 @@ class MpTcpConnection:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
         # TODO check for the version
-        syn_mpcapable_df = ds.where(ds.tcpflags == TcpFlags.SYN).dropna(subset=['sendkey'])
+        syn_mpcapable_df = ds.where(ds.tcpflags == TcpFlags.SYN)
         query = ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)
         synack_mpcapable_df = ds.where(query).dropna(subset=['sendkey'])
 
         if len(synack_mpcapable_df) < 1:
             raise MpTcpMissingKey("Could not find the server MPTCP key.")
 
-        # if len(syn_mpcapable_df) < 1:
-        #     raise MpTcpMissingKey("Could not find the client MPTCP key.")
-
         # check the version in the syn/ack
 
         # not really rows but index
         client_id = syn_mpcapable_df.index[0]
+        client_version = ds.loc[client_id, "mptcpversion"]
+
         server_id = synack_mpcapable_df.index[0]
-        client_key = ds.loc[client_id, "sendkey"]
-        client_token = ds.loc[client_id, "expected_token"]
+        server_version = ds.loc[client_id, "mptcpversion"]
+
+        log.debug("Client version = %r", client_version)
+
+        client_key = None
+        client_token = None
+        if client_version == 0:
+
+            client_key = ds.loc[client_id, "sendkey"]
+            # TODO check it exists
+            # if len(syn_mpcapable_df) < 1:
+            #     raise MpTcpMissingKey("Could not find the client MPTCP key.")
+            client_token = ds.loc[client_id, "expected_token"]
+        elif client_version == 1:
+            #TODO
+            # key should appear in the ack just after syn/ack
+            query = ds.tcpflags == (TcpFlags.ACK)
+            last_mpcapable_df = ds.where(query).dropna(subset=['sendkey'])
+            if len(last_mpcapable_df) < 1:
+                raise MpTcpMissingKey("Could not find the client MPTCP key.")
+        else:
+            raise MpTcpException("Unsupported mptcp version")
+
         server_key = ds.loc[server_id, "sendkey"]
         server_token = ds.loc[server_id, "expected_token"]
         master_tcpstream = ds.loc[client_id, "tcpstream"]
@@ -467,7 +487,9 @@ class MpTcpConnection:
             mptcpstreamid, client_key, client_token,
             server_key,
             server_token,
-            subflows
+            subflows,
+            server_version,
+            client_version
         )
         return result
 
@@ -487,7 +509,6 @@ class MpTcpConnection:
             log.debug("Running query %s" % query)
             dat = data.query(query, engine="python")
         return dat
-
 
     def __eq__(self, other):
         """
@@ -514,10 +535,9 @@ class MpTcpConnection:
         common_sf = []
 
         if (self.keys[ConnectionRoles.Server] == other.keys[ConnectionRoles.Server]
-                and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]):
+            and self.keys[ConnectionRoles.Client] == other.keys[ConnectionRoles.Client]):
             log.debug("matching keys => same")
             return float('inf')
-
 
         # TODO check there is at least the master
         # with nat, ips don't mean a thing ?

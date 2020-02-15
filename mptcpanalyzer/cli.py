@@ -423,16 +423,17 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     def tcp_stream_range(self):
         return self.data.tcpstream.dropna().unique()
 
-    parser = MpTcpAnalyzerParser(description="List subflows of an MPTCP connection")
+    sf_parser = MpTcpAnalyzerParser(description="List subflows of an MPTCP connection")
     # filter stream should be ok ?
-    filter_stream = parser.add_argument(
+    filter_stream = sf_parser.add_argument(
         "mptcpstream", action="store", type=MpTcpStreamId,
         choices_method=mptcp_stream_range,
         help="Equivalent to wireshark mptcp.stream id")
     # TODO for tests only, fix
     # setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
-
-    @with_argparser(parser)
+    sf_parser.add_argument("--all", action="store_true", default=False,
+            help="Display advanced information about the connection")
+    @with_argparser(sf_parser)
     @with_category(CAT_MPTCP)
     @is_loaded
     def do_list_subflows(self, args):
@@ -443,24 +444,27 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         Example:
             ls 0
         """
-        self.list_subflows(args.mptcpstream)
-
-    # TODO see https://github.com/python-cmd2/cmd2/issues/762#issuecomment-531385178
+        self.list_subflows(args.mptcpstream, args.all)
 
     @is_loaded
-    def list_subflows(self, mptcpstreamid: MpTcpStreamId):
+    def list_subflows(self, mptcpstreamid: MpTcpStreamId, detailed=False):
 
         try:
+            PREFIX_SF = "  >"
             con = MpTcpConnection.build_from_dataframe(self.data, mptcpstreamid)
-            msg = f"mptcp.stream {mptcpstreamid} has %d subflow(s) (client/server): "
+            msg = f"mptcp.stream {mptcpstreamid} has %d subflow(s): "
             self.poutput(msg % len(con.subflows()))
+            if detailed:
+                self.poutput(f"client version: {con.client_version}")
+                self.poutput(f"server version: {con.server_version}")
             for sf in con.subflows():
-                self.poutput("\t%s" % sf)
+                self.poutput(PREFIX_SF + "%s" % sf)
+                if detailed:
+                    self.poutput(PREFIX_SF + "interface: %s" % sf.interface)
         except mp.MpTcpMissingKey as e:
             self.poutput(e)
         except mp.MpTcpException as e:
             self.perror(e)
-
 
     parser = MpTcpAnalyzerParser(
         description='''
