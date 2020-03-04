@@ -123,8 +123,6 @@ BG_COLORS = {
 
 color_off = Fore.RESET + Back.RESET
 
-# todo might be handy with async_update_prompt
-
 def is_loaded(f):
     """
     Decorator checking that dataset has correct columns
@@ -132,7 +130,7 @@ def is_loaded(f):
     @functools.wraps(f)
     def wrapped(self, *args):
 
-        log.debug("Cheking if a pcap was already loaded")
+        log.debug("Checking if a pcap was already loaded")
         if self.data is not None:
             return f(self, *args)
         else:
@@ -236,7 +234,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # to help with development, will give a stacktrace upon warnings
         # import warnings
         # warnings.simplefilter('error', FutureWarning)
-        log.debug("use numexpr? %d" % pd.get_option('compute.use_numexpr', False))
+        log.debug("use numexpr? %d" % pd.get_option('compute.use_numexpr'))
         register_matplotlib_converters()
 
         # Load Plots
@@ -501,7 +499,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
         mappings = map_tcp_stream(df2, main_connection)
 
-        self.poutput("Trying to map %s", (main_connection,))
+        self.poutput("Trying to map %s" % main_connection)
         self.poutput("%d mapping(s) found" % len(mappings))
 
         for match in mappings:

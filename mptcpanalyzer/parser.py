@@ -338,17 +338,24 @@ class FilterStream(DataframeAction):
         elif isinstance(values, TcpStreamId):
             pass
         else:
-            parser.error("Unsupported 'type' %s. Set it to TcpStreamId or MpTcpStreamId" % type(values))
+            parser.error(
+                "Unsupported 'type' %s. Set it to TcpStreamId or MpTcpStreamId" % type(values)
+            )
 
         log.debug("Assign filter to %s", self.dest)
         setattr(namespace, self.dest, values)
         query = self.query_tpl.format(field=field, streamid=values)
 
-        log.log(mp.TRACE, "Applying query [%s]" % query)
+        log.log(mp.TRACE, "Applying query [%s]", query)
         debug_dataframe(df, "after query")  # usecolds ['tcpstream']
 
         import pandas as pd
-        log.log(mp.TRACE, "use numexpr? %d", pd.get_option('compute.use_numexpr', False))
+        log.log(mp.TRACE, "use numexpr? %d", pd.get_option('compute.use_numexpr'))
+        # hack to prevent NA errors with pandas
+        df.dropna(subset=[field], inplace=True)
+
+        # TODO avoid query as https://github.com/pandas-dev/pandas/issues/25369
+        # is not
         df.query(query, inplace=True, engine="python")
         # TODO build dest automatically
 

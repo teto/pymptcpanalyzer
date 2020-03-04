@@ -20,17 +20,14 @@ publish:
 	echo "  git push --tags"
 
 
-transcripts:
+gen_transcripts:
 	# https://cmd2.readthedocs.io/en/latest/freefeatures.html#script-files
 	# ReGenerate tests
 	tests/gen_transcripts.sh
 
-tests:
+tests: tests/*
 	# Add -b to print standard output
-	# python -munittest tests/cache_test.py -b
 	tests/run_transcripts.sh
-	# mptcpanalyzer --test tests/summary_server_2_filtered.txt
-	# tests/run_tests.sh
 
 develop:
 	python setup.py develop --user

@@ -211,6 +211,7 @@ class TsharkConfig:
         # np.float64
         # self.add_field("frame.time_epoch", "abstime", None,
         #     "seconds+Nanoseconds time since epoch", False, None)
+        # TODO use 'category'
         self.add_field("_ws.col.ipsrc", "ipsrc", str, False, False)
         self.add_field("_ws.col.ipdst", "ipdst", str, False, False)
         self.add_field("ip.src_host", "ipsrc_host", str, False, False)

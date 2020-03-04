@@ -4,7 +4,8 @@ set -x
 function gen_transcript()
 {
 	suffix="$1"
-	mptcpanalyzer -dDEBUG "run_script tests/script_${suffix}.txt -t tests/trans_${suffix}.txt" "quit"
+	level="TRACE"
+	mptcpanalyzer "-d${LEVEL}" "run_script tests/script_${suffix}.txt -t tests/trans_${suffix}.txt" "quit"
 }
 
 gen_transcript "tcp"

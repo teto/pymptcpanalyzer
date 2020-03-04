@@ -130,8 +130,6 @@ class TcpConnection:
         Instantiates a class that describes an MPTCP connection
 
         Look for syn and synack => don't assume packets in order
-
-        TODO: might need to pass a name changer
         """
 
         df = rawdf[rawdf.tcpstream == tcpstreamid]
@@ -168,16 +166,18 @@ class TcpConnection:
             log.debug("We have seen the syn/ack instead of syn, invert destination")
             result = result.reversed()
 
-        log.debug("Created connection %s", result)
+        log.debug("Created connection %s", str(result))
         return result
 
     def reversed(self):
+        '''swaps server/client characteristics'''
         return TcpConnection(
             self.tcpstreamid, self.tcpserver_ip, self.tcpclient_ip,
             self.server_port, self.client_port,
+            # kinda guesswork
+            interface=self.interface,
         )
 
-    # TODO provide a default format
     def __format__(self, format_spec="ps"):
         """
         "{con:s2c}".format(con)
@@ -186,7 +186,7 @@ class TcpConnection:
         c => towards client
         b => bidirectional
         """
-        self.to_string(
+        return self.to_string(
             streamid="p" in format_spec,
             # destination=
         )
@@ -195,7 +195,6 @@ class TcpConnection:
         '''
         Parametrable format function
         '''
-
         fmt = ""
         if streamid:
             fmt = "tcp.stream {s.tcpstreamid:.0f}: "
@@ -277,7 +276,6 @@ class MpTcpSubflow(TcpConnection):
         return self.to_string()
 
 
-# TODO provide as a dataclass
 @dataclass
 class MpTcpConnection:
     """
@@ -375,7 +373,9 @@ class MpTcpConnection:
         Look for the first 2 packets containing "sendkey"
         """
 
-        ds = ds[ds.mptcpstream == mptcpstreamid]
+        # ds.fillna()
+        mask = ds.mptcpstream == mptcpstreamid
+        ds = ds[mask.fillna(False)]
         if len(ds.index) == 0:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
