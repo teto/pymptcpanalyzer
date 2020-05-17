@@ -3,7 +3,6 @@ with import <nixpkgs> {};
 let
   mptcpanalyzer = callPackage ../default.nix {};
 
-  # TODO override pandas
   prog = (mptcpanalyzer.override({
     # inherit pandas;
     # inherit cmd2;
@@ -14,9 +13,11 @@ let
     nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
       # to publish on pypi
       pkgs.python3Packages.twine
+      python-language-server
+
     ];
     propagatedBuildInputs  = (oa.propagatedBuildInputs  or []) ++ [
-      my_nvim.config.python3Env
+      # my_nvim.config.python3Env
 
       # temporary addition to work with mpls
       openssl

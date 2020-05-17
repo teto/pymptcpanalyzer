@@ -92,14 +92,16 @@ class Field:
     converter: Optional[Callable]
 
     # date_format: Any
+class TsharkField(Field):
+    pass
 
-class FieldDate(Field):
+class FieldDate(TsharkField):
     # date_parser: Any
     # pass
     def __post_init__(self, converter):
         self.converter = converter
 
-class FieldList(Field):
+class FieldList(TsharkField):
     # date_parser: Any
     def __post_init__(self, ):
         print("Current value for self.convert=", self.converter)
@@ -163,6 +165,11 @@ class TsharkConfig:
         self.add_basic_fields()
         self.add_mptcp_fields()
 
+
+    # def get_date_fields(self):
+    #     date_cols = [f.fullname for name,
+    #         f in config.fields.items() if isinstance(f, FieldDate)]
+
     @property
     def capture_filter(self, ):
         '''
@@ -205,7 +212,8 @@ class TsharkConfig:
         # pass this column using parse_dates instead
         # self.add_field("frame.time_relative", "reltime", np.float64,
         #     "Relative tine", False, _convert_timestamp)
-        # self._tshark_fields.setdefault("reltime", FieldDate("frame.time_relative", str, "Relative time", False, None))
+        self._tshark_fields.setdefault("reltime", FieldDate("frame.time_relative",
+            str, "Relative time", False, None))
         self._tshark_fields.setdefault("abstime", FieldDate("frame.time_epoch", str,
             "seconds+Nanoseconds time since epoch", False, None))
         # np.float64
@@ -292,7 +300,7 @@ class TsharkConfig:
     def export_to_csv(
         self, input_filename: str,
         output_csv,  # a file descriptor
-        fields_to_export: List[str],
+        fields_to_export: Dict[str, str], # tshark full_desc/shortname
     ):
         """
         output_csv can be an fd
@@ -305,13 +313,15 @@ class TsharkConfig:
             raise Exception("Input filename not a capture file")
 
         cmd = self.generate_csv_command(
-            fields_to_export,
+            fields_to_export.keys(),
             input_filename,
             csv_delimiter=self.delimiter,
             options=self.options,
         )
         fd = output_csv
         # fd.writ_ metadata: %s\n" % (cmd_str))
+        fd.write(self.delimiter.join(fields_to_export.values()))
+        fd.write("\n")
         fd.flush()  # need to flush else order gets messed up
 
         return self.run_tshark(cmd, fd)
@@ -439,7 +449,7 @@ class TsharkConfig:
         # the -2 is important, else some mptcp parameters are not exported
         cmd = [
             TSHARK_BIN,
-            "-E", "header=y",
+            # "-E", "header=y",
             "-r", inputFilename,
             "-E", "separator=" + csv_delimiter,
         ]

@@ -1,4 +1,1 @@
 [34mReady>[39m[49mplot mptcp_attr --dest Server examples/client_2_redundant.pcapng 1 dss_dsn
-[34mReady>[39m[49m--out=./mptcp_dsn.png
-[34mReady>[39m[49mplot mptcp_tput examples/client_2.pcap 0 3 --out=./mptcp_tput.png
-[34mReady>[39m[49mplot mptcp_gput examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --window=1 --dest=Server --out=./mptcp_gput.png

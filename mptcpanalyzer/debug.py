@@ -28,9 +28,9 @@ def debug_dataframe(
     === Debug dataframe : {msg} ===
     """
     log.debug(intro.format(msg=msg))
-    # log.debug(df.info())
+    log.debug(df.info())
     # log.debug(df.columns)
-    # log.debug(pp.pformat(df.dtypes))
+    log.debug(pp.pformat(df.dtypes))
     with pd.option_context('float_format', '{:f}'.format):
         sdf = df
         if usecols:

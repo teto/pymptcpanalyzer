@@ -16,6 +16,7 @@ import pprint
 from enum import Enum, auto
 import functools
 import mptcpanalyzer.debug
+from mptcpanalyzer.debug import debug_dataframe
 
 log = logging.getLogger(__name__)
 
@@ -107,6 +108,20 @@ per_pcap_artificial_fields = {
     # "merge": Field("_merge", None, "How many packets were merged", False, None)
 }
 
+FieldList = Dict[str, Field]
+
+def get_date_cols(fields: FieldList):
+    return [name for name, f in fields.items() if isinstance(f, FieldDate)]
+
+def get_converters(fields: FieldList):
+    return {name: f.converter for name, f in fields.items() if f.converter}
+
+def get_dtypes(fields: FieldList):
+    return {name: field.type for name,
+                field in fields.items() if field.converter is None}
+
+def date_converter(x):
+    return pd.to_datetime(x, unit="s", utc=True)
 
 class PacketMappingMode(Enum):
     """
@@ -241,49 +256,27 @@ def load_merged_streams_into_pandas(
 
         else:
             log.info("Loading from cache %s", cachename)
-            # dtypes = {k: v for k, v in temp.items() if v is not None or k not in ["tcpflags"]}
 
-            def _gen_dtypes(fields) -> Dict[str, Any]:
-                dtypes = {}  # type: ignore
-                for _name in [_first, _second]:
-
-                    # TODO this could be simplified
-                    for k, v in fields.items():
-                        if v is not None or k not in ["tcpflags"]:
-                            dtypes.setdefault(_name(k), v)
-
-                    # add generated field dtypes
-                    dtypes.update(
-                        {_name(f.fullname): f.type for f in per_pcap_artificial_fields.values()})
-
-                # these are overrides from the generated dtypes
-                # dtypes.update({
-                #     _first("packetid"): tshark_config.fields["packetid"].type,
-                #     _second("packetid"): tshark_config.fields["packetid"].type,
-                # })
-
-                return dtypes
-
-            def _gen_converters() -> Dict[str, Callable]:
-
-                fields = dict(tshark_config.fields)
-                fields.update(per_pcap_artificial_fields)
-                converters = {}
-                # tcpflags is already in good format
-                default_converters = {name: f.converter for name, f in fields.items()
-                    if f.converter and name != "tcpflags"}
-                for name, converter in default_converters.items():
-                    converters.update({_first(name): converter, _second(name): converter})
-
-                return converters
+            date_cols = get_date_cols(tshark_config.fields)
 
             with open(cachename) as fd:
-                merge_dtypes = _gen_dtypes(
-                    {name: field.type for name, field in tshark_config.fields.items()
-                     if field.converter is None}
-                )
-                converters = _gen_converters()
+                # generate fieldlist
+                def _gen_fields(fields):
+                    gfields = {}  # type: ignore
+                    for _name in [_first, _second]:
+                        gfields.update({_name(k): v for k, v in fields.items()})
+                    return gfields
 
+                # reltime discarded on save ?
+                tshark_config.fields.pop("reltime")
+                gfields = _gen_fields(tshark_config.fields)
+                merge_dtypes = get_dtypes(gfields)
+                # log.log(mp.TRACE, "Using gfields %s" % pp.pformat(gfields))
+
+                converters = get_converters(gfields)
+                date_cols = get_date_cols(gfields)
+
+                log.log(mp.TRACE, "Using date_cols %s" % pp.pformat(date_cols))
                 log.log(mp.TRACE, "Using dtypes %s" % pp.pformat(merge_dtypes))
                 log.log(mp.TRACE, "Using converters %s" % (pp.pformat(converters)))
                 merged_df = pd.read_csv(
@@ -295,6 +288,8 @@ def load_merged_streams_into_pandas(
                     # memory_map=True, # could speed up processing
                     dtype=merge_dtypes,  # poping still generates
                     converters=converters,
+                    date_parser=date_converter,
+                    parse_dates=date_cols,
                 )
                 # at this stage, destinatiosn are nan
 
@@ -334,10 +329,11 @@ def load_merged_streams_into_pandas(
 
         log.debug("Computing owds")
 
+        debug_dataframe(res, "before owds")
         # TODO we don't necessarely need to generate the OWDs here, might be put out
         res['owd'] = res[_receiver('abstime')] - res[_sender('abstime')]
 
-        mptcpanalyzer.debug.debug_dataframe(
+        debug_dataframe(
             res, "owd", usecols=["owd", _sender('abstime'), _receiver('abstime')]
         )
         # with pd.option_context('float_format', '{:f}'.format):
@@ -346,7 +342,7 @@ def load_merged_streams_into_pandas(
         #          + _receiver(["abstime", "packetid"]) + TCP_DEBUG_FIELDS + ["owd"] ]
         #     )
 
-    except Exception:
+    except Exception as e:
         log.exception("exception happened while merging")
 
     # pd.set_option('display.max_rows', 200)
@@ -377,9 +373,10 @@ def load_into_pandas(
     filename = getrealpath(input_file)
     cache = mp.get_cache()
 
-    tshark_dtypes = {fullname: field.type for fullname, field in config.fields.items()}
+    # {fullname: field.type for fullname, field in config.fields.items()}
+    tshark_dtypes = get_dtypes(config.fields)
 
-    artifical_dtypes = {name: field.type for name, field in per_pcap_artificial_fields.items()}
+    artifical_dtypes = get_dtypes(per_pcap_artificial_fields)
     dtypes = dict(tshark_dtypes, **artifical_dtypes)
 
     # TODO add per_pcap_artificial_fields hash
@@ -389,6 +386,7 @@ def load_into_pandas(
         [filename],  # dependencies
         str(pseudohash) + '.csv'
     )
+    # print(config.fields)
 
     is_cache_valid, csv_filename = cache.get(uid)
 
@@ -397,7 +395,8 @@ def load_into_pandas(
         log.info("Cache invalid .. Converting %s", filename,)
 
         with tempfile.NamedTemporaryFile(mode='w+', prefix="mptcpanalyzer-", delete=False) as out:
-            tshark_fields = [field.fullname for _, field in config.fields.items()]
+            # tshark_fields = [field.fullname for _, field in config.fields.items()]
+            tshark_fields = {field.fullname: name for name, field in config.fields.items()}
             retcode, _, stderr = config.export_to_csv(filename, out, tshark_fields)
             log.info("exporter exited with code=%d", retcode)
             if retcode is 0:
@@ -412,17 +411,19 @@ def load_into_pandas(
         with open(csv_filename) as fd:
 
             # gets a list of fields to convert
-            converters = {f.fullname: f.converter for _, f in config.fields.items() if f.converter}
-            converters.update({name: f.converter for name,
-                              f in per_pcap_artificial_fields.items() if f.converter})
+            # we dont want to modify the passed parameter
+            fields = config.fields.copy()
+            fields.update(per_pcap_artificial_fields)
+            converters = get_converters(config.fields)
+            # converters.update({name: f.converter for name,
+            #                   f in per_pcap_artificial_fields.items() if f.converter})
 
             # builds a list of fields to be parsed as dates
             # (since converter/types don't seem to be great)
-            date_cols = [f.fullname for name,
-                f in config.fields.items() if isinstance(f, FieldDate)]
+            date_cols = get_date_cols(config.fields)
 
-            dtypes = {field.fullname: field.type for _,
-                field in config.fields.items() if field.converter is None}
+            dtypes = get_dtypes(config.fields)
+
             log.log(mp.TRACE, "Dtypes before load:\n%s", pp.pformat(dtypes))
             log.log(mp.TRACE, "Converters before load:\n%s", pp.pformat(converters))
             log.log(mp.TRACE, "Fields to load as times:\n%s", pp.pformat(date_cols))
@@ -437,7 +438,7 @@ def load_into_pandas(
                 comment='#',
                 sep=config.delimiter,
                 dtype=dtypes,
-                date_parser=lambda x: pd.to_datetime(x, unit="s", utc=True),
+                date_parser=date_converter,
                 parse_dates=date_cols,
                 # ideally DON't user converters but pandas bugs...
                 converters=converters,
@@ -585,8 +586,6 @@ def merge_tcp_dataframes_known_streams(
 
     1/ clean up dataframe to keep
     2/ identify which dataframe is server's/client's
-    2/
-
 
     Args:
         con1: Tuple dataframe/tcpstream id
@@ -594,9 +593,7 @@ def merge_tcp_dataframes_known_streams(
 
     Returns:
         A dataframe with a "merge_status" column and valid tcp/mptcp destinations
-
         To ease debug we want to see packets in chronological order
-
     """
     h1_df, main_connection = con1
     h2_df, mapped_connection = con2
@@ -918,6 +915,7 @@ def map_tcp_packets_via_hash(
         raise e
 
     # TCP_DEBUG_FIELDS
+    TCP_DEBUG_FIELDS = ['packetid', "abstime"]
     debug_cols = _first(TCP_DEBUG_FIELDS) + _second(TCP_DEBUG_FIELDS)
     debug_dataframe(res, "Result of merging by hash", usecols=debug_cols)
     return res

@@ -18,6 +18,9 @@ from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationCho
 import mptcpanalyzer as mp
 from mptcpanalyzer.connection import MpTcpConnection, TcpConnection
 from mptcpanalyzer.debug import debug_dataframe
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 log = logging.getLogger(__name__)
 
@@ -62,9 +65,10 @@ class LoadSinglePcap(DataframeAction):
     '''
     Test action !!
     '''
-    def __init__(self, loader=TsharkConfig(), **kwargs) -> None:
+    def __init__(self, loader: TsharkConfig=None, **kwargs) -> None:
         super().__init__(df_name=kwargs.get("dest"), **kwargs)
-        self.loader = loader
+        # if loader == None:
+        self.loader = loader or TsharkConfig()
         completer_method = functools.partial(cmd2.Cmd.path_complete, path_filter=lambda path: os.path.isfile(path))
         setattr(self, ATTR_CHOICES_CALLABLE,
                 ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method,))
@@ -81,6 +85,8 @@ class LoadSinglePcap(DataframeAction):
 
         df = self.get_dataframe(namespace)
         if df is None:
+            print("===========")
+            print(pp.pformat(self.loader._tshark_fields))
             df = load_into_pandas(values, self.loader)
             setattr(namespace, self.dest, values)
             self.add_dataframe(namespace, df)
@@ -183,12 +189,12 @@ class MergePcaps(DataframeAction):
         self,
         name: str,
         protocol: Protocol,
-        loader=TsharkConfig(),
+        loader=None,
         **kwargs
     ) -> None:
         """
         """
-        self.loader = loader
+        self.loader = loader or TsharkConfig()
         self.protocol = protocol
         DataframeAction.__init__(self, df_name=name, **kwargs)
 

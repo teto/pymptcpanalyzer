@@ -104,7 +104,8 @@ class TcpOneWayDelay(plot.Matplotlib):
         axes = fig.gca()
         res = pcap
         destinations = kwargs.get("pcap_destinations")
-        res[_sender("abstime")] = pd.to_datetime(res[_sender("abstime")], unit="s")
+        # should already be done
+        # res[_sender("abstime")] = pd.to_datetime(res[_sender("abstime")], unit="s")
 
         # TODO here we should rewrite
         debug_fields = _sender(TCP_DEBUG_FIELDS) + _receiver(TCP_DEBUG_FIELDS) + ["owd"]
