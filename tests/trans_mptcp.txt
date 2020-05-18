@@ -1,6 +1,141 @@
 [34mReady>[39m[49mload_pcap examples/client_2.pcap
-[34mReady>[39m[49mlist_mptcp_connections
-[34mReady>[39m[49mlist_subflows 0
-[34mReady>[39m[49mlist_subflows 1
-[34mReady>[39m[49mmptcp_summary 0
-[34mReady>[39m[49mlist_reinjections 0
+Loading pcap examples\/client_2.pcap
+client_2.pcap> list_mptcp_connections
+4 mptcp connection(s)
+mptcp.stream 0 has 4 subflow(s): 
+  >tcp.stream 0: 10.0.0.1:59482 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 1: 11.0.0.1:60453 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 2: 10.0.0.1:49807 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 6: 11.0.0.1:55233 -> 10.0.0.2:05201 (mptcpdest: Server)
+
+
+mptcp.stream 1 has 4 subflow(s): 
+  >tcp.stream 3: 10.0.0.1:59484 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 4: 10.0.0.1:35031 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 5: 11.0.0.1:34945 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 7: 11.0.0.1:40191 -> 10.0.0.2:05201 (mptcpdest: Server)
+
+
+mptcp.stream 2 has 4 subflow(s): 
+  >tcp.stream 8: 10.0.0.1:59486 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 9: 10.0.0.1:57565 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 10: 11.0.0.1:36829 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 11: 11.0.0.1:40045 -> 11.0.0.2:05201 (mptcpdest: Server)
+
+
+mptcp.stream 3 has 4 subflow(s): 
+  >tcp.stream 12: 10.0.0.1:59488 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 13: 10.0.0.1:54007 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 14: 11.0.0.1:35041 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 15: 11.0.0.1:39755 -> 11.0.0.2:05201 (mptcpdest: Server)
+
+
+client_2.pcap> list_subflows 0
+mptcp.stream 0 has 4 subflow(s): 
+  >tcp.stream 0: 10.0.0.1:59482 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 1: 11.0.0.1:60453 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 2: 10.0.0.1:49807 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 6: 11.0.0.1:55233 -> 10.0.0.2:05201 (mptcpdest: Server)
+client_2.pcap> list_subflows 1
+mptcp.stream 1 has 4 subflow(s): 
+  >tcp.stream 3: 10.0.0.1:59484 -> 10.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 4: 10.0.0.1:35031 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 5: 11.0.0.1:34945 -> 11.0.0.2:05201 (mptcpdest: Server)
+  >tcp.stream 7: 11.0.0.1:40191 -> 10.0.0.2:05201 (mptcpdest: Server)
+client_2.pcap> mptcp_summary 0
+mptcp stream 0 transferred 308.0 Bytes over 16.561321259 sec(308.0 Bytes per second) towards Client.
+tcpstream 0 transferred 2.0 Bytes out of 308.0 Bytes, accounting for 0.65%
+tcpstream 1 transferred 0.0 Bytes out of 308.0 Bytes, accounting for 0.00%
+tcpstream 2 transferred 306.0 Bytes out of 308.0 Bytes, accounting for 99.35%
+tcpstream 6 transferred 0.0 Bytes out of 308.0 Bytes, accounting for 0.00%
+mptcp stream 0 transferred 456.0 Bytes over 17.601526738 sec(456.0 Bytes per second) towards Server.
+tcpstream 0 transferred 154.0 Bytes out of 456.0 Bytes, accounting for 33.77%
+tcpstream 1 transferred 0.0 Bytes out of 456.0 Bytes, accounting for 0.00%
+tcpstream 2 transferred 302.0 Bytes out of 456.0 Bytes, accounting for 66.23%
+tcpstream 6 transferred 0.0 Bytes out of 456.0 Bytes, accounting for 0.00%
+client_2.pcap> list_reinjections 0
+packetid=887 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 484 (tcp.stream 3)
+packetid=888 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 486 (tcp.stream 3)
+packetid=889 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 487 (tcp.stream 3)
+packetid=890 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 489 (tcp.stream 3)
+packetid=891 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 492 (tcp.stream 3)
+packetid=892 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 493 (tcp.stream 3)
+packetid=893 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 497 (tcp.stream 3)
+packetid=894 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 499 (tcp.stream 3)
+packetid=895 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 501 (tcp.stream 3)
+packetid=896 (tcp.stream 4) is a reinjection of 2 packet(s):
+- packet 849 (tcp.stream 3)
+- packet 850 (tcp.stream 3)
+packetid=897 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 502 (tcp.stream 3)
+packetid=898 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 504 (tcp.stream 3)
+packetid=899 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 507 (tcp.stream 3)
+packetid=901 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 509 (tcp.stream 3)
+packetid=905 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 530 (tcp.stream 3)
+packetid=907 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 532 (tcp.stream 3)
+packetid=908 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 534 (tcp.stream 3)
+packetid=909 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 536 (tcp.stream 3)
+packetid=910 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 538 (tcp.stream 3)
+packetid=912 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 540 (tcp.stream 3)
+packetid=941 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 421 (tcp.stream 5)
+packetid=945 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 424 (tcp.stream 5)
+packetid=1485 (tcp.stream 3) is a reinjection of 1 packet(s):
+- packet 1032 (tcp.stream 4)
+packetid=1706 (tcp.stream 5) is a reinjection of 1 packet(s):
+- packet 943 (tcp.stream 4)
+packetid=1761 (tcp.stream 5) is a reinjection of 1 packet(s):
+- packet 943 (tcp.stream 4)
+packetid=2004 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 1559 (tcp.stream 5)
+packetid=2005 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 1561 (tcp.stream 5)
+packetid=2007 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 1755 (tcp.stream 5)
+packetid=2009 (tcp.stream 4) is a reinjection of 1 packet(s):
+- packet 1567 (tcp.stream 5)
+packetid=2104 (tcp.stream 8) is a reinjection of 1 packet(s):
+- packet 2101 (tcp.stream 11)
+packetid=2241 (tcp.stream 12) is a reinjection of 1 packet(s):
+- packet 2133 (tcp.stream 15)
+packetid=2281 (tcp.stream 15) is a reinjection of 1 packet(s):
+- packet 2239 (tcp.stream 12)
+packetid=2467 (tcp.stream 15) is a reinjection of 1 packet(s):
+- packet 2243 (tcp.stream 12)
+packetid=2468 (tcp.stream 15) is a reinjection of 1 packet(s):
+- packet 2245 (tcp.stream 12)
+packetid=2469 (tcp.stream 15) is a reinjection of 2 packet(s):
+- packet 2247 (tcp.stream 12)
+- packet 2248 (tcp.stream 12)
+packetid=2472 (tcp.stream 15) is a reinjection of 1 packet(s):
+- packet 2249 (tcp.stream 12)
+packetid=2614 (tcp.stream 15) is a reinjection of 1 packet(s):
+- packet 2249 (tcp.stream 12)
+packetid=2739 (tcp.stream 11) is a reinjection of 1 packet(s):
+- packet 2736 (tcp.stream 10)
+packetid=2783 (tcp.stream 13) is a reinjection of 1 packet(s):
+- packet 2753 (tcp.stream 15)
+packetid=2785 (tcp.stream 13) is a reinjection of 1 packet(s):
+- packet 2754 (tcp.stream 15)
+packetid=2823 (tcp.stream 9) is a reinjection of 1 packet(s):
+- packet 2822 (tcp.stream 11)
+
