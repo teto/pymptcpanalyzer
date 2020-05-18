@@ -242,6 +242,7 @@ def load_merged_streams_into_pandas(
             # merged_df.apply(",".join()
             # or abstime ?
 
+            # TODO rechange the flags hex()
             merged_df.to_csv(
                 cachename,
                 # columns=columns,
@@ -1173,7 +1174,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
             reinj_delta = orig_arrival - reinj_arrival
             df_all.loc[reinj_pktid, "reinj_delta"] = reinj_delta
 
-            if reinj_delta < 0:
+            if reinj_delta < pd.Timedelta(0):
                 # print("GOT A failed reinjection")
                 df_all.loc[df_all[_sender("packetid")] == reinjection.packetid, "redundant"] = True
                 #TODO set reinj_delta for reinjection.packetid

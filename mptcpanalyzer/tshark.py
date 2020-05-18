@@ -111,6 +111,10 @@ class FieldList(TsharkField):
 def _convert_flags(x):
     """ double int in case we deal with a float"""
     # print("convert_flags", x, type(x))
+    # in order to load "2.0" (which appears when serializing merged dataframes)
+    # we should strive to save only integers in the merged dataframe in the first
+    # place
+    # return int(str(int(float(x))), 16)
     return int(x, 16)
 
 def _convert_timestamp(x):

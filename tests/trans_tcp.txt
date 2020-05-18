@@ -1,31 +1,5 @@
 [34mReady>[39m[49mload_pcap examples/server_2_filtered.pcapng
-Loading pcap examples\/server_2_filtered.pcapng
-server_2_filtered.pcapng> tcp_summary 0
-Summary of TCP connection
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(308.0), tcp_duration=Timedelta('0 days 00:00:45.752370'), tcp_byte_range=Byte(308.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(460.0), tcp_duration=Timedelta('0 days 00:00:45.759190'), tcp_byte_range=Byte(456.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
-server_2_filtered.pcapng> tcp_summary 0
-Summary of TCP connection
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(308.0), tcp_duration=Timedelta('0 days 00:00:45.752370'), tcp_byte_range=Byte(308.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(460.0), tcp_duration=Timedelta('0 days 00:00:45.759190'), tcp_byte_range=Byte(456.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
-server_2_filtered.pcapng> list_tcp_connections
-8 tcp connection(s)
-tcp.stream 0: 10.0.0.1:33782 -> 10.0.0.2:05201
-tcp.stream 1: 10.0.0.1:33784 -> 10.0.0.2:05201
-tcp.stream 2: 10.0.0.1:54595 -> 11.0.0.2:05201
-tcp.stream 3: 10.0.0.1:57491 -> 11.0.0.2:05201
-tcp.stream 4: 11.0.0.2:59555 -> 11.0.0.1:05201
-tcp.stream 5: 11.0.0.1:50077 -> 11.0.0.2:05201
-tcp.stream 6: 11.0.0.1:35589 -> 10.0.0.2:05201
-tcp.stream 7: 11.0.0.1:50007 -> 10.0.0.2:05201
-server_2_filtered.pcapng> map_tcp_connection examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 1
-Trying to map tcp.stream 1: 10.0.0.1:33784 -> 10.0.0.2:05201
-8 mapping(s) found
-TcpMapping(mapped=TcpConnection(tcpstreamid=1, tcpclient_ip='10.0.0.1', tcpserver_ip='10.0.0.2', server_port=5201, client_port=33784, interface='any', isn=None), score=inf)
-TcpMapping(mapped=TcpConnection(tcpstreamid=0, tcpclient_ip='10.0.0.1', tcpserver_ip='10.0.0.2', server_port=5201, client_port=33782, interface='any', isn=None), score=30)
-TcpMapping(mapped=TcpConnection(tcpstreamid=2, tcpclient_ip='10.0.0.1', tcpserver_ip='11.0.0.2', server_port=5201, client_port=54595, interface='any', isn=None), score=20)
-TcpMapping(mapped=TcpConnection(tcpstreamid=3, tcpclient_ip='10.0.0.1', tcpserver_ip='11.0.0.2', server_port=5201, client_port=57491, interface='any', isn=None), score=20)
-TcpMapping(mapped=TcpConnection(tcpstreamid=6, tcpclient_ip='11.0.0.1', tcpserver_ip='10.0.0.2', server_port=5201, client_port=35589, interface='any', isn=None), score=20)
-TcpMapping(mapped=TcpConnection(tcpstreamid=7, tcpclient_ip='11.0.0.1', tcpserver_ip='10.0.0.2', server_port=5201, client_port=50007, interface='any', isn=None), score=20)
-TcpMapping(mapped=TcpConnection(tcpstreamid=4, tcpclient_ip='11.0.0.2', tcpserver_ip='11.0.0.1', server_port=5201, client_port=59555, interface='any', isn=None), score=10)
-TcpMapping(mapped=TcpConnection(tcpstreamid=5, tcpclient_ip='11.0.0.1', tcpserver_ip='11.0.0.2', server_port=5201, client_port=50077, interface='any', isn=None), score=10)
+[34mReady>[39m[49mtcp_summary 0
+[34mReady>[39m[49mtcp_summary 0
+[34mReady>[39m[49mlist_tcp_connections
+[34mReady>[39m[49mmap_tcp_connection examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 1

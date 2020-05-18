@@ -1,45 +1,6 @@
 [34mReady>[39m[49mload_pcap examples/client_2.pcap
-Loading pcap examples\/client_2.pcap
-client_2.pcap> list_mptcp_connections
-4 mptcp connection(s)
-mptcp.stream 0 has 4 subflow(s): 
-  >tcp.stream 0: 10.0.0.1:59482 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 1: 11.0.0.1:60453 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 2: 10.0.0.1:49807 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 6: 11.0.0.1:55233 -> 10.0.0.2:05201 (mptcpdest: Server)
-
-
-mptcp.stream 1 has 4 subflow(s): 
-  >tcp.stream 3: 10.0.0.1:59484 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 4: 10.0.0.1:35031 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 5: 11.0.0.1:34945 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 7: 11.0.0.1:40191 -> 10.0.0.2:05201 (mptcpdest: Server)
-
-
-mptcp.stream 2 has 4 subflow(s): 
-  >tcp.stream 8: 10.0.0.1:59486 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 9: 10.0.0.1:57565 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 10: 11.0.0.1:36829 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 11: 11.0.0.1:40045 -> 11.0.0.2:05201 (mptcpdest: Server)
-
-
-mptcp.stream 3 has 4 subflow(s): 
-  >tcp.stream 12: 10.0.0.1:59488 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 13: 10.0.0.1:54007 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 14: 11.0.0.1:35041 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 15: 11.0.0.1:39755 -> 11.0.0.2:05201 (mptcpdest: Server)
-
-
-client_2.pcap> list_subflows 0
-mptcp.stream 0 has 4 subflow(s): 
-  >tcp.stream 0: 10.0.0.1:59482 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 1: 11.0.0.1:60453 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 2: 10.0.0.1:49807 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 6: 11.0.0.1:55233 -> 10.0.0.2:05201 (mptcpdest: Server)
-client_2.pcap> list_subflows 1
-mptcp.stream 1 has 4 subflow(s): 
-  >tcp.stream 3: 10.0.0.1:59484 -> 10.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 4: 10.0.0.1:35031 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 5: 11.0.0.1:34945 -> 11.0.0.2:05201 (mptcpdest: Server)
-  >tcp.stream 7: 11.0.0.1:40191 -> 10.0.0.2:05201 (mptcpdest: Server)
-client_2.pcap> mptcp_summary 0
+[34mReady>[39m[49mlist_mptcp_connections
+[34mReady>[39m[49mlist_subflows 0
+[34mReady>[39m[49mlist_subflows 1
+[34mReady>[39m[49mmptcp_summary 0
+[34mReady>[39m[49mlist_reinjections 0
