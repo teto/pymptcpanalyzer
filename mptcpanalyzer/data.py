@@ -274,12 +274,13 @@ def load_merged_streams_into_pandas(
                 merge_dtypes = get_dtypes(gfields)
                 # log.log(mp.TRACE, "Using gfields %s" % pp.pformat(gfields))
 
-                converters = get_converters(gfields)
+                # we don't need any converters
+                converters = {}
                 date_cols = get_date_cols(gfields)
 
                 log.log(mp.TRACE, "Using date_cols %s" % pp.pformat(date_cols))
                 log.log(mp.TRACE, "Using dtypes %s" % pp.pformat(merge_dtypes))
-                log.log(mp.TRACE, "Using converters %s" % (pp.pformat(converters)))
+                # log.log(mp.TRACE, "Using converters %s" % (pp.pformat(converters)))
                 merged_df = pd.read_csv(
                     fd,
                     skip_blank_lines=True,
@@ -289,7 +290,7 @@ def load_merged_streams_into_pandas(
                     # memory_map=True, # could speed up processing
                     dtype=merge_dtypes,  # poping still generates
                     converters=converters,
-                    date_parser=date_converter,
+                    # date_parser=date_converter,
                     parse_dates=date_cols,
                 )
                 # at this stage, destinatiosn are nan
@@ -416,8 +417,6 @@ def load_into_pandas(
             fields = config.fields.copy()
             fields.update(per_pcap_artificial_fields)
             converters = get_converters(config.fields)
-            # converters.update({name: f.converter for name,
-            #                   f in per_pcap_artificial_fields.items() if f.converter})
 
             # builds a list of fields to be parsed as dates
             # (since converter/types don't seem to be great)

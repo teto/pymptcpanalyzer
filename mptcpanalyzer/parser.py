@@ -85,8 +85,8 @@ class LoadSinglePcap(DataframeAction):
 
         df = self.get_dataframe(namespace)
         if df is None:
-            print("===========")
-            print(pp.pformat(self.loader._tshark_fields))
+            # print("===========")
+            # print(pp.pformat(self.loader._tshark_fields))
             df = load_into_pandas(values, self.loader)
             setattr(namespace, self.dest, values)
             self.add_dataframe(namespace, df)
