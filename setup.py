@@ -62,6 +62,7 @@ class RunTests(Command):
 
 setup(name="mptcpanalyzer",
     version=version,
+    python_requires='>=3.7',
     description="Analyze mptcp traces (.pcap)",
     long_description=open('README.md', 'r', encoding='utf-8').read(),
     long_description_content_type="text/markdown",
