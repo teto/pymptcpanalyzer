@@ -120,7 +120,7 @@ setup(name="mptcpanalyzer",
         'matplotlib>=3.0.3',  # for plotting
         'pandas>=1.0',
         'cmd2>=1.0',  # to improve cmd capabilities
-        'jsonschema',  # to validate json topologies
+        # 'jsonschema',  # to validate json topologies
         # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
     ],
     extras_require=dict(
