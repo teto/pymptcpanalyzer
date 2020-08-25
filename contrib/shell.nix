@@ -1,64 +1,60 @@
-with import <nixpkgs> {};
-
 let
-  mptcpanalyzer = callPackage ../default.nix {};
-
-  prog = (mptcpanalyzer.override({
-    # inherit pandas;
-    # inherit cmd2;
-  })).overridePythonAttrs (oa: {
-
-
-    version = "0.3.3-dev";
-    nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [
-      # to publish on pypi
-      pkgs.python3Packages.twine
-      python-language-server
-
+  # pkgs = import ./nixpkgs.nix {
+  pkgs = import <nixpkgs> {
+    overlays = [
+      # latest version of poetry and poetry2nix
+      (import "${poetry2nixSrc}/overlay.nix")
     ];
-    propagatedBuildInputs  = (oa.propagatedBuildInputs  or []) ++ [
-      # my_nvim.config.python3Env
+  };
 
-      # temporary addition to work with mpls
-      openssl
-    ];
+  # temporary overlay (remove on next nixpkgs bump)
+  poetry2nixSrc = (fetchTarball {
+    url = "https://github.com/teto/poetry2nix/archive/f0cc43e09f6adbbde8c1207d511cd124cdca28f4.tar.gz";
+    sha256 = "020qpwprkb52gimvmipixc7zqqmaxagxw9ddr75yf762s312byi3";
+  });
 
-    src = ../.;
+  mptcpanalyzer = pkgs.callPackage ./default.nix {};
 
-    # postShellHook = ''
-    # export PATH="${my_nvim}/bin:$PATH"
-    #   echo "importing a custom nvim ${my_nvim}"
-    postShellHook = ''
-      export SOURCE_DATE_EPOCH=315532800
-      echo "SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
-      export PYTHONPATH="$tmp_path/lib/python3.7/site-packages:$PYTHONPATH"
-      python -m pip install -e . --prefix $tmp_path >&2
-      export PATH="${my_nvim}/bin:$PATH"
-      echo "importing a custom nvim ${my_nvim}"
-
-      alias m=mptcpanalyzer
-    '';
-
+  # needed to support mptcp-v1
+  my_tshark = pkgs.tshark.overrideAttrs ( oa: {
+    src = pkgs.fetchFromGitHub {
+      repo   ="wireshark";
+      owner  ="teto";
+      rev    = "fd1dd72d8e8d2025b25c1485efc2cdee5eee589a";
+      sha256 = "4GWiHGi4tnixeuQwPQ7IdLh5eIjtyQGYuzSky60Onmo=";
+    };
   });
 
 
-  # https://www.reddit.com/r/neovim/comments/b1zm7h/how_to_setup_microsofts_python_lsp_in_linuxubuntu/
-  my_nvim = genNeovim  [ mptcpanalyzer ] {
-    # ms-python.python
-    # coc-python
-
-    # plugins = [ vimPlugins.coc-python ];
-    # configure = {
-    #     packages.myVimPackage = {
-    #       # see examples below how to use custom packages
-    #       # loaded on launch
-    #       start = startPlugins;
-    # };
-
-    configure.packages.myVimPackage.start = [ vimPlugins.coc-python ];
-    # extraPython3Packages = ps: with ps;  [ python-language-server ];
+  # TODO either it should take
+  generatedNvimConfig = pkgs.neovimUtils.makeNeovimConfig {
+    extraPython3Packages = ps: with ps; [ pkgs.nodePackages.pyright ];
   };
 
+  # generatedNvimConfig.neovimRcContent
+  # let g:python3_host_prog='/nix/store/3x7swg0ar6h7bm83av2p4lri3sr4lfs3-python3-3.8.6-env/bin/python3'
+  finalNvimRcContent = ''
+    luafile lsp_python.lua
+  '';
+
+  myShell = pkgs.mkShell {
+    buildInputs = [
+      mptcpanalyzer
+      pkgs.poetry
+      pkgs.gobjectIntrospection # otherwise Namespace Gtk not available
+      pkgs.wrapGAppsHook  # check GDK_PIXBUF_MODULE_FILE
+      pkgs.pango # Typelib file for namespace 'Pango', version '1.0' not found
+      pkgs.gdk-pixbuf # Typelib file for namespace 'GdkPixbuf', version '2.0' not found
+      pkgs.atk # Typelib file for namespace 'Atk', version '1.0' not found
+    ];
+
+    shellHook = ''
+      alias m=mptcpanalyzer
+      export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${pkgs.stdenv.cc.cc.lib}/lib"
+      echo '${pkgs.lib.traceVal finalNvimRcContent}' > .nvimrc
+      # equivalent to an editable install/develop mode
+      export PYTHONPATH=.
+    '';
+  };
 in
-# TODO generate our own nvim
-  prog
+  myShell

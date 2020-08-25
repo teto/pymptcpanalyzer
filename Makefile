@@ -9,16 +9,18 @@ doc:
 rst:
 	cat README.md | pandoc -f markdown -t rst > README.rst
 
+.PHONY: setup.py
+setup.py:
+	poetry build -v --format sdist && tar --wildcards -xvf dist/*.tar.gz -O '*/setup.py' > setup.py
 
 publish:
-	# new system is setup.py sdist bdist_wheel
+	# todo use poetry publish instead
 	python setup.py sdist bdist_wheel
 	# twine upload --verbose --repository-url https://test.pypi.org/legacy/ dist/*
 	twine upload --verbose dist/*
 	echo "You probably want to also tag the version now:"
 	echo "  git tag -a VERSION -m 'version X'"
 	echo "  git push --tags"
-
 
 gen_transcripts:
 	# https://cmd2.readthedocs.io/en/latest/freefeatures.html#script-files
@@ -28,12 +30,6 @@ gen_transcripts:
 tests: tests/*
 	# Add -b to print standard output
 	tests/run_transcripts.sh
-
-develop:
-	python setup.py develop --user
-
-uninstall:
-	python setup.py develop --user --uninstall
 
 man:
 	# wrong name for the program but can't override :/

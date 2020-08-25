@@ -1,145 +1,58 @@
-#!/usr/bin/env python
-# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
-# Copyright 2015-2016 Universite Pierre et Marie Curie
-# Copyright 2017-2018 IIJ Innovation Institute
-# Author(s): Matthieu Coudron <coudron@iij.ad.jp>
-#
-# This file is part of mptcpanalyzer.
-#
-# mptcpanalyzer is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# mptcpanalyzer is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with mptcpanalyzer.  If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+from setuptools import setup
 
-from setuptools import setup, find_packages
+packages = \
+['mptcpanalyzer', 'mptcpanalyzer.plots']
 
-from distutils.cmd import Command
-from distutils.core import setup
-from distutils.util import convert_path
-import sys
+package_data = \
+{'': ['*'], 'mptcpanalyzer.plots': ['mappings/*']}
 
-# How to package ?
-# http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py
-# http://pythonhosted.org/setuptools/setuptools.html#declaring-dependencies
-#
-# if something fail during install, try running the script with sthg like
-# DISTUTILS_DEBUG=1 python3 setup.py install --user -vvv
+install_requires = \
+['PyQt5>=5.15.1,<6.0.0',
+ 'bitmath @ git+https://github.com/teto/bitmath.git@fix_check',
+ 'cairocffi>=1.2.0,<2.0.0',
+ 'cmd2>=1.3',
+ 'matplotlib==3.3.2',
+ 'pandas>=1.0',
+ 'pixcat>=0.1.0',
+ 'pycairo==1.18.2',
+ 'pygobject==3.36.1',
+ 'stevedore']
 
-main_ns = {}  # type: ignore
-ver_path = convert_path('mptcpanalyzer/version.py')
-with open(ver_path) as ver_file:
-    exec(ver_file.read(), main_ns)
-    version = main_ns['__version__']
+entry_points = \
+{'console_scripts': ['mptcpanalyzer = mptcpanalyzer.cli:main'],
+ 'mptcpanalyzer.plots': ['cwnds = mptcpanalyzer.plots.cwnd:PlotCwnds',
+                         'dss = mptcpanalyzer.plots.dss:DSSOverTime',
+                         'mptcp_attr = '
+                         'mptcpanalyzer.plots.stream:PlotSubflowAttribute',
+                         'mptcp_gput = '
+                         'mptcpanalyzer.plots.goodput:MptcpGoodput',
+                         'mptcp_tput = '
+                         'mptcpanalyzer.plots.throughput:MptcpThroughput',
+                         'owd = mptcpanalyzer.plots.owd:TcpOneWayDelay',
+                         'reinject = '
+                         'mptcpanalyzer.plots.reinjections:PlotMpTcpReinjections',
+                         'tcp_attr = '
+                         'mptcpanalyzer.plots.stream:PlotTcpAttribute',
+                         'tcp_tput = '
+                         'mptcpanalyzer.plots.throughput:TcpThroughput']}
 
-
-class RunTests(Command):
-    """ Run my command.
-    """
-    description = "Run tests from the shell"
-    user_options = []  # type: ignore
-
-    def initialize_options(self):
-        """init options"""
-        pass
-
-    def finalize_options(self):
-        """finalize options"""
-        pass
-
-    def run(self):
-        import os
-        os.system("make tests")
-        sys.exit(1)
+setup_kwargs = {
+    'name': 'mptcpanalyzer',
+    'version': '0.3.4',
+    'description': 'Analyze (multipath) TCP packet captures traces (.pcap)',
+    'long_description': "\n\n|  |  |\n| --- | --- |\n| Documentation (latest) | [![Dev doc](https://readthedocs.org/projects/pip/badge/?version=latest)](http://mptcpanalyzer.readthedocs.io/en/latest/) |\n| License | ![License](https://img.shields.io/badge/license-GPL-brightgreen.svg) |\n| Build Status | [![Build status](https://travis-ci.org/teto/mptcpanalyzer.svg?branch=master)](https://travis-ci.org/teto/mptcpanalyzer) |\n| PyPI |[![PyPI package](https://img.shields.io/pypi/dm/mptcpanalyzer.svg)](https://pypi.python.org/pypi/mptcpanalyzer/) |\n| DOI |\xa0[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)|\n[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)\n\n\n\n<!-- BEGIN-MARKDOWN-TOC -->\n* [Presentation](#presentation)\n* [Installation](#installation)\n* [Help](#faq)\n* [Related tools](#related_tools)\n\n<!-- END-MARKDOWN-TOC -->\n\nPresentation\n===\n\nMptcpanalyzer is a python tool conceived to help with MPTCP pcap analysis (as [mptcptrace] for instance).\n\nIt accepts packet capture files (\\*.pcap) as inputs and from there you can:\n\n- list MPTCP connections\n- compute statistics on a specific MPTCP connection (list of subflows, reinjections, subflow actual contributions...)\n- export a CSV file with MPTCP fields\n- plot one way delays\n- ...\n\nCommands are self documented with autocompletion.\nThe interpreter with autocompletion that can generate & display plots such as the following:\n\n![Data Sequence Number (DSN) per subflow plot](examples/dsn.png)\n\n\n# Table of Contents\n\n# Installation\n\nYou will need a wireshark version __>= 3.0.0__ and python >= 3.7\n\nOnce wireshark is installed you can install mptcpanalyzer via pip:\n`$ python3 -mpip install mptcpanalyzer --user`\nor try the development version by:\n```\n$ git clone https://github.com/teto/mptcpanalyzer.git && cd mptcpanalyzer\n$ python3 setup.py develop\n```\n\n# How to use ?\n\n mptcpanalyzer can run into 3 modes:\n  1. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also some help embedded.\n  2. if a filename is passed as argument, it will load commands from this file\n  3. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively\n\nFor example, we can load mptcp pcaps (available at [wireshark wiki](https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this repository `examples` folder).\n\nRun  `$ mptcpanalyzer --load examples/iperf-mptcp-0-0.pcap`. The script will try to generate\na csv file, it can take several seconds depending on the computer/pcap until the prompt shows up.\nType `?` to list available commands (and their aliases). You have for instance:\n- `lc` (list connections)\n- `ls` (list subflows)\n- `plot`\n- ...\n\n`help ls` will return the syntax of the command, i.e. `ls [mptcp.stream]` where mptcp.stream is one of the number appearing\nin `lc` output.\n\nLook at [Examples](#Examples)\n\n# Examples\n\nHead to the [Wiki](https://github.com/teto/mptcpanalyzer/wiki/Examples) for more examples.\n\nPlot One Way Delays from a connection:\n`plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display`\n\nPlot tcp sequence numbers in both directions:\n`plot tcp_attr -h`\n\nGet a summary of an mptcp connection\n```\n> load_pcap examples/server_2_filtered.pcapng\n> mptcp_summary 0\n```\n\n\nMap tcp.stream between server and client pcaps:\n\n```\n>map_tcp_connection examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap  0\nTODO\n>print_owds examples/client_1_tcp_only.pcap examples/server_1_tcp_only.pcap 0 0\n```\n\nMap tcp.stream between server and client pcaps:\n```\n> map_mptcp_connection examples/client_2_filtered.pcapng examples/client_2_filtered.pcapng 0\n2 mapping(s) found\n0 <-> 0.0 with score=inf  <-- should be a correct match\n-tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=inf\n-tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=inf\n-tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=inf\n-tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=inf\n0 <-> 1.0 with score=0\n-tcp.stream 0: 10.0.0.1:33782  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 1: 10.0.0.1:33784  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=30\n-tcp.stream 2: 10.0.0.1:54595  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 3: 10.0.0.1:57491  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=30\n-tcp.stream 4: 11.0.0.1:59555  <-> 11.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 5: 11.0.0.1:50077  <-> 11.0.0.2:05201  (mptcpdest: Server) with score=30\n-tcp.stream 6: 11.0.0.1:35589  <-> 10.0.0.2:05201  (mptcpdest: Server) mapped to tcp.stream 7: 11.0.0.1:50007  <-> 10.0.0.2:05201  (mptcpdest: Server) with score=30\n```\n\n# FAQ\n\nMoved to the [Wiki](https://github.com/teto/mptcpanalyzer/wiki/FAQ)\n\n# How to contribute\n\nPRs welcome !\nSee the [doc](http://mptcpanalyzer.readthedocs.io/en/latest/contributing.html).\n\n\n# Reference\n\nIf you plan to use this tool in a publication,\nYou can reference mptcpanalyzer via the following Digital Object Identifier:\n[![DOI](https://zenodo.org/badge/21021/lip6-mptcp/mptcpanalyzer.svg)](https://zenodo.org/badge/latestdoi/21021/lip6-mptcp/mptcpanalyzer)\n\nor cite:\n```\n@inproceedings{Coudron:2019:PAM:3340422.3343638,\n author = {Coudron, Matthieu},\n title = {Passive Analysis for Multipath TCP},\n booktitle = {Proceedings of the Asian Internet Engineering Conference},\n series = {AINTEC '19},\n year = {2019},\n isbn = {978-1-4503-6849-0},\n location = {Phuket, Thailand},\n pages = {25--32},\n numpages = {8},\n url = {http://doi.acm.org/10.1145/3340422.3343638},\n doi = {10.1145/3340422.3343638},\n acmid = {3343638},\n publisher = {ACM},\n address = {New York, NY, USA},\n keywords = {Multipath TCP, passive analysis, reinjection},\n}\n```\n\n\n# Related tools\n\nSimilar software:\n\n| Tool             | Description                                                                       |\n|------------------------|-------------------------------------------------------------------------------|\n| [mptcptrace]             | C based: [an example](http://blog.multipath-tcp.org/blog/html/2015/02/02/mptcptrace_demo.html)                                               |\n| [mptcpplot]       | C based developed at NASA: [generated output example](https://roland.grc.nasa.gov/~jishac/mptcpplot/)                                                 |\n\n[mptcptrace]: https://bitbucket.org/bhesmans/mptcptrace\n[mptcpplot]: https://github.com/nasa/multipath-tcp-tools/\n",
+    'author': 'Matthieu Coudron',
+    'author_email': None,
+    'maintainer': 'Matthieu Coudron',
+    'maintainer_email': None,
+    'url': 'http://github.com/teto/mptcpanalyzer',
+    'packages': packages,
+    'package_data': package_data,
+    'install_requires': install_requires,
+    'entry_points': entry_points,
+    'python_requires': '>=3.8,<4.0',
+}
 
 
-setup(name="mptcpanalyzer",
-    version=version,
-    python_requires='>=3.7',
-    description="Analyze mptcp traces (.pcap)",
-    long_description=open('README.md', 'r', encoding='utf-8').read(),
-    long_description_content_type="text/markdown",
-    url="http://github.com/teto/mptcpanalyzer",
-    license="GPL",
-    author="Matthieu Coudron",
-    author_email="coudron@iij.ad.jp",
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Intended Audience :: System Administrators',
-        'Intended Audience :: Science/Research',
-        'Intended Audience :: Telecommunications Industry',
-        'Environment :: Console',
-        'Programming Language :: Python :: 3.7',
-    ],
-    keywords=["mptcp analysis pcap"],
-    packages=find_packages(),
-    entry_points={
-        "console_scripts": [
-            'mptcpanalyzer = mptcpanalyzer.cli:main',
-        ],
-        # Each item in the list should be a string with
-        # name = module:importable where name is the user-visible name for
-        # the plugin, module is the Python import reference for the module,
-        # and importable is the name of something that can be imported from
-        # inside the module.
-        'mptcpanalyzer.plots': [
-            'mptcp_attr = mptcpanalyzer.plots.stream:PlotSubflowAttribute',
-            'tcp_attr = mptcpanalyzer.plots.stream:PlotTcpAttribute',
-            'reinject = mptcpanalyzer.plots.reinjections:PlotMpTcpReinjections',
-            # 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
-            # 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
-            # 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
-            'dss = mptcpanalyzer.plots.dss:DSSOverTime',
-            'owd = mptcpanalyzer.plots.owd:TcpOneWayDelay',
-            # 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
-            # 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
-            # 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
-
-            # TODO add gput versions that need merged pcaps
-            'tcp_tput = mptcpanalyzer.plots.throughput:TcpThroughput',
-            'mptcp_tput = mptcpanalyzer.plots.throughput:MptcpThroughput',
-            'mptcp_gput = mptcpanalyzer.plots.goodput:MptcpGoodput',
-            'cwnds = mptcpanalyzer.plots.cwnd:PlotCwnds',
-        ],
-        # namespace for plugins that monkey patch the main Cmd class
-        'mptcpanalyzer.cmds': [
-            'stats = mptcpanalyzer.command_example:CommandExample',
-        ]
-    },
-    install_requires=[
-        'bitmath',  # to use human-readable dimensions
-        'stevedore',  # to implement a plugin mechanism
-        'matplotlib>=3.0.3',  # for plotting
-        'pandas>=1.0',
-        'cmd2>=1.0',  # to improve cmd capabilities
-        # 'jsonschema',  # to validate json topologies
-        # 'sphinxcontrib-napoleon' # to generate the doc in rtfd.io
-    ],
-    extras_require=dict(
-        # List additional groups of dependencies here (e.g. development
-        # dependencies). You can install these using the following syntax,
-        # for example:
-        # $ pip install -e .[develop]
-        optional=[
-            "pixcat>=0.1.0"
-        ],
-    ),
-    # TODO to work around pandas bugs: adjust
-    # https://stackoverflow.com/questions/3472430/how-can-i-make-setuptools-install-a-package-thats-not-on-pypi
-    dependency_links=[
-        # 'http://github.com/teto/pandas/tarball/master#egg=gearman-2.0.0beta'
-    ],
-    # test_suite="tests",
-    cmdclass={
-        "test": RunTests,
-    },
-    zip_safe=False,
-)
+setup(**setup_kwargs)
