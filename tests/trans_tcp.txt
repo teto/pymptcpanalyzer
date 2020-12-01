@@ -2,12 +2,12 @@
 Loading pcap examples\/server_2_filtered.pcapng
 server_2_filtered.pcapng> tcp_summary 0
 Summary of TCP connection
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(308.0), tcp_duration=Timedelta('0 days 00:00:45.752370'), tcp_byte_range=Byte(308.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(460.0), tcp_duration=Timedelta('0 days 00:00:45.759190'), tcp_byte_range=Byte(456.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(308.0), tcp_duration=Timedelta('0 days 00:00:45.752370119'), tcp_byte_range=Byte(308.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(460.0), tcp_duration=Timedelta('0 days 00:00:45.759190321'), tcp_byte_range=Byte(456.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
 server_2_filtered.pcapng> tcp_summary 0
 Summary of TCP connection
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(308.0), tcp_duration=Timedelta('0 days 00:00:45.752370'), tcp_byte_range=Byte(308.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
-TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(460.0), tcp_duration=Timedelta('0 days 00:00:45.759190'), tcp_byte_range=Byte(456.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(308.0), tcp_duration=Timedelta('0 days 00:00:45.752370119'), tcp_byte_range=Byte(308.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
+TcpUnidirectionalStats(tcpstreamid=0, throughput_bytes=Byte(460.0), tcp_duration=Timedelta('0 days 00:00:45.759190321'), tcp_byte_range=Byte(456.0), mptcp_application_bytes=None, throughput_contribution=None, goodput_contribution=None, tcp_goodput=None)
 server_2_filtered.pcapng> list_tcp_connections
 8 tcp connection(s)
 tcp.stream 0: 10.0.0.1:33782 -> 10.0.0.2:05201

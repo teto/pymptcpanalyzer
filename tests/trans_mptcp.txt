@@ -43,12 +43,12 @@ mptcp.stream 1 has 4 subflow(s):
   >tcp.stream 5: 11.0.0.1:34945 -> 11.0.0.2:05201 (mptcpdest: Server)
   >tcp.stream 7: 11.0.0.1:40191 -> 10.0.0.2:05201 (mptcpdest: Server)
 client_2.pcap> mptcp_summary 0
-mptcp stream 0 transferred 308.0 Bytes over 16.561321259 sec(308.0 Bytes per second) towards Client.
+mptcp stream 0 transferred 308.0 Bytes over 16.561321 sec(308.0 Bytes per second) towards Client.
 tcpstream 0 transferred 2.0 Bytes out of 308.0 Bytes, accounting for 0.65%
 tcpstream 1 transferred 0.0 Bytes out of 308.0 Bytes, accounting for 0.00%
 tcpstream 2 transferred 306.0 Bytes out of 308.0 Bytes, accounting for 99.35%
 tcpstream 6 transferred 0.0 Bytes out of 308.0 Bytes, accounting for 0.00%
-mptcp stream 0 transferred 456.0 Bytes over 17.601526738 sec(456.0 Bytes per second) towards Server.
+mptcp stream 0 transferred 456.0 Bytes over 17.601526 sec(456.0 Bytes per second) towards Server.
 tcpstream 0 transferred 154.0 Bytes out of 456.0 Bytes, accounting for 33.77%
 tcpstream 1 transferred 0.0 Bytes out of 456.0 Bytes, accounting for 0.00%
 tcpstream 2 transferred 302.0 Bytes out of 456.0 Bytes, accounting for 66.23%
