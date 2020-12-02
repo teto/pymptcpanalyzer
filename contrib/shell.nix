@@ -53,7 +53,7 @@ let
       export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${pkgs.stdenv.cc.cc.lib}/lib"
       echo '${pkgs.lib.traceVal finalNvimRcContent}' > .nvimrc
       # equivalent to an editable install/develop mode
-      export PYTHONPATH=.
+      export PYTHONPATH=".:$PYTHONPATH"
 
       echo "${mptcpanalyzer.passthru.python.interpreter}"
 
