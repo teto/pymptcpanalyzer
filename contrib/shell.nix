@@ -54,6 +54,9 @@ let
       echo '${pkgs.lib.traceVal finalNvimRcContent}' > .nvimrc
       # equivalent to an editable install/develop mode
       export PYTHONPATH=.
+
+      echo "${mptcpanalyzer.passthru.python.interpreter}"
+
     '';
   };
 in

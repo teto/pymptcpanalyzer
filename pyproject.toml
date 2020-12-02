@@ -26,7 +26,6 @@ pycairo = "1.18.2"
 
 cairocffi = "^1.2.0"
 pygobject = "3.36.1"
-importlib-metadata = "*"
 
 [tool.poetry.dev-dependencies]
 
