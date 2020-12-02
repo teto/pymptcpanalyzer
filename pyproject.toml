@@ -1,0 +1,65 @@
+[tool.poetry]
+name = "mptcpanalyzer"
+version = "0.3.4"
+description = "Analyze (multipath) TCP packet captures traces (.pcap)"
+authors = ["Matthieu Coudron"]
+maintainers = ["Matthieu Coudron"]
+readme = "README.md"
+license = "GPL"
+keywords=["mptcp analysis pcap"]
+repository = "http://github.com/teto/mptcpanalyzer"
+homepage = "http://github.com/teto/mptcpanalyzer"
+include = ["CHANGELOG.md"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+# to use human-readable dimensions
+bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }
+stevedore = "*"  # to implement a plugin mechanism
+# 3.3.3 fails to build
+matplotlib = "==3.3.2"  # for plotting
+pandas = ">=1.0"
+cmd2 = ">=1.3"  # to improve cmd capabilities
+pixcat = ">=0.1.0"   # optional
+PyQt5 = "^5.15.1"   # matplotlib backend
+pycairo = "1.18.2"
+
+cairocffi = "^1.2.0"
+pygobject = "3.36.1"
+
+[tool.poetry.dev-dependencies]
+
+mypy = "*"
+
+[tool.poetry.scripts]
+mptcpanalyzer = 'mptcpanalyzer.cli:main'
+
+[tool.poetry.plugins."mptcpanalyzer.plots"]
+mptcp_attr = 'mptcpanalyzer.plots.stream:PlotSubflowAttribute'
+tcp_attr = "mptcpanalyzer.plots.stream:PlotTcpAttribute"
+reinject = 'mptcpanalyzer.plots.reinjections:PlotMpTcpReinjections'
+# 'interarrival = mptcpanalyzer.plots.interarrival:InterArrivalTimes',
+# 'xinterarrival = mptcpanalyzer.plots.interarrival:CrossSubflowInterArrival',
+# 'dss_len = mptcpanalyzer.plots.dss:DssLengthHistogram',
+dss = "mptcpanalyzer.plots.dss:DSSOverTime"
+owd = "mptcpanalyzer.plots.owd:TcpOneWayDelay"
+# 'owd_mptcp = mptcpanalyzer.plots.owd:MpTcpOneWayDelay',
+# 'ns3 = mptcpanalyzer.plots.ns3:PlotTraceSources',
+# 'agg = mptcpanalyzer.plots.aggr_benefit:PlotAggregationBenefit',
+
+# TODO add gput versions that need merged pcaps
+tcp_tput = "mptcpanalyzer.plots.throughput:TcpThroughput"
+mptcp_tput = 'mptcpanalyzer.plots.throughput:MptcpThroughput'
+mptcp_gput = 'mptcpanalyzer.plots.goodput:MptcpGoodput'
+cwnds = 'mptcpanalyzer.plots.cwnd:PlotCwnds'
+
+[tool.poetry.urls]
+"Bug Tracker" = "http://github.com/teto/mptcpanalyzer/issues"
+
+[build-system]
+requires = [
+	"poetry-core",
+	"setuptools>50"  # use my own
+]
+
+build-backend = "poetry.core.masonry.api"

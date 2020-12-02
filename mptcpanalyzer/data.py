@@ -401,7 +401,7 @@ def load_into_pandas(
             tshark_fields = {field.fullname: name for name, field in config.fields.items()}
             retcode, _, stderr = config.export_to_csv(filename, out, tshark_fields)
             log.info("exporter exited with code=%d", retcode)
-            if retcode is 0:
+            if retcode == 0:
                 out.close()
                 cache.put(uid, out.name)
             else:

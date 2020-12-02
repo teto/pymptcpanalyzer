@@ -175,7 +175,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         for a detailed help of the command
         """)
 
-    def stevedore_error_handler(manager, entrypoint, exception):
+    def stevedore_error_handler(self, manager, entrypoint, exception):
         print("Error while loading entrypoint [%s]" % entrypoint)
 
     def __init__(
@@ -630,7 +630,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             )
             out, stderr = proc.communicate()
             print("out", out)
-            print("err", err)
+            print("err", stderr)
 
 
     summary_parser = MpTcpAnalyzerParser(
