@@ -25,18 +25,14 @@ import inspect
 from mptcpanalyzer.config import MpTcpAnalyzerConfig
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.version import __version__
-from mptcpanalyzer.parser import gen_bicap_parser, LoadSinglePcap, gen_pcap_parser, FilterStream, \
+from mptcpanalyzer.parser import gen_bicap_parser, gen_pcap_parser, FilterStream, \
     MpTcpAnalyzerParser, MpTcpStreamId, TcpStreamId
-import mptcpanalyzer.parser as mpparser
 import mptcpanalyzer.data as mpdata
 from mptcpanalyzer.topo import load_topology, SubflowLiveStats
 from mptcpanalyzer.data import map_mptcp_connection, load_into_pandas, map_tcp_stream, \
-    merge_mptcp_dataframes_known_streams, merge_tcp_dataframes_known_streams, \
     load_merged_streams_into_pandas, classify_reinjections, pandas_to_csv
-from mptcpanalyzer import RECEIVER_SUFFIX, SENDER_SUFFIX, _sender, _receiver
-from mptcpanalyzer.metadata import Metadata
-from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, MpTcpMapping, TcpMapping, \
-    ConnectionRoles, swap_role
+from mptcpanalyzer import _sender, _receiver
+from mptcpanalyzer.connection import MpTcpConnection, TcpConnection, ConnectionRoles
 import mptcpanalyzer.cache as mc
 from mptcpanalyzer.statistics import mptcp_compute_throughput, tcp_get_stats
 import mptcpanalyzer as mp
@@ -47,12 +43,9 @@ import shlex
 import traceback
 import pprint
 import textwrap
-import readline
-import numpy as np
-from typing import List, Any, Tuple, Dict, Callable, Set
+from typing import List
 import cmd2
-import math
-from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category, argparse_completer
+from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category
 from enum import Enum, auto
 import mptcpanalyzer.pdutils
 import dataclasses
@@ -62,8 +55,6 @@ from stevedore import extension
 from pandas.plotting import register_matplotlib_converters
 import bitmath
 # from bitmath.integrations.bmargparse import BitmathType
-import json
-import select
 
 plugin_logger = logging.getLogger("stevedore")
 plugin_logger.addHandler(logging.StreamHandler())
