@@ -221,7 +221,7 @@ def mptcp_compute_throughput(
             sf.throughput_contribution = sf.throughput_bytes.bytes / total_tput
         else:
             sf.throughput_contribution = 0
-            log.warn("Total Throughput <= 0. Something fishy possibly ?")
+            log.warning("Total Throughput <= 0. Something fishy possibly ?")
 
 
     """
