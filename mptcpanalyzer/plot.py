@@ -161,7 +161,7 @@ class Plot:
                 Image(filename).show()
                 return
             else:
-                log.warn("Only kitty Terminal is supported. Falling back to gui mode.")
+                log.warning("Only kitty Terminal is supported. Falling back to gui mode.")
                 mode = "gui"
 
         if mode == "gui":

@@ -535,7 +535,7 @@ def convert_to_sender_receiver(df) -> pd.DataFrame:
 
         else:
             if min_h1 == min_h2:
-                log.warn("there is an issue")
+                log.warning("there is an issue")
 
             log.debug("Looks like h2 is the tcp client")
             h1_role = (ConnectionRoles.Server)
@@ -859,7 +859,7 @@ def deal_with_duplicated_hash(df):
     if nb_dups > 0:
 
         log.debug(df.loc[dups, :])
-        log.warn("Dropping duplicates in ")
+        log.warning("Dropping duplicates in ")
         df.drop_duplicates(
             subset=["hash"],
             inplace=True,

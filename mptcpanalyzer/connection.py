@@ -244,7 +244,7 @@ class MpTcpSubflow(TcpConnection):
             server_port=self.client_port,
             interface="unknown",
         )
-        log.warn("Losing addrid/interface when reversing subflow")
+        log.warning("Losing addrid/interface when reversing subflow")
         return res
 
     def mptcp_dest_from_tcpdest(self, tcpdest: ConnectionRoles):
