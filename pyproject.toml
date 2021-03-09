@@ -14,17 +14,19 @@ include = ["CHANGELOG.md"]
 [tool.poetry.dependencies]
 python = "^3.8"
 # to use human-readable dimensions
-bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }
+# branch = "fix_check"
+bitmath = { git = "https://github.com/teto/bitmath.git", rev = "06d7f353501a62b1413b49cafc61262cc1781fea" }
 stevedore = "*"  # to implement a plugin mechanism
 # 3.3.3 fails to build
 matplotlib = "==3.3.2"  # for plotting
 pandas = ">=1.0"
 cmd2 = ">=1.3"  # to improve cmd capabilities
 pixcat = ">=0.1.0"   # optional
-PyQt5 = "^5.15.1"   # matplotlib backend
-pycairo = "1.18.2"
+pyqt5 = "5.15.2"   # matplotlib backend
+# pyqt5-qt = "^5.15.2"   # matplotlib backend
+pycairo = " >= 1.18.2"
 
-cairocffi = "^1.2.0"
+cairocffi = ">= 1.1.0"
 pygobject = "3.36.1"
 
 [tool.poetry.dev-dependencies]
