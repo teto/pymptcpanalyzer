@@ -4,6 +4,9 @@ all:
 doc:
 	make -C docs html
 
+lock: pyproject.toml
+	$(shell nix run poetry#poetry lock -v)
+
 # pypi accepts only rst
 # see http://inre.dundeemt.com/2014-05-04/pypi-vs-readme-rst-a-tale-of-frustration-and-unnecessary-binding/
 rst:
