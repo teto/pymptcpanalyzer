@@ -12,7 +12,7 @@ homepage = "http://github.com/teto/mptcpanalyzer"
 include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8"
 # to use human-readable dimensions
 # branch = "fix_check"
 bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }

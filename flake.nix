@@ -18,8 +18,16 @@
     in rec {
 
     packages.mptcpanalyzer = mptcpanalyzer;
+    defaultPackage = mptcpanalyzer;
 
     devShell = mptcpanalyzer;
-    defaultPackage = mptcpanalyzer;
+    # devShell = pkgs.mkShell {
+    #   name = "dev-shell";
+    #   buildInputs = with pkgs; [
+    #     defaultPackage.inputDerivation
+    #     pkgs.nodePackages.pyright
+    #     poetry.packages."${system}".poetry
+    #   ];
+    # };
   });
 }

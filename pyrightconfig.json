@@ -1,5 +1,6 @@
 {
   "verboseOutput": true,
   "useLibraryCodeForTypes": true,
-  "reportUnknownArgumentType": false
+  "reportUnknownArgumentType": false,
+  "typeCheckingMode": "off"
 }
