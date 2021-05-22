@@ -162,7 +162,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     """
 
     intro = textwrap.dedent("""
-        Press ? to list the available commands and `help <command>` or `<command> -h`
+        Type `help` to list the available commands and `help <command>` or `<command> -h`
         for a detailed help of the command
         """)
 
