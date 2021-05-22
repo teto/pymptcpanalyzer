@@ -8,6 +8,7 @@ import logging
 import matplotlib.pyplot as plt
 import argparse
 import numpy as np
+from datetime import datetime
 
 import collections
 import glob
@@ -21,7 +22,7 @@ log = logging.getLogger(__name__)
 # hence we cast all fields to floats :'(
 # https://github.com/pydata/pandas/issues/2631
 ns3_attributes = {
-        "Time" : ("time (ns)", pd.datetime),
+        "Time" : ("time (ns)", datetime),
         "txNext" : ("{type} Tx Next", np.float64),
         "highestSeq" : ("{type} {idx} Highest seq", np.float64),
         "unackSeq" : ("{type} {idx} SND.UNA", np.float64),
