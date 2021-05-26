@@ -1072,9 +1072,13 @@ def map_mptcp_connection(
     results: List[MpTcpMapping] = []
 
     for mptcpstream2 in rawdf2[_sender("mptcpstream")].dropna().unique():
-        other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
-        mapping = map_mptcp_connection_from_known_streams(main, other)
-        results.append(mapping)
+        try:
+            other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
+            mapping = map_mptcp_connection_from_known_streams(main, other)
+            results.append(mapping)
+        except Exception as e:
+            log.warning("Error while analyzing mptcp.stream %d:\n%s",
+                        mptcpstream2, e)
 
     results.sort(key=lambda x: x.score, reverse=True)
 
