@@ -380,9 +380,15 @@ class MpTcpConnection:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
         # TODO check for the version
-        syn_mpcapable_df = ds.where(ds.tcpflags == TcpFlags.SYN)
+        print("type(Syn): ", type(TcpFlags.SYN),  type(ds.tcpflags))
+        # to work around
+        syn_mpcapable_df = ds.copy()
+        syn_mpcapable_df.where(ds.tcpflags == TcpFlags.SYN, inplace=True)
+        print ("synmpcapable",  syn_mpcapable_df)
         query = ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)
-        synack_mpcapable_df = ds.where(query).dropna(subset=['sendkey'])
+        synack_mpcapable_df = ds.copy()
+        synack_mpcapable_df.where(query, inplace=True)
+        synack_mpcapable_df.dropna(subset=['sendkey'])
 
         if len(synack_mpcapable_df) < 1:
             print("synack dataset", synack_mpcapable_df)
@@ -450,7 +456,7 @@ class MpTcpConnection:
                 log.debug("skipping %d, master already registered" % tcpstreamid)
                 continue
 
-            syn_join_df = subflow_ds.where(ds.tcpflags == TcpFlags.SYN).dropna(subset=['recvtok'])
+            syn_join_df = subflow_ds.where(ds.tcpflags == TcpFlags.SYN, pd.NaT).dropna(subset=['recvtok'])
 
             if len(syn_join_df) < 1:
                 raise MpTcpException("Missing TCP client MP_JOIN")

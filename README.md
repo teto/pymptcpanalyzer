@@ -49,7 +49,14 @@ Once wireshark is installed you can install mptcpanalyzer via pip:
 or try the development version by:
 ```
 $ git clone https://github.com/teto/mptcpanalyzer.git && cd mptcpanalyzer
-$ python3 setup.py develop
+$ poetry install    # (or "python3 setup.py develop" if you use pip)
+```
+
+# or if you use nix
+
+```
+$ nix develop
+$ export PYTHONPATH="$PWD:$PYTHONPATH"
 ```
 
 # How to use ?

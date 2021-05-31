@@ -269,7 +269,7 @@ def load_merged_streams_into_pandas(
                     return gfields
 
                 # reltime discarded on save ?
-                tshark_config.fields.pop("reltime")
+                tshark_config.fields.pop("reltime", None)
                 gfields = _gen_fields(tshark_config.fields)
                 merge_dtypes = get_dtypes(gfields)
                 # log.log(mp.TRACE, "Using gfields %s" % pp.pformat(gfields))
