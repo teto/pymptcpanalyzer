@@ -1145,7 +1145,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         for reinjection in reinjected_packets.itertuples():
             # here we look at all the reinjected packets
 
-            # print("full reinjection %r" % (reinjection,))
+            print("full reinjection %r" % (reinjection,))
 
             # if there are packets in _receiver(reinjected_in), it means the reinjections
             # arrived before other similar segments and thus these segments are useless
@@ -1160,9 +1160,18 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
 
             # print("%r" % reinjection.reinjection_of)
             initial_packetid = reinjection.reinjection_of[0]
-            # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
+            log.debug("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
-            original_packet = df_all.loc[df_all.packetid == initial_packetid].iloc[0]
+            original_packets = df_all.loc[df_all.packetid == initial_packetid]
+
+            print("df_all.packetid", original_packets)
+            print(df_all)
+            # print(original_packets["packetid"])
+            original_packet = None
+            if original_packets is None:
+                raise Exception("packets could not be found")
+
+            original_packet = original_packets.iloc[0]
 
             if original_packet.merge_status != "both":
                 # TODO count missed classifications ?
