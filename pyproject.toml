@@ -12,14 +12,14 @@ homepage = "http://github.com/teto/mptcpanalyzer"
 include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<4"
 # to use human-readable dimensions
 # branch = "fix_check"
 bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }
 		# rev = "06d7f353501a62b1413b49cafc61262cc1781fea" }
 stevedore = "*"  # to implement a plugin mechanism
 # 3.3.3 fails to build
-matplotlib = "==3.3.4"  # for plotting
+matplotlib = "==3.4.1"  # for plotting
 pandas = "==1.2.3"
 cmd2 = ">=2.0"  # to improve cmd capabilities
 pixcat = ">=0.1.0"   # optional
@@ -32,7 +32,8 @@ pygobject = "3.36.1"
 
 [tool.poetry.dev-dependencies]
 
-mypy = "*"
+# "0.901" would break
+# mypy = "0.812"
 
 [tool.poetry.scripts]
 mptcpanalyzer = 'mptcpanalyzer.cli:main'

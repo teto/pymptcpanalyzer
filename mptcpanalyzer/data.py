@@ -1158,14 +1158,14 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
                         reinjection.packetid)
                 continue
 
-            # print("%r" % reinjection.reinjection_of)
+            print("%r" % reinjection.reinjection_of)
             initial_packetid = reinjection.reinjection_of[0]
             log.debug("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
             original_packets = df_all.loc[df_all.packetid == initial_packetid]
 
             print("df_all.packetid", original_packets)
-            print(df_all)
+            debug_dataframe(df_all, "debug", usecols=[_sender("reinjection_of")])
             # print(original_packets["packetid"])
             original_packet = None
             if original_packets is None:

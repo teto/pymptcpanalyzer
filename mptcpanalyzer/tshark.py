@@ -40,10 +40,11 @@ def _load_list(x, field="set field to debug"):
     if x is None or len(x) == 0:
         return np.nan
 
-    if x[0] != "[":
-        x = "[" + x + "]"
-    #if (x is not None and x != '') else np.nan
-    res = ast.literal_eval(x)
+    #if x[0] != "[":
+    #    x = "[" + x + "]"
+    ##if (x is not None and x != '') else np.nan
+    #res = ast.literal_eval(x)
+    res = ",".split(x)
 
     return res
 
