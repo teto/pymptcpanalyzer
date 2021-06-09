@@ -69,9 +69,9 @@ class LoadSinglePcap(DataframeAction):
         super().__init__(df_name=kwargs.get("dest"), **kwargs)
         # if loader == None:
         self.loader = loader or TsharkConfig()
-        completer_method = functools.partial(cmd2.Cmd.path_complete, path_filter=lambda path: os.path.isfile(path))
+        completer = functools.partial(cmd2.Cmd.path_complete, path_filter=lambda path: os.path.isfile(path))
         setattr(self, ATTR_CHOICES_CALLABLE,
-                ChoicesCallable(is_method=True, is_completer=True, to_call=completer_method,))
+                ChoicesCallable(is_completer=True, to_call=completer,))
 
     def __call__(self, parser, namespace, values, option_string=None):
         """
@@ -438,7 +438,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         params = {
             'action': LoadSinglePcap,
             'help': 'Pcap file',
-            'completer_method': cmd2.Cmd.path_complete
+            'completer': cmd2.Cmd.path_complete
         }
         params.update(**kwargs)
         load_pcap = self.add_argument(name, type=str, **params)
@@ -480,7 +480,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         '''
         TODO
         if preloaded pcap
-        Need to pass a choices_function to provide the completion
+        Need to pass a choices_provider to provide the completion
         '''
         assert protocol is not None, protocol
 
@@ -488,7 +488,7 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
         params = {
             'action': "store",
             'help': proto_str + '.stream wireshark id',
-            # 'choices_function': show_range,
+            # 'choices_provider': show_range,
             'descriptive_header': "Test for a header"
         }
         params.update(**kwargs)
@@ -501,18 +501,6 @@ class MpTcpAnalyzerParser(cmd2.argparse_custom.Cmd2ArgumentParser):
             **params
         )
 
-# def my_completer(self, text: str, line: str, begidx: int, endidx: int, parser: Cmd2ArgumentParser):
-#     # Get command line tokens through the one being completed
-#     tokens, _ = self.tokens_for_completion(line, begidx, endidx)
-
-#     # Parse the command line tokens
-#     args = parser.parse_args(tokens)
-
-#     # Do logic to determine what data set we are tab completing against
-#     match_against = ...
-
-#     # Do the tab completion
-#     return utils.basic_complete(text, line, begidx, endidx, match_against)
 def iterative_completer():
     """
     just testing
@@ -688,7 +676,7 @@ def gen_pcap_parser(
             # preload=action_1,
             parser.filter_stream(
                 df_name + 'stream', protocol=protocol, action=retain_stream(df_name,),
-                choices_function=partial(stream_choices, protocol=protocol, df_name=df_name, action=load_action))
+                choices_provider=partial(stream_choices, protocol=protocol, df_name=df_name, action=load_action))
 
         if bitfield & PreprocessingActions.FilterDestination or direction:
             parser.filter_destination(dest=df_name + "_destinations")

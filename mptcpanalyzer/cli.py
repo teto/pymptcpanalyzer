@@ -45,7 +45,7 @@ import pprint
 import textwrap
 from typing import List
 import cmd2
-from cmd2 import with_argparser, with_argparser_and_unknown_args, with_category
+from cmd2 import with_argparser, with_category
 from enum import Enum, auto
 import mptcpanalyzer.pdutils
 import dataclasses
@@ -416,7 +416,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # filter stream should be ok ?
     filter_stream = sf_parser.add_argument(
         "mptcpstream", action="store", type=MpTcpStreamId,
-        choices_method=mptcp_stream_range,
+        choices_provider=mptcp_stream_range,
         help="Equivalent to wireshark mptcp.stream id")
     # TODO for tests only, fix
     # setattr(filter_stream, argparse_completer.ACTION_ARG_CHOICES, [0, 1, 2])
@@ -463,9 +463,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     # TODO use gen_bicap_parser instead
     load_pcap1 = parser.add_argument("pcap1", action="store",
-            completer_method=cmd2.Cmd.path_complete, help="first to load")
+            completer=cmd2.Cmd.path_complete, help="first to load")
     load_pcap2 = parser.add_argument("pcap2", action="store",
-           completer_method=cmd2.Cmd.path_complete, help="2nd pcap.")
+           completer=cmd2.Cmd.path_complete, help="2nd pcap.")
 
     parser.add_argument("tcpstreamid", action="store", type=int,
                         help="tcp.stream id visible in wireshark for pcap1")
@@ -513,9 +513,9 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
                     "in another dataframe. "
     )
 
-    load_pcap1 = parser.add_pcap("pcap1", action="store", completer_method=cmd2.Cmd.path_complete,
+    load_pcap1 = parser.add_pcap("pcap1", action="store", completer=cmd2.Cmd.path_complete,
         help="first to load")
-    load_pcap2 = parser.add_pcap("pcap2", action="store", completer_method=cmd2.Cmd.path_complete,
+    load_pcap2 = parser.add_pcap("pcap2", action="store", completer=cmd2.Cmd.path_complete,
         help="second pcap")
 
     parser.add_argument("mptcpstreamid", action="store", type=mp.MpTcpStreamId, help="to filter")
@@ -593,7 +593,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     )
     # todo should look into choices=interfaces
     live_parser.add_argument("interface", action="store")
-    @with_argparser_and_unknown_args(live_parser)
+    @with_argparser(live_parser, with_unknown_args=True)
     def do_live_analysis(self, args, unknown):
         """
         List this monitor available interfaces
@@ -630,19 +630,20 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     action_stream = summary_parser.filter_stream(
         "tcpstream",
         protocol=mp.Protocol.TCP,
-        choices_method=tcp_stream_range,
+        choices_provider=tcp_stream_range,
         action=mp.parser.retain_stream("pcap"),
     )
     # action_stream = summary_parser.add_argument(
     #     "tcpstream", type=TcpStreamId,
-    #     # choices_method=tcp_stream_range,
+    #     # choices_provider=tcp_stream_range,
     #     action=mp.parser.retain_stream("pcap"),
     #     help="tcp.stream id")
     summary_parser.epilog = inspect.cleandoc('''
         Similar to wireshark's "Follow -> TCP stream"
     ''')
     @is_loaded
-    @with_argparser_and_unknown_args(summary_parser, ns_provider=provide_namespace)
+    @with_argparser(summary_parser, ns_provider=provide_namespace,
+            with_unknown_args=True)
     def do_tcp_summary(self, args, unknown):
         self.poutput("Summary of TCP connection")
         df = self.data
@@ -693,7 +694,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         help="Human-readable dimensions"
     )
     @is_loaded
-    @with_argparser_and_unknown_args(summary_parser, ns_provider=provide_namespace)
+    @with_argparser(summary_parser, ns_provider=provide_namespace,
+        with_unknown_args=True)
     def do_mptcp_summary(self, args, unknown):
         """
         Naive summary contributions of the mptcp connection
@@ -804,7 +806,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     sumext_parser.epilog = inspect.cleandoc("""
         > summary_extended examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0
     """)
-    @with_argparser_and_unknown_args(sumext_parser)
+    @with_argparser(sumext_parser, with_unknown_args=True)
     def do_summary_extended(self, args, unknown):
         """
         Summarize contributions of each subflow
@@ -892,7 +894,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         description="Export a pcap that can be used with wireshark to debug ids"
     )
     load_pcap1 = parser.add_argument("imported_pcap", type=str,
-        completer_method=cmd2.Cmd.path_complete,
+    completer=cmd2.Cmd.path_complete,
         help="Capture file to cleanup.")
     parser.add_argument("exported_pcap", type=str, help="Cleaned up file")
 
@@ -983,7 +985,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     parser.add_argument("--debug", action="store_true", default=False,
         help="Explain decision for every reinjection.")
 
-    @with_argparser_and_unknown_args(parser)
+    @with_argparser(parser, with_unknown_args=True)
     @with_category(CAT_MPTCP)
     def do_qualify_reinjections(self, args, unknown):
         """
@@ -1132,7 +1134,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
             help="Just count reinjections")
 
     @is_loaded
-    @with_argparser_and_unknown_args(reinj_parser, ns_provider=provide_namespace)
+    @with_argparser(reinj_parser, with_unknown_args=True, ns_provider=provide_namespace)
     @with_category(CAT_MPTCP)
     def do_list_reinjections(self, args, unknown):
         """
@@ -1193,7 +1195,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     )
     parser.add_argument(
         "input_file", action="store", type=str,
-        completer_method=cmd2.Cmd.path_complete,
+        completer=cmd2.Cmd.path_complete,
         help="Json file"
     )
     @with_argparser(parser)
@@ -1251,7 +1253,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         To plot one way delays, you need 2 pcaps: from the client and the server side. Then you can run:
         > plot owd tcp examples/client_2_filtered.pcapng 0 examples/server_2_filtered.pcapng 0 --display
     ''')
-    @with_argparser_and_unknown_args(plot_parser)
+    @with_argparser(plot_parser, with_unknown_args=True)
     def do_plot(self, args, unknown):
         """
         global member used by others do_plot members *
