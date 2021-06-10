@@ -15,11 +15,7 @@
     in flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
       # mptcpanalyzer = pkgs.callPackage ./contrib/default.nix {};
-    in rec {
-
-
-    packages.mptcpanalyzer = pkgs.poetry2nix.mkPoetryApplication {
-      projectDir = ./.;
+      
       overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
         # matplotlib = pkgs.python3Packages.matplotlib;
         matplotlib = prev.matplotlib.overrideAttrs (old: {
@@ -29,6 +25,12 @@
         ];
         });
       });
+    in rec {
+
+
+    packages.mptcpanalyzer = pkgs.poetry2nix.mkPoetryApplication {
+      projectDir = ./.;
+      inherit overrides;
     };
     defaultPackage = self.packages."${system}".mptcpanalyzer;
 
@@ -37,6 +39,7 @@
       buildInputs = [
         (pkgs.poetry2nix.mkPoetryEnv {
           projectDir = ./.;
+          inherit overrides;
         })
         pkgs.nodePackages.pyright
         poetry.packages."${system}".poetry
