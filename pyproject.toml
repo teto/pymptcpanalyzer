@@ -19,7 +19,7 @@ bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }
 		# rev = "06d7f353501a62b1413b49cafc61262cc1781fea" }
 stevedore = "*"  # to implement a plugin mechanism
 # 3.3.3 fails to build
-matplotlib = "==3.4.1"  # for plotting
+matplotlib = "==3.3.4"  # for plotting
 pandas = "==1.2.3"
 cmd2 = ">=2.0"  # to improve cmd capabilities
 pixcat = ">=0.1.0"   # optional

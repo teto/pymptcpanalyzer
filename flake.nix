@@ -21,14 +21,13 @@
     packages.mptcpanalyzer = pkgs.poetry2nix.mkPoetryApplication {
       projectDir = ./.;
       overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
-        matplotlib = pkgs.python3Packages.matplotlib;
-        # matplotlib = prev.matplotlib.overrideAttrs (old: {
-        # # see https://github.com/nix-community/poetry2nix/issues/280 as to why
-        # propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
-        #   final.certifi
-        #   qhull
-        # ];
-        # });
+        # matplotlib = pkgs.python3Packages.matplotlib;
+        matplotlib = prev.matplotlib.overrideAttrs (old: {
+        # see https://github.com/nix-community/poetry2nix/issues/280 as to why
+        propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
+          final.certifi
+        ];
+        });
       });
     };
     defaultPackage = self.packages."${system}".mptcpanalyzer;
