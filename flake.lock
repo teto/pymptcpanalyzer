@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1627913399,
+        "narHash": "sha256-hY8g6H2KFL8ownSiFeMOjwPC8P0ueXpCVEbxgda3pko=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "12c64ca55c1014cdc1b16ed5a804aa8576601ff2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1622445595,
@@ -46,7 +62,7 @@
         "type": "github"
       }
     },
-    "poetry": {
+    "poetry2nix": {
       "inputs": {
         "flake-utils": "flake-utils_2",
         "nixpkgs": [
@@ -54,11 +70,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1623160051,
-        "narHash": "sha256-EyetAFv0kmTGnZsJzU5Hf/w9OwLuEWrU7bA4hYA3ilw=",
+        "lastModified": 1633382856,
+        "narHash": "sha256-hYlet806M9xJj4yxf0g5fhDT2IEUVIMAl7sqIeZ8DUM=",
         "owner": "nix-community",
         "repo": "poetry2nix",
-        "rev": "92350882edf748248c5fc59e0721bf8c192bec58",
+        "rev": "705cbfa10e3d9bfed2e59e0256844ae3704dbd7e",
         "type": "github"
       },
       "original": {
@@ -69,9 +85,10 @@
     },
     "root": {
       "inputs": {
+        "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
-        "poetry": "poetry"
+        "poetry2nix": "poetry2nix"
       }
     }
   },

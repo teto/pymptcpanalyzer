@@ -380,11 +380,11 @@ class MpTcpConnection:
             raise MpTcpException("No packet with this mptcp.stream id %r" % mptcpstreamid)
 
         # TODO check for the version
-        print("type(Syn): ", type(TcpFlags.SYN),  type(ds.tcpflags))
+        # print("type(Syn): ", type(TcpFlags.SYN),  type(ds.tcpflags))
         # to work around
         syn_mpcapable_df = ds.copy()
         syn_mpcapable_df.where(ds.tcpflags == TcpFlags.SYN, inplace=True)
-        print ("synmpcapable",  syn_mpcapable_df)
+        # print ("synmpcapable",  syn_mpcapable_df)
         query = ds.tcpflags == (TcpFlags.SYN | TcpFlags.ACK)
         synack_mpcapable_df = ds.copy()
         synack_mpcapable_df.where(query, inplace=True)

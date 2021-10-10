@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mptcpanalyzer"
-version = "0.3.4"
+version = "0.4.0"
 description = "Analyze (multipath) TCP packet captures traces (.pcap)"
 authors = ["Matthieu Coudron"]
 maintainers = ["Matthieu Coudron"]

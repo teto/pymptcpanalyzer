@@ -9,8 +9,8 @@ import cmd2
 import os.path
 import functools
 from functools import partial
-from cmd2.argparse_custom import ChoicesCallable, ATTR_CHOICES_CALLABLE, CompletionItem
-from typing import Iterable, List, Dict, Callable, Optional, Any, Union
+from cmd2.argparse_custom import ChoicesCallable, ATTR_CHOICES_CALLABLE, CompletionItem, set_default_argument_parser_type
+from typing import List, Dict
 from mptcpanalyzer.tshark import TsharkConfig
 from mptcpanalyzer.data import (load_into_pandas, load_merged_streams_into_pandas)
 from mptcpanalyzer import (PreprocessingActions, ConnectionRoles, DestinationChoice,
@@ -689,4 +689,4 @@ def gen_pcap_parser(
     return parser
 
 
-cmd2.set_default_argument_parser(MpTcpAnalyzerParser)
+cmd2.set_default_argument_parser_type(MpTcpAnalyzerParser)

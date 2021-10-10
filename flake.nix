@@ -4,26 +4,23 @@
   inputs = {
     # inputs.nixpkgs.follows = "nixpkgs";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    poetry = {
+    poetry2nix = {
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry }: let
+  outputs = { self, nixpkgs, flake-utils, poetry2nix, ... }: let
     in flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      # mptcpanalyzer = pkgs.callPackage ./contrib/default.nix {};
-      
+
       overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
-        # matplotlib = pkgs.python3Packages.matplotlib;
-        matplotlib = prev.matplotlib.overrideAttrs (old: {
-        # see https://github.com/nix-community/poetry2nix/issues/280 as to why
-        propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
-          final.certifi
-        ];
-        });
+        matplotlib = pkgs.python3Packages.matplotlib;
       });
     in rec {
 
@@ -32,28 +29,18 @@
       projectDir = ./.;
       inherit overrides;
     };
-    defaultPackage = self.packages."${system}".mptcpanalyzer;
+    defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-    devShell = pkgs.mkShell {
+    devShell = defaultPackage.overrideAttrs(oa: {
 
-      buildInputs = [
-        (pkgs.poetry2nix.mkPoetryEnv {
-          projectDir = ./.;
-          inherit overrides;
-        })
+      propagatedBuildInputs = oa.propagatedBuildInputs ++ [
         pkgs.nodePackages.pyright
-        poetry.packages."${system}".poetry
+        # poetry2nix.packages."${system}".poetry
       ];
 
-      # shellHook ?
-    };
-    # devShell = pkgs.mkShell {
-    #   name = "dev-shell";
-    #   buildInputs = with pkgs; [
-    #     defaultPackage.inputDerivation
-    #     pkgs.nodePackages.pyright
-    #     poetry.packages."${system}".poetry
-    #   ];
-    # };
+      postShellHook = ''
+        export PYTHONPATH="$PWD:$PYTHONPATH"
+      '';
+    });
   });
 }
