@@ -40,10 +40,11 @@ def _load_list(x, field="set field to debug"):
     if x is None or len(x) == 0:
         return np.nan
 
-    if x[0] != "[":
-        x = "[" + x + "]"
-    #if (x is not None and x != '') else np.nan
-    res = ast.literal_eval(x)
+    #if x[0] != "[":
+    #    x = "[" + x + "]"
+    ##if (x is not None and x != '') else np.nan
+    #res = ast.literal_eval(x)
+    res = ",".split(x)
 
     return res
 
@@ -96,13 +97,10 @@ class TsharkField(Field):
     pass
 
 class FieldDate(TsharkField):
-    # date_parser: Any
-    # pass
     def __post_init__(self, converter):
         self.converter = converter
 
 class FieldList(TsharkField):
-    # date_parser: Any
     def __post_init__(self, ):
         print("Current value for self.convert=", self.converter)
         self.converter = _load_list(self.converter)
@@ -372,15 +370,12 @@ class TsharkConfig:
         # err = stderr.decode("UTF-8")
         return proc
 
-    # @staticmethod
     def list_interfaces(self):
         cmd = [
             TSHARK_BIN,
             "--list-interfaces",
         ]
-        import io
-        # with io.FileIO() as out:
-        code, out, stderr = self.run_tshark(cmd, subprocess.PIPE)
+        _, out, _ = self.run_tshark(cmd, subprocess.PIPE)
         # print("res", code)
         # print("stderr", stderr)
         # print(out)
@@ -417,7 +412,7 @@ class TsharkConfig:
         except subprocess.CalledProcessError as e:
             logging.exception("An error happened while running tshark")
             print(e.cmd)
-            return e.returncode, out, e.stderr
+            return e.returncode, "", e.stderr
 
     @property
     def fields(self):

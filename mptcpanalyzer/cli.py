@@ -4,8 +4,6 @@
 
 # Copyright 2015-2016 Université Pierre et Marie Curie
 # Copyright 2017-2019 IIJ Initiative for Internet Japan
-#
-# Matthieu coudron, coudron@iij.ad.jp
 """
 # the PYTHON_ARGCOMPLETE_OK line a few lines up can enable shell completion
 for argparse scripts as explained in
@@ -41,13 +39,10 @@ import stevedore
 import pandas as pd
 import shlex
 import traceback
-import pprint
 import textwrap
 from typing import List
 import cmd2
 from cmd2 import with_argparser, with_category
-from enum import Enum, auto
-import mptcpanalyzer.pdutils
 import dataclasses
 from colorama import Fore, Back
 from mptcpanalyzer.debug import debug_dataframe
@@ -126,7 +121,6 @@ def is_loaded(f):
             return f(self, *args)
         else:
             raise mp.MpTcpException("Please load a pcap with `load_pcap` first")
-        return
     return wrapped
 
 
@@ -171,9 +165,8 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
 
     def __init__(
         self, cfg: MpTcpAnalyzerConfig,
-        human_readable,
-        stdin=sys.stdin,
-        **kwargs
+        human_readable: bool,
+        stdin=sys.stdin
     ) -> None:
         """
         Args:
@@ -297,7 +290,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         # is available as params.statement
         return params
 
-    def do_checkhealth(self, args):
+    def do_checkhealth(self, _):
         if sys.hexversion <= 0x03070000:
             self.perror("This program requires a newer python than %s" % sys.version)
 
@@ -371,7 +364,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
         print(">>> %s" % line)
         return line
 
-    def cmdloop(self, intro=None):
+    def cmdloop(self,):
         """
         overrides baseclass just to be able to catch exceptions
         """
@@ -580,7 +573,7 @@ class MpTcpAnalyzerCmdApp(cmd2.Cmd):
     # summary_parser = MpTcpAnalyzerParser(
     #     description="Prints a summary of the mptcp connection"
     # )
-    def do_list_interfaces(self, args):
+    def do_list_interfaces(self, _):
         """
         List this monitor available interfaces
         """
@@ -1446,7 +1439,7 @@ def main(arguments: List[str] = None):
     log.debug("cmd2 version: %s", cmd2.__version__)
 
     try:
-        analyzer = MpTcpAnalyzerCmdApp(config, **vars(args))
+        analyzer = MpTcpAnalyzerCmdApp(config, args.human_readable )
 
         # enable cmd2 debug only when required
         # analyzer.debug = LOG_LEVELS[args.debug] <= logging.DEBUG

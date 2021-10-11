@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mptcpanalyzer"
-version = "0.3.4"
+version = "0.4.0"
 description = "Analyze (multipath) TCP packet captures traces (.pcap)"
 authors = ["Matthieu Coudron"]
 maintainers = ["Matthieu Coudron"]
@@ -12,7 +12,7 @@ homepage = "http://github.com/teto/mptcpanalyzer"
 include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<4"
 # to use human-readable dimensions
 # branch = "fix_check"
 bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }
@@ -32,7 +32,8 @@ pygobject = "3.36.1"
 
 [tool.poetry.dev-dependencies]
 
-mypy = "*"
+# "0.901" would break
+# mypy = "0.812"
 
 [tool.poetry.scripts]
 mptcpanalyzer = 'mptcpanalyzer.cli:main'

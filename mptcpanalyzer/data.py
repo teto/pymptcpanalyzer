@@ -269,7 +269,7 @@ def load_merged_streams_into_pandas(
                     return gfields
 
                 # reltime discarded on save ?
-                tshark_config.fields.pop("reltime")
+                tshark_config.fields.pop("reltime", None)
                 gfields = _gen_fields(tshark_config.fields)
                 merge_dtypes = get_dtypes(gfields)
                 # log.log(mp.TRACE, "Using gfields %s" % pp.pformat(gfields))
@@ -1072,9 +1072,13 @@ def map_mptcp_connection(
     results: List[MpTcpMapping] = []
 
     for mptcpstream2 in rawdf2[_sender("mptcpstream")].dropna().unique():
-        other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
-        mapping = map_mptcp_connection_from_known_streams(main, other)
-        results.append(mapping)
+        try:
+            other = MpTcpConnection.build_from_dataframe(rawdf2, mptcpstream2)
+            mapping = map_mptcp_connection_from_known_streams(main, other)
+            results.append(mapping)
+        except Exception as e:
+            log.warning("Error while analyzing mptcp.stream %d:\n%s",
+                        mptcpstream2, e)
 
     results.sort(key=lambda x: x.score, reverse=True)
 
@@ -1141,7 +1145,7 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
         for reinjection in reinjected_packets.itertuples():
             # here we look at all the reinjected packets
 
-            # print("full reinjection %r" % (reinjection,))
+            print("full reinjection %r" % (reinjection,))
 
             # if there are packets in _receiver(reinjected_in), it means the reinjections
             # arrived before other similar segments and thus these segments are useless
@@ -1154,11 +1158,20 @@ def classify_reinjections(df_all: pd.DataFrame) -> pd.DataFrame:
                         reinjection.packetid)
                 continue
 
-            # print("%r" % reinjection.reinjection_of)
+            print("%r" % reinjection.reinjection_of)
             initial_packetid = reinjection.reinjection_of[0]
-            # print("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
+            log.debug("initial_packetid = %r %s" % (initial_packetid, type(initial_packetid)))
 
-            original_packet = df_all.loc[df_all.packetid == initial_packetid].iloc[0]
+            original_packets = df_all.loc[df_all.packetid == initial_packetid]
+
+            print("df_all.packetid", original_packets)
+            debug_dataframe(df_all, "debug", usecols=[_sender("reinjection_of")])
+            # print(original_packets["packetid"])
+            original_packet = None
+            if original_packets is None:
+                raise Exception("packets could not be found")
+
+            original_packet = original_packets.iloc[0]
 
             if original_packet.merge_status != "both":
                 # TODO count missed classifications ?
