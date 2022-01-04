@@ -19,6 +19,11 @@
 
 <!-- END-MARKDOWN-TOC -->
 
+
+**WARNING: this version is deprecated in favor of this rewrite in haskell https://github.com/teto/mptcpanalyzer.
+I dont intend to pursue development here but can merge eventual PRs.
+**
+
 Presentation
 ===
 
