@@ -15,7 +15,7 @@ include = ["CHANGELOG.md"]
 python = ">=3.8,<4"
 # to use human-readable dimensions
 # branch = "fix_check"
-bitmath = { git = "https://github.com/teto/bitmath.git", branch = "fix_check" }
+bitmath = { git = "https://github.com/tbielawa/bitmath.git" }
 		# rev = "06d7f353501a62b1413b49cafc61262cc1781fea" }
 stevedore = "*"  # to implement a plugin mechanism
 # 3.3.3 fails to build

@@ -31,9 +31,8 @@ develop = false
 
 [package.source]
 type = "git"
-url = "https://github.com/teto/bitmath.git"
-reference = "fix_check"
-resolved_reference = "06d7f353501a62b1413b49cafc61262cc1781fea"
+url = "https://github.com/tbielawa/bitmath.git"
+resolved_reference = "f72a79b616ddb7dc48ea7356514fc7739e1074a9"
 
 [[package]]
 name = "blessed"
